@@ -227,7 +227,7 @@ export async function seed(db: SeedDb): Promise<void> {
       playerId: ace.id,
       ignSnapshot: 'Ace',
       displayNameSnapshot: 'Ace',
-      kills: 9,
+      kills: 13,
       runBr: 5.7,
       patch: '2.52',
       status: 'verified',

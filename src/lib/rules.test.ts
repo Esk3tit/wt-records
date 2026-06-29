@@ -41,28 +41,30 @@ describe('qualifyingThreshold', () => {
 })
 
 describe('qualifies', () => {
-  const classes: Array<VehicleClass> = [
-    'light',
-    'medium',
-    'heavy',
-    'spg',
-    'spaa',
+  // The five GRB-configured ground classes, with their baselines.
+  const configured: Array<[VehicleClass, number]> = [
+    ['light', 8],
+    ['medium', 10],
+    ['heavy', 10],
+    ['spg', 7],
+    ['spaa', 6],
   ]
-  it.each(classes)('normal %s: meets-or-exceeds the class min', (cls) => {
-    const bar = grb.minKillsByClass[cls]!
+  it.each(configured)('normal %s: meets-or-exceeds the class min %d', (cls, bar) => {
     expect(qualifies(bar - 1, cls, false, grb)).toBe(false)
     expect(qualifies(bar, cls, false, grb)).toBe(true)
     expect(qualifies(bar + 1, cls, false, grb)).toBe(true)
+  })
+
+  // The rest of the VehicleClass surface has no GRB baseline → never qualifies.
+  const unconfigured: Array<VehicleClass> = ['fighter', 'attacker', 'bomber', 'heli', 'other']
+  it.each(unconfigured)('unconfigured %s never qualifies (no baseline)', (cls) => {
+    expect(qualifies(99, cls, false, grb)).toBe(false)
   })
 
   it('difficult vehicle uses the lower difficult bar', () => {
     // heavy normally needs 10, but as a difficult vehicle only needs 5
     expect(qualifies(5, 'heavy', true, grb)).toBe(true)
     expect(qualifies(4, 'heavy', true, grb)).toBe(false)
-  })
-
-  it('does not qualify when no threshold is configured', () => {
-    expect(qualifies(99, 'fighter', false, grb)).toBe(false)
   })
 })
 

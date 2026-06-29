@@ -1,17 +1,8 @@
 // The record rules, as pure functions (PRD §7). The DB stores only the
 // parameters (mode_min_kills + modes.difficultMinKills); evaluation lives here.
+import type { VehicleClass } from '#/lib/vehicle-classes'
 
-export type VehicleClass =
-  | 'light'
-  | 'medium'
-  | 'heavy'
-  | 'spg'
-  | 'spaa'
-  | 'fighter'
-  | 'attacker'
-  | 'bomber'
-  | 'heli'
-  | 'other'
+export type { VehicleClass } from '#/lib/vehicle-classes'
 
 export interface ModeThresholds {
   /** Qualifying min kills per class for a mode (from `mode_min_kills`). */

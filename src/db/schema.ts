@@ -16,21 +16,12 @@ import {
 } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import { authUsers, anonRole } from 'drizzle-orm/supabase'
+import { VEHICLE_CLASSES } from '#/lib/vehicle-classes'
 
 /* ── Enums (stable, closed sets) ─────────────────────────────── */
 export const branch = pgEnum('branch', ['ground', 'air', 'naval'])
-export const vehicleClass = pgEnum('vehicle_class', [
-  'light',
-  'medium',
-  'heavy',
-  'spg',
-  'spaa',
-  'fighter',
-  'attacker',
-  'bomber',
-  'heli',
-  'other',
-])
+// Values derive from VEHICLE_CLASSES so the enum and rule logic can't desync.
+export const vehicleClass = pgEnum('vehicle_class', VEHICLE_CLASSES)
 export const recordStatus = pgEnum('record_status', [
   'verified',
   'pending',
