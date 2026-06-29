@@ -1,5 +1,5 @@
 {
-  "id": "60303b66-2c9f-433e-93ab-e7fcf3c3571d",
+  "id": "14a2cd37-54a9-4006-94db-2257f55a50a1",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -297,14 +297,14 @@
           "name": "kind",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "'ign'"
         },
         "source": {
           "name": "source",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "'ingame'"
         },
         "first_seen": {
@@ -670,14 +670,14 @@
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
-          "default": "'verified'"
+          "default": "'pending'"
         },
         "is_current": {
           "name": "is_current",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "default": true
+          "default": false
         },
         "imported_from": {
           "name": "imported_from",
@@ -1026,28 +1026,28 @@
           "name": "is_premium",
           "type": "boolean",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": false
         },
         "is_squadron": {
           "name": "is_squadron",
           "type": "boolean",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": false
         },
         "is_event": {
           "name": "is_event",
           "type": "boolean",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": false
         },
         "is_removed": {
           "name": "is_removed",
           "type": "boolean",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": false
         },
         "image_url": {
@@ -1060,7 +1060,7 @@
           "name": "is_difficult",
           "type": "boolean",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": false
         },
         "last_synced_at": {

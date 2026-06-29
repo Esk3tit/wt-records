@@ -1,6 +1,6 @@
 {
-  "id": "4878c6eb-b241-4916-b6c4-8f699eb601a5",
-  "prevId": "60303b66-2c9f-433e-93ab-e7fcf3c3571d",
+  "id": "0276b8ae-3130-48fa-8c7a-13ae85f3aea2",
+  "prevId": "14a2cd37-54a9-4006-94db-2257f55a50a1",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -297,14 +297,14 @@
           "name": "kind",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "'ign'"
         },
         "source": {
           "name": "source",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "'ingame'"
         },
         "first_seen": {
@@ -670,14 +670,14 @@
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
-          "default": "'verified'"
+          "default": "'pending'"
         },
         "is_current": {
           "name": "is_current",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "default": true
+          "default": false
         },
         "imported_from": {
           "name": "imported_from",
@@ -1026,28 +1026,28 @@
           "name": "is_premium",
           "type": "boolean",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": false
         },
         "is_squadron": {
           "name": "is_squadron",
           "type": "boolean",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": false
         },
         "is_event": {
           "name": "is_event",
           "type": "boolean",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": false
         },
         "is_removed": {
           "name": "is_removed",
           "type": "boolean",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": false
         },
         "image_url": {
@@ -1060,7 +1060,7 @@
           "name": "is_difficult",
           "type": "boolean",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": false
         },
         "last_synced_at": {

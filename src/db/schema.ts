@@ -89,12 +89,12 @@ export const vehicles = pgTable(
     branch: branch('branch').notNull(),
     class: vehicleClass('class').notNull(),
     rank: integer('rank'),
-    isPremium: boolean('is_premium').default(false),
-    isSquadron: boolean('is_squadron').default(false),
-    isEvent: boolean('is_event').default(false),
-    isRemoved: boolean('is_removed').default(false),
+    isPremium: boolean('is_premium').notNull().default(false),
+    isSquadron: boolean('is_squadron').notNull().default(false),
+    isEvent: boolean('is_event').notNull().default(false),
+    isRemoved: boolean('is_removed').notNull().default(false),
     imageUrl: text('image_url'),
-    isDifficult: boolean('is_difficult').default(false), // manual rules overlay
+    isDifficult: boolean('is_difficult').notNull().default(false), // manual rules overlay
     lastSyncedAt: timestamp('last_synced_at', { withTimezone: true }),
   },
   (t) => [
@@ -139,8 +139,8 @@ export const playerAliases = pgTable(
       .references(() => players.id)
       .notNull(),
     name: text('name').notNull(),
-    kind: text('kind').default('ign'), // "ign" | "display"
-    source: text('source').default('ingame'), // "migration"|"ingame"|"submission"
+    kind: text('kind').notNull().default('ign'), // "ign" | "display"
+    source: text('source').notNull().default('ingame'), // "migration"|"ingame"|"submission"
     firstSeen: timestamp('first_seen', { withTimezone: true }).defaultNow(),
     lastSeen: timestamp('last_seen', { withTimezone: true }).defaultNow(),
   },
@@ -165,8 +165,10 @@ export const records = pgTable(
     kills: integer('kills').notNull(),
     runBr: numeric('run_br', { precision: 3, scale: 1, mode: 'number' }),
     patch: text('patch'),
-    status: recordStatus('status').notNull().default('verified'),
-    isCurrent: boolean('is_current').notNull().default(true),
+    // Safe defaults: a bare insert is an unverified, non-current submission.
+    // The import/seed/mod-accept paths set verified + current explicitly.
+    status: recordStatus('status').notNull().default('pending'),
+    isCurrent: boolean('is_current').notNull().default(false),
     importedFrom: text('imported_from'), // "sheet" for migrated rows
     submittedById: uuid('submitted_by_id').references(() => authUsers.id, {
       onDelete: 'set null',

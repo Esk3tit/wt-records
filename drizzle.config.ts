@@ -8,5 +8,6 @@ export default defineConfig({
   schema: './src/db/schema.ts',
   out: './drizzle',
   schemaFilter: ['public'],
-  dbCredentials: { url: process.env.DATABASE_URL ?? '' },
+  // Not needed for `generate` (offline); required by `migrate`/`push`.
+  dbCredentials: { url: process.env.DATABASE_URL! },
 })

@@ -173,6 +173,7 @@ export async function seed(db: SeedDb): Promise<void> {
     kills: 12,
     runBr: 3.7,
     patch: '2.51',
+    status: 'verified',
     isCurrent: false,
     importedFrom: 'sheet',
   })
@@ -187,6 +188,7 @@ export async function seed(db: SeedDb): Promise<void> {
       kills: 14,
       runBr: 3.7,
       patch: '2.53',
+      status: 'verified',
       isCurrent: true,
       importedFrom: 'sheet',
     })
@@ -202,6 +204,8 @@ export async function seed(db: SeedDb): Promise<void> {
       kills: 11,
       runBr: 6.7,
       patch: '2.53',
+      status: 'verified',
+      isCurrent: true,
       importedFrom: 'sheet',
     },
     {
@@ -213,6 +217,8 @@ export async function seed(db: SeedDb): Promise<void> {
       kills: 8,
       runBr: 6.7,
       patch: '2.53',
+      status: 'verified',
+      isCurrent: true,
       importedFrom: 'sheet',
     },
     {
@@ -224,6 +230,8 @@ export async function seed(db: SeedDb): Promise<void> {
       kills: 9,
       runBr: 5.7,
       patch: '2.52',
+      status: 'verified',
+      isCurrent: true,
       importedFrom: 'sheet',
     },
   ])

@@ -65,6 +65,8 @@ describe('records constraints (committed migrations replayed on PGlite)', () => 
         playerId: ply.id,
         ignSnapshot: 'Ace',
         kills: 12,
+        status: 'verified',
+        isCurrent: true,
       })
     expect(await t.db.select().from(records)).toHaveLength(1)
   })
@@ -76,6 +78,8 @@ describe('records constraints (committed migrations replayed on PGlite)', () => 
       mode: 'grb',
       playerId: ply.id,
       ignSnapshot: 'Ace',
+      status: 'verified' as const,
+      isCurrent: true,
     }
     await t.db.insert(records).values({ ...base, kills: 12 })
     await expect(
@@ -90,6 +94,7 @@ describe('records constraints (committed migrations replayed on PGlite)', () => 
       mode: 'grb',
       playerId: ply.id,
       ignSnapshot: 'Ace',
+      status: 'verified' as const,
     }
     await t.db.insert(records).values({ ...base, kills: 10, isCurrent: false })
     await t.db.insert(records).values({ ...base, kills: 12, isCurrent: true })
@@ -135,6 +140,8 @@ describe('records constraints (committed migrations replayed on PGlite)', () => 
         playerId: ply.id,
         ignSnapshot: 'Ace',
         kills: 12,
+        status: 'verified',
+        isCurrent: true,
       })
     await t.db
       .insert(records)
@@ -144,6 +151,8 @@ describe('records constraints (committed migrations replayed on PGlite)', () => 
         playerId: ply.id,
         ignSnapshot: 'Ace',
         kills: 9,
+        status: 'verified',
+        isCurrent: true,
       })
     expect(await t.db.select().from(records)).toHaveLength(2)
   })
