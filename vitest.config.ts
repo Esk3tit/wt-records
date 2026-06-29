@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
 // Two projects in one repo: a jsdom unit project (React/components/pure logic)
@@ -14,6 +14,9 @@ export default defineConfig({
           name: 'unit',
           environment: 'jsdom',
           include: ['src/**/*.test.{ts,tsx}'],
+          // Don't double-run integration tests colocated in src/ (they belong to
+          // the node `integration` project); keep Vitest's default excludes.
+          exclude: [...configDefaults.exclude, 'src/**/*.integration.test.{ts,tsx}'],
           setupFiles: ['./tests/setup.unit.ts'],
         },
       },
