@@ -193,6 +193,8 @@ export const records = pgTable(
       'rec_current_verified_ck',
       sql`not is_current or status = 'verified'`,
     ),
+    // a record is a kill achievement: kills must be positive:
+    check('rec_kills_positive_ck', sql`kills > 0`),
     // anon (Realtime) sees ONLY verified + current rows (auto-enables RLS):
     pgPolicy('records_anon_select_current', {
       as: 'permissive',

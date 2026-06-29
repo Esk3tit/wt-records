@@ -31,6 +31,13 @@ describe('qualifyingThreshold', () => {
   it('is null when the class has no configured minimum', () => {
     expect(qualifyingThreshold('fighter', false, grb)).toBeNull()
   })
+
+  it('is null for a difficult vehicle when neither the override nor the class baseline is set', () => {
+    // difficult, but the mode has no difficult override AND the class has no minimum
+    expect(
+      qualifyingThreshold('fighter', true, { ...grb, difficultMinKills: null }),
+    ).toBeNull()
+  })
 })
 
 describe('qualifies', () => {

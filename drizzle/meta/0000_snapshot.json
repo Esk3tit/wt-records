@@ -1,5 +1,5 @@
 {
-  "id": "14a2cd37-54a9-4006-94db-2257f55a50a1",
+  "id": "0bd87a84-a894-45ff-84ca-5776711ceddc",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -887,6 +887,10 @@
         "rec_current_verified_ck": {
           "name": "rec_current_verified_ck",
           "value": "not is_current or status = 'verified'"
+        },
+        "rec_kills_positive_ck": {
+          "name": "rec_kills_positive_ck",
+          "value": "kills > 0"
         }
       },
       "isRLSEnabled": false

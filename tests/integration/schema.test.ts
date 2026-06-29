@@ -156,4 +156,17 @@ describe('records constraints (committed migrations replayed on PGlite)', () => 
       })
     expect(await t.db.select().from(records)).toHaveLength(2)
   })
+
+  it('rejects a non-positive kill count', async () => {
+    const { veh, ply } = await seedBaseline()
+    await expect(
+      t.db.insert(records).values({
+        vehicleId: veh.id,
+        mode: 'grb',
+        playerId: ply.id,
+        ignSnapshot: 'Ace',
+        kills: 0,
+      }),
+    ).rejects.toThrow()
+  })
 })

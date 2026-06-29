@@ -99,7 +99,8 @@ CREATE TABLE "records" (
 	"submitted_at" timestamp with time zone DEFAULT now(),
 	"verified_at" timestamp with time zone,
 	"verified_by_id" uuid,
-	CONSTRAINT "rec_current_verified_ck" CHECK (not is_current or status = 'verified')
+	CONSTRAINT "rec_current_verified_ck" CHECK (not is_current or status = 'verified'),
+	CONSTRAINT "rec_kills_positive_ck" CHECK (kills > 0)
 );
 --> statement-breakpoint
 ALTER TABLE "records" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
