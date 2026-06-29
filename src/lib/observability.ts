@@ -1,4 +1,5 @@
 import { publicEnv } from '#/lib/env'
+import type { PublicEnv } from '#/lib/env'
 
 export interface ObservabilityStatus {
   sentry: boolean
@@ -7,9 +8,10 @@ export interface ObservabilityStatus {
 
 // Inert seam. The real Sentry + PostHog SDKs and the consent-gated session
 // replay are wired in PR3 (PRD §5); until keys are provisioned this no-ops.
-export function initObservability(): ObservabilityStatus {
+// `env` is injectable so the key-present/absent branches are testable.
+export function initObservability(env: PublicEnv = publicEnv): ObservabilityStatus {
   return {
-    sentry: Boolean(publicEnv.sentryDsn),
-    posthog: Boolean(publicEnv.posthogKey),
+    sentry: Boolean(env.sentryDsn),
+    posthog: Boolean(env.posthogKey),
   }
 }

@@ -5,6 +5,6 @@ import { Brand } from '#/components/brand'
 describe('Brand', () => {
   it('renders the WT Records wordmark', () => {
     render(<Brand />)
-    expect(screen.getByText(/WT.RECORDS/)).toBeDefined()
+    expect(screen.getByText('WT·RECORDS')).toBeDefined()
   })
 })

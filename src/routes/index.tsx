@@ -10,8 +10,8 @@ function Home() {
         <Brand />
       </h1>
       <p className="mt-4 text-lg">
-        Public world-record registry for War Thunder. Routes and data land in
-        PR2/PR3.
+        Public world-record registry for War Thunder. More routes and data are
+        coming soon.
       </p>
     </div>
   )

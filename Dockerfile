@@ -15,6 +15,9 @@ FROM node:24-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 # Nitro's node-server output is self-contained; no node_modules needed.
-COPY --from=build /app/.output ./.output
+COPY --from=build --chown=node:node /app/.output ./.output
+# Run as the image's non-root user.
+USER node
 # Nitro honors $PORT (set by Railway); defaults to 3000 locally.
+EXPOSE 3000
 CMD ["node", "./.output/server/index.mjs"]
