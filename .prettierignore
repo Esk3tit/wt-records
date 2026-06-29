@@ -1,0 +1,12 @@
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+bun.lock
+
+# Source-of-truth docs — owned prose, don't reformat
+GRB-Records-PRD.md
+WT-Records-Build-Handoff.md
+CONTEXT.md
+AGENTS.md
+CLAUDE.md
+docs/
