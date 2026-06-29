@@ -29,7 +29,7 @@ bunx @tanstack/cli@latest create wt-records \
   --no-examples --deployment railway
 ```
 
-> Local database: Phase 2+ work runs against a local Supabase stack (`supabase start`, Docker). PR1 needs no database — `bun run test` uses in-process PGlite.
+> Local database: PR1 needs none — `bun run test` runs pure logic plus a node smoke test, no DB. PGlite-backed integration tests arrive in PR2; Phase 2+ dev runs against a local Supabase stack (`supabase start`, Docker).
 
 ## Scripts
 
