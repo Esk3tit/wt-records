@@ -6,10 +6,10 @@ Public, server-rendered world-record registry & leaderboard for War Thunder — 
 
 ## Source of truth
 
-- **[`GRB-Records-PRD.md`](./GRB-Records-PRD.md)** — the product spec (locked decisions).
-- **[`WT-Records-Build-Handoff.md`](./WT-Records-Build-Handoff.md)** — the build runbook (PR sequence).
 - **[`CONTEXT.md`](./CONTEXT.md)** — domain glossary (ubiquitous language).
 - **[`docs/adr/`](./docs/adr/)** — architecture decision records.
+
+The product spec (PRD) and build handoff are maintained outside the repo (not committed).
 
 ## Quick start
 
