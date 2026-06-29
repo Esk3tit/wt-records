@@ -1,0 +1,9 @@
+# Deny-by-default RLS; service-role SSR; anon sees only verified+current
+
+Row-Level Security is enabled on **every** public table. We grant exactly one `anon` policy: `SELECT` on `records` where `status = 'verified' AND is_current`. All server-side reads (SSR loaders, the importer, `/admin`) go through Drizzle on the **service-role / direct-Postgres connection, which bypasses RLS**; the Supabase *browser* client (which authenticates as `anon`) is used only for Realtime.
+
+**Why:** §5/§9.2 require that the public site is fully anonymous and that unverified or non-current records can never leak to browser subscribers. Enabling RLS on a table with no matching policy denies that role entirely, so deny-by-default means a stray use of the anon key against any other table fails closed instead of exposing data. The single `records` policy mirrors the `is_current ⇒ status='verified'` CHECK constraint, so the row-exposure rule and the data invariant agree.
+
+**Considered and rejected:** enabling RLS only on `records` (less defense-in-depth — any other table reached by the anon key would be wide open) and deferring RLS to a later PR (the exposure rule would ship after the schema it protects). Authored via Drizzle's first-class `pgPolicy` / `.enableRLS()` (drizzle-orm ≥ 0.36), so the policy DDL lives in the committed migration, not hand-written SQL.
+
+**Consequence:** anything the browser must read live has to be added as an explicit `anon` policy (and to the `supabase_realtime` publication) — a deliberate, auditable step, not a default.
