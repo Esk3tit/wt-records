@@ -186,7 +186,7 @@ export const records = pgTable(
     ),
     // a record is a kill achievement: kills must be positive:
     check('rec_kills_positive_ck', sql`kills > 0`),
-    // anon (Realtime) sees ONLY verified + current rows (auto-enables RLS):
+    // anon (Realtime) sees ONLY verified + current rows.
     pgPolicy('records_anon_select_current', {
       as: 'permissive',
       for: 'select',
@@ -194,7 +194,7 @@ export const records = pgTable(
       using: sql`status = 'verified' and is_current`,
     }),
   ],
-)
+).enableRLS() // explicit (consistent with every table) so the snapshot reflects RLS
 
 export const recordProof = pgTable('record_proof', {
   id: integer('id').primaryKey().generatedAlwaysAsIdentity(),

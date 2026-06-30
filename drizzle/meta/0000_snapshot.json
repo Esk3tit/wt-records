@@ -1,5 +1,5 @@
 {
-  "id": "0bd87a84-a894-45ff-84ca-5776711ceddc",
+  "id": "be463642-dff8-4086-90fe-437e5ecd3bf2",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -893,7 +893,7 @@
           "value": "kills > 0"
         }
       },
-      "isRLSEnabled": false
+      "isRLSEnabled": true
     },
     "public.vehicle_br": {
       "name": "vehicle_br",
