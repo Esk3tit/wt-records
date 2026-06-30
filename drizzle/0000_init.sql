@@ -78,7 +78,8 @@ CREATE TABLE "record_proof" (
 	"kind" "proof_kind" NOT NULL,
 	"storage_path" text,
 	"original_url" text,
-	"sort" integer DEFAULT 0
+	"sort" integer DEFAULT 0 NOT NULL,
+	CONSTRAINT "proof_has_location_ck" CHECK (storage_path is not null or original_url is not null)
 );
 --> statement-breakpoint
 ALTER TABLE "record_proof" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint

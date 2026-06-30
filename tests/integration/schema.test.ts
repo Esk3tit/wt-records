@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { freshDb } from './pglite'
 import type { TestDb } from './pglite'
-import { modes, nations, players, records, vehicles } from '#/db/schema'
+import { modes, nations, players, recordProof, records, vehicles } from '#/db/schema'
 
 let t: TestDb
 
@@ -167,6 +167,25 @@ describe('records constraints (committed migrations replayed on PGlite)', () => 
         ignSnapshot: 'Ace',
         kills: 0,
       }),
+    ).rejects.toThrow()
+  })
+
+  it('rejects a proof row with neither a storage path nor a source URL', async () => {
+    const { veh, ply } = await seedBaseline()
+    const [rec] = await t.db
+      .insert(records)
+      .values({
+        vehicleId: veh.id,
+        mode: 'grb',
+        playerId: ply.id,
+        ignSnapshot: 'Ace',
+        kills: 12,
+        status: 'verified',
+        isCurrent: true,
+      })
+      .returning()
+    await expect(
+      t.db.insert(recordProof).values({ recordId: rec.id, kind: 'scoreboard' }),
     ).rejects.toThrow()
   })
 })

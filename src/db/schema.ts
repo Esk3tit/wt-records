@@ -196,16 +196,26 @@ export const records = pgTable(
   ],
 ).enableRLS() // explicit (consistent with every table) so the snapshot reflects RLS
 
-export const recordProof = pgTable('record_proof', {
-  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
-  recordId: integer('record_id')
-    .references(() => records.id)
-    .notNull(),
-  kind: proofKind('kind').notNull(), // incl. "video"
-  storagePath: text('storage_path'), // Supabase Storage key
-  originalUrl: text('original_url'), // source Imgur/Discord URL
-  sort: integer('sort').default(0),
-}).enableRLS()
+export const recordProof = pgTable(
+  'record_proof',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    recordId: integer('record_id')
+      .references(() => records.id)
+      .notNull(),
+    kind: proofKind('kind').notNull(), // incl. "video"
+    storagePath: text('storage_path'), // Supabase Storage key
+    originalUrl: text('original_url'), // source Imgur/Discord URL
+    sort: integer('sort').notNull().default(0),
+  },
+  () => [
+    // a proof row must reference something — a Storage key and/or a source URL:
+    check(
+      'proof_has_location_ck',
+      sql`storage_path is not null or original_url is not null`,
+    ),
+  ],
+).enableRLS()
 
 export const profiles = pgTable('profiles', {
   id: uuid('id')

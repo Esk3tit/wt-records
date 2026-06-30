@@ -1,5 +1,5 @@
 {
-  "id": "be463642-dff8-4086-90fe-437e5ecd3bf2",
+  "id": "86068bdb-62fa-4ce1-a59f-ad853d24f1de",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -569,7 +569,7 @@
           "name": "sort",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": 0
         }
       },
@@ -592,7 +592,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "proof_has_location_ck": {
+          "name": "proof_has_location_ck",
+          "value": "storage_path is not null or original_url is not null"
+        }
+      },
       "isRLSEnabled": true
     },
     "public.records": {
