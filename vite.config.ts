@@ -11,10 +11,10 @@ const config = defineConfig({
   resolve: { tsconfigPaths: true },
   plugins: [
     devtools(),
-    nitro(),
-    tailwindcss(),
     tanstackStart(),
     viteReact(),
+    tailwindcss(),
+    nitro(),
   ],
 })
 
