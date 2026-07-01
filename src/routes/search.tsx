@@ -4,11 +4,11 @@ import { db } from '#/db'
 import { search } from '#/db/queries'
 
 // Vehicles aren't mode-scoped; link a result to its branch's realistic-battles
-// mode so the page can resolve a record (ground→GRB, air→ARB).
-const BRANCH_MODE: Record<'ground' | 'air' | 'naval', string> = {
+// mode. Branches without a mode yet (naval) aren't linked — the vehicle route
+// is branch-checked and would 404.
+const BRANCH_MODE: Partial<Record<'ground' | 'air' | 'naval', string>> = {
   ground: 'grb',
   air: 'arb',
-  naval: 'grb',
 }
 
 const runSearch = createServerFn({ method: 'GET' })
@@ -66,16 +66,20 @@ function Search() {
           <div>
             <h2 className="text-fg-muted">Vehicles</h2>
             <ul className="mt-2 space-y-1">
-              {results.vehicles.map((v) => (
-                <li key={v.slug}>
-                  <Link
-                    to="/$mode/vehicle/$slug"
-                    params={{ mode: BRANCH_MODE[v.branch], slug: v.slug }}
-                  >
-                    {v.name}
-                  </Link>
-                </li>
-              ))}
+              {results.vehicles.map((v) => {
+                const mode = BRANCH_MODE[v.branch]
+                return (
+                  <li key={v.slug}>
+                    {mode ? (
+                      <Link to="/$mode/vehicle/$slug" params={{ mode, slug: v.slug }}>
+                        {v.name}
+                      </Link>
+                    ) : (
+                      <span className="text-fg-muted">{v.name}</span>
+                    )}
+                  </li>
+                )
+              })}
               {results.vehicles.length === 0 && (
                 <li className="text-fg-faint">No vehicles.</li>
               )}

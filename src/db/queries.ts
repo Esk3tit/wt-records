@@ -250,15 +250,21 @@ export async function getPlayer(db: Db, slug: string) {
 export async function getRules(db: Db, mode: string) {
   const m = await getMode(db, mode)
   if (!m) return null
-  // /rules/$mode sits outside the /$mode gate, so honour coming-soon here too:
-  // don't fetch or expose thresholds for a non-live mode.
-  if (!m.isLive) return { mode: m, thresholds: [] }
+  // /rules/$mode sits outside the /$mode gate. For a non-live mode expose only
+  // what ComingSoon needs — never the staged rules content or thresholds.
+  const base = { mode: m.mode, name: m.name, isLive: m.isLive }
+  if (!m.isLive) {
+    return { mode: { ...base, rulesMd: null, difficultMinKills: null }, thresholds: [] }
+  }
   const thresholds = await db
     .select()
     .from(modeMinKills)
     .where(eq(modeMinKills.mode, mode))
     .orderBy(asc(modeMinKills.class))
-  return { mode: m, thresholds }
+  return {
+    mode: { ...base, rulesMd: m.rulesMd, difficultMinKills: m.difficultMinKills },
+    thresholds,
+  }
 }
 
 export async function search(db: Db, q: string) {
