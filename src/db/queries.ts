@@ -38,6 +38,7 @@ export function getLeaderboard(db: Db, mode: string, limit?: number) {
     })
     .from(records)
     .innerJoin(players, eq(players.id, records.playerId))
+    .innerJoin(vehicles, and(eq(vehicles.id, records.vehicleId), notRemoved))
     .where(and(eq(records.mode, mode), isCurrentVerified))
     .groupBy(players.id, players.slug, players.displayName)
     .orderBy(desc(sql`count(*)`), asc(players.displayName))
@@ -82,7 +83,7 @@ export async function getModeHome(db: Db, mode: string) {
         displayNameSnapshot: records.displayNameSnapshot,
       })
       .from(records)
-      .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
+      .innerJoin(vehicles, and(eq(vehicles.id, records.vehicleId), notRemoved))
       .innerJoin(players, eq(players.id, records.playerId))
       .where(and(eq(records.mode, mode), isCurrentVerified))
       // verified_at is nullable (migrated rows have none); DESC alone sorts
@@ -153,6 +154,11 @@ export async function getNationSheet(db: Db, mode: string, slug: string) {
 }
 
 export async function getVehicle(db: Db, mode: string, slug: string) {
+  const m = await getMode(db, mode)
+  if (!m) return null
+
+  // Vehicle pages are mode-scoped: a vehicle is only in-scope for a mode whose
+  // branch it belongs to, and never once removed.
   const vehicle = one(
     await db
       .select({
@@ -167,7 +173,7 @@ export async function getVehicle(db: Db, mode: string, slug: string) {
       })
       .from(vehicles)
       .innerJoin(nations, eq(nations.id, vehicles.nationId))
-      .where(eq(vehicles.slug, slug))
+      .where(and(eq(vehicles.slug, slug), eq(vehicles.branch, m.branch), notRemoved))
       .limit(1),
   )
   if (!vehicle) return null
@@ -221,6 +227,8 @@ export async function getPlayer(db: Db, slug: string) {
     .where(eq(playerAliases.playerId, player.id))
     .orderBy(asc(playerAliases.firstSeen))
 
+  // Only surface records for live modes and non-removed vehicles, matching the
+  // coming-soon gate and removed-vehicle exclusion applied elsewhere.
   const recs = await db
     .select({
       mode: records.mode,
@@ -231,7 +239,8 @@ export async function getPlayer(db: Db, slug: string) {
       displayNameSnapshot: records.displayNameSnapshot,
     })
     .from(records)
-    .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
+    .innerJoin(vehicles, and(eq(vehicles.id, records.vehicleId), notRemoved))
+    .innerJoin(modes, and(eq(modes.mode, records.mode), eq(modes.isLive, true)))
     .where(and(eq(records.playerId, player.id), isCurrentVerified))
     .orderBy(asc(records.mode), desc(records.kills))
 
@@ -241,6 +250,9 @@ export async function getPlayer(db: Db, slug: string) {
 export async function getRules(db: Db, mode: string) {
   const m = await getMode(db, mode)
   if (!m) return null
+  // /rules/$mode sits outside the /$mode gate, so honour coming-soon here too:
+  // don't fetch or expose thresholds for a non-live mode.
+  if (!m.isLive) return { mode: m, thresholds: [] }
   const thresholds = await db
     .select()
     .from(modeMinKills)

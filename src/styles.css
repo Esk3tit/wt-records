@@ -31,11 +31,10 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Links inherit text color, so keep the underline as a non-colour affordance
+   (chrome/nav opts out locally with `no-underline`). */
 a {
   color: inherit;
-  text-decoration: none;
-}
-
-a:hover {
   text-decoration: underline;
+  text-underline-offset: 2px;
 }

@@ -1,5 +1,6 @@
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import { ComingSoon } from '#/components/coming-soon'
 import { db } from '#/db'
 import { getRules } from '#/db/queries'
 
@@ -18,6 +19,7 @@ export const Route = createFileRoute('/rules/$mode')({
 
 function Rules() {
   const { mode, thresholds } = Route.useLoaderData()
+  if (!mode.isLive) return <ComingSoon modeName={mode.name} />
 
   return (
     <section className="p-6">

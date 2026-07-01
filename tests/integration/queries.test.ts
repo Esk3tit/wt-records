@@ -223,3 +223,44 @@ describe('getModeHome latest ordering', () => {
     expect(home.latest?.vehicleSlug).toBe('m26')
   })
 })
+
+describe('mode scoping', () => {
+  it('getVehicle is null for a wrong-branch or removed vehicle, valid under its mode', async () => {
+    const [usa] = await t.db.select().from(nations).where(eq(nations.slug, 'usa'))
+    await t.db.insert(vehicles).values([
+      { externalId: 'jet1', name: 'Jet', slug: 'jet', nationId: usa.id, branch: 'air', class: 'fighter' },
+      { externalId: 'gone1', name: 'Gone', slug: 'gone', nationId: usa.id, branch: 'ground', class: 'medium', isRemoved: true },
+    ])
+    expect(await getVehicle(t.db, 'grb', 'jet')).toBeNull()
+    expect((await getVehicle(t.db, 'arb', 'jet'))?.vehicle.name).toBe('Jet')
+    expect(await getVehicle(t.db, 'grb', 'gone')).toBeNull()
+  })
+
+  it('getLeaderboard ignores current records on removed vehicles', async () => {
+    const [usa] = await t.db.select().from(nations).where(eq(nations.slug, 'usa'))
+    const [ace] = await t.db.select().from(players).where(eq(players.slug, 'ace'))
+    const [gone] = await t.db
+      .insert(vehicles)
+      .values({ externalId: 'gone2', name: 'Gone2', slug: 'gone2', nationId: usa.id, branch: 'ground', class: 'medium', isRemoved: true })
+      .returning()
+    await t.db.insert(records).values({
+      vehicleId: gone.id, mode: 'grb', playerId: ace.id, ignSnapshot: 'Ace', kills: 20, status: 'verified', isCurrent: true,
+    })
+    expect((await getLeaderboard(t.db, 'grb')).find((r) => r.slug === 'ace')?.records).toBe(2)
+  })
+
+  it('getPlayer omits records from non-live modes', async () => {
+    const [usa] = await t.db.select().from(nations).where(eq(nations.slug, 'usa'))
+    const [ace] = await t.db.select().from(players).where(eq(players.slug, 'ace'))
+    const [jet] = await t.db
+      .insert(vehicles)
+      .values({ externalId: 'jet2', name: 'Jet2', slug: 'jet2', nationId: usa.id, branch: 'air', class: 'fighter' })
+      .returning()
+    await t.db.insert(records).values({
+      vehicleId: jet.id, mode: 'arb', playerId: ace.id, ignSnapshot: 'Ace', kills: 9, status: 'verified', isCurrent: true,
+    })
+    const p = await getPlayer(t.db, 'ace')
+    expect(p?.records.map((r) => r.mode)).not.toContain('arb')
+    expect(p?.records.map((r) => r.vehicleSlug)).toEqual(['m4a1', 'panther-d'])
+  })
+})

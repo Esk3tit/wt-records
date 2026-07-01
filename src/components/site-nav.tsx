@@ -11,7 +11,7 @@ export function SiteNav({ modes }: { modes: ModeNavItem[] }) {
   const { mode: activeMode } = useParams({ strict: false })
 
   return (
-    <header className="flex flex-wrap items-center gap-4 border-b border-white/10 px-6 py-3">
+    <header className="flex flex-wrap items-center gap-4 border-b border-white/10 px-6 py-3 [&_a]:no-underline">
       <Link to="/" className="text-lg">
         <Brand />
       </Link>

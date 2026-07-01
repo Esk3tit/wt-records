@@ -50,7 +50,19 @@ describe('RecordName', () => {
     })
     await findByText('Ace')
     expect(container.textContent).toContain('as «OldIGN»')
-    expect(container.textContent).toContain('FormerName')
+    expect(container.textContent).toContain('formerly «FormerName»')
+  })
+
+  it('does not duplicate the secondary when both snapshots are the same', async () => {
+    const { container, findByText } = renderName({
+      displayName: 'Ace',
+      playerSlug: 'ace',
+      ignSnapshot: 'OldName',
+      displayNameSnapshot: 'OldName',
+    })
+    await findByText('Ace')
+    expect(container.textContent).toContain('as «OldName»')
+    expect(container.textContent).not.toContain('formerly')
   })
 
   it('tolerates missing snapshots', async () => {

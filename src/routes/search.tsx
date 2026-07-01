@@ -16,8 +16,10 @@ const runSearch = createServerFn({ method: 'GET' })
   .handler(({ data }) => search(db, data))
 
 export const Route = createFileRoute('/search')({
-  validateSearch: (s: Record<string, unknown>): { q?: string } =>
-    typeof s.q === 'string' && s.q ? { q: s.q } : {},
+  validateSearch: (s: Record<string, unknown>): { q?: string } => {
+    const q = typeof s.q === 'string' ? s.q.trim() : ''
+    return q ? { q } : {}
+  },
   loaderDeps: ({ search: s }) => ({ q: s.q ?? '' }),
   loader: ({ deps }) => runSearch({ data: deps.q }),
   component: Search,
@@ -31,7 +33,11 @@ function Search() {
     <section className="p-6">
       <h1 className="text-2xl font-semibold">Search</h1>
       <form method="get" className="mt-4">
+        <label htmlFor="search-q" className="sr-only">
+          Search vehicles and players
+        </label>
         <input
+          id="search-q"
           type="search"
           name="q"
           defaultValue={q}

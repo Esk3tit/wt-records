@@ -22,7 +22,7 @@ export function RecordName({
     displayNameSnapshot !== displayName &&
     displayNameSnapshot !== ignSnapshot
   )
-    secondary.push(displayNameSnapshot)
+    secondary.push(`formerly «${displayNameSnapshot}»`)
 
   return (
     <span>

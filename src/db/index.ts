@@ -4,6 +4,12 @@ import type { ExtractTablesWithRelations } from 'drizzle-orm'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 import * as schema from '#/db/schema'
 
+// This client holds the RLS-bypassing service-role connection; it must never
+// reach the browser bundle. Fail loudly if it is ever imported client-side.
+if (typeof window !== 'undefined') {
+  throw new Error('#/db must not be imported in the browser')
+}
+
 const url = process.env.DATABASE_URL
 if (!url) throw new Error('DATABASE_URL is not set')
 
