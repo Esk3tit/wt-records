@@ -175,16 +175,14 @@ export async function getVehicle(db: Db, mode: string, slug: string) {
   )
   if (!vehicle) return null
 
-  const brRow = one(
-    await db
+  // BR and current record both depend only on vehicle.id + mode — run together.
+  const [brRows, currentRows] = await Promise.all([
+    db
       .select({ br: vehicleBr.br })
       .from(vehicleBr)
       .where(and(eq(vehicleBr.vehicleId, vehicle.id), eq(vehicleBr.mode, mode)))
       .limit(1),
-  )
-
-  const current = one(
-    await db
+    db
       .select({
         recordId: records.id,
         kills: records.kills,
@@ -199,7 +197,9 @@ export async function getVehicle(db: Db, mode: string, slug: string) {
       .innerJoin(players, eq(players.id, records.playerId))
       .where(and(eq(records.vehicleId, vehicle.id), eq(records.mode, mode), isCurrentVerified))
       .limit(1),
-  )
+  ])
+  const brRow = one(brRows)
+  const current = one(currentRows)
 
   const proofs = current
     ? await db
@@ -218,29 +218,31 @@ export async function getPlayer(db: Db, slug: string) {
   )
   if (!player) return null
 
-  const aliases = await db
-    .select({ name: playerAliases.name })
-    .from(playerAliases)
-    .where(eq(playerAliases.playerId, player.id))
-    .orderBy(asc(playerAliases.firstSeen))
-
+  // Aliases and records both depend only on player.id — run together.
   // Records in non-live modes stay hidden (coming-soon gate); removed vehicles
   // still show, flagged with isRemoved.
-  const recs = await db
-    .select({
-      mode: records.mode,
-      kills: records.kills,
-      vehicleSlug: vehicles.slug,
-      vehicleName: vehicles.name,
-      isRemoved: vehicles.isRemoved,
-      ignSnapshot: records.ignSnapshot,
-      displayNameSnapshot: records.displayNameSnapshot,
-    })
-    .from(records)
-    .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
-    .innerJoin(modes, and(eq(modes.mode, records.mode), eq(modes.isLive, true)))
-    .where(and(eq(records.playerId, player.id), isCurrentVerified))
-    .orderBy(asc(records.mode), desc(records.kills))
+  const [aliases, recs] = await Promise.all([
+    db
+      .select({ name: playerAliases.name })
+      .from(playerAliases)
+      .where(eq(playerAliases.playerId, player.id))
+      .orderBy(asc(playerAliases.firstSeen)),
+    db
+      .select({
+        mode: records.mode,
+        kills: records.kills,
+        vehicleSlug: vehicles.slug,
+        vehicleName: vehicles.name,
+        isRemoved: vehicles.isRemoved,
+        ignSnapshot: records.ignSnapshot,
+        displayNameSnapshot: records.displayNameSnapshot,
+      })
+      .from(records)
+      .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
+      .innerJoin(modes, and(eq(modes.mode, records.mode), eq(modes.isLive, true)))
+      .where(and(eq(records.playerId, player.id), isCurrentVerified))
+      .orderBy(asc(records.mode), desc(records.kills)),
+  ])
 
   return { player, aliases: aliases.map((a) => a.name), records: recs }
 }
