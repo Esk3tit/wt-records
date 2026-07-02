@@ -271,12 +271,21 @@ export async function getRules(db: Db, mode: string) {
   }
 }
 
+// A branch's realistic-battles mode. A search result only links here when that
+// mode is live — naval has none, and air stays unlinked until ARB launches, so
+// results never lead to a coming-soon placeholder.
+const BRANCH_MODE: Record<'ground' | 'air' | 'naval', string | undefined> = {
+  ground: 'grb',
+  air: 'arb',
+  naval: undefined,
+}
+
 export async function search(db: Db, q: string) {
   const term = q.trim()
   if (!term) return { players: [], vehicles: [] }
   // Escape LIKE metacharacters so '_' / '%' in gamertags match literally.
   const like = `%${term.replace(/[\\%_]/g, '\\$&')}%`
-  const [foundPlayers, foundVehicles] = await Promise.all([
+  const [foundPlayers, foundVehicles, liveRows] = await Promise.all([
     db
       .select({ slug: players.slug, displayName: players.displayName })
       .from(players)
@@ -289,6 +298,19 @@ export async function search(db: Db, q: string) {
       .where(ilike(vehicles.name, like))
       .orderBy(asc(vehicles.name))
       .limit(10),
+    db.select({ mode: modes.mode }).from(modes).where(eq(modes.isLive, true)),
   ])
-  return { players: foundPlayers, vehicles: foundVehicles }
+  const liveModes = new Set(liveRows.map((r) => r.mode))
+  return {
+    players: foundPlayers,
+    vehicles: foundVehicles.map((v) => {
+      const pref = BRANCH_MODE[v.branch]
+      return {
+        slug: v.slug,
+        name: v.name,
+        isRemoved: v.isRemoved,
+        linkMode: pref && liveModes.has(pref) ? pref : null,
+      }
+    }),
+  }
 }

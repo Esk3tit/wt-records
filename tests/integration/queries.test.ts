@@ -3,7 +3,7 @@ import { and, eq } from 'drizzle-orm'
 import { freshDb } from './pglite'
 import type { TestDb } from './pglite'
 import { seed } from '#/db/seed'
-import { nations, records, players, vehicles } from '#/db/schema'
+import { modes, nations, records, players, vehicles } from '#/db/schema'
 import {
   getLeaderboard,
   getMode,
@@ -30,10 +30,10 @@ afterEach(async () => {
 
 describe('listModes', () => {
   it('returns all modes ordered by sort', async () => {
-    const modes = await listModes(t.db)
-    expect(modes.map((m) => m.mode)).toEqual(['grb', 'gab', 'arb', 'aab'])
-    expect(modes.find((m) => m.mode === 'grb')?.isLive).toBe(true)
-    expect(modes.find((m) => m.mode === 'gab')?.isLive).toBe(false)
+    const modeList = await listModes(t.db)
+    expect(modeList.map((m) => m.mode)).toEqual(['grb', 'gab', 'arb', 'aab'])
+    expect(modeList.find((m) => m.mode === 'grb')?.isLive).toBe(true)
+    expect(modeList.find((m) => m.mode === 'gab')?.isLive).toBe(false)
   })
 })
 
@@ -169,11 +169,22 @@ describe('getRules', () => {
 describe('search', () => {
   it('finds vehicles and players by name, case-insensitively', async () => {
     expect((await search(t.db, 'm4')).vehicles).toEqual([
-      { slug: 'm4a1', name: 'M4A1', branch: 'ground', isRemoved: false },
+      { slug: 'm4a1', name: 'M4A1', isRemoved: false, linkMode: 'grb' },
     ])
     expect((await search(t.db, 'ace')).players).toEqual([
       { slug: 'ace', displayName: 'Ace' },
     ])
+  })
+
+  it('links a result only to a live mode for its branch', async () => {
+    const [usa] = await t.db.select().from(nations).where(eq(nations.slug, 'usa'))
+    await t.db.insert(vehicles).values({
+      externalId: 'jetx', name: 'Jetx', slug: 'jetx', nationId: usa.id, branch: 'air', class: 'fighter',
+    })
+    // ARB is not live yet → no link target.
+    expect((await search(t.db, 'Jetx')).vehicles[0].linkMode).toBeNull()
+    await t.db.update(modes).set({ isLive: true }).where(eq(modes.mode, 'arb'))
+    expect((await search(t.db, 'Jetx')).vehicles[0].linkMode).toBe('arb')
   })
 
   it('returns empty results for a blank query', async () => {

@@ -4,14 +4,6 @@ import { RemovedTag } from '#/components/removed-tag'
 import { db } from '#/db'
 import { search } from '#/db/queries'
 
-// Vehicles aren't mode-scoped; link a result to its branch's realistic-battles
-// mode. Branches without a mode yet (naval) aren't linked — the vehicle route
-// is branch-checked and would 404.
-const BRANCH_MODE: Partial<Record<'ground' | 'air' | 'naval', string>> = {
-  ground: 'grb',
-  air: 'arb',
-}
-
 const runSearch = createServerFn({ method: 'GET' })
   .validator((q: string) => q)
   .handler(({ data }) => search(db, data))
@@ -68,7 +60,7 @@ function Search() {
             <h2 className="text-fg-muted">Vehicles</h2>
             <ul className="mt-2 space-y-1">
               {results.vehicles.map((v) => {
-                const mode = BRANCH_MODE[v.branch]
+                const mode = v.linkMode
                 return (
                   <li key={v.slug}>
                     {mode ? (
