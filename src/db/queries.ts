@@ -48,19 +48,21 @@ export async function getModeStats(db: Db, mode: string) {
   if (!m) return null
   const current = and(eq(records.mode, mode), isCurrentVerified)
 
-  const [totals] = await db
-    .select({
-      records: sql<number>`count(*)::int`,
-      holders: sql<number>`count(distinct ${records.playerId})::int`,
-      coveredVehicles: sql<number>`count(distinct ${records.vehicleId})::int`,
-    })
-    .from(records)
-    .where(current)
-
-  const [{ eligibleVehicles }] = await db
-    .select({ eligibleVehicles: sql<number>`count(*)::int` })
-    .from(vehicles)
-    .where(eq(vehicles.branch, m.branch))
+  // totals (by mode) and eligible (by branch) are independent — run together.
+  const [[totals], [{ eligibleVehicles }]] = await Promise.all([
+    db
+      .select({
+        records: sql<number>`count(*)::int`,
+        holders: sql<number>`count(distinct ${records.playerId})::int`,
+        coveredVehicles: sql<number>`count(distinct ${records.vehicleId})::int`,
+      })
+      .from(records)
+      .where(current),
+    db
+      .select({ eligibleVehicles: sql<number>`count(*)::int` })
+      .from(vehicles)
+      .where(eq(vehicles.branch, m.branch)),
+  ])
 
   return { ...totals, eligibleVehicles }
 }
@@ -113,11 +115,13 @@ export async function listNations(db: Db, mode: string) {
 }
 
 export async function getNationSheet(db: Db, mode: string, slug: string) {
-  const nation = one(
-    await db.select().from(nations).where(eq(nations.slug, slug)).limit(1),
-  )
+  // The nation (by slug) and mode lookups are independent — run together.
+  const [nationRows, m] = await Promise.all([
+    db.select().from(nations).where(eq(nations.slug, slug)).limit(1),
+    getMode(db, mode),
+  ])
+  const nation = one(nationRows)
   if (!nation) return null
-  const m = await getMode(db, mode)
   if (!m) return null
 
   const rows = await db
