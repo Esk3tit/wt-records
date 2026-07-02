@@ -12,7 +12,10 @@ export const Route = createFileRoute('/$mode')({
   beforeLoad: async ({ params }) => {
     const mode = await loadMode({ data: params.mode })
     if (!mode) throw notFound()
-    return { mode }
+    // Only expose what the layout + child gates use — beforeLoad context is
+    // dehydrated into the SSR payload, so the full row would leak a non-live
+    // mode's staged rulesMd/difficultMinKills.
+    return { mode: { name: mode.name, isLive: mode.isLive } }
   },
   component: ModeLayout,
 })
