@@ -1,5 +1,6 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import { RemovedTag } from '#/components/removed-tag'
 import { db } from '#/db'
 import { search } from '#/db/queries'
 
@@ -77,6 +78,7 @@ function Search() {
                     ) : (
                       <span className="text-fg-muted">{v.name}</span>
                     )}
+                    {v.isRemoved && <RemovedTag />}
                   </li>
                 )
               })}

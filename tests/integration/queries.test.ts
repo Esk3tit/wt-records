@@ -169,7 +169,7 @@ describe('getRules', () => {
 describe('search', () => {
   it('finds vehicles and players by name, case-insensitively', async () => {
     expect((await search(t.db, 'm4')).vehicles).toEqual([
-      { slug: 'm4a1', name: 'M4A1', branch: 'ground' },
+      { slug: 'm4a1', name: 'M4A1', branch: 'ground', isRemoved: false },
     ])
     expect((await search(t.db, 'ace')).players).toEqual([
       { slug: 'ace', displayName: 'Ace' },
@@ -191,23 +191,48 @@ describe('search', () => {
 })
 
 describe('removed vehicles', () => {
-  it('are excluded from eligibility, nation counts, and sheets', async () => {
+  async function addRemovedUsaTank(isRemoved = true) {
     const [usa] = await t.db.select().from(nations).where(eq(nations.slug, 'usa'))
-    await t.db.insert(vehicles).values({
-      externalId: 'us_removed',
-      name: 'Removed Tank',
-      slug: 'removed-tank',
-      nationId: usa.id,
-      branch: 'ground',
-      class: 'medium',
-      isRemoved: true,
+    const [v] = await t.db
+      .insert(vehicles)
+      .values({
+        externalId: 'us_removed',
+        name: 'Removed Tank',
+        slug: 'removed-tank',
+        nationId: usa.id,
+        branch: 'ground',
+        class: 'medium',
+        isRemoved,
+      })
+      .returning()
+    return v
+  }
+
+  it('are still counted in eligibility and completion (metadata, not a filter)', async () => {
+    await addRemovedUsaTank()
+    expect((await getModeStats(t.db, 'grb'))?.eligibleVehicles).toBe(8)
+    const usaRow = (await listNations(t.db, 'grb'))?.find((n) => n.slug === 'usa')
+    expect(usaRow?.eligibleVehicles).toBe(5)
+  })
+
+  it('render everywhere they appear, flagged with isRemoved', async () => {
+    const veh = await addRemovedUsaTank()
+    const [ace] = await t.db.select().from(players).where(eq(players.slug, 'ace'))
+    await t.db.insert(records).values({
+      vehicleId: veh.id, mode: 'grb', playerId: ace.id, ignSnapshot: 'Ace', kills: 20, status: 'verified', isCurrent: true,
     })
 
-    expect((await getModeStats(t.db, 'grb'))?.eligibleVehicles).toBe(7)
-    const usaRow = (await listNations(t.db, 'grb'))?.find((n) => n.slug === 'usa')
-    expect(usaRow?.eligibleVehicles).toBe(4)
     const sheet = await getNationSheet(t.db, 'grb', 'usa')
-    expect(sheet?.rows.map((r) => r.vehicleSlug)).not.toContain('removed-tank')
+    expect(sheet?.rows.find((r) => r.vehicleSlug === 'removed-tank')?.isRemoved).toBe(true)
+
+    const v = await getVehicle(t.db, 'grb', 'removed-tank')
+    expect(v?.vehicle.isRemoved).toBe(true)
+    expect(v?.current?.kills).toBe(20)
+
+    // The record on the removed vehicle counts toward the leaderboard + profile.
+    expect((await getLeaderboard(t.db, 'grb')).find((r) => r.slug === 'ace')?.records).toBe(3)
+    const p = await getPlayer(t.db, 'ace')
+    expect(p?.records.find((r) => r.vehicleSlug === 'removed-tank')?.isRemoved).toBe(true)
   })
 })
 
@@ -225,28 +250,13 @@ describe('getModeHome latest ordering', () => {
 })
 
 describe('mode scoping', () => {
-  it('getVehicle is null for a wrong-branch or removed vehicle, valid under its mode', async () => {
+  it('getVehicle is null for a wrong-branch vehicle, valid under its own mode', async () => {
     const [usa] = await t.db.select().from(nations).where(eq(nations.slug, 'usa'))
-    await t.db.insert(vehicles).values([
-      { externalId: 'jet1', name: 'Jet', slug: 'jet', nationId: usa.id, branch: 'air', class: 'fighter' },
-      { externalId: 'gone1', name: 'Gone', slug: 'gone', nationId: usa.id, branch: 'ground', class: 'medium', isRemoved: true },
-    ])
+    await t.db.insert(vehicles).values({
+      externalId: 'jet1', name: 'Jet', slug: 'jet', nationId: usa.id, branch: 'air', class: 'fighter',
+    })
     expect(await getVehicle(t.db, 'grb', 'jet')).toBeNull()
     expect((await getVehicle(t.db, 'arb', 'jet'))?.vehicle.name).toBe('Jet')
-    expect(await getVehicle(t.db, 'grb', 'gone')).toBeNull()
-  })
-
-  it('getLeaderboard ignores current records on removed vehicles', async () => {
-    const [usa] = await t.db.select().from(nations).where(eq(nations.slug, 'usa'))
-    const [ace] = await t.db.select().from(players).where(eq(players.slug, 'ace'))
-    const [gone] = await t.db
-      .insert(vehicles)
-      .values({ externalId: 'gone2', name: 'Gone2', slug: 'gone2', nationId: usa.id, branch: 'ground', class: 'medium', isRemoved: true })
-      .returning()
-    await t.db.insert(records).values({
-      vehicleId: gone.id, mode: 'grb', playerId: ace.id, ignSnapshot: 'Ace', kills: 20, status: 'verified', isCurrent: true,
-    })
-    expect((await getLeaderboard(t.db, 'grb')).find((r) => r.slug === 'ace')?.records).toBe(2)
   })
 
   it('getPlayer omits records from non-live modes', async () => {

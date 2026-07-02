@@ -13,7 +13,6 @@ import {
 } from '#/db/schema'
 
 const isCurrentVerified = and(eq(records.isCurrent, true), eq(records.status, 'verified'))
-const notRemoved = eq(vehicles.isRemoved, false)
 
 // The schema runs without noUncheckedIndexedAccess, so a destructured first row
 // is typed as always-present; this makes "row might be missing" explicit.
@@ -38,7 +37,6 @@ export function getLeaderboard(db: Db, mode: string, limit?: number) {
     })
     .from(records)
     .innerJoin(players, eq(players.id, records.playerId))
-    .innerJoin(vehicles, and(eq(vehicles.id, records.vehicleId), notRemoved))
     .where(and(eq(records.mode, mode), isCurrentVerified))
     .groupBy(players.id, players.slug, players.displayName)
     .orderBy(desc(sql`count(*)`), asc(players.displayName))
@@ -57,13 +55,12 @@ export async function getModeStats(db: Db, mode: string) {
       coveredVehicles: sql<number>`count(distinct ${records.vehicleId})::int`,
     })
     .from(records)
-    .innerJoin(vehicles, and(eq(vehicles.id, records.vehicleId), notRemoved))
     .where(current)
 
   const [{ eligibleVehicles }] = await db
     .select({ eligibleVehicles: sql<number>`count(*)::int` })
     .from(vehicles)
-    .where(and(eq(vehicles.branch, m.branch), notRemoved))
+    .where(eq(vehicles.branch, m.branch))
 
   return { ...totals, eligibleVehicles }
 }
@@ -77,13 +74,14 @@ export async function getModeHome(db: Db, mode: string) {
         kills: records.kills,
         vehicleSlug: vehicles.slug,
         vehicleName: vehicles.name,
+        isRemoved: vehicles.isRemoved,
         playerSlug: players.slug,
         displayName: players.displayName,
         ignSnapshot: records.ignSnapshot,
         displayNameSnapshot: records.displayNameSnapshot,
       })
       .from(records)
-      .innerJoin(vehicles, and(eq(vehicles.id, records.vehicleId), notRemoved))
+      .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
       .innerJoin(players, eq(players.id, records.playerId))
       .where(and(eq(records.mode, mode), isCurrentVerified))
       // verified_at is nullable (migrated rows have none); DESC alone sorts
@@ -105,10 +103,7 @@ export async function listNations(db: Db, mode: string) {
       coveredVehicles: sql<number>`count(distinct ${records.vehicleId})::int`,
     })
     .from(nations)
-    .leftJoin(
-      vehicles,
-      and(eq(vehicles.nationId, nations.id), eq(vehicles.branch, m.branch), notRemoved),
-    )
+    .leftJoin(vehicles, and(eq(vehicles.nationId, nations.id), eq(vehicles.branch, m.branch)))
     .leftJoin(
       records,
       and(eq(records.vehicleId, vehicles.id), eq(records.mode, mode), isCurrentVerified),
@@ -132,6 +127,7 @@ export async function getNationSheet(db: Db, mode: string, slug: string) {
       class: vehicles.class,
       rank: vehicles.rank,
       isDifficult: vehicles.isDifficult,
+      isRemoved: vehicles.isRemoved,
       br: vehicleBr.br,
       kills: records.kills,
       runBr: records.runBr,
@@ -147,7 +143,7 @@ export async function getNationSheet(db: Db, mode: string, slug: string) {
       and(eq(records.vehicleId, vehicles.id), eq(records.mode, mode), isCurrentVerified),
     )
     .leftJoin(players, eq(players.id, records.playerId))
-    .where(and(eq(vehicles.nationId, nation.id), eq(vehicles.branch, m.branch), notRemoved))
+    .where(and(eq(vehicles.nationId, nation.id), eq(vehicles.branch, m.branch)))
     .orderBy(asc(vehicles.rank), asc(vehicles.name))
 
   return { nation, rows }
@@ -158,7 +154,7 @@ export async function getVehicle(db: Db, mode: string, slug: string) {
   if (!m) return null
 
   // Vehicle pages are mode-scoped: a vehicle is only in-scope for a mode whose
-  // branch it belongs to, and never once removed.
+  // branch it belongs to. Removed vehicles still render (with an indicator).
   const vehicle = one(
     await db
       .select({
@@ -168,12 +164,13 @@ export async function getVehicle(db: Db, mode: string, slug: string) {
         class: vehicles.class,
         rank: vehicles.rank,
         isDifficult: vehicles.isDifficult,
+        isRemoved: vehicles.isRemoved,
         nationSlug: nations.slug,
         nationName: nations.name,
       })
       .from(vehicles)
       .innerJoin(nations, eq(nations.id, vehicles.nationId))
-      .where(and(eq(vehicles.slug, slug), eq(vehicles.branch, m.branch), notRemoved))
+      .where(and(eq(vehicles.slug, slug), eq(vehicles.branch, m.branch)))
       .limit(1),
   )
   if (!vehicle) return null
@@ -227,19 +224,20 @@ export async function getPlayer(db: Db, slug: string) {
     .where(eq(playerAliases.playerId, player.id))
     .orderBy(asc(playerAliases.firstSeen))
 
-  // Only surface records for live modes and non-removed vehicles, matching the
-  // coming-soon gate and removed-vehicle exclusion applied elsewhere.
+  // Records in non-live modes stay hidden (coming-soon gate); removed vehicles
+  // still show, flagged with isRemoved.
   const recs = await db
     .select({
       mode: records.mode,
       kills: records.kills,
       vehicleSlug: vehicles.slug,
       vehicleName: vehicles.name,
+      isRemoved: vehicles.isRemoved,
       ignSnapshot: records.ignSnapshot,
       displayNameSnapshot: records.displayNameSnapshot,
     })
     .from(records)
-    .innerJoin(vehicles, and(eq(vehicles.id, records.vehicleId), notRemoved))
+    .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
     .innerJoin(modes, and(eq(modes.mode, records.mode), eq(modes.isLive, true)))
     .where(and(eq(records.playerId, player.id), isCurrentVerified))
     .orderBy(asc(records.mode), desc(records.kills))
@@ -280,9 +278,9 @@ export async function search(db: Db, q: string) {
       .orderBy(asc(players.displayName))
       .limit(10),
     db
-      .select({ slug: vehicles.slug, name: vehicles.name, branch: vehicles.branch })
+      .select({ slug: vehicles.slug, name: vehicles.name, branch: vehicles.branch, isRemoved: vehicles.isRemoved })
       .from(vehicles)
-      .where(and(ilike(vehicles.name, like), notRemoved))
+      .where(ilike(vehicles.name, like))
       .orderBy(asc(vehicles.name))
       .limit(10),
   ])

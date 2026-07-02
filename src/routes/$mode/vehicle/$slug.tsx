@@ -1,6 +1,7 @@
 import { Link, createFileRoute, notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { RecordName } from '#/components/record-name'
+import { RemovedTag } from '#/components/removed-tag'
 import { db } from '#/db'
 import { getVehicle } from '#/db/queries'
 
@@ -28,7 +29,10 @@ function VehicleDetail() {
 
   return (
     <section className="p-6">
-      <h1 className="text-2xl font-semibold">{vehicle.name}</h1>
+      <h1 className="text-2xl font-semibold">
+        {vehicle.name}
+        {vehicle.isRemoved && <RemovedTag />}
+      </h1>
       <p className="mt-1 text-fg-muted">
         <Link to="/$mode/nation/$slug" params={{ mode, slug: vehicle.nationSlug }}>
           {vehicle.nationName}

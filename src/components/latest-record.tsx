@@ -1,10 +1,12 @@
 import { Link } from '@tanstack/react-router'
 import { RecordName } from '#/components/record-name'
+import { RemovedTag } from '#/components/removed-tag'
 
 export interface LatestRecordData {
   kills: number
   vehicleSlug: string
   vehicleName: string
+  isRemoved: boolean
   playerSlug: string
   displayName: string
   ignSnapshot: string | null
@@ -16,7 +18,8 @@ export function LatestRecord({ mode, record }: { mode: string; record: LatestRec
     <p>
       <Link to="/$mode/vehicle/$slug" params={{ mode, slug: record.vehicleSlug }}>
         {record.vehicleName}
-      </Link>{' '}
+      </Link>
+      {record.isRemoved && <RemovedTag />}{' '}
       — {record.kills} kills by{' '}
       <RecordName
         displayName={record.displayName}

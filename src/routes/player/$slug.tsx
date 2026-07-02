@@ -1,5 +1,6 @@
 import { Link, createFileRoute, notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import { RemovedTag } from '#/components/removed-tag'
 import { db } from '#/db'
 import { getPlayer } from '#/db/queries'
 
@@ -43,6 +44,7 @@ function PlayerProfile() {
               >
                 {r.vehicleName}
               </Link>
+              {r.isRemoved && <RemovedTag />}
               <span className="ml-auto text-fg-muted">{r.kills}</span>
             </li>
           ))}
