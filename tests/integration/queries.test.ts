@@ -76,6 +76,7 @@ describe('getModeStats', () => {
       holders: 3,
       coveredVehicles: 4,
       eligibleVehicles: 7,
+      completionPct: 57,
     })
   })
 
@@ -88,12 +89,19 @@ describe('listNations', () => {
   it('reports per-nation eligible and covered vehicle counts for the mode', async () => {
     const nationRows = await listNations(t.db, 'grb')
     expect(nationRows).toEqual([
-      { slug: 'usa', name: 'USA', eligibleVehicles: 4, coveredVehicles: 2 },
+      {
+        slug: 'usa',
+        name: 'USA',
+        eligibleVehicles: 4,
+        coveredVehicles: 2,
+        completionPct: 50,
+      },
       {
         slug: 'germany',
         name: 'Germany',
         eligibleVehicles: 3,
         coveredVehicles: 2,
+        completionPct: 67,
       },
     ])
   })
@@ -354,6 +362,41 @@ describe('mode scoping', () => {
     })
     const p = await getPlayer(t.db, 'ace')
     expect(p?.records.map((r) => r.mode)).not.toContain('arb')
+    expect(p?.records.map((r) => r.vehicleSlug)).toEqual(['m4a1', 'panther-d'])
+  })
+
+  it('getPlayer omits an off-branch record, matching the stats views', async () => {
+    const [usa] = await t.db
+      .select()
+      .from(nations)
+      .where(eq(nations.slug, 'usa'))
+    const [ace] = await t.db
+      .select()
+      .from(players)
+      .where(eq(players.slug, 'ace'))
+    const [jet] = await t.db
+      .insert(vehicles)
+      .values({
+        externalId: 'jet3',
+        name: 'Jet3',
+        slug: 'jet3',
+        nationId: usa.id,
+        branch: 'air',
+        class: 'fighter',
+      })
+      .returning()
+    // Invalid data (no constraint forbids it): a ground-mode record on an
+    // air vehicle.
+    await t.db.insert(records).values({
+      vehicleId: jet.id,
+      mode: 'grb',
+      playerId: ace.id,
+      ignSnapshot: 'Ace',
+      kills: 99,
+      status: 'verified',
+      isCurrent: true,
+    })
+    const p = await getPlayer(t.db, 'ace')
     expect(p?.records.map((r) => r.vehicleSlug)).toEqual(['m4a1', 'panther-d'])
   })
 })

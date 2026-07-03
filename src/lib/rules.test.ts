@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  completionPercent,
-  qualifies,
-  qualifyingThreshold,
-  takesTitle,
-} from '#/lib/rules'
+import { qualifies, qualifyingThreshold, takesTitle } from '#/lib/rules'
 import type { ModeThresholds, VehicleClass } from '#/lib/rules'
 
 const grb: ModeThresholds = {
@@ -95,16 +90,5 @@ describe('takesTitle (supersede rule)', () => {
 
   it('takes an open (unclaimed) vehicle', () => {
     expect(takesTitle(1, null)).toBe(true)
-  })
-})
-
-describe('completionPercent', () => {
-  it('computes held / eligible', () => {
-    expect(completionPercent(9, 10)).toBe(90)
-    expect(completionPercent(10, 10)).toBe(100)
-  })
-
-  it('is 0 when nothing is eligible', () => {
-    expect(completionPercent(0, 0)).toBe(0)
   })
 })
