@@ -33,16 +33,19 @@ bunx @tanstack/cli@latest create wt-records \
 
 ## Scripts
 
-| Command | What it does |
-|---|---|
-| `bun run dev` | Dev server (HMR) on port 3000 (Vite on Node) |
-| `bun run build` / `bun run start` | node-server SSR build / run it on Node |
-| `bun run typecheck` | `tsc --noEmit` (strict) |
-| `bun run lint` | ESLint (flat config) |
-| `bun run test` | Vitest (on Node) — both projects |
-| `bun run test:unit` | Vitest `unit` project only (jsdom) |
-| `bun run test:integration` | Vitest `integration` project only (node) |
-| `bun run generate-routes` | Regenerate `src/routeTree.gen.ts` |
+| Command                           | What it does                                         |
+| --------------------------------- | ---------------------------------------------------- |
+| `bun run dev`                     | Dev server (HMR) on port 3000 (Vite on Node)         |
+| `bun run build` / `bun run start` | node-server SSR build / run it on Node               |
+| `bun run typecheck`               | `tsc --noEmit` (strict)                              |
+| `bun run lint`                    | ESLint (flat config)                                 |
+| `bun run test`                    | Vitest (on Node) — both projects                     |
+| `bun run test:unit`               | Vitest `unit` project only (jsdom)                   |
+| `bun run test:integration`        | Vitest `integration` project only (node)             |
+| `bun run generate-routes`         | Regenerate `src/routeTree.gen.ts`                    |
+| `bun run check`                   | Prettier formatting check (CI-enforced)              |
+| `bun run db:migrate`              | Apply committed Drizzle migrations to `DATABASE_URL` |
+| `bun run db:seed`                 | Apply the dev fixture (fake data) to `DATABASE_URL`  |
 
 ## Testing
 
@@ -55,7 +58,9 @@ Slower checks (Playwright E2E, visual, LLM evals) run non-blocking on previews/n
 
 ## CI
 
-`.github/workflows/quick-checks.yml` is the **required** fast check (target 2–4 min, blocks merge): `bun install --frozen-lockfile` → `generate-routes` → `typecheck` → `lint` → `test`. Deploys to Railway via the [`Dockerfile`](./Dockerfile) (`oven/bun` base; Railway doesn't auto-detect Bun).
+`.github/workflows/quick-checks.yml` is the **required** fast check (target 2–4 min, blocks merge): `bun install --frozen-lockfile` → `generate-routes` → `typecheck` → `lint` → `check` (Prettier) → `test`.
+
+**Deploy:** to Railway from `main` via the [`Dockerfile`](./Dockerfile) (`oven/bun` base; Railway doesn't auto-detect Bun). Every page renders through the DB, so the hosted database must be migrated first (seed it only when you need fixture data) — see the **[deploy runbook](./docs/deploy.md)** (env vars, the transaction-pooler `DATABASE_URL`, and the manual migration step CI doesn't run).
 
 ## Project structure
 
@@ -73,4 +78,4 @@ docs/adr/       # architecture decision records
 
 ## Status
 
-**Phase 1** — public read site + one-time GRB migration + a minimal moderator CMS. Public submissions (Phase 2) and the automated screenshot-verification pipeline (Phase 3) are deferred; the schema is built to accept them. Tracked in [GitHub Issues](https://github.com/Esk3tit/wt-records/issues) under the *Phase 1* milestone.
+**Phase 1** — public read site + one-time GRB migration + a minimal moderator CMS. Public submissions (Phase 2) and the automated screenshot-verification pipeline (Phase 3) are deferred; the schema is built to accept them. Tracked in [GitHub Issues](https://github.com/Esk3tit/wt-records/issues) under the _Phase 1_ milestone.

@@ -12,7 +12,10 @@ import {
   vehicles,
 } from '#/db/schema'
 
-const isCurrentVerified = and(eq(records.isCurrent, true), eq(records.status, 'verified'))
+const isCurrentVerified = and(
+  eq(records.isCurrent, true),
+  eq(records.status, 'verified'),
+)
 
 // The schema runs without noUncheckedIndexedAccess, so a destructured first row
 // is typed as always-present; this makes "row might be missing" explicit.
@@ -105,10 +108,17 @@ export async function listNations(db: Db, mode: string) {
       coveredVehicles: sql<number>`count(distinct ${records.vehicleId})::int`,
     })
     .from(nations)
-    .leftJoin(vehicles, and(eq(vehicles.nationId, nations.id), eq(vehicles.branch, m.branch)))
+    .leftJoin(
+      vehicles,
+      and(eq(vehicles.nationId, nations.id), eq(vehicles.branch, m.branch)),
+    )
     .leftJoin(
       records,
-      and(eq(records.vehicleId, vehicles.id), eq(records.mode, mode), isCurrentVerified),
+      and(
+        eq(records.vehicleId, vehicles.id),
+        eq(records.mode, mode),
+        isCurrentVerified,
+      ),
     )
     .groupBy(nations.id, nations.slug, nations.name, nations.sort)
     .orderBy(asc(nations.sort))
@@ -141,10 +151,17 @@ export async function getNationSheet(db: Db, mode: string, slug: string) {
       displayNameSnapshot: records.displayNameSnapshot,
     })
     .from(vehicles)
-    .leftJoin(vehicleBr, and(eq(vehicleBr.vehicleId, vehicles.id), eq(vehicleBr.mode, mode)))
+    .leftJoin(
+      vehicleBr,
+      and(eq(vehicleBr.vehicleId, vehicles.id), eq(vehicleBr.mode, mode)),
+    )
     .leftJoin(
       records,
-      and(eq(records.vehicleId, vehicles.id), eq(records.mode, mode), isCurrentVerified),
+      and(
+        eq(records.vehicleId, vehicles.id),
+        eq(records.mode, mode),
+        isCurrentVerified,
+      ),
     )
     .leftJoin(players, eq(players.id, records.playerId))
     .where(and(eq(vehicles.nationId, nation.id), eq(vehicles.branch, m.branch)))
@@ -199,7 +216,13 @@ export async function getVehicle(db: Db, mode: string, slug: string) {
       })
       .from(records)
       .innerJoin(players, eq(players.id, records.playerId))
-      .where(and(eq(records.vehicleId, vehicle.id), eq(records.mode, mode), isCurrentVerified))
+      .where(
+        and(
+          eq(records.vehicleId, vehicle.id),
+          eq(records.mode, mode),
+          isCurrentVerified,
+        ),
+      )
       .limit(1),
   ])
   const brRow = one(brRows)
@@ -243,7 +266,10 @@ export async function getPlayer(db: Db, slug: string) {
       })
       .from(records)
       .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
-      .innerJoin(modes, and(eq(modes.mode, records.mode), eq(modes.isLive, true)))
+      .innerJoin(
+        modes,
+        and(eq(modes.mode, records.mode), eq(modes.isLive, true)),
+      )
       .where(and(eq(records.playerId, player.id), isCurrentVerified))
       .orderBy(asc(records.mode), desc(records.kills)),
   ])
@@ -258,7 +284,10 @@ export async function getRules(db: Db, mode: string) {
   // what ComingSoon needs — never the staged rules content or thresholds.
   const base = { mode: m.mode, name: m.name, isLive: m.isLive }
   if (!m.isLive) {
-    return { mode: { ...base, rulesMd: null, difficultMinKills: null }, thresholds: [] }
+    return {
+      mode: { ...base, rulesMd: null, difficultMinKills: null },
+      thresholds: [],
+    }
   }
   const thresholds = await db
     .select()
@@ -266,7 +295,11 @@ export async function getRules(db: Db, mode: string) {
     .where(eq(modeMinKills.mode, mode))
     .orderBy(asc(modeMinKills.class))
   return {
-    mode: { ...base, rulesMd: m.rulesMd, difficultMinKills: m.difficultMinKills },
+    mode: {
+      ...base,
+      rulesMd: m.rulesMd,
+      difficultMinKills: m.difficultMinKills,
+    },
     thresholds,
   }
 }
@@ -293,7 +326,12 @@ export async function search(db: Db, q: string) {
       .orderBy(asc(players.displayName))
       .limit(10),
     db
-      .select({ slug: vehicles.slug, name: vehicles.name, branch: vehicles.branch, isRemoved: vehicles.isRemoved })
+      .select({
+        slug: vehicles.slug,
+        name: vehicles.name,
+        branch: vehicles.branch,
+        isRemoved: vehicles.isRemoved,
+      })
       .from(vehicles)
       .where(ilike(vehicles.name, like))
       .orderBy(asc(vehicles.name))

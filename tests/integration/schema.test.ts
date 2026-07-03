@@ -1,7 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { freshDb } from './pglite'
 import type { TestDb } from './pglite'
-import { modes, nations, players, recordProof, records, vehicles } from '#/db/schema'
+import {
+  modes,
+  nations,
+  players,
+  recordProof,
+  records,
+  vehicles,
+} from '#/db/schema'
 
 let t: TestDb
 
@@ -13,14 +20,12 @@ afterEach(async () => {
 })
 
 async function seedBaseline() {
-  await t.db
-    .insert(modes)
-    .values({
-      mode: 'grb',
-      name: 'Ground Realistic Battles',
-      branch: 'ground',
-      isLive: true,
-    })
+  await t.db.insert(modes).values({
+    mode: 'grb',
+    name: 'Ground Realistic Battles',
+    branch: 'ground',
+    isLive: true,
+  })
   const [usa] = await t.db
     .insert(nations)
     .values({ slug: 'usa', name: 'USA', sort: 1 })
@@ -57,17 +62,15 @@ async function seedBaseline() {
 describe('records constraints (committed migrations replayed on PGlite)', () => {
   it('applies every migration and accepts a current verified record', async () => {
     const { veh, ply } = await seedBaseline()
-    await t.db
-      .insert(records)
-      .values({
-        vehicleId: veh.id,
-        mode: 'grb',
-        playerId: ply.id,
-        ignSnapshot: 'Ace',
-        kills: 12,
-        status: 'verified',
-        isCurrent: true,
-      })
+    await t.db.insert(records).values({
+      vehicleId: veh.id,
+      mode: 'grb',
+      playerId: ply.id,
+      ignSnapshot: 'Ace',
+      kills: 12,
+      status: 'verified',
+      isCurrent: true,
+    })
     expect(await t.db.select().from(records)).toHaveLength(1)
   })
 
@@ -132,28 +135,24 @@ describe('records constraints (committed migrations replayed on PGlite)', () => 
 
   it('allows a current verified record for each distinct vehicle', async () => {
     const { veh, veh2, ply } = await seedBaseline()
-    await t.db
-      .insert(records)
-      .values({
-        vehicleId: veh.id,
-        mode: 'grb',
-        playerId: ply.id,
-        ignSnapshot: 'Ace',
-        kills: 12,
-        status: 'verified',
-        isCurrent: true,
-      })
-    await t.db
-      .insert(records)
-      .values({
-        vehicleId: veh2.id,
-        mode: 'grb',
-        playerId: ply.id,
-        ignSnapshot: 'Ace',
-        kills: 9,
-        status: 'verified',
-        isCurrent: true,
-      })
+    await t.db.insert(records).values({
+      vehicleId: veh.id,
+      mode: 'grb',
+      playerId: ply.id,
+      ignSnapshot: 'Ace',
+      kills: 12,
+      status: 'verified',
+      isCurrent: true,
+    })
+    await t.db.insert(records).values({
+      vehicleId: veh2.id,
+      mode: 'grb',
+      playerId: ply.id,
+      ignSnapshot: 'Ace',
+      kills: 9,
+      status: 'verified',
+      isCurrent: true,
+    })
     expect(await t.db.select().from(records)).toHaveLength(2)
   })
 

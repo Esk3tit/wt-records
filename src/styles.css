@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* Design tokens: amber accent, dark base, layered text opacities, rank metals. */
 @theme {
@@ -26,7 +26,12 @@ body {
   margin: 0;
   background: var(--color-base);
   color: var(--color-fg);
-  font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Text", "Inter",
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'SF Pro Text',
+    Inter,
     sans-serif;
   font-variant-numeric: tabular-nums;
 }

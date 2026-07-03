@@ -64,7 +64,10 @@ function Search() {
                 return (
                   <li key={v.slug}>
                     {mode ? (
-                      <Link to="/$mode/vehicle/$slug" params={{ mode, slug: v.slug }}>
+                      <Link
+                        to="/$mode/vehicle/$slug"
+                        params={{ mode, slug: v.slug }}
+                      >
                         {v.name}
                       </Link>
                     ) : (

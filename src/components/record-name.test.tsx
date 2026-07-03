@@ -10,7 +10,9 @@ import { RecordName } from './record-name'
 import type { RecordNameProps } from './record-name'
 
 function renderName(props: RecordNameProps) {
-  const rootRoute = createRootRoute({ component: () => <RecordName {...props} /> })
+  const rootRoute = createRootRoute({
+    component: () => <RecordName {...props} />,
+  })
   const router = createRouter({
     routeTree: rootRoute,
     history: createMemoryHistory({ initialEntries: ['/'] }),

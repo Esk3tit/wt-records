@@ -16,7 +16,8 @@ export function RecordName({
   displayNameSnapshot,
 }: RecordNameProps) {
   const secondary: string[] = []
-  if (ignSnapshot && ignSnapshot !== displayName) secondary.push(`as «${ignSnapshot}»`)
+  if (ignSnapshot && ignSnapshot !== displayName)
+    secondary.push(`as «${ignSnapshot}»`)
   if (
     displayNameSnapshot &&
     displayNameSnapshot !== displayName &&

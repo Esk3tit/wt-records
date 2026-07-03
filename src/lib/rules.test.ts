@@ -49,17 +49,29 @@ describe('qualifies', () => {
     ['spg', 7],
     ['spaa', 6],
   ]
-  it.each(configured)('normal %s: meets-or-exceeds the class min %d', (cls, bar) => {
-    expect(qualifies(bar - 1, cls, false, grb)).toBe(false)
-    expect(qualifies(bar, cls, false, grb)).toBe(true)
-    expect(qualifies(bar + 1, cls, false, grb)).toBe(true)
-  })
+  it.each(configured)(
+    'normal %s: meets-or-exceeds the class min %d',
+    (cls, bar) => {
+      expect(qualifies(bar - 1, cls, false, grb)).toBe(false)
+      expect(qualifies(bar, cls, false, grb)).toBe(true)
+      expect(qualifies(bar + 1, cls, false, grb)).toBe(true)
+    },
+  )
 
   // The rest of the VehicleClass surface has no GRB baseline → never qualifies.
-  const unconfigured: Array<VehicleClass> = ['fighter', 'attacker', 'bomber', 'heli', 'other']
-  it.each(unconfigured)('unconfigured %s never qualifies (no baseline)', (cls) => {
-    expect(qualifies(99, cls, false, grb)).toBe(false)
-  })
+  const unconfigured: Array<VehicleClass> = [
+    'fighter',
+    'attacker',
+    'bomber',
+    'heli',
+    'other',
+  ]
+  it.each(unconfigured)(
+    'unconfigured %s never qualifies (no baseline)',
+    (cls) => {
+      expect(qualifies(99, cls, false, grb)).toBe(false)
+    },
+  )
 
   it('difficult vehicle uses the lower difficult bar', () => {
     // heavy normally needs 10, but as a difficult vehicle only needs 5

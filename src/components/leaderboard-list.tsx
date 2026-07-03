@@ -22,7 +22,8 @@ export function LeaderboardList({
         <li key={row.slug} className="flex items-baseline gap-3">
           <span
             className={
-              'w-6 text-right ' + (medals ? (RANK_COLOR[i] ?? 'text-fg-faint') : 'text-fg-faint')
+              'w-6 text-right ' +
+              (medals ? (RANK_COLOR[i] ?? 'text-fg-faint') : 'text-fg-faint')
             }
           >
             {i + 1}

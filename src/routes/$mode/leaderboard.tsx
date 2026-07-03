@@ -20,7 +20,9 @@ function Leaderboard() {
 
   return (
     <section className="p-6">
-      <h1 className="text-2xl font-semibold">{mode.toUpperCase()} leaderboard</h1>
+      <h1 className="text-2xl font-semibold">
+        {mode.toUpperCase()} leaderboard
+      </h1>
       <div className="mt-4">
         <LeaderboardList rows={rows} medals />
       </div>
