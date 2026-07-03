@@ -18,9 +18,9 @@ concurrency:
 # migration step this fast check does NOT run).
 jobs:
   quick-checks:
-    # Keep this job name stable — it's the required status check in branch
-    # protection. (Covers typecheck + lint + format + test.)
-    name: typecheck + lint + vitest
+    # This name IS the required status check in branch protection — keep the
+    # two in sync when renaming, or merges block on a missing check.
+    name: typecheck + lint + format + test
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
