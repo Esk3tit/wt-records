@@ -13,14 +13,22 @@ export interface LatestRecordData {
   displayNameSnapshot: string | null
 }
 
-export function LatestRecord({ mode, record }: { mode: string; record: LatestRecordData }) {
+export function LatestRecord({
+  mode,
+  record,
+}: {
+  mode: string
+  record: LatestRecordData
+}) {
   return (
     <p>
-      <Link to="/$mode/vehicle/$slug" params={{ mode, slug: record.vehicleSlug }}>
+      <Link
+        to="/$mode/vehicle/$slug"
+        params={{ mode, slug: record.vehicleSlug }}
+      >
         {record.vehicleName}
       </Link>
-      {record.isRemoved && <RemovedTag />}{' '}
-      — {record.kills} kills by{' '}
+      {record.isRemoved && <RemovedTag />} — {record.kills} kills by{' '}
       <RecordName
         displayName={record.displayName}
         playerSlug={record.playerSlug}

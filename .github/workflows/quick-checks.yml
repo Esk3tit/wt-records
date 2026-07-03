@@ -14,8 +14,12 @@ concurrency:
   group: quick-checks-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Deploying? See the deploy runbook: docs/deploy.md (Railway + the manual
+# migration step this fast check does NOT run).
 jobs:
   quick-checks:
+    # Keep this job name stable — it's the required status check in branch
+    # protection. (Covers typecheck + lint + format + test.)
     name: typecheck + lint + vitest
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -47,6 +51,9 @@ jobs:
 
       - name: Lint
         run: bun run lint
+
+      - name: Format check
+        run: bun run check
 
       - name: Test
         run: bun run test

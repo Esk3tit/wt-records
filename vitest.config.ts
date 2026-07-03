@@ -16,7 +16,10 @@ export default defineConfig({
           include: ['src/**/*.test.{ts,tsx}'],
           // Don't double-run integration tests colocated in src/ (they belong to
           // the node `integration` project); keep Vitest's default excludes.
-          exclude: [...configDefaults.exclude, 'src/**/*.integration.test.{ts,tsx}'],
+          exclude: [
+            ...configDefaults.exclude,
+            'src/**/*.integration.test.{ts,tsx}',
+          ],
           setupFiles: ['./tests/setup.unit.ts'],
         },
       },
@@ -25,7 +28,10 @@ export default defineConfig({
         test: {
           name: 'integration',
           environment: 'node',
-          include: ['tests/integration/**/*.test.ts', 'src/**/*.integration.test.ts'],
+          include: [
+            'tests/integration/**/*.test.ts',
+            'src/**/*.integration.test.ts',
+          ],
         },
       },
     ],

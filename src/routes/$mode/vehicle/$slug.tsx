@@ -34,7 +34,10 @@ function VehicleDetail() {
         {vehicle.isRemoved && <RemovedTag />}
       </h1>
       <p className="mt-1 text-fg-muted">
-        <Link to="/$mode/nation/$slug" params={{ mode, slug: vehicle.nationSlug }}>
+        <Link
+          to="/$mode/nation/$slug"
+          params={{ mode, slug: vehicle.nationSlug }}
+        >
           {vehicle.nationName}
         </Link>{' '}
         · {vehicle.class}

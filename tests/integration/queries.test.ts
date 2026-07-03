@@ -89,7 +89,12 @@ describe('listNations', () => {
     const nationRows = await listNations(t.db, 'grb')
     expect(nationRows).toEqual([
       { slug: 'usa', name: 'USA', eligibleVehicles: 4, coveredVehicles: 2 },
-      { slug: 'germany', name: 'Germany', eligibleVehicles: 3, coveredVehicles: 2 },
+      {
+        slug: 'germany',
+        name: 'Germany',
+        eligibleVehicles: 3,
+        coveredVehicles: 2,
+      },
     ])
   })
 })
@@ -98,7 +103,9 @@ describe('getNationSheet', () => {
   it('lists the nation eligible vehicles with current holder or open bounty', async () => {
     const sheet = await getNationSheet(t.db, 'grb', 'usa')
     expect(sheet?.nation.name).toBe('USA')
-    const bySlug = Object.fromEntries(sheet!.rows.map((r) => [r.vehicleSlug, r]))
+    const bySlug = Object.fromEntries(
+      sheet!.rows.map((r) => [r.vehicleSlug, r]),
+    )
     expect(bySlug['m4a1']).toMatchObject({
       vehicleName: 'M4A1',
       br: 3.7,
@@ -177,9 +184,17 @@ describe('search', () => {
   })
 
   it('links a result only to a live mode for its branch', async () => {
-    const [usa] = await t.db.select().from(nations).where(eq(nations.slug, 'usa'))
+    const [usa] = await t.db
+      .select()
+      .from(nations)
+      .where(eq(nations.slug, 'usa'))
     await t.db.insert(vehicles).values({
-      externalId: 'jetx', name: 'Jetx', slug: 'jetx', nationId: usa.id, branch: 'air', class: 'fighter',
+      externalId: 'jetx',
+      name: 'Jetx',
+      slug: 'jetx',
+      nationId: usa.id,
+      branch: 'air',
+      class: 'fighter',
     })
     // ARB is not live yet → no link target.
     expect((await search(t.db, 'Jetx')).vehicles[0].linkMode).toBeNull()
@@ -203,7 +218,10 @@ describe('search', () => {
 
 describe('removed vehicles', () => {
   async function addRemovedUsaTank(isRemoved = true) {
-    const [usa] = await t.db.select().from(nations).where(eq(nations.slug, 'usa'))
+    const [usa] = await t.db
+      .select()
+      .from(nations)
+      .where(eq(nations.slug, 'usa'))
     const [v] = await t.db
       .insert(vehicles)
       .values({
@@ -222,38 +240,65 @@ describe('removed vehicles', () => {
   it('are still counted in eligibility and completion (metadata, not a filter)', async () => {
     await addRemovedUsaTank()
     expect((await getModeStats(t.db, 'grb'))?.eligibleVehicles).toBe(8)
-    const usaRow = (await listNations(t.db, 'grb'))?.find((n) => n.slug === 'usa')
+    const usaRow = (await listNations(t.db, 'grb'))?.find(
+      (n) => n.slug === 'usa',
+    )
     expect(usaRow?.eligibleVehicles).toBe(5)
   })
 
   it('render everywhere they appear, flagged with isRemoved', async () => {
     const veh = await addRemovedUsaTank()
-    const [ace] = await t.db.select().from(players).where(eq(players.slug, 'ace'))
+    const [ace] = await t.db
+      .select()
+      .from(players)
+      .where(eq(players.slug, 'ace'))
     await t.db.insert(records).values({
-      vehicleId: veh.id, mode: 'grb', playerId: ace.id, ignSnapshot: 'Ace', kills: 20, status: 'verified', isCurrent: true,
+      vehicleId: veh.id,
+      mode: 'grb',
+      playerId: ace.id,
+      ignSnapshot: 'Ace',
+      kills: 20,
+      status: 'verified',
+      isCurrent: true,
     })
 
     const sheet = await getNationSheet(t.db, 'grb', 'usa')
-    expect(sheet?.rows.find((r) => r.vehicleSlug === 'removed-tank')?.isRemoved).toBe(true)
+    expect(
+      sheet?.rows.find((r) => r.vehicleSlug === 'removed-tank')?.isRemoved,
+    ).toBe(true)
 
     const v = await getVehicle(t.db, 'grb', 'removed-tank')
     expect(v?.vehicle.isRemoved).toBe(true)
     expect(v?.current?.kills).toBe(20)
 
     // The record on the removed vehicle counts toward the leaderboard + profile.
-    expect((await getLeaderboard(t.db, 'grb')).find((r) => r.slug === 'ace')?.records).toBe(3)
+    expect(
+      (await getLeaderboard(t.db, 'grb')).find((r) => r.slug === 'ace')
+        ?.records,
+    ).toBe(3)
     const p = await getPlayer(t.db, 'ace')
-    expect(p?.records.find((r) => r.vehicleSlug === 'removed-tank')?.isRemoved).toBe(true)
+    expect(
+      p?.records.find((r) => r.vehicleSlug === 'removed-tank')?.isRemoved,
+    ).toBe(true)
   })
 })
 
 describe('getModeHome latest ordering', () => {
   it('ranks a record with a real verifiedAt ahead of NULL-verifiedAt rows', async () => {
-    const [m26] = await t.db.select().from(vehicles).where(eq(vehicles.slug, 'm26'))
+    const [m26] = await t.db
+      .select()
+      .from(vehicles)
+      .where(eq(vehicles.slug, 'm26'))
     await t.db
       .update(records)
       .set({ verifiedAt: new Date('2030-01-01T00:00:00Z') })
-      .where(and(eq(records.vehicleId, m26.id), eq(records.mode, 'grb'), eq(records.isCurrent, true)))
+      .where(
+        and(
+          eq(records.vehicleId, m26.id),
+          eq(records.mode, 'grb'),
+          eq(records.isCurrent, true),
+        ),
+      )
 
     const home = await getModeHome(t.db, 'grb')
     expect(home.latest?.vehicleSlug).toBe('m26')
@@ -262,23 +307,50 @@ describe('getModeHome latest ordering', () => {
 
 describe('mode scoping', () => {
   it('getVehicle is null for a wrong-branch vehicle, valid under its own mode', async () => {
-    const [usa] = await t.db.select().from(nations).where(eq(nations.slug, 'usa'))
+    const [usa] = await t.db
+      .select()
+      .from(nations)
+      .where(eq(nations.slug, 'usa'))
     await t.db.insert(vehicles).values({
-      externalId: 'jet1', name: 'Jet', slug: 'jet', nationId: usa.id, branch: 'air', class: 'fighter',
+      externalId: 'jet1',
+      name: 'Jet',
+      slug: 'jet',
+      nationId: usa.id,
+      branch: 'air',
+      class: 'fighter',
     })
     expect(await getVehicle(t.db, 'grb', 'jet')).toBeNull()
     expect((await getVehicle(t.db, 'arb', 'jet'))?.vehicle.name).toBe('Jet')
   })
 
   it('getPlayer omits records from non-live modes', async () => {
-    const [usa] = await t.db.select().from(nations).where(eq(nations.slug, 'usa'))
-    const [ace] = await t.db.select().from(players).where(eq(players.slug, 'ace'))
+    const [usa] = await t.db
+      .select()
+      .from(nations)
+      .where(eq(nations.slug, 'usa'))
+    const [ace] = await t.db
+      .select()
+      .from(players)
+      .where(eq(players.slug, 'ace'))
     const [jet] = await t.db
       .insert(vehicles)
-      .values({ externalId: 'jet2', name: 'Jet2', slug: 'jet2', nationId: usa.id, branch: 'air', class: 'fighter' })
+      .values({
+        externalId: 'jet2',
+        name: 'Jet2',
+        slug: 'jet2',
+        nationId: usa.id,
+        branch: 'air',
+        class: 'fighter',
+      })
       .returning()
     await t.db.insert(records).values({
-      vehicleId: jet.id, mode: 'arb', playerId: ace.id, ignSnapshot: 'Ace', kills: 9, status: 'verified', isCurrent: true,
+      vehicleId: jet.id,
+      mode: 'arb',
+      playerId: ace.id,
+      ignSnapshot: 'Ace',
+      kills: 9,
+      status: 'verified',
+      isCurrent: true,
     })
     const p = await getPlayer(t.db, 'ace')
     expect(p?.records.map((r) => r.mode)).not.toContain('arb')

@@ -26,11 +26,14 @@ function Rules() {
       <h1 className="text-2xl font-semibold">{mode.name} — rules</h1>
 
       {mode.rulesMd ? (
-        <pre className="mt-4 whitespace-pre-wrap text-fg-muted">{mode.rulesMd}</pre>
+        <pre className="mt-4 whitespace-pre-wrap text-fg-muted">
+          {mode.rulesMd}
+        </pre>
       ) : (
         <p className="mt-4 text-fg-muted">
-          A record counts once it clears the qualifying threshold for its class. A
-          title is taken only by strictly exceeding the current record’s kills.
+          A record counts once it clears the qualifying threshold for its class.
+          A title is taken only by strictly exceeding the current record’s
+          kills.
         </p>
       )}
 
@@ -53,7 +56,8 @@ function Rules() {
       </table>
       {mode.difficultMinKills != null && (
         <p className="mt-2 text-sm text-fg-faint">
-          Difficult vehicles use a flat threshold of {mode.difficultMinKills} kills.
+          Difficult vehicles use a flat threshold of {mode.difficultMinKills}{' '}
+          kills.
         </p>
       )}
     </section>
