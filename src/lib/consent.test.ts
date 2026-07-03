@@ -1,9 +1,5 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { readConsent, writeConsent } from '#/lib/consent'
-
-afterEach(() => {
-  localStorage.clear()
-})
 
 describe('consent store', () => {
   it('is unknown before any decision', () => {

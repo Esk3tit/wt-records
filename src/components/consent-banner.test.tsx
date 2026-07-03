@@ -11,7 +11,6 @@ vi.mock('#/lib/observability', () => ({
 }))
 
 afterEach(() => {
-  localStorage.clear()
   grantConsent.mockClear()
   revokeConsent.mockClear()
 })

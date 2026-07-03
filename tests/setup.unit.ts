@@ -37,4 +37,5 @@ for (const target of [globalThis, window]) {
 
 afterEach(() => {
   cleanup()
+  storage.clear()
 })
