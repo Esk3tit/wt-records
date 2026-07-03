@@ -10,15 +10,20 @@ The SSR app deploys to Railway from `main` via the [`Dockerfile`](../Dockerfile)
 - `SUPABASE_URL`; plus `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` once Realtime/Auth land (Phase 2).
 - `SENTRY_DSN` and the `VITE_*` observability keys.
 
-## Apply migrations (manual, until CI automates it — #14)
+## Apply migrations
 
-The app never self-migrates. After any schema change, apply the committed migrations to the hosted DB **through the Session pooler or Direct connection** — *not* the transaction pooler, because `drizzle-kit` uses prepared statements the transaction pooler rejects:
+The app never self-migrates. Committed migrations reach production via the **`migrate-prod`** GitHub Action, which pauses on the `WT Records / production` environment's required-reviewer gate and — once approved — runs `bun run db:migrate` against the `PROD_MIGRATE_DATABASE_URL` secret (a Session-pooler/Direct URL). Two triggers:
+
+- **Automatically on merge to `main`** when anything under `drizzle/` changes. A bad migration can't reach here — the per-PR migration check blocks it at review time.
+- **Manually** (Actions tab → _migrate-prod_ → _Run workflow_, confirm with `migrate`) for re-runs or out-of-band migrations.
+
+Railway deploys the same merge in parallel and does **not** wait for the migration, so approve promptly — especially when new code depends on the new schema.
+
+As a local last resort, migrate **through the Session pooler or Direct connection** — *not* the transaction pooler, because `drizzle-kit` uses prepared statements the transaction pooler rejects:
 
 ```bash
 DATABASE_URL='<session-pooler (port 5432) or direct URL>' bun run db:migrate
 ```
-
-Or run the **`migrate-prod`** GitHub Action (Actions tab → _migrate-prod_ → _Run workflow_, confirm with `migrate`) — a one-click, human-gated version of the same command. It uses the `PROD_MIGRATE_DATABASE_URL` repo secret (set it to the session/direct URL), so you never paste the prod connection string locally. Add required reviewers to a `production` GitHub Environment to gate it behind an approval. Fully-automatic-on-merge is deferred to #14 (per-PR migration validation) so a bad migration can't auto-ship.
 
 ## Seed (optional)
 
