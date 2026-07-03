@@ -15,6 +15,13 @@
       "when": 1782778122629,
       "tag": "0001_realtime_publication",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783116311069,
+      "tag": "0002_stats_views",
+      "breakpoints": true
     }
   ]
 }

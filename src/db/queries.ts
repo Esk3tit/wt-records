@@ -1,8 +1,11 @@
-import { and, asc, desc, eq, ilike, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, ilike } from 'drizzle-orm'
 import type { Db } from '#/db'
 import {
+  globalStats,
+  leaderboard,
   modeMinKills,
   modes,
+  nationStats,
   nations,
   playerAliases,
   players,
@@ -34,40 +37,31 @@ export async function getMode(db: Db, mode: string) {
 export function getLeaderboard(db: Db, mode: string, limit?: number) {
   const q = db
     .select({
-      slug: players.slug,
-      displayName: players.displayName,
-      records: sql<number>`count(*)::int`,
+      slug: leaderboard.slug,
+      displayName: leaderboard.displayName,
+      records: leaderboard.records,
     })
-    .from(records)
-    .innerJoin(players, eq(players.id, records.playerId))
-    .where(and(eq(records.mode, mode), isCurrentVerified))
-    .groupBy(players.id, players.slug, players.displayName)
-    .orderBy(desc(sql`count(*)`), asc(players.displayName))
+    .from(leaderboard)
+    .where(eq(leaderboard.mode, mode))
+    .orderBy(desc(leaderboard.records), asc(leaderboard.displayName))
   return limit == null ? q : q.limit(limit)
 }
 
 export async function getModeStats(db: Db, mode: string) {
-  const m = await getMode(db, mode)
-  if (!m) return null
-  const current = and(eq(records.mode, mode), isCurrentVerified)
-
-  // totals (by mode) and eligible (by branch) are independent — run together.
-  const [[totals], [{ eligibleVehicles }]] = await Promise.all([
-    db
+  // global_stats has one row per mode; no row = unknown mode.
+  return one(
+    await db
       .select({
-        records: sql<number>`count(*)::int`,
-        holders: sql<number>`count(distinct ${records.playerId})::int`,
-        coveredVehicles: sql<number>`count(distinct ${records.vehicleId})::int`,
+        records: globalStats.records,
+        holders: globalStats.holders,
+        coveredVehicles: globalStats.coveredVehicles,
+        eligibleVehicles: globalStats.eligibleVehicles,
+        completionPct: globalStats.completionPct,
       })
-      .from(records)
-      .where(current),
-    db
-      .select({ eligibleVehicles: sql<number>`count(*)::int` })
-      .from(vehicles)
-      .where(eq(vehicles.branch, m.branch)),
-  ])
-
-  return { ...totals, eligibleVehicles }
+      .from(globalStats)
+      .where(eq(globalStats.mode, mode))
+      .limit(1),
+  )
 }
 
 export async function getModeHome(db: Db, mode: string) {
@@ -88,40 +82,37 @@ export async function getModeHome(db: Db, mode: string) {
       .from(records)
       .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
       .innerJoin(players, eq(players.id, records.playerId))
-      .where(and(eq(records.mode, mode), isCurrentVerified))
-      // verified_at is nullable (migrated rows have none); DESC alone sorts
-      // NULLS FIRST, which would rank those stale rows as "latest".
-      .orderBy(sql`${records.verifiedAt} desc nulls last`, desc(records.id))
-      .limit(1),
+      // global_stats owns the "latest" ordering (verified_at nulls last, id).
+      .where(
+        eq(
+          records.id,
+          db
+            .select({ id: globalStats.latestRecordId })
+            .from(globalStats)
+            .where(eq(globalStats.mode, mode)),
+        ),
+      ),
   ])
   return { stats, leaders, latest: one(latestRows) }
 }
 
 export async function listNations(db: Db, mode: string) {
-  const m = await getMode(db, mode)
-  if (!m) return null
-  return db
-    .select({
-      slug: nations.slug,
-      name: nations.name,
-      eligibleVehicles: sql<number>`count(distinct ${vehicles.id})::int`,
-      coveredVehicles: sql<number>`count(distinct ${records.vehicleId})::int`,
-    })
-    .from(nations)
-    .leftJoin(
-      vehicles,
-      and(eq(vehicles.nationId, nations.id), eq(vehicles.branch, m.branch)),
-    )
-    .leftJoin(
-      records,
-      and(
-        eq(records.vehicleId, vehicles.id),
-        eq(records.mode, mode),
-        isCurrentVerified,
-      ),
-    )
-    .groupBy(nations.id, nations.slug, nations.name, nations.sort)
-    .orderBy(asc(nations.sort))
+  // The mode existence check and the stats read are independent — run together.
+  const [m, rows] = await Promise.all([
+    getMode(db, mode),
+    db
+      .select({
+        slug: nationStats.slug,
+        name: nationStats.name,
+        eligibleVehicles: nationStats.eligibleVehicles,
+        coveredVehicles: nationStats.coveredVehicles,
+        completionPct: nationStats.completionPct,
+      })
+      .from(nationStats)
+      .where(eq(nationStats.mode, mode))
+      .orderBy(asc(nationStats.sort)),
+  ])
+  return m ? rows : null
 }
 
 export async function getNationSheet(db: Db, mode: string, slug: string) {

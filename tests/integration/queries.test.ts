@@ -76,6 +76,7 @@ describe('getModeStats', () => {
       holders: 3,
       coveredVehicles: 4,
       eligibleVehicles: 7,
+      completionPct: 57,
     })
   })
 
@@ -88,12 +89,19 @@ describe('listNations', () => {
   it('reports per-nation eligible and covered vehicle counts for the mode', async () => {
     const nationRows = await listNations(t.db, 'grb')
     expect(nationRows).toEqual([
-      { slug: 'usa', name: 'USA', eligibleVehicles: 4, coveredVehicles: 2 },
+      {
+        slug: 'usa',
+        name: 'USA',
+        eligibleVehicles: 4,
+        coveredVehicles: 2,
+        completionPct: 50,
+      },
       {
         slug: 'germany',
         name: 'Germany',
         eligibleVehicles: 3,
         coveredVehicles: 2,
+        completionPct: 67,
       },
     ])
   })

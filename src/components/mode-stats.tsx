@@ -1,10 +1,9 @@
-import { completionPct } from '#/lib/completion'
-
 export interface ModeStatsData {
   records: number
   holders: number
   eligibleVehicles: number
   coveredVehicles: number
+  completionPct: number
 }
 
 export function ModeStats({ stats }: { stats: ModeStatsData }) {
@@ -12,10 +11,7 @@ export function ModeStats({ stats }: { stats: ModeStatsData }) {
     <dl className="flex gap-8">
       <Stat label="Records" value={stats.records} />
       <Stat label="Holders" value={stats.holders} />
-      <Stat
-        label="Completion"
-        value={`${completionPct(stats.coveredVehicles, stats.eligibleVehicles)}%`}
-      />
+      <Stat label="Completion" value={`${stats.completionPct}%`} />
     </dl>
   )
 }

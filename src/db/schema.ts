@@ -1,6 +1,7 @@
 import {
   pgTable,
   pgEnum,
+  pgView,
   integer,
   uuid,
   text,
@@ -13,6 +14,7 @@ import {
   primaryKey,
   check,
   pgPolicy,
+  doublePrecision,
 } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import { authUsers, anonRole } from 'drizzle-orm/supabase'
@@ -226,6 +228,60 @@ export const profiles = pgTable('profiles', {
   googleEmail: text('google_email'), // convenience
   role: role('role').notNull().default('viewer'),
 }).enableRLS()
+
+/* ── Derived stats views — plain SQL views (drizzle/0002), mapped here
+      as `existing` so drizzle-kit never tries to (re)create them. ─────── */
+export const playerStats = pgView('player_stats', {
+  mode: text('mode').notNull(),
+  playerId: integer('player_id').notNull(),
+  records: integer('records').notNull(),
+  totalKills: integer('total_kills').notNull(),
+  avgKills: doublePrecision('avg_kills').notNull(),
+}).existing()
+
+export const leaderboard = pgView('leaderboard', {
+  mode: text('mode').notNull(),
+  playerId: integer('player_id').notNull(),
+  slug: text('slug').notNull(),
+  displayName: text('display_name').notNull(),
+  records: integer('records').notNull(),
+  totalKills: integer('total_kills').notNull(),
+  rank: integer('rank').notNull(),
+}).existing()
+
+export const globalStats = pgView('global_stats', {
+  mode: text('mode').notNull(),
+  records: integer('records').notNull(),
+  holders: integer('holders').notNull(),
+  coveredVehicles: integer('covered_vehicles').notNull(),
+  eligibleVehicles: integer('eligible_vehicles').notNull(),
+  remainingVehicles: integer('remaining_vehicles').notNull(),
+  completionPct: integer('completion_pct').notNull(),
+  avgKills: doublePrecision('avg_kills'),
+  medianKills: doublePrecision('median_kills'),
+  latestRecordId: integer('latest_record_id'),
+}).existing()
+
+export const nationStats = pgView('nation_stats', {
+  mode: text('mode').notNull(),
+  nationId: integer('nation_id').notNull(),
+  slug: text('slug').notNull(),
+  name: text('name').notNull(),
+  sort: integer('sort').notNull(),
+  eligibleVehicles: integer('eligible_vehicles').notNull(),
+  coveredVehicles: integer('covered_vehicles').notNull(),
+  completionPct: integer('completion_pct').notNull(),
+  avgKills: doublePrecision('avg_kills'),
+}).existing()
+
+export const leaderboardAllModes = pgView('leaderboard_all_modes', {
+  playerId: integer('player_id').notNull(),
+  slug: text('slug').notNull(),
+  displayName: text('display_name').notNull(),
+  records: integer('records').notNull(),
+  totalKills: integer('total_kills').notNull(),
+  rank: integer('rank').notNull(),
+}).existing()
 
 export const auditLog = pgTable('audit_log', {
   id: integer('id').primaryKey().generatedAlwaysAsIdentity(),

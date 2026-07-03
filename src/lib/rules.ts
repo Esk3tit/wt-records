@@ -51,9 +51,3 @@ export function takesTitle(
   if (incumbentKills == null) return true
   return challengerKills > incumbentKills
 }
-
-/** Completion percentage for a mode: held / eligible, 0 when nothing eligible. */
-export function completionPercent(held: number, eligible: number): number {
-  if (eligible <= 0) return 0
-  return (held / eligible) * 100
-}
