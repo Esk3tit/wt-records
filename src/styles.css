@@ -31,7 +31,7 @@ body {
     system-ui,
     -apple-system,
     'SF Pro Text',
-    'Inter',
+    Inter,
     sans-serif;
   font-variant-numeric: tabular-nums;
 }

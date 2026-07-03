@@ -20,11 +20,15 @@ DATABASE_URL='<session-pooler (port 5432) or direct URL>' bun run db:migrate
 
 ## Seed (optional)
 
+Seeding is **optional** — an empty-but-migrated DB already passes the healthcheck (the home renders); the `/$mode` pages just 404 until the `modes` rows exist.
+
+`db:seed` sets `prepare: false`, so — unlike `db:migrate` — it works fine through the **transaction pooler** `DATABASE_URL` (no session/direct requirement). It writes FAKE fixture data, so seeding any non-local database requires an explicit `SEED_REMOTE=1`:
+
 ```bash
-DATABASE_URL='<session-pooler or direct URL>' bun run db:seed   # deterministic dev fixture — FAKE data
+SEED_REMOTE=1 DATABASE_URL='<hosted transaction-pooler URL>' bun run db:seed   # dev fixture — FAKE data
 ```
 
-The dev fixture is for local/staging only. Real GRB data lands via the importer (#20). An empty-but-migrated DB still passes the healthcheck (the home renders), but the `/$mode` pages 404 until the `modes` rows exist.
+Real GRB data lands via the importer (#20).
 
 ## Deploy
 

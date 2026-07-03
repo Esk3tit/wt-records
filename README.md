@@ -60,7 +60,7 @@ Slower checks (Playwright E2E, visual, LLM evals) run non-blocking on previews/n
 
 `.github/workflows/quick-checks.yml` is the **required** fast check (target 2–4 min, blocks merge): `bun install --frozen-lockfile` → `generate-routes` → `typecheck` → `lint` → `check` (Prettier) → `test`.
 
-**Deploy:** to Railway from `main` via the [`Dockerfile`](./Dockerfile) (`oven/bun` base; Railway doesn't auto-detect Bun). Every page renders through the DB, so the hosted database must be migrated (and seeded) first — see the **[deploy runbook](./docs/deploy.md)** (env vars, the transaction-pooler `DATABASE_URL`, and the manual migration step CI doesn't run).
+**Deploy:** to Railway from `main` via the [`Dockerfile`](./Dockerfile) (`oven/bun` base; Railway doesn't auto-detect Bun). Every page renders through the DB, so the hosted database must be migrated first (seed it only when you need fixture data) — see the **[deploy runbook](./docs/deploy.md)** (env vars, the transaction-pooler `DATABASE_URL`, and the manual migration step CI doesn't run).
 
 ## Project structure
 
