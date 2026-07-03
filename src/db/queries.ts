@@ -257,9 +257,15 @@ export async function getPlayer(db: Db, slug: string) {
       })
       .from(records)
       .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
+      // Same counted-record definition as the stats views: live mode + branch
+      // match, so an off-branch record (invalid data) never renders here either.
       .innerJoin(
         modes,
-        and(eq(modes.mode, records.mode), eq(modes.isLive, true)),
+        and(
+          eq(modes.mode, records.mode),
+          eq(modes.isLive, true),
+          eq(modes.branch, vehicles.branch),
+        ),
       )
       .where(and(eq(records.playerId, player.id), isCurrentVerified))
       .orderBy(asc(records.mode), desc(records.kills)),

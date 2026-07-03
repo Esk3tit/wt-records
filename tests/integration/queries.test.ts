@@ -364,4 +364,39 @@ describe('mode scoping', () => {
     expect(p?.records.map((r) => r.mode)).not.toContain('arb')
     expect(p?.records.map((r) => r.vehicleSlug)).toEqual(['m4a1', 'panther-d'])
   })
+
+  it('getPlayer omits an off-branch record, matching the stats views', async () => {
+    const [usa] = await t.db
+      .select()
+      .from(nations)
+      .where(eq(nations.slug, 'usa'))
+    const [ace] = await t.db
+      .select()
+      .from(players)
+      .where(eq(players.slug, 'ace'))
+    const [jet] = await t.db
+      .insert(vehicles)
+      .values({
+        externalId: 'jet3',
+        name: 'Jet3',
+        slug: 'jet3',
+        nationId: usa.id,
+        branch: 'air',
+        class: 'fighter',
+      })
+      .returning()
+    // Invalid data (no constraint forbids it): a ground-mode record on an
+    // air vehicle.
+    await t.db.insert(records).values({
+      vehicleId: jet.id,
+      mode: 'grb',
+      playerId: ace.id,
+      ignSnapshot: 'Ace',
+      kills: 99,
+      status: 'verified',
+      isCurrent: true,
+    })
+    const p = await getPlayer(t.db, 'ace')
+    expect(p?.records.map((r) => r.vehicleSlug)).toEqual(['m4a1', 'panther-d'])
+  })
 })
