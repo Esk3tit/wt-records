@@ -33,6 +33,8 @@ export function startObservability(
 ): ObservabilityStatus {
   const status = observabilityStatus(env)
   if (typeof window === 'undefined') return status
+  // Swallow init failures: ad-blockers routinely block these SDKs' chunks, and a
+  // dead analytics/error pipe must never surface to the user or spam the console.
   if (status.sentry) void initSentry(env.sentryDsn!).catch(() => {})
   if (status.posthog) void initAnalytics(env).catch(() => {})
   return status
@@ -43,6 +45,9 @@ async function initSentry(dsn: string): Promise<void> {
   Sentry.init({
     dsn,
     environment: import.meta.env.MODE,
+    // tracesSampleRate alone collects nothing — browser tracing is what emits
+    // the pageload/navigation spans it samples.
+    integrations: [Sentry.browserTracingIntegration()],
     tracesSampleRate: 0.1,
     sendDefaultPii: false,
   })
@@ -53,7 +58,7 @@ async function initAnalytics(env: PublicEnv): Promise<void> {
   if (!key) return
   const { default: ph } = await import('posthog-js')
   ph.init(key, {
-    api_host: env.posthogHost ?? 'https://us.i.posthog.com',
+    api_host: env.posthogHost || 'https://us.i.posthog.com',
     autocapture: true,
     capture_pageview: true,
     // Write no cookies/localStorage until opt-in — persistence turns on with

@@ -27,7 +27,7 @@ export function ConsentBanner() {
 
   return (
     <div
-      role="dialog"
+      role="region"
       aria-label="Privacy consent"
       className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-base/80 backdrop-blur-md"
     >
