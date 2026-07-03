@@ -2,7 +2,7 @@ import { configDefaults, defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
 // Two projects in one repo: a jsdom unit project (React/components/pure logic)
-// and a node project for PGlite integration tests (added in PR2).
+// and a node project for PGlite integration tests.
 export default defineConfig({
   plugins: [react()],
   resolve: { tsconfigPaths: true },

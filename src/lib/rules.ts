@@ -1,5 +1,5 @@
-// The record rules, as pure functions (PRD §7). The DB stores only the
-// parameters (mode_min_kills + modes.difficultMinKills); evaluation lives here.
+// The record rules, as pure functions. The DB stores only the parameters
+// (mode_min_kills + modes.difficultMinKills); evaluation lives here.
 import type { VehicleClass } from '#/lib/vehicle-classes'
 
 export type { VehicleClass } from '#/lib/vehicle-classes'
@@ -28,7 +28,7 @@ export function qualifyingThreshold(
   return thresholds.minKillsByClass[vehicleClass] ?? null
 }
 
-/** Whether a run's kills meet the qualifying threshold (PRD §7). */
+/** Whether a run's kills meet the qualifying threshold. */
 export function qualifies(
   kills: number,
   vehicleClass: VehicleClass,

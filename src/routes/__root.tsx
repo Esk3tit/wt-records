@@ -11,7 +11,8 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import appCss from '../styles.css?url'
-import { initObservability } from '#/lib/observability'
+import { startObservability } from '#/lib/observability'
+import { ConsentBanner } from '#/components/consent-banner'
 import { SiteNav } from '#/components/site-nav'
 import { db } from '#/db'
 import { listModes } from '#/db/queries'
@@ -53,7 +54,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
 
   useEffect(() => {
-    initObservability()
+    startObservability()
   }, [])
 
   return (
@@ -66,6 +67,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
+        <ConsentBanner />
         {import.meta.env.DEV && (
           <TanStackDevtools
             config={{
