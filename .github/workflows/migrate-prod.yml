@@ -1,9 +1,10 @@
 name: migrate-prod
 
-# Manual, human-gated production migration: applies the committed Drizzle
-# migrations (drizzle/) to the production database. Deliberately NOT automatic
-# on merge — see docs/deploy.md. Auto-apply on merge should ride on the #14
-# per-PR migration validation before it's trusted to run unattended.
+# Applies the committed Drizzle migrations (drizzle/) to production. Runs
+# automatically on merge to main when drizzle/ changes, and can also be
+# dispatched manually. The production environment's required reviewer gates
+# every run — the job pauses for approval before any migration touches prod.
+# See docs/deploy.md.
 on:
   workflow_dispatch:
     inputs:
@@ -11,6 +12,10 @@ on:
         description: 'Type "migrate" to confirm applying migrations to PRODUCTION'
         required: true
         type: string
+  push:
+    branches: [main]
+    paths:
+      - 'drizzle/**'
 
 permissions:
   contents: read
@@ -25,12 +30,14 @@ jobs:
     name: migrate production
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Optional approval gate: add required reviewers to a "production" GitHub
-    # Environment (Settings → Environments), and/or scope the secret to it.
-    environment: production
+    # Holds the required-reviewer approval gate and the PROD_MIGRATE_DATABASE_URL
+    # secret; the job pauses here for approval on every run.
+    environment: WT Records / production
     steps:
+      # Manual runs need the typed phrase too; merge-triggered runs rely on the
+      # environment approval gate above.
       - name: Verify confirmation
-        if: ${{ inputs.confirm != 'migrate' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.confirm != 'migrate' }}
         run: |
           echo "::error::confirmation phrase not matched — aborting"
           exit 1
@@ -42,7 +49,7 @@ jobs:
           DATABASE_URL: ${{ secrets.PROD_MIGRATE_DATABASE_URL }}
         run: |
           if [ -z "$DATABASE_URL" ]; then
-            echo "::error::PROD_MIGRATE_DATABASE_URL is empty — add it as a secret on the 'production' environment (Supabase session/direct URL, not the :6543 pooler)."
+            echo "::error::PROD_MIGRATE_DATABASE_URL is empty — add it as a secret on this job's environment (Supabase session/direct URL, not the :6543 pooler)."
             exit 1
           fi
 
