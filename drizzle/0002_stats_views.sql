@@ -1,6 +1,8 @@
 -- Derived stats views: aggregates are computed from `records`, never stored
 -- as counters. security_invoker so the deny-by-default RLS applies to
 -- whoever queries (SSR uses the service role; anon sees nothing extra).
+-- A counted record = current + verified + on a vehicle of the mode's branch;
+-- an off-branch record (invalid data) never ranks anywhere.
 CREATE VIEW "player_stats" WITH (security_invoker = true) AS
 SELECT
   r.mode,
@@ -9,6 +11,8 @@ SELECT
   sum(r.kills)::int AS total_kills,
   avg(r.kills)::float8 AS avg_kills
 FROM records r
+JOIN modes m ON m.mode = r.mode
+JOIN vehicles v ON v.id = r.vehicle_id AND v.branch = m.branch
 WHERE r.is_current AND r.status = 'verified'
 GROUP BY r.mode, r.player_id;
 --> statement-breakpoint

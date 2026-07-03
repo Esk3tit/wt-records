@@ -273,6 +273,14 @@ describe('global_stats', () => {
       remainingVehicles: 3,
       completionPct: 57,
     })
+
+    // player_stats shares the branch guard, so the leaderboard agrees.
+    const [aceRow] = await t.db
+      .select()
+      .from(playerStats)
+      .where(and(eq(playerStats.mode, 'grb'), eq(playerStats.playerId, ace.id)))
+    expect(aceRow.records).toBe(2)
+    expect(aceRow.totalKills).toBe(27)
   })
 })
 
