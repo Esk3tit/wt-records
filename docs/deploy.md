@@ -18,6 +18,8 @@ The app never self-migrates. After any schema change, apply the committed migrat
 DATABASE_URL='<session-pooler (port 5432) or direct URL>' bun run db:migrate
 ```
 
+Or run the **`migrate-prod`** GitHub Action (Actions tab → _migrate-prod_ → _Run workflow_, confirm with `migrate`) — a one-click, human-gated version of the same command. It uses the `PROD_MIGRATE_DATABASE_URL` repo secret (set it to the session/direct URL), so you never paste the prod connection string locally. Add required reviewers to a `production` GitHub Environment to gate it behind an approval. Fully-automatic-on-merge is deferred to #14 (per-PR migration validation) so a bad migration can't auto-ship.
+
 ## Seed (optional)
 
 Seeding is **optional** — an empty-but-migrated DB already passes the healthcheck (the home renders); the `/$mode` pages just 404 until the `modes` rows exist.
