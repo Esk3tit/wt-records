@@ -34,8 +34,9 @@ export function ConsentBanner() {
     >
       <div className="mx-auto flex max-w-4xl flex-col gap-3 px-6 py-4 text-sm text-fg-muted sm:flex-row sm:items-center">
         <p className="flex-1">
-          We use cookies for analytics and session replay to make WT Records
-          better. It's optional — decline and the site works exactly the same.
+          We use cookies to understand how WT Records gets used so we can keep
+          making it better. To respect your privacy — and the rules — we ask
+          before setting them. Accepting helps us improve the site for everyone.
         </p>
         <div className="flex shrink-0 gap-2">
           <button
