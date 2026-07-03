@@ -1,4 +1,3 @@
-// URL slug for nations, vehicles, and players (PRD §9 slug columns).
 export function slugify(input: string): string {
   return input
     .normalize('NFKD')

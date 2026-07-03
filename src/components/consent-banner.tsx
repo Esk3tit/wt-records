@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react'
 import { readConsent, writeConsent } from '#/lib/consent'
 import { grantConsent, revokeConsent } from '#/lib/observability'
 
-// Consent gate for PostHog analytics + session replay (PRD §5). Renders nothing
-// on the server and until mounted, so there's no hydration mismatch and no flash
-// before we know the stored decision.
+// Renders nothing on the server and until mounted, so there's no hydration
+// mismatch and no flash before we know the stored consent decision.
 export function ConsentBanner() {
   const [visible, setVisible] = useState(false)
 
