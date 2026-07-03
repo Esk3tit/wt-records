@@ -35,6 +35,17 @@ jobs:
           echo "::error::confirmation phrase not matched — aborting"
           exit 1
 
+      # Fail fast with a clear message instead of a generic Drizzle connection
+      # error if the secret is missing / not scoped to this environment.
+      - name: Verify secret is configured
+        env:
+          DATABASE_URL: ${{ secrets.PROD_MIGRATE_DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::PROD_MIGRATE_DATABASE_URL is empty — add it as a secret on the 'production' environment (Supabase session/direct URL, not the :6543 pooler)."
+            exit 1
+          fi
+
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
