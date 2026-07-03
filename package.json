@@ -28,6 +28,7 @@
     "check": "prettier --check ."
   },
   "dependencies": {
+    "@sentry/react": "10.63.0",
     "@tailwindcss/vite": "4.3.1",
     "@tanstack/react-router": "1.170.16",
     "@tanstack/react-router-ssr-query": "1.167.1",
@@ -37,6 +38,7 @@
     "lucide-react": "0.545.0",
     "nitro": "3.0.260610-beta",
     "postgres": "^3.4.9",
+    "posthog-js": "1.396.6",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "srvx": "0.11.17",
