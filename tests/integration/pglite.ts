@@ -1,18 +1,17 @@
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { PGlite } from '@electric-sql/pglite'
 import { drizzle } from 'drizzle-orm/pglite'
 import type { PgliteDatabase } from 'drizzle-orm/pglite'
 import { migrate } from 'drizzle-orm/pglite/migrator'
 import * as schema from '#/db/schema'
 
-// Supabase provides these in a real project; create them so the committed
-// migrations (which reference auth.users + the anon role) apply unchanged.
-const SUPABASE_SHIM = `
-  create schema if not exists auth;
-  create table if not exists auth.users (id uuid primary key);
-  do $$ begin create role anon; exception when duplicate_object then null; end $$;
-  do $$ begin create role authenticated; exception when duplicate_object then null; end $$;
-  do $$ begin create role service_role; exception when duplicate_object then null; end $$;
-`
+// Supabase-provided objects the committed migrations reference; the CI migration
+// check applies the same file, so this is the one source of truth.
+const SUPABASE_SHIM = readFileSync(
+  fileURLToPath(new URL('../supabase-shim.sql', import.meta.url)),
+  'utf8',
+)
 
 export interface TestDb {
   db: PgliteDatabase<typeof schema>
