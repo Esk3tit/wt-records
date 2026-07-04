@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import { Brand } from '#/components/brand'
 
 describe('Brand', () => {
   it('renders the WT Records wordmark', () => {
-    render(<Brand />)
-    expect(screen.getByText('WT·RECORDS')).toBeDefined()
+    // The accent middot splits the wordmark across elements; match textContent.
+    const { container } = render(<Brand />)
+    expect(container.textContent).toBe('WT·RECORDS')
   })
 })

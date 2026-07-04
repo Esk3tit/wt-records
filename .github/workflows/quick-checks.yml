@@ -57,3 +57,23 @@ jobs:
 
       - name: Test
         run: bun run test
+
+  # Advisory only: surfaces design-system drift (contrast, slop patterns)
+  # without gating merges — it is NOT a required status check.
+  design-detect:
+    name: design detect (non-blocking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Detect design drift
+        run: npx -y impeccable detect src/

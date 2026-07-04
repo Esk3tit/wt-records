@@ -76,6 +76,7 @@ describe('getModeStats', () => {
       holders: 3,
       coveredVehicles: 4,
       eligibleVehicles: 7,
+      remainingVehicles: 3,
       completionPct: 57,
     })
   })
@@ -288,6 +289,56 @@ describe('removed vehicles', () => {
     expect(
       p?.records.find((r) => r.vehicleSlug === 'removed-tank')?.isRemoved,
     ).toBe(true)
+  })
+})
+
+describe('getModeHome top records', () => {
+  it('ranks the three highest current verified kill counts', async () => {
+    const home = await getModeHome(t.db, 'grb')
+    expect(
+      home.topRecords.map((r) => [r.vehicleSlug, r.kills, r.displayName]),
+    ).toEqual([
+      ['m4a1', 14, 'Ace'],
+      ['panther-d', 13, 'Ace'],
+      ['m26', 11, 'Maverick'],
+    ])
+    expect(home.topRecords[0].nationName).toBe('USA')
+  })
+
+  it('never crowns an off-branch record, matching the stats views', async () => {
+    const [usa] = await t.db
+      .select()
+      .from(nations)
+      .where(eq(nations.slug, 'usa'))
+    const [ace] = await t.db
+      .select()
+      .from(players)
+      .where(eq(players.slug, 'ace'))
+    const [jet] = await t.db
+      .insert(vehicles)
+      .values({
+        externalId: 'jet_top',
+        name: 'JetTop',
+        slug: 'jet-top',
+        nationId: usa.id,
+        branch: 'air',
+        class: 'fighter',
+      })
+      .returning()
+    // Invalid data (no constraint forbids it): a ground-mode record on an
+    // air vehicle with a crown-taking kill count.
+    await t.db.insert(records).values({
+      vehicleId: jet.id,
+      mode: 'grb',
+      playerId: ace.id,
+      ignSnapshot: 'Ace',
+      kills: 99,
+      status: 'verified',
+      isCurrent: true,
+    })
+    const home = await getModeHome(t.db, 'grb')
+    expect(home.topRecords[0].vehicleSlug).toBe('m4a1')
+    expect(home.topRecords.map((r) => r.vehicleSlug)).not.toContain('jet-top')
   })
 })
 

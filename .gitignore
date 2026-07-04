@@ -50,3 +50,14 @@ todos.json
 /docs/agents/
 /GRB-Records-PRD.md
 /WT-Records-Build-Handoff.md
+
+# Personal Claude Code overrides — never shared
+.claude/settings.local.json
+
+# The impeccable skill is a vendored tool, not project code — reinstall with
+# `npx impeccable install`. Its project artifacts (PRODUCT.md, DESIGN.md,
+# .impeccable/) ARE committed.
+.claude/skills/impeccable/
+
+# Local design prototype (referenced by the PRD, which is also local-only)
+wt-glass-concept.html
