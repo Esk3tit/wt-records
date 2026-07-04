@@ -35,3 +35,5 @@ Authoritative · precise · celebratory. The record book of a competitive commun
 ## Accessibility & Inclusion
 
 WCAG 2.1 AA: ≥4.5:1 body-text contrast (scrim-enforced over imagery), ≥3:1 for large text, visible keyboard focus on every interactive element, full reduced-motion alternatives for all animation, mobile-first responsive. Tabular numerics double as a scanability aid for the records tables.
+
+Alt text on meaningful images leads with the factual description; personality or humor may follow it, never replace it — screen-reader users get the joke too. Purely decorative images use `alt=""`.
