@@ -25,6 +25,7 @@
   );
   --glass-highlight: rgba(255, 255, 255, 0.22);
   --glass-highlight-strong: rgba(255, 255, 255, 0.3);
+  --glass-edge: rgba(255, 255, 255, 0.1);
   --hairline-hover: rgba(255, 255, 255, 0.28);
   --tint: rgba(255, 255, 255, 0.06);
   --tint-strong: rgba(255, 255, 255, 0.1);
@@ -86,15 +87,17 @@
   --silver: #57606c;
   --bronze: #8a5220;
 
-  --glass-thin-bg: rgba(255, 255, 255, 0.4);
-  --glass-mid-bg: rgba(255, 255, 255, 0.5);
+  /* Ultra-clear liquid glass (live-accepted): the day scene reads through. */
+  --glass-thin-bg: rgba(255, 255, 255, 0.08);
+  --glass-mid-bg: rgba(255, 255, 255, 0.1);
   --glass-thick-bg: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.65),
-    rgba(255, 255, 255, 0.35)
+    rgba(255, 255, 255, 0.16),
+    rgba(255, 255, 255, 0.07)
   );
-  --glass-highlight: rgba(255, 255, 255, 0.8);
+  --glass-highlight: rgba(255, 255, 255, 0.9);
   --glass-highlight-strong: rgba(255, 255, 255, 0.95);
+  --glass-edge: rgba(255, 255, 255, 0.4);
   --hairline-hover: rgba(10, 12, 16, 0.24);
   --tint: rgba(10, 12, 16, 0.05);
   --tint-strong: rgba(10, 12, 16, 0.08);
@@ -206,32 +209,35 @@
 /* ── Glass materials: scene → scrim → glass → text, always. ──────────────── */
 .glass-thin {
   background: var(--glass-thin-bg);
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(36px) saturate(180%);
+  -webkit-backdrop-filter: blur(36px) saturate(180%);
   border: 1px solid var(--hairline);
   box-shadow:
-    inset 0 1px 0 var(--glass-highlight),
+    inset 0 1.5px 0 var(--glass-highlight),
+    inset 0 -0.5px 0 var(--glass-edge),
     var(--ambient-thin);
 }
 
 .glass-mid {
   background: var(--glass-mid-bg);
-  backdrop-filter: blur(30px) saturate(150%);
-  -webkit-backdrop-filter: blur(30px) saturate(150%);
+  backdrop-filter: blur(50px) saturate(200%);
+  -webkit-backdrop-filter: blur(50px) saturate(200%);
   border: 1px solid var(--hairline);
   box-shadow:
-    inset 0 1px 0 var(--glass-highlight),
+    inset 0 1.5px 0 var(--glass-highlight),
+    inset 0 -0.5px 0 var(--glass-edge),
     var(--ambient-mid);
   border-radius: 22px;
 }
 
 .glass-thick {
   background: var(--glass-thick-bg);
-  backdrop-filter: blur(40px) saturate(150%);
-  -webkit-backdrop-filter: blur(40px) saturate(150%);
+  backdrop-filter: blur(60px) saturate(190%);
+  -webkit-backdrop-filter: blur(60px) saturate(190%);
   border: 1px solid var(--hairline);
   box-shadow:
-    inset 0 1px 0 var(--glass-highlight-strong),
+    inset 0 1.5px 0 var(--glass-highlight-strong),
+    inset 0 -0.5px 0 var(--glass-edge),
     var(--ambient-thick);
   border-radius: 26px;
 }

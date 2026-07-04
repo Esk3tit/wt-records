@@ -186,7 +186,7 @@ The identity layer. A small, curated, fixed set of battle scenes, each processed
 
 ### Cards / Containers (Glass Panels)
 - **Corner Style:** continuous radii from the locked band — 22px on mid-weight cards, 26px on thick panels (hero).
-- **Background: luminous frost** — white-alpha fills so the Spatial Scene visibly lights the pane. Night: 6% thin (nav) / 8% mid (cards) / 12→5% gradient thick (hero); day: 40% / 50% / 65→35% gradient. Blur 24–50px + saturate 150–180%, scaling with material weight. The scene layer is deliberately bright enough to feed the frost.
+- **Background: ultra-clear liquid glass** (live-accepted at frost 0.10 / blur 50) — white-alpha fills so the Spatial Scene reads through the pane in both modes. Night: 6% thin (nav) / 8% mid (cards) / 12→5% gradient thick (hero); day: 8% / 10% / 16→7% gradient. Blur 36–60px + saturate 180–200%, scaling with material weight. Every pane carries a 1.5px specular top edge (Glass Highlight) and a 0.5px bottom inner edge (Glass Edge). The scene layer is deliberately bright enough to feed the frost.
 - **Border:** 1px Hairline / Day Hairline, plus the Glass Highlight inset top edge (both modes).
 - **Shadow Strategy:** the mode's Ambient (thin for nav, deep for cards/hero) at rest, deepening on hover/focus lift per Elevation.
 - **Internal Padding:** 24px (xl).
