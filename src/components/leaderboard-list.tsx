@@ -51,11 +51,11 @@ export function LeaderboardList({
               className="hidden h-1.5 w-[5.625rem] overflow-hidden rounded-full bg-tint-strong sm:block"
             >
               <span
-                className="block h-full rounded-full bg-gradient-to-r from-accent/60 to-accent"
+                className="block h-full rounded-full bg-[var(--ink-faint)]"
                 style={{ width: `${(row.records / max) * 100}%` }}
               />
             </span>
-            <span className="min-w-[1.875rem] text-right text-[1.0625rem] font-bold text-accent-text">
+            <span className="min-w-[1.875rem] text-right text-[1.0625rem] font-bold text-fg">
               {row.records}
             </span>
           </span>
