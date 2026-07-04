@@ -15,12 +15,17 @@
   --silver: #d6dbe2;
   --bronze: #e0995a;
 
-  /* glass materials (darker contrast-safe fills; frost still reads) */
-  --glass-thin-bg: rgba(13, 16, 22, 0.55);
-  --glass-mid-bg: rgba(12, 15, 20, 0.65);
-  --glass-thick-bg: rgba(12, 15, 20, 0.75);
-  --glass-highlight: rgba(255, 255, 255, 0.18);
-  --glass-highlight-strong: rgba(255, 255, 255, 0.22);
+  /* luminous frost: white-alpha fills so the scene bleeds through the panes */
+  --glass-thin-bg: rgba(255, 255, 255, 0.06);
+  --glass-mid-bg: rgba(255, 255, 255, 0.08);
+  --glass-thick-bg: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12),
+    rgba(255, 255, 255, 0.05)
+  );
+  --glass-highlight: rgba(255, 255, 255, 0.22);
+  --glass-highlight-strong: rgba(255, 255, 255, 0.3);
+  --hairline-hover: rgba(255, 255, 255, 0.28);
   --tint: rgba(255, 255, 255, 0.06);
   --tint-strong: rgba(255, 255, 255, 0.1);
   --row-hover: rgba(255, 255, 255, 0.05);
@@ -33,36 +38,38 @@
   --ambient-thick: 0 30px 60px -30px rgba(0, 0, 0, 0.8);
   --ambient-mid-lift: 0 32px 60px -24px rgba(0, 0, 0, 0.8);
 
-  /* spatial-scene placeholder (real depth-parallax imagery replaces this) */
+  /* spatial-scene placeholder (real depth-parallax imagery replaces this);
+     bright enough to feed the frost — the panes are lit by this layer */
   --scene-sky:
     radial-gradient(
       120% 90% at 70% -10%,
-      #2a3340 0%,
-      #161b22 45%,
-      #0a0c10 100%
+      #3a4a5e 0%,
+      #222c3a 45%,
+      #10141c 100%
     ),
-    linear-gradient(180deg, #1a2330 0%, #0a0c10 80%);
-  --scene-glow: rgba(240, 185, 74, 0.22);
+    linear-gradient(180deg, #2a3648 0%, #10141c 80%);
+  --scene-glow: rgba(240, 185, 74, 0.32);
+  --scene-glow-cool: rgba(96, 148, 168, 0.2);
   --scene-haze: linear-gradient(
     180deg,
     transparent,
-    rgba(60, 80, 70, 0.18) 60%,
-    rgba(20, 26, 22, 0.5)
+    rgba(70, 95, 85, 0.22) 60%,
+    rgba(24, 32, 28, 0.5)
   );
-  --ridge-far: #1d2733;
-  --ridge-mid: #161e28;
-  --ridge-near: #0d131a;
+  --ridge-far: #2a3646;
+  --ridge-mid: #1f2a38;
+  --ridge-near: #141c26;
   --scrim:
     radial-gradient(
       120% 100% at 50% 0%,
-      transparent 40%,
-      rgba(8, 10, 14, 0.55) 100%
+      transparent 42%,
+      rgba(8, 10, 14, 0.5) 100%
     ),
     linear-gradient(
       180deg,
-      rgba(8, 10, 14, 0.35),
+      rgba(8, 10, 14, 0.3),
       transparent 30%,
-      rgba(8, 10, 14, 0.25)
+      rgba(8, 10, 14, 0.22)
     );
   --grain-ink: #fff;
 }
@@ -79,11 +86,16 @@
   --silver: #57606c;
   --bronze: #8a5220;
 
-  --glass-thin-bg: rgba(242, 243, 246, 0.6);
-  --glass-mid-bg: rgba(242, 243, 246, 0.66);
-  --glass-thick-bg: rgba(242, 243, 246, 0.72);
-  --glass-highlight: rgba(255, 255, 255, 0.7);
-  --glass-highlight-strong: rgba(255, 255, 255, 0.85);
+  --glass-thin-bg: rgba(255, 255, 255, 0.4);
+  --glass-mid-bg: rgba(255, 255, 255, 0.5);
+  --glass-thick-bg: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.65),
+    rgba(255, 255, 255, 0.35)
+  );
+  --glass-highlight: rgba(255, 255, 255, 0.8);
+  --glass-highlight-strong: rgba(255, 255, 255, 0.95);
+  --hairline-hover: rgba(10, 12, 16, 0.24);
   --tint: rgba(10, 12, 16, 0.05);
   --tint-strong: rgba(10, 12, 16, 0.08);
   --row-hover: rgba(10, 12, 16, 0.04);
@@ -98,12 +110,13 @@
   --scene-sky:
     radial-gradient(
       120% 90% at 70% -10%,
-      #dfe6ee 0%,
-      #e9edf2 45%,
+      #ccd9e8 0%,
+      #e2e8f0 45%,
       #f2f3f6 100%
     ),
-    linear-gradient(180deg, #e4e9f0 0%, #f2f3f6 80%);
-  --scene-glow: rgba(240, 185, 74, 0.28);
+    linear-gradient(180deg, #d8e1ec 0%, #f2f3f6 80%);
+  --scene-glow: rgba(240, 185, 74, 0.38);
+  --scene-glow-cool: rgba(120, 160, 185, 0.25);
   --scene-haze: linear-gradient(
     180deg,
     transparent,
@@ -226,13 +239,30 @@
 .pane-lift {
   transition:
     transform 350ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    box-shadow 350ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-shadow 350ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 350ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .pane-lift:hover {
   transform: translateY(-6px);
+  border-color: var(--hairline-hover);
   box-shadow:
     inset 0 1px 0 var(--glass-highlight-strong),
     var(--ambient-mid-lift);
+}
+
+/* The monument: the page's single amber moment, glowing behind the numeral. */
+.monument-glow {
+  position: absolute;
+  right: -18%;
+  top: -30%;
+  width: 70%;
+  height: 130%;
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    rgba(240, 185, 74, 0.22),
+    transparent 62%
+  );
 }
 
 /* One deliberate kicker (hero) + ruled section labels are the brand cadence. */
@@ -306,6 +336,15 @@
   height: 60vw;
   background: radial-gradient(circle, var(--scene-glow), transparent 60%);
   filter: blur(20px);
+}
+.scene-glow-cool {
+  position: absolute;
+  left: -15%;
+  bottom: 5%;
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, var(--scene-glow-cool), transparent 60%);
+  filter: blur(30px);
 }
 .scene-haze {
   position: absolute;

@@ -1,5 +1,3 @@
-import { CountUp } from '#/components/count-up'
-
 export interface ModeStatsData {
   records: number
   holders: number
@@ -9,45 +7,23 @@ export interface ModeStatsData {
   completionPct: number
 }
 
+/* One inline strip, no tiles: the monument owns the page's celebration. */
 export function ModeStats({ stats }: { stats: ModeStatsData }) {
   return (
-    <dl className="mt-7 flex flex-wrap gap-3.5">
-      <Stat label="Records" accent>
-        <CountUp value={stats.records} />
-      </Stat>
-      <Stat label="Holders">
-        <CountUp value={stats.holders} />
-      </Stat>
-      <Stat label="Complete" accent>
-        <CountUp value={stats.completionPct} suffix="%" />
-      </Stat>
-      <Stat label="Unclaimed">
-        <CountUp value={stats.remainingVehicles} />
-      </Stat>
+    <dl className="mt-6 flex flex-wrap gap-y-3">
+      <Stat label="Records" value={stats.records} />
+      <Stat label="Holders" value={stats.holders} />
+      <Stat label="Complete" value={`${stats.completionPct}%`} />
+      <Stat label="Unclaimed" value={stats.remainingVehicles} />
     </dl>
   )
 }
 
-function Stat({
-  label,
-  accent = false,
-  children,
-}: {
-  label: string
-  accent?: boolean
-  children: React.ReactNode
-}) {
+function Stat({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="min-w-[7.5rem] flex-1 rounded-[18px] border border-hairline-soft bg-tint px-4.5 py-4">
-      <dd
-        className={
-          'text-3xl font-bold tracking-[-0.02em] ' +
-          (accent ? 'text-accent-text' : 'text-fg')
-        }
-      >
-        {children}
-      </dd>
-      <dt className="mt-1 text-[0.6875rem] tracking-[0.08em] text-fg-muted uppercase">
+    <div className="mr-5 flex flex-col gap-0.5 border-r border-hairline-soft pr-5 last:mr-0 last:border-r-0 last:pr-0">
+      <dd className="text-lg leading-none font-semibold">{value}</dd>
+      <dt className="text-[0.6875rem] tracking-[0.08em] text-fg-muted uppercase">
         {label}
       </dt>
     </div>

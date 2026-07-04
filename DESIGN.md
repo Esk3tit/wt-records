@@ -84,7 +84,7 @@ components:
     rounded: "{rounded.control}"
     padding: "4px 8px"
   glass-panel:
-    backgroundColor: "#0A0C10CC"
+    backgroundColor: "#FFFFFF14"
     textColor: "{colors.ink}"
     rounded: "{rounded.panel}"
     padding: "24px"
@@ -105,7 +105,7 @@ This is a product surface in register (leaderboards, nation sheets, vehicle page
 **Key Characteristics:**
 - The Spatial Scene: depth-parallax battle imagery (subject-separated, offline-processed) as the identity layer in both modes
 - Two lighting states, one hall: Night Hangar / Daylight Hall bases with mirrored ink, hairline, and scrim/veil tokens
-- Frosted-glass surfaces: backdrop blur + saturate, 1px hairline borders, inset top highlight, 22–26px radii
+- Luminous frost: white-alpha glass lit by the scene behind it (the scene bleeds through every pane), backdrop blur + saturate, 1px hairline borders, inset top highlight, 22–26px radii
 - One warm accent (Medal Amber; Medal Amber Deep as its text-safe day form) at ≤10% of any screen; metals only where rank is real
 - Tabular numerals everywhere; the number is the hero
 - Floating panes: every glass surface carries a soft ambient shadow at rest — it hovers over the scene — deepening on lift
@@ -186,7 +186,7 @@ The identity layer. A small, curated, fixed set of battle scenes, each processed
 
 ### Cards / Containers (Glass Panels)
 - **Corner Style:** continuous radii from the locked band — 22px on mid-weight cards, 26px on thick panels (hero).
-- **Background:** translucent base over `backdrop-filter: blur + saturate` — dark frost by night (rgba(10,12,16,.8)), milky frost by day (rgba(242,243,246,.72)); thin material for nav, thicker frost for hero/cards.
+- **Background: luminous frost** — white-alpha fills so the Spatial Scene visibly lights the pane. Night: 6% thin (nav) / 8% mid (cards) / 12→5% gradient thick (hero); day: 40% / 50% / 65→35% gradient. Blur 24–50px + saturate 150–180%, scaling with material weight. The scene layer is deliberately bright enough to feed the frost.
 - **Border:** 1px Hairline / Day Hairline, plus the Glass Highlight inset top edge (both modes).
 - **Shadow Strategy:** the mode's Ambient (thin for nav, deep for cards/hero) at rest, deepening on hover/focus lift per Elevation.
 - **Internal Padding:** 24px (xl).
@@ -200,6 +200,9 @@ The identity layer. A small, curated, fixed set of battle scenes, each processed
 - **Mode switcher is the primary nav:** GRB/GAB/ARB/AAB as text links in the floating glass header (thin material) — active mode in Medal Amber / Medal Amber Deep, inactive in muted ink; 4px-radius hover surface. Nav links are not underlined (chrome opts out); content links keep underlines with 2px offset as a non-color affordance.
 - **Theme toggle:** lives in the nav; follows `prefers-color-scheme` by default, persists a manual override. It flips tokens only (The Same Hall Rule).
 - **Wordmark:** styled text `WT·RECORDS`, semibold, wide tracking — typography-only branding until identity is finalized.
+
+### Record Monument (signature)
+The mode's all-time high as a lock-screen moment inside the hero: a monumental amber numeral (clamp to ≤6rem) with an engraved plaque line (vehicle · holder · nation), an amber radial glow bleeding through the glass behind it, and the page's only count-up. With zero records it inverts — the count of open titles becomes the feat. This is the page's single amber moment (The One Amber Rule).
 
 ### Leaderboard Row (signature)
 Rank number right-aligned in a fixed 1.5rem column — faint ink, or the mode's metal forms for 1/2/3 where medals are on — holder name as link, record count pushed to the row's end in muted ink, tabular numerals aligning every row into a ledger.

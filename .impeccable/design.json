@@ -8,85 +8,270 @@
         "role": "primary",
         "displayName": "Medal Amber",
         "canonical": "#F0B94A",
-        "tonalRamp": ["oklch(15% 0.13 84)", "oklch(27% 0.13 84)", "oklch(38% 0.13 84)", "oklch(50% 0.13 84)", "oklch(61% 0.13 84)", "oklch(72% 0.13 84)", "oklch(82% 0.13 84)", "oklch(95% 0.09 84)"]
+        "tonalRamp": [
+          "oklch(15% 0.13 84)",
+          "oklch(27% 0.13 84)",
+          "oklch(38% 0.13 84)",
+          "oklch(50% 0.13 84)",
+          "oklch(61% 0.13 84)",
+          "oklch(72% 0.13 84)",
+          "oklch(82% 0.13 84)",
+          "oklch(95% 0.09 84)"
+        ]
       },
-      "medal-amber-deep": { "role": "primary", "displayName": "Medal Amber Deep", "canonical": "#8A6410" },
+      "medal-amber-deep": {
+        "role": "primary",
+        "displayName": "Medal Amber Deep",
+        "canonical": "#8A6410"
+      },
       "night-hangar": {
         "role": "neutral",
         "displayName": "Night Hangar",
         "canonical": "#0A0C10",
-        "tonalRamp": ["oklch(13% 0.012 255)", "oklch(20% 0.012 255)", "oklch(30% 0.012 255)", "oklch(42% 0.012 255)", "oklch(55% 0.012 255)", "oklch(70% 0.012 255)", "oklch(84% 0.012 255)", "oklch(95% 0.006 255)"]
+        "tonalRamp": [
+          "oklch(13% 0.012 255)",
+          "oklch(20% 0.012 255)",
+          "oklch(30% 0.012 255)",
+          "oklch(42% 0.012 255)",
+          "oklch(55% 0.012 255)",
+          "oklch(70% 0.012 255)",
+          "oklch(84% 0.012 255)",
+          "oklch(95% 0.006 255)"
+        ]
       },
       "daylight-hall": {
         "role": "neutral",
         "displayName": "Daylight Hall",
         "canonical": "#F2F3F6",
-        "tonalRamp": ["oklch(13% 0.006 255)", "oklch(25% 0.006 255)", "oklch(38% 0.006 255)", "oklch(52% 0.006 255)", "oklch(66% 0.006 255)", "oklch(80% 0.006 255)", "oklch(90% 0.006 255)", "oklch(96% 0.004 255)"]
+        "tonalRamp": [
+          "oklch(13% 0.006 255)",
+          "oklch(25% 0.006 255)",
+          "oklch(38% 0.006 255)",
+          "oklch(52% 0.006 255)",
+          "oklch(66% 0.006 255)",
+          "oklch(80% 0.006 255)",
+          "oklch(90% 0.006 255)",
+          "oklch(96% 0.004 255)"
+        ]
       },
       "ink": {
         "role": "neutral",
         "displayName": "Ink (night)",
         "canonical": "rgba(255,255,255,0.96)",
-        "tonalRamp": ["rgba(255,255,255,0.16)", "rgba(255,255,255,0.2)", "rgba(255,255,255,0.3)", "rgba(255,255,255,0.4)", "rgba(255,255,255,0.6)", "rgba(255,255,255,0.75)", "rgba(255,255,255,0.88)", "rgba(255,255,255,0.96)"]
+        "tonalRamp": [
+          "rgba(255,255,255,0.16)",
+          "rgba(255,255,255,0.2)",
+          "rgba(255,255,255,0.3)",
+          "rgba(255,255,255,0.4)",
+          "rgba(255,255,255,0.6)",
+          "rgba(255,255,255,0.75)",
+          "rgba(255,255,255,0.88)",
+          "rgba(255,255,255,0.96)"
+        ]
       },
-      "ink-muted": { "role": "neutral", "displayName": "Ink Muted (night)", "canonical": "rgba(255,255,255,0.6)" },
-      "ink-faint": { "role": "neutral", "displayName": "Ink Faint (night)", "canonical": "rgba(255,255,255,0.4)" },
-      "day-ink": { "role": "neutral", "displayName": "Day Ink", "canonical": "rgba(10,12,16,0.92)" },
-      "day-ink-muted": { "role": "neutral", "displayName": "Day Ink Muted", "canonical": "rgba(10,12,16,0.62)" },
-      "day-ink-faint": { "role": "neutral", "displayName": "Day Ink Faint", "canonical": "rgba(10,12,16,0.45)" },
-      "hairline": { "role": "neutral", "displayName": "Hairline (night)", "canonical": "rgba(255,255,255,0.16)" },
-      "day-hairline": { "role": "neutral", "displayName": "Day Hairline", "canonical": "rgba(10,12,16,0.12)" },
-      "glass-highlight": { "role": "neutral", "displayName": "Glass Highlight", "canonical": "rgba(255,255,255,0.2)" },
-      "night-scrim": { "role": "neutral", "displayName": "Night Scrim", "canonical": "rgba(4,6,10,0.55)" },
-      "day-veil": { "role": "neutral", "displayName": "Day Veil", "canonical": "rgba(242,243,246,0.6)" },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Ink Muted (night)",
+        "canonical": "rgba(255,255,255,0.6)"
+      },
+      "ink-faint": {
+        "role": "neutral",
+        "displayName": "Ink Faint (night)",
+        "canonical": "rgba(255,255,255,0.4)"
+      },
+      "day-ink": {
+        "role": "neutral",
+        "displayName": "Day Ink",
+        "canonical": "rgba(10,12,16,0.92)"
+      },
+      "day-ink-muted": {
+        "role": "neutral",
+        "displayName": "Day Ink Muted",
+        "canonical": "rgba(10,12,16,0.62)"
+      },
+      "day-ink-faint": {
+        "role": "neutral",
+        "displayName": "Day Ink Faint",
+        "canonical": "rgba(10,12,16,0.45)"
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline (night)",
+        "canonical": "rgba(255,255,255,0.16)"
+      },
+      "day-hairline": {
+        "role": "neutral",
+        "displayName": "Day Hairline",
+        "canonical": "rgba(10,12,16,0.12)"
+      },
+      "glass-highlight": {
+        "role": "neutral",
+        "displayName": "Glass Highlight",
+        "canonical": "rgba(255,255,255,0.2)"
+      },
+      "night-scrim": {
+        "role": "neutral",
+        "displayName": "Night Scrim",
+        "canonical": "rgba(4,6,10,0.55)"
+      },
+      "day-veil": {
+        "role": "neutral",
+        "displayName": "Day Veil",
+        "canonical": "rgba(242,243,246,0.6)"
+      },
       "ace-gold": {
         "role": "tertiary",
         "displayName": "Ace Gold",
         "canonical": "#FFD75E",
-        "tonalRamp": ["oklch(15% 0.12 92)", "oklch(28% 0.12 92)", "oklch(40% 0.12 92)", "oklch(52% 0.12 92)", "oklch(64% 0.12 92)", "oklch(76% 0.12 92)", "oklch(89% 0.12 92)", "oklch(96% 0.07 92)"]
+        "tonalRamp": [
+          "oklch(15% 0.12 92)",
+          "oklch(28% 0.12 92)",
+          "oklch(40% 0.12 92)",
+          "oklch(52% 0.12 92)",
+          "oklch(64% 0.12 92)",
+          "oklch(76% 0.12 92)",
+          "oklch(89% 0.12 92)",
+          "oklch(96% 0.07 92)"
+        ]
       },
-      "squadron-silver": { "role": "tertiary", "displayName": "Squadron Silver", "canonical": "#D6DBE2" },
-      "veteran-bronze": { "role": "tertiary", "displayName": "Veteran Bronze", "canonical": "#E0995A" },
-      "day-gold": { "role": "tertiary", "displayName": "Day Gold", "canonical": "#7A6200" },
-      "day-silver": { "role": "tertiary", "displayName": "Day Silver", "canonical": "#57606C" },
-      "day-bronze": { "role": "tertiary", "displayName": "Day Bronze", "canonical": "#8A5220" },
+      "squadron-silver": {
+        "role": "tertiary",
+        "displayName": "Squadron Silver",
+        "canonical": "#D6DBE2"
+      },
+      "veteran-bronze": {
+        "role": "tertiary",
+        "displayName": "Veteran Bronze",
+        "canonical": "#E0995A"
+      },
+      "day-gold": {
+        "role": "tertiary",
+        "displayName": "Day Gold",
+        "canonical": "#7A6200"
+      },
+      "day-silver": {
+        "role": "tertiary",
+        "displayName": "Day Silver",
+        "canonical": "#57606C"
+      },
+      "day-bronze": {
+        "role": "tertiary",
+        "displayName": "Day Bronze",
+        "canonical": "#8A5220"
+      },
       "scene-night": {
         "role": "neutral",
         "displayName": "Scene placeholder (night)",
-        "canonical": "#161B22",
-        "tonalRamp": ["#0D131A", "#161B22", "#161E28", "#1A2330", "#1D2733", "#2A3340"]
+        "canonical": "#222C3A",
+        "tonalRamp": [
+          "#10141C",
+          "#141C26",
+          "#1F2A38",
+          "#222C3A",
+          "#2A3646",
+          "#2A3648",
+          "#3A4A5E"
+        ]
       },
       "scene-day": {
         "role": "neutral",
         "displayName": "Scene placeholder (day)",
         "canonical": "#E9EDF2",
-        "tonalRamp": ["#C6CFDA", "#D3DAE3", "#DFE6EE", "#E0E5EC", "#E4E9F0", "#E9EDF2"]
+        "tonalRamp": [
+          "#C6CFDA",
+          "#CCD9E8",
+          "#D3DAE3",
+          "#D8E1EC",
+          "#E0E5EC",
+          "#E2E8F0",
+          "#E9EDF2"
+        ]
       }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "Landing hero and page-defining moments only." },
-      "headline": { "displayName": "Headline", "purpose": "Page titles: mode home, nation sheet, player profile." },
-      "title": { "displayName": "Title", "purpose": "Section headings within a page." },
-      "body": { "displayName": "Body", "purpose": "Prose and table content; 65–75ch prose cap, tables may run denser." },
-      "label": { "displayName": "Label", "purpose": "Uppercase metadata tags (removed chip); sparing." }
+      "display": {
+        "displayName": "Display",
+        "purpose": "Landing hero and page-defining moments only."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles: mode home, nation sheet, player profile."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section headings within a page."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Prose and table content; 65–75ch prose cap, tables may run denser."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase metadata tags (removed chip); sparing."
+      }
     },
     "shadows": [
-      { "name": "ambient-thin-night", "value": "0 8px 30px -12px rgba(0,0,0,0.6)", "purpose": "Resting float on thin material (nav, small chrome), dark mode." },
-      { "name": "ambient-deep-night", "value": "0 30px 60px -30px rgba(0,0,0,0.8)", "purpose": "Resting float on thick frost (hero, cards, panels), dark mode." },
-      { "name": "ambient-thin-day", "value": "0 8px 30px -12px rgba(10,12,16,0.25)", "purpose": "Resting float on thin material, light mode." },
-      { "name": "ambient-deep-day", "value": "0 30px 60px -30px rgba(10,12,16,0.35)", "purpose": "Resting float on thick frost, light mode." },
-      { "name": "lift", "value": "deepen the pane's own ambient (~+4px offset, +20% alpha)", "purpose": "Hover/focus response: a stronger float, not a new shadow. Glass panes only." }
+      {
+        "name": "ambient-thin-night",
+        "value": "0 8px 30px -12px rgba(0,0,0,0.6)",
+        "purpose": "Resting float on thin material (nav, small chrome), dark mode."
+      },
+      {
+        "name": "ambient-deep-night",
+        "value": "0 30px 60px -30px rgba(0,0,0,0.8)",
+        "purpose": "Resting float on thick frost (hero, cards, panels), dark mode."
+      },
+      {
+        "name": "ambient-thin-day",
+        "value": "0 8px 30px -12px rgba(10,12,16,0.25)",
+        "purpose": "Resting float on thin material, light mode."
+      },
+      {
+        "name": "ambient-deep-day",
+        "value": "0 30px 60px -30px rgba(10,12,16,0.35)",
+        "purpose": "Resting float on thick frost, light mode."
+      },
+      {
+        "name": "lift",
+        "value": "deepen the pane's own ambient (~+4px offset, +20% alpha)",
+        "purpose": "Hover/focus response: a stronger float, not a new shadow. Glass panes only."
+      }
     ],
     "motion": [
-      { "name": "ease-out-quart", "value": "cubic-bezier(0.25, 1, 0.5, 1)", "purpose": "Default easing for state transitions." },
-      { "name": "duration-state", "value": "180ms", "purpose": "Hover/focus/active transitions; product surfaces stay 150–250ms." },
-      { "name": "spring-lift", "value": "transform 220ms cubic-bezier(0.34, 1.3, 0.64, 1)", "purpose": "Hover lift on glass panels; reduced-motion replaces with border brighten." },
-      { "name": "parallax-clamp", "value": "max displacement a few % of image size", "purpose": "Spatial Scene depth displacement stays subtle (Apple-like); disabled to static under prefers-reduced-motion." }
+      {
+        "name": "ease-out-quart",
+        "value": "cubic-bezier(0.25, 1, 0.5, 1)",
+        "purpose": "Default easing for state transitions."
+      },
+      {
+        "name": "duration-state",
+        "value": "180ms",
+        "purpose": "Hover/focus/active transitions; product surfaces stay 150–250ms."
+      },
+      {
+        "name": "spring-lift",
+        "value": "transform 220ms cubic-bezier(0.34, 1.3, 0.64, 1)",
+        "purpose": "Hover lift on glass panels; reduced-motion replaces with border brighten."
+      },
+      {
+        "name": "parallax-clamp",
+        "value": "max displacement a few % of image size",
+        "purpose": "Spatial Scene depth displacement stays subtle (Apple-like); disabled to static under prefers-reduced-motion."
+      }
     ],
     "breakpoints": [
-      { "name": "sm", "value": "640px" },
-      { "name": "md", "value": "768px" },
-      { "name": "lg", "value": "1024px" }
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
     ]
   },
   "components": [
@@ -96,7 +281,7 @@
       "refersTo": "spatial-scene",
       "description": "Signature identity layer: depth-parallax battle scene (offline-processed image + depth map) behind the mode's scrim/veil, glass DOM above. Placeholder gradient stands in for imagery here.",
       "html": "<div class=\"ds-scene\"><div class=\"ds-scene-img\"></div><div class=\"ds-scene-scrim\"></div><div class=\"ds-scene-glass\"><span class=\"ds-scene-caption\">Glass floats above the scene — text never touches imagery</span></div></div>",
-      "css": ".ds-scene { position: relative; height: 220px; border-radius: 12px; overflow: hidden; } .ds-scene-img { position: absolute; inset: -4%; background: linear-gradient(160deg, #2a3542 0%, #16202c 45%, #3d3325 100%); transition: transform 400ms cubic-bezier(0.25, 1, 0.5, 1); } .ds-scene:hover .ds-scene-img { transform: translate(1.5%, 1%) scale(1.02); } .ds-scene-scrim { position: absolute; inset: 0; background: rgba(4, 6, 10, 0.55); } .ds-scene-glass { position: absolute; left: 24px; right: 24px; bottom: 24px; background: rgba(10, 12, 16, 0.8); backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4); border: 1px solid rgba(255,255,255,0.16); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2); border-radius: 26px; padding: 16px 24px; } .ds-scene-caption { color: rgba(255,255,255,0.96); font-size: 0.875rem; } @media (prefers-reduced-motion: reduce) { .ds-scene-img, .ds-scene:hover .ds-scene-img { transition: none; transform: none; } }"
+      "css": ".ds-scene { position: relative; height: 220px; border-radius: 12px; overflow: hidden; } .ds-scene-img { position: absolute; inset: -4%; background: linear-gradient(160deg, #2a3542 0%, #16202c 45%, #3d3325 100%); transition: transform 400ms cubic-bezier(0.25, 1, 0.5, 1); } .ds-scene:hover .ds-scene-img { transform: translate(1.5%, 1%) scale(1.02); } .ds-scene-scrim { position: absolute; inset: 0; background: rgba(4, 6, 10, 0.55); } .ds-scene-glass { position: absolute; left: 24px; right: 24px; bottom: 24px; background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4); border: 1px solid rgba(255,255,255,0.16); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2); border-radius: 26px; padding: 16px 24px; } .ds-scene-caption { color: rgba(255,255,255,0.96); font-size: 0.875rem; } @media (prefers-reduced-motion: reduce) { .ds-scene-img, .ds-scene:hover .ds-scene-img { transition: none; transform: none; } }"
     },
     {
       "name": "Primary Button",
@@ -118,9 +303,9 @@
       "name": "Glass Panel",
       "kind": "card",
       "refersTo": "glass-panel",
-      "description": "The core surface: frost over the treated scene, hairline border, lit top edge. Night form shown; day form is milky frost (rgba(242,243,246,.72)) with Day Hairline.",
+      "description": "The core surface: luminous white-alpha frost lit by the scene behind it. Night form shown; day form uses rgba(255,255,255,.5) with Day Hairline.",
       "html": "<div class=\"ds-glass-panel\"><h3 class=\"ds-glass-title\">Ground Realistic</h3><p class=\"ds-glass-body\">4 records · 3 holders · 57% complete</p></div>",
-      "css": ".ds-glass-panel { background: rgba(10, 12, 16, 0.8); backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4); border: 1px solid rgba(255,255,255,0.16); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 30px 60px -30px rgba(0,0,0,0.8); border-radius: 26px; padding: 24px; color: rgba(255,255,255,0.96); transition: transform 220ms cubic-bezier(0.34, 1.3, 0.64, 1), box-shadow 220ms cubic-bezier(0.25, 1, 0.5, 1); } .ds-glass-panel:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 34px 60px -30px rgba(0,0,0,0.95); } .ds-glass-title { margin: 0 0 8px; font-size: 1.125rem; font-weight: 600; line-height: 1.3; } .ds-glass-body { margin: 0; font-size: 1rem; color: rgba(255,255,255,0.6); font-variant-numeric: tabular-nums; } @media (prefers-reduced-motion: reduce) { .ds-glass-panel { transition: border-color 180ms; } .ds-glass-panel:hover { transform: none; border-color: rgba(255,255,255,0.3); } }"
+      "css": ".ds-glass-panel { background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4); border: 1px solid rgba(255,255,255,0.16); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 30px 60px -30px rgba(0,0,0,0.8); border-radius: 26px; padding: 24px; color: rgba(255,255,255,0.96); transition: transform 220ms cubic-bezier(0.34, 1.3, 0.64, 1), box-shadow 220ms cubic-bezier(0.25, 1, 0.5, 1); } .ds-glass-panel:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 34px 60px -30px rgba(0,0,0,0.95); } .ds-glass-title { margin: 0 0 8px; font-size: 1.125rem; font-weight: 600; line-height: 1.3; } .ds-glass-body { margin: 0; font-size: 1rem; color: rgba(255,255,255,0.6); font-variant-numeric: tabular-nums; } @media (prefers-reduced-motion: reduce) { .ds-glass-panel { transition: border-color 180ms; } .ds-glass-panel:hover { transform: none; border-color: rgba(255,255,255,0.3); } }"
     },
     {
       "name": "Leaderboard Row",
@@ -144,7 +329,7 @@
       "refersTo": "nav-mode-active",
       "description": "Primary navigation with theme toggle slot; active mode in Medal Amber (Deep form by day).",
       "html": "<header class=\"ds-nav\"><span class=\"ds-nav-brand\">WT·RECORDS</span><nav class=\"ds-nav-modes\"><a class=\"ds-nav-mode ds-nav-mode-active\" href=\"#\">GRB</a><a class=\"ds-nav-mode\" href=\"#\">GAB</a><a class=\"ds-nav-mode\" href=\"#\">ARB</a><a class=\"ds-nav-mode\" href=\"#\">AAB</a></nav><button class=\"ds-nav-theme\" aria-label=\"Toggle theme\">◐</button></header>",
-      "css": ".ds-nav { display: flex; align-items: center; gap: 16px; padding: 12px 24px; background: rgba(10, 12, 16, 0.6); backdrop-filter: blur(12px) saturate(1.3); -webkit-backdrop-filter: blur(12px) saturate(1.3); border-bottom: 1px solid rgba(255,255,255,0.16); color: rgba(255,255,255,0.96); } .ds-nav-brand { font-weight: 600; letter-spacing: 0.025em; } .ds-nav-modes { display: flex; gap: 4px; } .ds-nav-mode { color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.875rem; padding: 4px 8px; border-radius: 4px; transition: color 180ms cubic-bezier(0.25, 1, 0.5, 1); } .ds-nav-mode:hover { color: rgba(255,255,255,0.96); } .ds-nav-mode:focus-visible { outline: 2px solid #F0B94A; outline-offset: 2px; } .ds-nav-mode-active { color: #F0B94A; } .ds-nav-theme { margin-left: auto; background: transparent; color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.16); border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.875rem; } .ds-nav-theme:hover { color: rgba(255,255,255,0.96); } .ds-nav-theme:focus-visible { outline: 2px solid #F0B94A; outline-offset: 2px; }"
+      "css": ".ds-nav { display: flex; align-items: center; gap: 16px; padding: 12px 24px; background: rgba(255, 255, 255, 0.06); backdrop-filter: blur(12px) saturate(1.3); -webkit-backdrop-filter: blur(12px) saturate(1.3); border-bottom: 1px solid rgba(255,255,255,0.16); color: rgba(255,255,255,0.96); } .ds-nav-brand { font-weight: 600; letter-spacing: 0.025em; } .ds-nav-modes { display: flex; gap: 4px; } .ds-nav-mode { color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.875rem; padding: 4px 8px; border-radius: 4px; transition: color 180ms cubic-bezier(0.25, 1, 0.5, 1); } .ds-nav-mode:hover { color: rgba(255,255,255,0.96); } .ds-nav-mode:focus-visible { outline: 2px solid #F0B94A; outline-offset: 2px; } .ds-nav-mode-active { color: #F0B94A; } .ds-nav-theme { margin-left: auto; background: transparent; color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.16); border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.875rem; } .ds-nav-theme:hover { color: rgba(255,255,255,0.96); } .ds-nav-theme:focus-visible { outline: 2px solid #F0B94A; outline-offset: 2px; }"
     },
     {
       "name": "Search Input",
@@ -167,12 +352,36 @@
       "Floating panes: every glass surface carries a soft ambient shadow at rest, deepening on lift"
     ],
     "rules": [
-      { "name": "The Same Hall Rule", "body": "Light and dark are the same hall under different light. Tokens flip (base, ink, hairline, scrim/veil, deep accent/metal forms); structure, spacing, radii, type, and layout never do. A screen that rearranges between modes is broken.", "section": "colors" },
-      { "name": "The Earned Metal Rule", "body": "Gold, silver, and bronze (and their day forms) color only ranks 1, 2, and 3 — never headings, never icons, never decoration.", "section": "colors" },
-      { "name": "The One Amber Rule", "body": "Medal Amber (or its Deep day form) covers at most 10% of any screen: primary action, active mode, current selection, record emphasis. Two competing amber elements in one view means one of them is wrong.", "section": "colors" },
-      { "name": "The Tabular Rule", "body": "font-variant-numeric: tabular-nums applies globally, no exceptions. A kill count that shifts width when it changes is a bug.", "section": "typography" },
-      { "name": "The Floating Pane Rule", "body": "Every glass surface floats: soft, negative-spread ambient shadow at rest, deepening on hover/focus lift. Shadows belong to glass panes only — never to text, buttons inside panes, or non-glass elements.", "section": "elevation" },
-      { "name": "The Sandwich Rule", "body": "Text never sits directly on the Spatial Scene. Between any scene and any text there is always the mode's scrim/veil, a glass surface, or both. Contrast is enforced by the layer stack, not hoped for.", "section": "elevation" }
+      {
+        "name": "The Same Hall Rule",
+        "body": "Light and dark are the same hall under different light. Tokens flip (base, ink, hairline, scrim/veil, deep accent/metal forms); structure, spacing, radii, type, and layout never do. A screen that rearranges between modes is broken.",
+        "section": "colors"
+      },
+      {
+        "name": "The Earned Metal Rule",
+        "body": "Gold, silver, and bronze (and their day forms) color only ranks 1, 2, and 3 — never headings, never icons, never decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Amber Rule",
+        "body": "Medal Amber (or its Deep day form) covers at most 10% of any screen: primary action, active mode, current selection, record emphasis. Two competing amber elements in one view means one of them is wrong.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "font-variant-numeric: tabular-nums applies globally, no exceptions. A kill count that shifts width when it changes is a bug.",
+        "section": "typography"
+      },
+      {
+        "name": "The Floating Pane Rule",
+        "body": "Every glass surface floats: soft, negative-spread ambient shadow at rest, deepening on hover/focus lift. Shadows belong to glass panes only — never to text, buttons inside panes, or non-glass elements.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Sandwich Rule",
+        "body": "Text never sits directly on the Spatial Scene. Between any scene and any text there is always the mode's scrim/veil, a glass surface, or both. Contrast is enforced by the layer stack, not hoped for.",
+        "section": "elevation"
+      }
     ],
     "dos": [
       "Do treat the Spatial Scene as first-class: every background ships as image.jpg + image-depth.png with a static fallback and a reduced-motion path; scenes swap per nation/branch.",

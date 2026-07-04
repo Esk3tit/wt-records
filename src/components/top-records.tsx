@@ -14,8 +14,7 @@ export interface TopRecordRow {
   displayNameSnapshot: string | null
 }
 
-const POS_LABEL = ['#1 · All-time high', '#2', '#3']
-
+/* Companion cards to the monument: the #2/#3 chasers. */
 export function TopRecords({
   mode,
   records,
@@ -24,24 +23,13 @@ export function TopRecords({
   records: TopRecordRow[]
 }) {
   return (
-    <ol className="grid gap-3.5 sm:grid-cols-2 md:grid-cols-[1.4fr_1fr_1fr]">
+    <ol className="grid gap-3.5 sm:grid-cols-2">
       {records.map((r, i) => (
-        <li
-          key={r.vehicleSlug}
-          className={
-            'glass-mid pane-lift relative overflow-hidden p-5.5 sm:first:col-span-2 md:first:col-span-1 ' +
-            (i === 0 ? 'record-lead' : '')
-          }
-        >
+        <li key={r.vehicleSlug} className="glass-mid pane-lift p-5.5">
           <p className="text-[0.6875rem] font-semibold tracking-[0.12em] text-fg-muted uppercase">
-            {POS_LABEL[i]}
+            #{i + 2}
           </p>
-          <p
-            className={
-              'mt-2 leading-none font-bold tracking-[-0.03em] ' +
-              (i === 0 ? 'text-7xl text-accent-text' : 'text-5xl text-fg')
-            }
-          >
+          <p className="mt-2 text-5xl leading-none font-bold tracking-[-0.03em] text-fg">
             {r.kills}
             <span className="ml-1 text-[0.8125rem] font-medium tracking-[0.06em] text-fg-muted">
               kills
