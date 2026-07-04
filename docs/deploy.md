@@ -33,6 +33,7 @@ Seeding is **optional** — an empty-but-migrated DB already passes the healthch
 
 ```bash
 SEED_REMOTE=1 DATABASE_URL='<hosted transaction-pooler URL>' bun run db:seed   # dev fixture — FAKE data
+SEED_RESET=1 SEED_REMOTE=1 DATABASE_URL='<hosted transaction-pooler URL>' bun run db:seed   # wipe fixture tables first (seed is not idempotent)
 ```
 
 Real GRB data lands via the importer (#20).

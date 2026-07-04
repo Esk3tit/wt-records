@@ -22,6 +22,12 @@ if (!isLocal && process.env.SEED_REMOTE !== '1') {
 const sql = postgres(url, { prepare: false })
 try {
   const db = drizzle(sql, { schema })
+  // Opt-in wipe: the seed is not idempotent, so re-seeding a populated DB
+  // needs the fixture tables cleared. Cascades cover every dependent table.
+  if (process.env.SEED_RESET === '1') {
+    await sql`truncate table modes, nations, players restart identity cascade`
+    console.log('Fixture tables truncated.')
+  }
   await seed(db)
   await seedDemo(db)
   console.log('Seeded (fixture + demo dressing).')
