@@ -65,12 +65,7 @@ function ModeHome() {
             ['/rules/$mode', 'Rules'],
           ] as const
         ).map(([to, label]) => (
-          <Link
-            key={to}
-            to={to}
-            params={{ mode }}
-            className="rounded-full border border-hairline bg-tint px-4 py-1.5 text-fg-muted transition-colors duration-200 hover:text-fg"
-          >
+          <Link key={to} to={to} params={{ mode }} className="glass-pill">
             {label}
           </Link>
         ))}

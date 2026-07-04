@@ -54,6 +54,7 @@ rounded:
   control: "4px"
   card: "22px"
   panel: "26px"
+  pill: "999px"
 spacing:
   xs: "4px"
   sm: "8px"
@@ -180,6 +181,7 @@ The identity layer. A small, curated, fixed set of battle scenes, each processed
 - **Shape:** small radius (4px) — controls stay compact instruments; the 22–26px radii belong to glass panels.
 - **Primary:** Medal Amber fill, black text in both modes (6px 12px padding). Hover dims slightly; focus ring visible in the mode's accent form.
 - **Ghost:** transparent with the mode's hairline border; muted ink brightening to full ink on hover.
+- **Glass pill** (live-accepted at frost .12 / float .2): section-nav capsule that is a small liquid-glass pane in its own right — 999px radius, full ink at weight 550, 12% white-alpha fill with blur 36/saturate 180%, specular edges, a subtle 3px anchor shadow rising 2px on hover. Important navigation is never muted into the background.
 
 ### Chips
 - **Removed tag:** faint fill (white .10 night / dark .08 day), the mode's faint ink, uppercase Label type, 4px radius, 2px 6px padding. Metadata register — informative, never alarming; removed vehicles are first-class citizens.
