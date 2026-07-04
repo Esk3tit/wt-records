@@ -44,10 +44,10 @@ export function ModeLanding({
   const monument = topRecords.length > 0 ? topRecords[0] : null
   const anchors = [
     { label: 'Leaderboard', hash: 'standings' },
-    { label: 'Nations', hash: 'nations' },
     ...(hotVehicles.length > 0
       ? [{ label: 'Vehicles', hash: 'hot-vehicles' }]
       : []),
+    { label: 'Nations', hash: 'nations' },
   ]
 
   return (
@@ -99,7 +99,12 @@ export function ModeLanding({
       {(topRecords.length > 0 || latestFeed.length > 0) && (
         <div className="band-chase mt-12">
           <section className="min-w-0">
-            <SectionHead title="The podium" aside="all-time · top five" />
+            <SectionHead
+              title="The podium"
+              aside={
+                topRecords.length >= 5 ? 'all-time · top five' : 'all-time'
+              }
+            />
             <Podium mode={mode} records={topRecords} />
           </section>
           <div className="feed-col">
@@ -117,7 +122,7 @@ export function ModeLanding({
             title="Top records · this week"
             aside={weekRangeLabel()}
           />
-          <WeekMarquee records={weekTop} />
+          <WeekMarquee mode={mode} records={weekTop} />
         </section>
       )}
 
@@ -152,7 +157,7 @@ export function ModeLanding({
         )}
         <section id="standings" className="min-w-0 scroll-mt-24">
           <SectionHead
-            title="Standings"
+            title="Leaderboard"
             aside={
               <Link
                 to="/$mode/leaderboard"

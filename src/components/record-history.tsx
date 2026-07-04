@@ -96,6 +96,8 @@ function HistoryChart({ steps }: { steps: HistoryStep[] }) {
 /* The top vehicle's record climbing as a step chart: every step a verified
    life, holder churn in the caption. */
 export function RecordHistory({ steps }: { steps: HistoryStep[] }) {
+  // A single step has no progression to chart (and would divide by zero).
+  if (steps.length < 2) return null
   const holders = new Set(steps.map((s) => s.playerSlug)).size
   const first = steps[0]
   const current = steps[steps.length - 1]

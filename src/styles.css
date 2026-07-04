@@ -7,7 +7,8 @@
   --base: #0a0c10;
   --ink: rgba(255, 255, 255, 0.96);
   --ink-muted: rgba(255, 255, 255, 0.6);
-  --ink-faint: rgba(255, 255, 255, 0.4);
+  /* Floor: ≥4.5:1 on base AND on the lightened glass fills (AA small text). */
+  --ink-faint: rgba(255, 255, 255, 0.5);
   --hairline: rgba(255, 255, 255, 0.16);
   --hairline-soft: rgba(255, 255, 255, 0.08);
   --accent-text: #f0b94a;
@@ -78,8 +79,8 @@
 :root[data-theme='light'] {
   --base: #f2f3f6;
   --ink: rgba(10, 12, 16, 0.92);
-  --ink-muted: rgba(10, 12, 16, 0.62);
-  --ink-faint: rgba(10, 12, 16, 0.45);
+  --ink-muted: rgba(10, 12, 16, 0.66);
+  --ink-faint: rgba(10, 12, 16, 0.58);
   --hairline: rgba(10, 12, 16, 0.12);
   --hairline-soft: rgba(10, 12, 16, 0.07);
   --accent-text: #8a6410;
@@ -480,11 +481,10 @@
   gap: 1.25rem;
   align-items: stretch;
 }
-.feed-col {
-  min-height: 26rem;
-}
+/* Below lg the feed is content-height (a half-empty fixed box reads as a
+   loading failure); at lg it fills its rail beside the podium. */
 .feed-rail {
-  height: 26rem;
+  max-height: 26rem;
 }
 @media (min-width: 1024px) {
   .band-chase {
@@ -498,7 +498,7 @@
   .feed-rail {
     position: absolute;
     inset: 0;
-    height: auto;
+    max-height: none;
   }
 }
 
@@ -544,17 +544,19 @@
   }
 }
 
-/* Feed reads as a chat log: bottom-anchored, oldest dissolving under a fade. */
-.feed-scroll {
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 26%);
-  mask-image: linear-gradient(to bottom, transparent 0, black 26%);
+/* Feed reads as a chat log: bottom-anchored, oldest dissolving under a fade.
+   The fade only makes sense where the rail is fixed-height (lg and up). */
+@media (min-width: 1024px) {
+  .feed-scroll {
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 26%);
+    mask-image: linear-gradient(to bottom, transparent 0, black 26%);
+  }
 }
 
-/* Week marquee: continuous drift, non-interactive, faded at both edges.
-   Static row under reduced motion. */
+/* Week marquee: ambient drift, faded at both edges, paused while hovered or
+   focused so the cards' links stay usable. Static row under reduced motion. */
 .week-marquee {
   overflow: hidden;
-  pointer-events: none;
   -webkit-mask-image: linear-gradient(
     to right,
     transparent,
@@ -577,6 +579,10 @@
 @media (prefers-reduced-motion: no-preference) {
   .week-track[data-drift] {
     animation: week-drift var(--week-dur, 55s) linear infinite;
+  }
+  .week-marquee:hover .week-track[data-drift],
+  .week-marquee:focus-within .week-track[data-drift] {
+    animation-play-state: paused;
   }
 }
 @keyframes week-drift {

@@ -27,7 +27,7 @@ export function LongestStanding({
                   isRemoved={r.isRemoved}
                 />
               </span>
-              <span className="mt-0.5 block text-[0.6875rem] font-medium text-fg-muted">
+              <span className="mt-0.5 block text-xs font-medium text-fg-muted">
                 {r.kills} kills ·{' '}
                 <Link
                   to="/player/$slug"
