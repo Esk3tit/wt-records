@@ -47,7 +47,7 @@ export function ModeLanding({
     ...(hotVehicles.length > 0
       ? [{ label: 'Vehicles', hash: 'hot-vehicles' }]
       : []),
-    { label: 'Nations', hash: 'nations' },
+    ...(nations.length > 0 ? [{ label: 'Nations', hash: 'nations' }] : []),
   ]
 
   return (

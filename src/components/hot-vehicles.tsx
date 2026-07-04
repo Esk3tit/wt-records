@@ -15,6 +15,7 @@ export function HotVehicles({
   mode: string
   rows: HotVehicleRow[]
 }) {
+  if (rows.length === 0) return null
   const max = rows[0].submissions
   return (
     <div className="glass-mid overflow-hidden">

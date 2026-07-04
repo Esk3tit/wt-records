@@ -94,7 +94,9 @@ function countedRecordRows(db: Db) {
     .innerJoin(players, eq(players.id, records.playerId))
 }
 
-const WEEK_START = sql`date_trunc('week', now())`
+// UTC-pinned so the window always matches the UTC week label on the page,
+// whatever the database session timezone is.
+const WEEK_START = sql`date_trunc('week', now() at time zone 'utc') at time zone 'utc'`
 
 export async function getModeLanding(db: Db, mode: string) {
   const [
