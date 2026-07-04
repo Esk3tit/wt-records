@@ -22,6 +22,8 @@ export default [
       '.nitro/**',
       '.tanstack/**',
       'dist/**',
+      '.claude/**',
+      'wt-glass-concept.html',
     ],
   },
 ]

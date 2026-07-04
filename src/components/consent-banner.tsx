@@ -29,7 +29,7 @@ export function ConsentBanner() {
     <div
       role="region"
       aria-label="Privacy consent"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-base/80 backdrop-blur-md"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-hairline bg-base/80 backdrop-blur-md"
     >
       <div className="mx-auto flex max-w-4xl flex-col gap-3 px-6 py-4 text-sm text-fg-muted sm:flex-row sm:items-center">
         <p className="flex-1">
@@ -41,7 +41,7 @@ export function ConsentBanner() {
           <button
             type="button"
             onClick={decline}
-            className="rounded border border-white/15 px-3 py-1.5 text-fg-muted hover:text-fg"
+            className="rounded border border-hairline px-3 py-1.5 text-fg-muted transition-colors duration-200 hover:text-fg"
           >
             Decline
           </button>

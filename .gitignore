@@ -50,3 +50,6 @@ todos.json
 /docs/agents/
 /GRB-Records-PRD.md
 /WT-Records-Build-Handoff.md
+
+# Personal Claude Code overrides — never shared
+.claude/settings.local.json

@@ -21,7 +21,7 @@ export function LatestRecord({
   record: LatestRecordData
 }) {
   return (
-    <p>
+    <span>
       <Link
         to="/$mode/vehicle/$slug"
         params={{ mode, slug: record.vehicleSlug }}
@@ -35,6 +35,6 @@ export function LatestRecord({
         ignSnapshot={record.ignSnapshot}
         displayNameSnapshot={record.displayNameSnapshot}
       />
-    </p>
+    </span>
   )
 }

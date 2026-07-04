@@ -76,6 +76,7 @@ describe('getModeStats', () => {
       holders: 3,
       coveredVehicles: 4,
       eligibleVehicles: 7,
+      remainingVehicles: 3,
       completionPct: 57,
     })
   })
@@ -288,6 +289,20 @@ describe('removed vehicles', () => {
     expect(
       p?.records.find((r) => r.vehicleSlug === 'removed-tank')?.isRemoved,
     ).toBe(true)
+  })
+})
+
+describe('getModeHome top records', () => {
+  it('ranks the three highest current verified kill counts', async () => {
+    const home = await getModeHome(t.db, 'grb')
+    expect(
+      home.topRecords.map((r) => [r.vehicleSlug, r.kills, r.displayName]),
+    ).toEqual([
+      ['m4a1', 14, 'Ace'],
+      ['panther-d', 13, 'Ace'],
+      ['m26', 11, 'Maverick'],
+    ])
+    expect(home.topRecords[0].nationName).toBe('USA')
   })
 })
 

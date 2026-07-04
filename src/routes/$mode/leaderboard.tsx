@@ -19,11 +19,11 @@ function Leaderboard() {
   const rows = Route.useLoaderData()
 
   return (
-    <section className="p-6">
+    <section className="py-6">
       <h1 className="text-2xl font-semibold">
         {mode.toUpperCase()} leaderboard
       </h1>
-      <div className="mt-4">
+      <div className="glass-mid mt-4 overflow-hidden">
         <LeaderboardList rows={rows} medals />
       </div>
     </section>

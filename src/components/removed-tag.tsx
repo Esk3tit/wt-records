@@ -3,7 +3,7 @@
 export function RemovedTag() {
   return (
     <span
-      className="ml-2 rounded bg-white/10 px-1.5 py-0.5 text-xs uppercase tracking-wide text-fg-faint"
+      className="ml-2 rounded bg-tint-strong px-1.5 py-0.5 text-xs tracking-wide text-fg-faint uppercase"
       title="Removed from the game — records still count"
     >
       removed

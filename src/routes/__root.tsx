@@ -12,7 +12,9 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import appCss from '../styles.css?url'
 import { startObservability } from '#/lib/observability'
+import { THEME_INIT_SCRIPT } from '#/lib/theme'
 import { ConsentBanner } from '#/components/consent-banner'
+import { SceneBackdrop } from '#/components/scene-backdrop'
 import { SiteNav } from '#/components/site-nav'
 import { db } from '#/db'
 import { listModes } from '#/db/queries'
@@ -42,10 +44,13 @@ function RootComponent() {
   const modes = Route.useLoaderData()
   return (
     <>
-      <SiteNav modes={modes} />
-      <main>
-        <Outlet />
-      </main>
+      <SceneBackdrop />
+      <div className="relative z-[2] px-5 pb-24">
+        <SiteNav modes={modes} />
+        <main className="mx-auto w-full max-w-[67.5rem]">
+          <Outlet />
+        </main>
+      </div>
     </>
   )
 }
@@ -63,6 +68,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         {/* Pin the canonical host so the recordswt.com 301 redirect can't
             compete in unfurls/indexing. */}
         <link rel="canonical" href={`${CANONICAL_ORIGIN}${pathname}`} />
+        {/* Blocking on purpose: the theme must be stamped before first paint
+            or a dark-preference visitor gets a white flash. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HeadContent />
       </head>
       <body>

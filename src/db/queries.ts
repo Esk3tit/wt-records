@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike } from 'drizzle-orm'
+import { and, asc, desc, eq, ilike, sql } from 'drizzle-orm'
 import type { Db } from '#/db'
 import {
   globalStats,
@@ -56,6 +56,7 @@ export async function getModeStats(db: Db, mode: string) {
         holders: globalStats.holders,
         coveredVehicles: globalStats.coveredVehicles,
         eligibleVehicles: globalStats.eligibleVehicles,
+        remainingVehicles: globalStats.remainingVehicles,
         completionPct: globalStats.completionPct,
       })
       .from(globalStats)
@@ -65,9 +66,33 @@ export async function getModeStats(db: Db, mode: string) {
 }
 
 export async function getModeHome(db: Db, mode: string) {
-  const [stats, leaders, latestRows] = await Promise.all([
+  const [stats, leaders, topRecords, latestRows] = await Promise.all([
     getModeStats(db, mode),
-    getLeaderboard(db, mode, 5),
+    getLeaderboard(db, mode, 8),
+    db
+      .select({
+        kills: records.kills,
+        vehicleSlug: vehicles.slug,
+        vehicleName: vehicles.name,
+        isRemoved: vehicles.isRemoved,
+        nationName: nations.name,
+        playerSlug: players.slug,
+        displayName: players.displayName,
+        ignSnapshot: records.ignSnapshot,
+        displayNameSnapshot: records.displayNameSnapshot,
+      })
+      .from(records)
+      .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
+      .innerJoin(nations, eq(nations.id, vehicles.nationId))
+      .innerJoin(players, eq(players.id, records.playerId))
+      .where(and(eq(records.mode, mode), isCurrentVerified))
+      // Equal kills: first-to-achieve outranks (nulls first = migrated oldest).
+      .orderBy(
+        desc(records.kills),
+        sql`${records.verifiedAt} asc nulls first`,
+        asc(records.id),
+      )
+      .limit(3),
     db
       .select({
         kills: records.kills,
@@ -93,7 +118,7 @@ export async function getModeHome(db: Db, mode: string) {
         ),
       ),
   ])
-  return { stats, leaders, latest: one(latestRows) }
+  return { stats, leaders, topRecords, latest: one(latestRows) }
 }
 
 export async function listNations(db: Db, mode: string) {

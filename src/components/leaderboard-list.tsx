@@ -15,23 +15,50 @@ export function LeaderboardList({
   rows: LeaderboardRow[]
   medals?: boolean
 }) {
-  if (rows.length === 0) return <p className="text-fg-muted">No records yet.</p>
+  if (rows.length === 0)
+    return <p className="px-5 py-4 text-fg-muted">No records yet.</p>
+  const max = rows[0].records
   return (
-    <ol className="space-y-1">
+    <ol>
       {rows.map((row, i) => (
-        <li key={row.slug} className="flex items-baseline gap-3">
+        <li
+          key={row.slug}
+          className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-3.5 border-b border-hairline-soft px-5 py-3.5 transition-colors duration-200 last:border-b-0 hover:bg-[var(--row-hover)]"
+        >
           <span
             className={
-              'w-6 text-right ' +
+              'text-center font-bold ' +
               (medals ? (RANK_COLOR[i] ?? 'text-fg-faint') : 'text-fg-faint')
             }
           >
             {i + 1}
           </span>
-          <Link to="/player/$slug" params={{ slug: row.slug }}>
-            {row.displayName}
-          </Link>
-          <span className="ml-auto text-fg-muted">{row.records}</span>
+          <span className="min-w-0">
+            <Link
+              to="/player/$slug"
+              params={{ slug: row.slug }}
+              className="font-semibold no-underline hover:underline"
+            >
+              {row.displayName}
+            </Link>
+            <span className="mt-0.5 block text-[0.6875rem] font-medium text-fg-muted">
+              {row.records} {row.records === 1 ? 'record' : 'records'} held
+            </span>
+          </span>
+          <span className="flex items-center gap-3">
+            <span
+              aria-hidden="true"
+              className="hidden h-1.5 w-[5.625rem] overflow-hidden rounded-full bg-tint-strong sm:block"
+            >
+              <span
+                className="block h-full rounded-full bg-gradient-to-r from-accent/60 to-accent"
+                style={{ width: `${(row.records / max) * 100}%` }}
+              />
+            </span>
+            <span className="min-w-[1.875rem] text-right text-[1.0625rem] font-bold text-accent-text">
+              {row.records}
+            </span>
+          </span>
         </li>
       ))}
     </ol>
