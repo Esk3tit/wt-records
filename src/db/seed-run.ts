@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from '#/db/schema'
 import { seed } from '#/db/seed'
+import { seedDemo } from '#/db/seed-demo'
 
 // Applies the deterministic dev fixture (src/db/seed.ts) to the DATABASE_URL
 // target. For local dev bootstrap and staging/preview — never the real data.
@@ -20,8 +21,10 @@ if (!isLocal && process.env.SEED_REMOTE !== '1') {
 
 const sql = postgres(url, { prepare: false })
 try {
-  await seed(drizzle(sql, { schema }))
-  console.log('Seeded.')
+  const db = drizzle(sql, { schema })
+  await seed(db)
+  await seedDemo(db)
+  console.log('Seeded (fixture + demo dressing).')
 } finally {
   await sql.end()
 }

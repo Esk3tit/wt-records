@@ -117,7 +117,9 @@ export function RecordHistory({ steps }: { steps: HistoryStep[] }) {
         >
           {current.displayName}
         </Link>
-        {current.verifiedAt && `, ${daysSince(current.verifiedAt)} days`}
+        {current.verifiedAt &&
+          daysSince(current.verifiedAt) >= 1 &&
+          `, ${daysSince(current.verifiedAt)} days`}
       </p>
     </div>
   )

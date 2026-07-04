@@ -79,8 +79,9 @@ function PodiumCard({
           </p>
           {big && record.verifiedAt && (
             <p className="mt-1 text-xs text-fg-faint">
-              Held {daysSince(record.verifiedAt)} days · since{' '}
-              {formatDayYear(record.verifiedAt)}
+              {daysSince(record.verifiedAt) >= 1
+                ? `Held ${daysSince(record.verifiedAt)} days · since ${formatDayYear(record.verifiedAt)}`
+                : `Set today · ${formatDayYear(record.verifiedAt)}`}
             </p>
           )}
         </div>
