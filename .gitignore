@@ -58,3 +58,6 @@ todos.json
 # `npx impeccable install`. Its project artifacts (PRODUCT.md, DESIGN.md,
 # .impeccable/) ARE committed.
 .claude/skills/impeccable/
+
+# Local design prototype (referenced by the PRD, which is also local-only)
+wt-glass-concept.html
