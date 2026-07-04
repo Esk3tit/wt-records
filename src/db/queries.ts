@@ -83,6 +83,11 @@ export async function getModeHome(db: Db, mode: string) {
       })
       .from(records)
       .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
+      // Counted-record definition: the vehicle's branch must match the mode's.
+      .innerJoin(
+        modes,
+        and(eq(modes.mode, records.mode), eq(modes.branch, vehicles.branch)),
+      )
       .innerJoin(nations, eq(nations.id, vehicles.nationId))
       .innerJoin(players, eq(players.id, records.playerId))
       .where(and(eq(records.mode, mode), isCurrentVerified))
