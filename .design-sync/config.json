@@ -1,0 +1,35 @@
+{
+  "projectId": "844c0719-4c7f-4426-a044-1c339e4a583d",
+  "shape": "package",
+  "pkg": "wt-records",
+  "globalName": "WTRecords",
+  "buildCmd": "bunx @tailwindcss/cli@4.3.1 --input src/styles.css --output .design-sync/.cache/compiled.css",
+  "entry": "./dist/index.js",
+  "srcDir": "src/components",
+  "tsconfig": "tsconfig.json",
+  "cssEntry": ".design-sync/.cache/compiled.css",
+  "guidelinesGlob": ["DESIGN.md", "PRODUCT.md"],
+  "readmeHeader": ".design-sync/conventions.md",
+  "extraEntries": ["./.design-sync/preview-provider.tsx"],
+  "provider": { "component": "PreviewProvider" },
+  "overrides": {
+    "ConsentBanner": { "cardMode": "single", "viewport": "800x360" },
+    "SceneBackdrop": { "cardMode": "single", "viewport": "900x520" }
+  },
+  "dtsPropsFor": {
+    "Brand": "",
+    "ComingSoon": "modeName: string;",
+    "ConsentBanner": "",
+    "CountUp": "value: number; suffix?: string;",
+    "LatestRecord": "mode: string; record: { kills: number; vehicleSlug: string; vehicleName: string; isRemoved: boolean; playerSlug: string; displayName: string; ignSnapshot: string | null; displayNameSnapshot: string | null };",
+    "LeaderboardList": "rows: Array<{ slug: string; displayName: string; records: number }>; medals?: boolean;",
+    "ModeStats": "stats: { records: number; holders: number; eligibleVehicles: number; coveredVehicles: number; remainingVehicles: number; completionPct: number };",
+    "RecordMonument": "mode: string; record: { kills: number; vehicleSlug: string; vehicleName: string; isRemoved: boolean; nationName: string; playerSlug: string; displayName: string; ignSnapshot: string | null; displayNameSnapshot: string | null } | null; eligibleVehicles: number;",
+    "RecordName": "displayName: string; playerSlug: string; ignSnapshot?: string | null; displayNameSnapshot?: string | null;",
+    "RemovedTag": "",
+    "SceneBackdrop": "",
+    "SiteNav": "modes: Array<{ mode: string; name: string; isLive: boolean }>;",
+    "ThemeToggle": "",
+    "TopRecords": "mode: string; records: Array<{ kills: number; vehicleSlug: string; vehicleName: string; isRemoved: boolean; nationName: string; playerSlug: string; displayName: string; ignSnapshot: string | null; displayNameSnapshot: string | null }>;"
+  }
+}
