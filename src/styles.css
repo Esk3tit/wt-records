@@ -177,6 +177,16 @@
     min-height: 100%;
   }
 
+  /* Section quick links scroll in-page; reduced motion jumps instantly. */
+  html {
+    scroll-behavior: smooth;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
   body {
     margin: 0;
     background: var(--base);
@@ -462,4 +472,297 @@
     transition: none;
     transform: none;
   }
+}
+
+/* ── Landing bands: named grids for the mode home's section rhythm. ──────── */
+.band-chase {
+  display: grid;
+  gap: 1.25rem;
+  align-items: stretch;
+}
+.feed-col {
+  min-height: 26rem;
+}
+.feed-rail {
+  height: 26rem;
+}
+@media (min-width: 1024px) {
+  .band-chase {
+    grid-template-columns: minmax(0, 1fr) 19rem;
+  }
+  /* The podium column alone sets the band height; the feed fills its cell. */
+  .feed-col {
+    position: relative;
+    min-height: 0;
+  }
+  .feed-rail {
+    position: absolute;
+    inset: 0;
+    height: auto;
+  }
+}
+
+.podium-pair {
+  display: grid;
+  gap: 0.875rem;
+}
+@media (min-width: 640px) {
+  .podium-pair {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.band-history {
+  display: grid;
+  gap: 1.25rem;
+  align-items: stretch;
+}
+@media (min-width: 1024px) {
+  .band-history {
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  }
+}
+
+.band-duo {
+  display: grid;
+  gap: 1.25rem;
+  align-items: start;
+}
+@media (min-width: 1024px) {
+  .band-duo {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr);
+  }
+}
+
+.nation-list {
+  display: grid;
+}
+@media (min-width: 768px) {
+  .nation-list {
+    grid-template-columns: 1fr 1fr;
+    column-gap: 2.5rem;
+  }
+}
+
+/* Feed reads as a chat log: bottom-anchored, oldest dissolving under a fade. */
+.feed-scroll {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 26%);
+  mask-image: linear-gradient(to bottom, transparent 0, black 26%);
+}
+
+/* Week marquee: continuous drift, non-interactive, faded at both edges.
+   Static row under reduced motion. */
+.week-marquee {
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 5%,
+    black 95%,
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 5%,
+    black 95%,
+    transparent
+  );
+}
+.week-track {
+  display: flex;
+  width: max-content;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .week-track[data-drift] {
+    animation: week-drift var(--week-dur, 55s) linear infinite;
+  }
+}
+@keyframes week-drift {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Metal frost — rank-earned only (podium panels + weekly ranks 1–3): a
+   metal-tinted glass wash plus a metal top hairline, per the Earned Metal
+   rule. pane-* is the strong podium form, medal-* the lighter week form. */
+.pane-gold,
+.pane-silver,
+.pane-bronze,
+.medal-gold,
+.medal-silver,
+.medal-bronze {
+  position: relative;
+}
+.pane-gold::after,
+.pane-silver::after,
+.pane-bronze::after,
+.medal-gold::after,
+.medal-silver::after,
+.medal-bronze::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.pane-gold::after {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 215, 94, 0.16),
+    rgba(255, 215, 94, 0.1)
+  );
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 215, 94, 0.55),
+    inset 0 0 0 1px rgba(255, 215, 94, 0.12);
+}
+.pane-silver::after {
+  background: linear-gradient(
+    180deg,
+    rgba(214, 219, 226, 0.14),
+    rgba(214, 219, 226, 0.08)
+  );
+  box-shadow:
+    inset 0 1.5px 0 rgba(214, 219, 226, 0.5),
+    inset 0 0 0 1px rgba(214, 219, 226, 0.1);
+}
+.pane-bronze::after {
+  background: linear-gradient(
+    180deg,
+    rgba(224, 153, 90, 0.15),
+    rgba(224, 153, 90, 0.09)
+  );
+  box-shadow:
+    inset 0 1.5px 0 rgba(224, 153, 90, 0.5),
+    inset 0 0 0 1px rgba(224, 153, 90, 0.11);
+}
+.medal-gold::after {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 215, 94, 0.14),
+    rgba(255, 215, 94, 0.08)
+  );
+  box-shadow: inset 0 1.5px 0 rgba(255, 215, 94, 0.45);
+}
+.medal-silver::after {
+  background: linear-gradient(
+    180deg,
+    rgba(214, 219, 226, 0.12),
+    rgba(214, 219, 226, 0.07)
+  );
+  box-shadow: inset 0 1.5px 0 rgba(214, 219, 226, 0.4);
+}
+.medal-bronze::after {
+  background: linear-gradient(
+    180deg,
+    rgba(224, 153, 90, 0.13),
+    rgba(224, 153, 90, 0.07)
+  );
+  box-shadow: inset 0 1.5px 0 rgba(224, 153, 90, 0.4);
+}
+:root[data-theme='light'] .pane-gold::after {
+  background: linear-gradient(
+    180deg,
+    rgba(240, 185, 74, 0.32),
+    rgba(240, 185, 74, 0.16)
+  );
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.65),
+    inset 0 0 0 1px rgba(138, 100, 16, 0.22);
+}
+:root[data-theme='light'] .pane-silver::after {
+  background: linear-gradient(
+    180deg,
+    rgba(87, 96, 108, 0.16),
+    rgba(87, 96, 108, 0.07)
+  );
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.65),
+    inset 0 0 0 1px rgba(87, 96, 108, 0.2);
+}
+:root[data-theme='light'] .pane-bronze::after {
+  background: linear-gradient(
+    180deg,
+    rgba(224, 153, 90, 0.3),
+    rgba(224, 153, 90, 0.14)
+  );
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.65),
+    inset 0 0 0 1px rgba(138, 82, 32, 0.22);
+}
+:root[data-theme='light'] .medal-gold::after {
+  background: linear-gradient(
+    180deg,
+    rgba(240, 185, 74, 0.26),
+    rgba(240, 185, 74, 0.12)
+  );
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.6),
+    inset 0 0 0 1px rgba(138, 100, 16, 0.18);
+}
+:root[data-theme='light'] .medal-silver::after {
+  background: linear-gradient(
+    180deg,
+    rgba(87, 96, 108, 0.13),
+    rgba(87, 96, 108, 0.05)
+  );
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.6),
+    inset 0 0 0 1px rgba(87, 96, 108, 0.16);
+}
+:root[data-theme='light'] .medal-bronze::after {
+  background: linear-gradient(
+    180deg,
+    rgba(224, 153, 90, 0.24),
+    rgba(224, 153, 90, 0.1)
+  );
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.6),
+    inset 0 0 0 1px rgba(138, 82, 32, 0.18);
+}
+
+/* Standings preview: metal wash on the podium rows only. */
+.standings ol > li:nth-child(1) {
+  background: linear-gradient(
+    to right,
+    rgba(255, 215, 94, 0.07),
+    transparent 55%
+  );
+}
+.standings ol > li:nth-child(2) {
+  background: linear-gradient(
+    to right,
+    rgba(214, 219, 226, 0.06),
+    transparent 55%
+  );
+}
+.standings ol > li:nth-child(3) {
+  background: linear-gradient(
+    to right,
+    rgba(224, 153, 90, 0.06),
+    transparent 55%
+  );
+}
+:root[data-theme='light'] .standings ol > li:nth-child(1) {
+  background: linear-gradient(
+    to right,
+    rgba(240, 185, 74, 0.16),
+    transparent 55%
+  );
+}
+:root[data-theme='light'] .standings ol > li:nth-child(2) {
+  background: linear-gradient(
+    to right,
+    rgba(87, 96, 108, 0.1),
+    transparent 55%
+  );
+}
+:root[data-theme='light'] .standings ol > li:nth-child(3) {
+  background: linear-gradient(
+    to right,
+    rgba(224, 153, 90, 0.14),
+    transparent 55%
+  );
 }

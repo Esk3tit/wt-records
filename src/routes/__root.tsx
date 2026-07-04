@@ -63,7 +63,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <html lang="en">
+    // The theme-init script stamps data-theme before hydration on purpose.
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* Pin the canonical host so the recordswt.com 301 redirect can't
             compete in unfurls/indexing. */}

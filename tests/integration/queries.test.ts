@@ -7,7 +7,7 @@ import { modes, nations, records, players, vehicles } from '#/db/schema'
 import {
   getLeaderboard,
   getMode,
-  getModeHome,
+  getModeLanding,
   getModeStats,
   getNationSheet,
   getPlayer,
@@ -292,17 +292,50 @@ describe('removed vehicles', () => {
   })
 })
 
-describe('getModeHome top records', () => {
-  it('ranks the three highest current verified kill counts', async () => {
-    const home = await getModeHome(t.db, 'grb')
+async function vehicleBySlug(slug: string) {
+  const [v] = await t.db.select().from(vehicles).where(eq(vehicles.slug, slug))
+  return v
+}
+
+async function playerBySlug(slug: string) {
+  const [p] = await t.db.select().from(players).where(eq(players.slug, slug))
+  return p
+}
+
+async function setCurrentVerifiedAt(vehicleSlug: string, when: Date) {
+  const v = await vehicleBySlug(vehicleSlug)
+  await t.db
+    .update(records)
+    .set({ verifiedAt: when })
+    .where(
+      and(
+        eq(records.vehicleId, v.id),
+        eq(records.mode, 'grb'),
+        eq(records.isCurrent, true),
+      ),
+    )
+}
+
+const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000)
+
+// The seed dates records relative to now for a living dev landing; tests that
+// assert on time windows first push everything safely out of every window.
+async function resetDates() {
+  await t.db.update(records).set({ verifiedAt: null, submittedAt: daysAgo(60) })
+}
+
+describe('getModeLanding top records', () => {
+  it('ranks the five highest current verified kill counts', async () => {
+    const landing = await getModeLanding(t.db, 'grb')
     expect(
-      home.topRecords.map((r) => [r.vehicleSlug, r.kills, r.displayName]),
+      landing.topRecords.map((r) => [r.vehicleSlug, r.kills, r.displayName]),
     ).toEqual([
       ['m4a1', 14, 'Ace'],
       ['panther-d', 13, 'Ace'],
       ['m26', 11, 'Maverick'],
+      ['tiger-ii-h', 8, 'Floppa'],
     ])
-    expect(home.topRecords[0].nationName).toBe('USA')
+    expect(landing.topRecords[0].nationName).toBe('USA')
   })
 
   it('never crowns an off-branch record, matching the stats views', async () => {
@@ -310,10 +343,7 @@ describe('getModeHome top records', () => {
       .select()
       .from(nations)
       .where(eq(nations.slug, 'usa'))
-    const [ace] = await t.db
-      .select()
-      .from(players)
-      .where(eq(players.slug, 'ace'))
+    const ace = await playerBySlug('ace')
     const [jet] = await t.db
       .insert(vehicles)
       .values({
@@ -336,31 +366,170 @@ describe('getModeHome top records', () => {
       status: 'verified',
       isCurrent: true,
     })
-    const home = await getModeHome(t.db, 'grb')
-    expect(home.topRecords[0].vehicleSlug).toBe('m4a1')
-    expect(home.topRecords.map((r) => r.vehicleSlug)).not.toContain('jet-top')
+    const landing = await getModeLanding(t.db, 'grb')
+    expect(landing.topRecords[0].vehicleSlug).toBe('m4a1')
+    expect(landing.topRecords.map((r) => r.vehicleSlug)).not.toContain(
+      'jet-top',
+    )
   })
 })
 
-describe('getModeHome latest ordering', () => {
+describe('getModeLanding latest feed', () => {
   it('ranks a record with a real verifiedAt ahead of NULL-verifiedAt rows', async () => {
-    const [m26] = await t.db
-      .select()
-      .from(vehicles)
-      .where(eq(vehicles.slug, 'm26'))
+    await resetDates()
+    await setCurrentVerifiedAt('m26', new Date('2030-01-01T00:00:00Z'))
+    const landing = await getModeLanding(t.db, 'grb')
+    expect(landing.latestFeed[0].vehicleSlug).toBe('m26')
+  })
+
+  it('logs superseded entries too — they were real when they landed', async () => {
+    const landing = await getModeLanding(t.db, 'grb')
+    const m4a1Entries = landing.latestFeed.filter(
+      (r) => r.vehicleSlug === 'm4a1',
+    )
+    expect(m4a1Entries.map((r) => r.kills).sort()).toEqual([12, 14, 9])
+  })
+})
+
+describe('getModeLanding week top', () => {
+  it('includes only records verified in the current week', async () => {
+    await resetDates()
+    await setCurrentVerifiedAt('m4a1', new Date())
+    await setCurrentVerifiedAt('panther-d', daysAgo(14))
+    const landing = await getModeLanding(t.db, 'grb')
+    expect(landing.weekTop.map((r) => r.vehicleSlug)).toEqual(['m4a1'])
+  })
+})
+
+describe('getModeLanding verification queue', () => {
+  it('counts pending, this-week verifications, and the median review time', async () => {
+    await resetDates()
+    const now = Date.now()
+    const m4 = await vehicleBySlug('m4a1')
     await t.db
       .update(records)
-      .set({ verifiedAt: new Date('2030-01-01T00:00:00Z') })
+      .set({
+        submittedAt: new Date(now - 2 * 3_600_000),
+        verifiedAt: new Date(now),
+      })
       .where(
         and(
-          eq(records.vehicleId, m26.id),
+          eq(records.vehicleId, m4.id),
           eq(records.mode, 'grb'),
           eq(records.isCurrent, true),
         ),
       )
 
-    const home = await getModeHome(t.db, 'grb')
-    expect(home.latest?.vehicleSlug).toBe('m26')
+    const landing = await getModeLanding(t.db, 'grb')
+    // The seeded Wirbelwind submission is the one pending row.
+    expect(landing.verifyQueue.pending).toBe(1)
+    expect(landing.verifyQueue.verifiedThisWeek).toBe(1)
+    expect(landing.verifyQueue.medianReviewSecs).toBeCloseTo(7200, -1)
+  })
+
+  it('is all-zero on a mode with no records', async () => {
+    const landing = await getModeLanding(t.db, 'gab')
+    expect(landing.verifyQueue).toEqual({
+      pending: 0,
+      verifiedThisWeek: 0,
+      medianReviewSecs: null,
+    })
+  })
+})
+
+describe('getModeLanding hot vehicles', () => {
+  it('counts verified + pending submissions per vehicle inside 7 days only', async () => {
+    await resetDates()
+    const now = new Date()
+    const m4 = await vehicleBySlug('m4a1')
+    const wirbel = await vehicleBySlug('wirbelwind')
+    await t.db
+      .update(records)
+      .set({ submittedAt: now })
+      .where(and(eq(records.vehicleId, m4.id), eq(records.isCurrent, true)))
+    await t.db
+      .update(records)
+      .set({ submittedAt: now })
+      .where(eq(records.vehicleId, wirbel.id))
+
+    const landing = await getModeLanding(t.db, 'grb')
+    // Count ties order alphabetically; the M4A1's out-of-window history rows
+    // must not count, and the Wirbelwind's pending submission must.
+    expect(
+      landing.hotVehicles.map((v) => [v.vehicleSlug, v.submissions]),
+    ).toEqual([
+      ['m4a1', 1],
+      ['wirbelwind', 1],
+    ])
+  })
+})
+
+describe('getModeLanding fallen records', () => {
+  it('reports recently superseded titles with old and new holders', async () => {
+    // Straight from the seed: Ace took the M4A1 title two days ago.
+    const landing = await getModeLanding(t.db, 'grb')
+    expect(landing.fallen).toHaveLength(1)
+    expect(landing.fallen[0]).toMatchObject({
+      vehicleSlug: 'm4a1',
+      oldKills: 12,
+      oldHolder: 'Maverick',
+      newKills: 14,
+      newHolder: 'Ace',
+    })
+  })
+
+  it('omits recent records that dethroned nobody', async () => {
+    await resetDates()
+    await setCurrentVerifiedAt('panther-d', daysAgo(2))
+    const landing = await getModeLanding(t.db, 'grb')
+    expect(landing.fallen).toEqual([])
+  })
+})
+
+describe('getModeLanding history steps', () => {
+  it('returns the top vehicle record progression when it has history', async () => {
+    const landing = await getModeLanding(t.db, 'grb')
+    // Top vehicle is the M4A1: Floppa 9 → Maverick 12 → Ace 14.
+    expect(landing.historySteps.map((s) => [s.kills, s.displayName])).toEqual([
+      [9, 'Floppa'],
+      [12, 'Maverick'],
+      [14, 'Ace'],
+    ])
+  })
+
+  it('is empty when the top vehicle has a single verified record', async () => {
+    // Retire the M4A1 history rows so the top vehicle has no progression.
+    const m4 = await vehicleBySlug('m4a1')
+    await t.db
+      .update(records)
+      .set({ status: 'rejected' })
+      .where(and(eq(records.vehicleId, m4.id), eq(records.isCurrent, false)))
+    const landing = await getModeLanding(t.db, 'grb')
+    expect(landing.historySteps).toEqual([])
+  })
+})
+
+describe('getModeLanding longest standing', () => {
+  it('lists the oldest still-current records first', async () => {
+    const landing = await getModeLanding(t.db, 'grb')
+    expect(landing.longestStanding.map((r) => r.vehicleSlug)).toEqual([
+      'panther-d',
+      'm26',
+      'm4a1',
+    ])
+  })
+})
+
+describe('getModeLanding empty mode', () => {
+  it('returns empty sections without crashing', async () => {
+    const landing = await getModeLanding(t.db, 'gab')
+    expect(landing.topRecords).toEqual([])
+    expect(landing.latestFeed).toEqual([])
+    expect(landing.weekTop).toEqual([])
+    expect(landing.hotVehicles).toEqual([])
+    expect(landing.fallen).toEqual([])
+    expect(landing.historySteps).toEqual([])
+    expect(landing.longestStanding).toEqual([])
   })
 })
 

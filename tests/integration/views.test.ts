@@ -143,14 +143,14 @@ describe('global_stats', () => {
   }
 
   it('aggregates the mode: counts, completion, averages, latest record', async () => {
-    const [panther] = await t.db
+    const [tiger] = await t.db
       .select()
       .from(vehicles)
-      .where(eq(vehicles.slug, 'panther-d'))
-    const [pantherRecord] = await t.db
+      .where(eq(vehicles.slug, 'tiger-ii-h'))
+    const [tigerRecord] = await t.db
       .select()
       .from(records)
-      .where(and(eq(records.vehicleId, panther.id), eq(records.mode, 'grb')))
+      .where(and(eq(records.vehicleId, tiger.id), eq(records.mode, 'grb')))
 
     expect(await grbRow()).toEqual({
       mode: 'grb',
@@ -162,8 +162,8 @@ describe('global_stats', () => {
       completionPct: 57,
       avgKills: 11.5,
       medianKills: 12,
-      // All verified_at are NULL: newest insert (Panther D) wins on id.
-      latestRecordId: pantherRecord.id,
+      // The seed's most recent verified_at (yesterday) is the Tiger II (H).
+      latestRecordId: tigerRecord.id,
     })
   })
 
