@@ -109,7 +109,7 @@ export function ModeLanding({
           </section>
           <div className="feed-col">
             <div className="feed-rail">
-              <LatestFeed mode={mode} entries={latestFeed} />
+              <LatestFeed mode={mode} entries={latestFeed} cycle />
             </div>
           </div>
         </div>
