@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, ilike, inArray, sql } from 'drizzle-orm'
 import type { Db } from '#/db'
 import {
   globalStats,
@@ -65,31 +65,57 @@ export async function getModeStats(db: Db, mode: string) {
   )
 }
 
-export async function getModeHome(db: Db, mode: string) {
-  const [stats, leaders, topRecords, latestRows] = await Promise.all([
+// One shared projection + join chain for every landing read, so the
+// counted-record definition (current+verified is applied per-use; the branch
+// guard lives in the joins) can't drift between sections.
+function countedRecordRows(db: Db) {
+  return db
+    .select({
+      id: records.id,
+      vehicleId: records.vehicleId,
+      kills: records.kills,
+      vehicleSlug: vehicles.slug,
+      vehicleName: vehicles.name,
+      isRemoved: vehicles.isRemoved,
+      nationName: nations.name,
+      playerSlug: players.slug,
+      displayName: players.displayName,
+      ignSnapshot: records.ignSnapshot,
+      displayNameSnapshot: records.displayNameSnapshot,
+      verifiedAt: records.verifiedAt,
+    })
+    .from(records)
+    .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
+    .innerJoin(
+      modes,
+      and(eq(modes.mode, records.mode), eq(modes.branch, vehicles.branch)),
+    )
+    .innerJoin(nations, eq(nations.id, vehicles.nationId))
+    .innerJoin(players, eq(players.id, records.playerId))
+}
+
+// UTC-pinned so the window always matches the UTC week label on the page,
+// whatever the database session timezone is.
+const WEEK_START = sql`date_trunc('week', now() at time zone 'utc') at time zone 'utc'`
+
+export async function getModeLanding(db: Db, mode: string) {
+  const [
+    m,
+    stats,
+    leaders,
+    topRecords,
+    latestFeed,
+    weekTop,
+    queueRows,
+    hotVehicles,
+    nationRows,
+    recentCurrent,
+    longestStanding,
+  ] = await Promise.all([
+    getMode(db, mode),
     getModeStats(db, mode),
     getLeaderboard(db, mode, 8),
-    db
-      .select({
-        kills: records.kills,
-        vehicleSlug: vehicles.slug,
-        vehicleName: vehicles.name,
-        isRemoved: vehicles.isRemoved,
-        nationName: nations.name,
-        playerSlug: players.slug,
-        displayName: players.displayName,
-        ignSnapshot: records.ignSnapshot,
-        displayNameSnapshot: records.displayNameSnapshot,
-      })
-      .from(records)
-      .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
-      // Counted-record definition: the vehicle's branch must match the mode's.
-      .innerJoin(
-        modes,
-        and(eq(modes.mode, records.mode), eq(modes.branch, vehicles.branch)),
-      )
-      .innerJoin(nations, eq(nations.id, vehicles.nationId))
-      .innerJoin(players, eq(players.id, records.playerId))
+    countedRecordRows(db)
       .where(and(eq(records.mode, mode), isCurrentVerified))
       // Equal kills: first-to-achieve outranks (nulls first = migrated oldest).
       .orderBy(
@@ -97,33 +123,180 @@ export async function getModeHome(db: Db, mode: string) {
         sql`${records.verifiedAt} asc nulls first`,
         asc(records.id),
       )
-      .limit(3),
+      .limit(5),
+    // The feed logs entries as they were verified — superseded records were
+    // still real entries when they landed, so is_current is not filtered.
+    countedRecordRows(db)
+      .where(and(eq(records.mode, mode), eq(records.status, 'verified')))
+      .orderBy(sql`${records.verifiedAt} desc nulls last`, desc(records.id))
+      .limit(8),
+    countedRecordRows(db)
+      .where(
+        and(
+          eq(records.mode, mode),
+          eq(records.status, 'verified'),
+          sql`${records.verifiedAt} >= ${WEEK_START}`,
+        ),
+      )
+      .orderBy(desc(records.kills), asc(records.verifiedAt), asc(records.id))
+      .limit(7),
     db
       .select({
-        kills: records.kills,
-        vehicleSlug: vehicles.slug,
-        vehicleName: vehicles.name,
-        isRemoved: vehicles.isRemoved,
-        playerSlug: players.slug,
-        displayName: players.displayName,
-        ignSnapshot: records.ignSnapshot,
-        displayNameSnapshot: records.displayNameSnapshot,
+        pending: sql<number>`count(*) filter (where ${records.status} = 'pending')::int`,
+        verifiedThisWeek: sql<number>`count(*) filter (where ${records.status} = 'verified' and ${records.verifiedAt} >= ${WEEK_START})::int`,
+        medianReviewSecs: sql<
+          string | null
+        >`extract(epoch from percentile_cont(0.5) within group (order by ${records.verifiedAt} - ${records.submittedAt}) filter (where ${records.status} = 'verified' and ${records.verifiedAt} is not null and ${records.submittedAt} is not null))`,
       })
       .from(records)
       .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
-      .innerJoin(players, eq(players.id, records.playerId))
-      // global_stats owns the "latest" ordering (verified_at nulls last, id).
+      .innerJoin(
+        modes,
+        and(eq(modes.mode, records.mode), eq(modes.branch, vehicles.branch)),
+      )
+      .where(eq(records.mode, mode)),
+    // Submission heat: verified + pending attempts, public as counts only.
+    db
+      .select({
+        vehicleSlug: vehicles.slug,
+        vehicleName: vehicles.name,
+        isRemoved: vehicles.isRemoved,
+        nationName: nations.name,
+        submissions: sql<number>`count(*)::int`,
+      })
+      .from(records)
+      .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
+      .innerJoin(
+        modes,
+        and(eq(modes.mode, records.mode), eq(modes.branch, vehicles.branch)),
+      )
+      .innerJoin(nations, eq(nations.id, vehicles.nationId))
       .where(
-        eq(
-          records.id,
-          db
-            .select({ id: globalStats.latestRecordId })
-            .from(globalStats)
-            .where(eq(globalStats.mode, mode)),
+        and(
+          eq(records.mode, mode),
+          inArray(records.status, ['verified', 'pending']),
+          sql`${records.submittedAt} >= now() - interval '7 days'`,
         ),
-      ),
+      )
+      .groupBy(vehicles.slug, vehicles.name, vehicles.isRemoved, nations.name)
+      .orderBy(desc(sql`count(*)`), asc(vehicles.name))
+      .limit(5),
+    listNations(db, mode),
+    countedRecordRows(db)
+      .where(
+        and(
+          eq(records.mode, mode),
+          isCurrentVerified,
+          sql`${records.verifiedAt} >= now() - interval '30 days'`,
+        ),
+      )
+      .orderBy(desc(records.verifiedAt))
+      .limit(8),
+    countedRecordRows(db)
+      .where(
+        and(
+          eq(records.mode, mode),
+          isCurrentVerified,
+          sql`${records.verifiedAt} is not null`,
+        ),
+      )
+      .orderBy(asc(records.verifiedAt), asc(records.id))
+      .limit(3),
   ])
-  return { stats, leaders, topRecords, latest: one(latestRows) }
+
+  const top = topRecords.length > 0 ? topRecords[0] : null
+  const [historySteps, predecessors] = await Promise.all([
+    top
+      ? db
+          .select({
+            kills: records.kills,
+            verifiedAt: records.verifiedAt,
+            displayName: players.displayName,
+            playerSlug: players.slug,
+          })
+          .from(records)
+          .innerJoin(players, eq(players.id, records.playerId))
+          .where(
+            and(
+              eq(records.vehicleId, top.vehicleId),
+              eq(records.mode, mode),
+              eq(records.status, 'verified'),
+            ),
+          )
+          .orderBy(sql`${records.verifiedAt} asc nulls first`, asc(records.id))
+      : Promise.resolve([]),
+    recentCurrent.length > 0
+      ? db
+          .selectDistinctOn([records.vehicleId], {
+            vehicleId: records.vehicleId,
+            kills: records.kills,
+            displayName: players.displayName,
+            playerSlug: players.slug,
+          })
+          .from(records)
+          .innerJoin(players, eq(players.id, records.playerId))
+          .where(
+            and(
+              inArray(
+                records.vehicleId,
+                recentCurrent.map((r) => r.vehicleId),
+              ),
+              eq(records.mode, mode),
+              eq(records.status, 'verified'),
+              eq(records.isCurrent, false),
+            ),
+          )
+          .orderBy(asc(records.vehicleId), desc(records.kills))
+      : Promise.resolve([]),
+  ])
+
+  const beatenBySlug = new Map(predecessors.map((p) => [p.vehicleId, p]))
+  const fallen = recentCurrent
+    .flatMap((r) => {
+      const prev = beatenBySlug.get(r.vehicleId)
+      if (!prev) return []
+      return [
+        {
+          vehicleSlug: r.vehicleSlug,
+          vehicleName: r.vehicleName,
+          isRemoved: r.isRemoved,
+          oldKills: prev.kills,
+          oldHolder: prev.displayName,
+          oldHolderSlug: prev.playerSlug,
+          newKills: r.kills,
+          newHolder: r.displayName,
+          newHolderSlug: r.playerSlug,
+          verifiedAt: r.verifiedAt,
+        },
+      ]
+    })
+    .slice(0, 4)
+
+  const queue = one(queueRows)
+  return {
+    modeName: m ? m.name : null,
+    stats,
+    leaders,
+    topRecords,
+    latestFeed,
+    weekTop,
+    verifyQueue: queue
+      ? {
+          pending: queue.pending,
+          verifiedThisWeek: queue.verifiedThisWeek,
+          medianReviewSecs:
+            queue.medianReviewSecs == null
+              ? null
+              : Number(queue.medianReviewSecs),
+        }
+      : { pending: 0, verifiedThisWeek: 0, medianReviewSecs: null },
+    hotVehicles,
+    nations: nationRows ?? [],
+    // The chart needs a progression; a single point is not a story.
+    historySteps: historySteps.length >= 2 ? historySteps : [],
+    fallen,
+    longestStanding,
+  }
 }
 
 export async function listNations(db: Db, mode: string) {

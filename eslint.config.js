@@ -24,6 +24,9 @@ export default [
       'dist/**',
       '.claude/**',
       'wt-glass-concept.html',
+      '.design-sync/**',
+      '.ds-sync/**',
+      'ds-bundle/**',
     ],
   },
 ]

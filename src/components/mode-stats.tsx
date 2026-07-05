@@ -13,7 +13,7 @@ export function ModeStats({ stats }: { stats: ModeStatsData }) {
     <dl className="mt-6 flex flex-wrap gap-y-3">
       <Stat label="Records" value={stats.records} />
       <Stat label="Holders" value={stats.holders} />
-      <Stat label="Complete" value={`${stats.completionPct}%`} />
+      <Stat label="Completion" value={`${stats.completionPct}%`} />
       <Stat label="Unclaimed" value={stats.remainingVehicles} />
     </dl>
   )
