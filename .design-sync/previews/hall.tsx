@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 
 /* Shared card surface for every preview: the capture harness body is white,
    the DS is dark-first, so each cell brings its own Night Hangar backdrop.
@@ -8,7 +8,7 @@ export function Hall({
   width,
 }: {
   children: ReactNode
-  width?: string
+  width?: CSSProperties['width']
 }) {
   return (
     <div
