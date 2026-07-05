@@ -15,18 +15,20 @@ const verified = (daysAgo: number) => ({
 // — week carousel drifting, podium full, dethronements, a deep history chain.
 // Dev/staging only; integration tests seed the canonical fixture alone.
 export async function seedDemo(db: SeedDb): Promise<void> {
-  const [usa] = await db
+  const usaRows = await db
     .select()
     .from(schema.nations)
     .where(eq(schema.nations.slug, 'usa'))
-  const [germany] = await db
+  const germanyRows = await db
     .select()
     .from(schema.nations)
     .where(eq(schema.nations.slug, 'germany'))
-  if (!usa || !germany)
+  if (usaRows.length === 0 || germanyRows.length === 0)
     throw new Error(
       'seedDemo requires seed() to have run first (missing usa/germany nations)',
     )
+  const [usa] = usaRows
+  const [germany] = germanyRows
 
   const [ussr, britain, france, sweden, japan] = await db
     .insert(schema.nations)
