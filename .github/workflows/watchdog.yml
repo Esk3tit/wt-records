@@ -48,7 +48,7 @@ jobs:
         if: steps.probe.outputs.code != '200'
         run: |
           gh label create watchdog --color D93F0B --description "Automated prod alarm" 2>/dev/null || true
-          open=$(gh issue list --label watchdog --state open --json number --jq '.[0].number // empty')
+          open=$(gh issue list --label watchdog --author 'github-actions[bot]' --state open --json number --jq '.[0].number // empty')
           if [ -n "$open" ]; then
             echo "Watchdog issue #$open already open — leaving it."
             exit 0
@@ -71,6 +71,6 @@ jobs:
       - name: Stand down on recovery
         if: steps.probe.outputs.code == '200'
         run: |
-          for n in $(gh issue list --label watchdog --state open --json number --jq '.[].number'); do
+          for n in $(gh issue list --label watchdog --author 'github-actions[bot]' --state open --json number --jq '.[].number'); do
             gh issue close "$n" --comment "Probe succeeded (HTTP 200) — standing down."
           done
