@@ -1,6 +1,6 @@
 # Deploy runbook (Railway)
 
-The SSR app deploys to Railway from `main` via the [`Dockerfile`](../Dockerfile). Every page renders through the database (the root + home route loaders query on every request), so the DB must be **reachable, migrated, and — for a non-empty site — seeded** before a deploy can pass its healthcheck.
+The SSR app deploys to Railway from `main` via the [`Dockerfile`](../Dockerfile). `/` is a 307 redirect to the default mode's landing (`/grb`); every content page renders through the database, so the DB must be **reachable, migrated, and — for a non-empty site — seeded** before a deploy can pass its healthcheck.
 
 ## Required Railway variables (production service)
 
@@ -44,9 +44,9 @@ Merge to `main` → Railway builds the Dockerfile and deploys. **Migrations must
 
 ## If a deploy fails at the healthcheck
 
-Railway healthchecks `GET /`, which hits the DB. Diagnose in this order:
+The Railway healthcheck must target a path that answers 200 (`healthcheckPath` is `/grb`; `/` only 307s). Diagnose in this order:
 
-0. **Healthcheck probes `/grb`, not `/`** — the root is a 307 redirect to the default mode, and the healthcheck needs a 200 page. If the default mode ever changes, update `healthcheckPath` on the Railway service in lockstep.
+0. **If the default mode ever changes, update `healthcheckPath` on the Railway service in lockstep.**
 1. **Every attempt "service unavailable" for the full window, while the OLD deployment keeps serving fine and the new container logs no errors:** transient pooler trouble establishing NEW connections (established ones keep working). Nothing is wrong with the build — redeploy the same commit.
 1. **Hangs, no error (~5 min):** the DB connection can't be established → `DATABASE_URL` is the local/direct host, not the IPv4 pooler.
 2. **Fast 5xx ("service unavailable"):** the DB is reachable but a query throws → schema not migrated (`relation "modes" does not exist`), or the pooler password placeholder wasn't filled.
