@@ -1,6 +1,6 @@
 # Deploy runbook (Railway)
 
-The SSR app deploys to Railway from `main` via the [`Dockerfile`](../Dockerfile). Every page renders through the database (the root + home route loaders query on every request), so the DB must be **reachable, migrated, and — for a non-empty site — seeded** before a deploy can pass its healthcheck.
+The SSR app deploys to Railway from `main` via the [`Dockerfile`](../Dockerfile). `/` is a 307 redirect to the default mode's landing (`/grb`); every content page renders through the database, so the DB must be **reachable, migrated, and — for a non-empty site — seeded** before a deploy can pass its healthcheck.
 
 ## Required Railway variables (production service)
 
@@ -44,7 +44,7 @@ Merge to `main` → Railway builds the Dockerfile and deploys. **Migrations must
 
 ## If a deploy fails at the healthcheck
 
-Railway healthchecks `GET /`, which hits the DB. Diagnose in this order:
+The Railway healthcheck must target a path that answers 200 (`healthcheckPath` is `/healthz`; `/` only 307s to `/grb`). Diagnose in this order:
 
 0. **Healthcheck probes `/healthz`** — app liveness + a 2s-bounded DB ping that reports (but does not fail on) database state, so deploys are not hostage to provider brownouts. The scheduled `prod watchdog` workflow separately probes the real landing every 30 min and opens/closes a `watchdog` issue with provider-status context.
 1. **Requests hang with no errors anywhere, while lightly-loaded routes still serve:** the pooler is stalling NEW connection establishment (established ones keep working) — a provider brownout, not an app bug. `connect_timeout` now turns these into fast 500s + Sentry events. Check status.supabase.com first; redeploy after it clears.
