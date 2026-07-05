@@ -19,7 +19,14 @@ if (!url) throw new Error('DATABASE_URL is not set')
 const globalForDb = globalThis as typeof globalThis & {
   __wtRecordsPg?: ReturnType<typeof postgres>
 }
-const client = globalForDb.__wtRecordsPg ?? postgres(url, { prepare: false })
+const client =
+  globalForDb.__wtRecordsPg ??
+  postgres(url, {
+    prepare: false,
+    // A stalled pooler handshake must fail fast and loudly (a 500 Sentry
+    // sees) instead of hanging requests and deploy healthchecks forever.
+    connect_timeout: 10,
+  })
 if (import.meta.env.DEV) globalForDb.__wtRecordsPg = client
 
 export const db = drizzle(client, { schema })

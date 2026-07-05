@@ -46,6 +46,8 @@ Merge to `main` → Railway builds the Dockerfile and deploys. **Migrations must
 
 Railway healthchecks `GET /`, which hits the DB. Diagnose in this order:
 
+0. **Healthcheck probes `/healthz`** — app liveness + a 2s-bounded DB ping that reports (but does not fail on) database state, so deploys are not hostage to provider brownouts. The scheduled `prod watchdog` workflow separately probes the real landing every 30 min and opens/closes a `watchdog` issue with provider-status context.
+1. **Requests hang with no errors anywhere, while lightly-loaded routes still serve:** the pooler is stalling NEW connection establishment (established ones keep working) — a provider brownout, not an app bug. `connect_timeout` now turns these into fast 500s + Sentry events. Check status.supabase.com first; redeploy after it clears.
 1. **Hangs, no error (~5 min):** the DB connection can't be established → `DATABASE_URL` is the local/direct host, not the IPv4 pooler.
 2. **Fast 5xx ("service unavailable"):** the DB is reachable but a query throws → schema not migrated (`relation "modes" does not exist`), or the pooler password placeholder wasn't filled.
 
