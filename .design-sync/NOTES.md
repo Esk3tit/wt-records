@@ -14,6 +14,8 @@
 - Grepping compiled.css for arbitrary-value utilities needs escaped brackets (`\.rounded-\[26px\]`) or you get false misses.
 - `.design-sync/safelist.txt` widens the compiled Tailwind vocabulary for pages composed in Claude Design (Tailwind v4 scans it). Extend it rather than letting the design agent invent unshipped classes.
 
+- Landing re-sync (2026-07-05): 11 new components authored (ModeLanding excluded via componentSrcMap — page composition, not a primitive); shared `previews/hall.tsx` extraction is visually transparent (all 24 regrades passed first capture; non-component helper files in previews/ compile fine via relative import). LatestFeed's preview fixture lists entries oldest-first — matches the component's display order (it reverses internally); WeekMarquee's preview keeps 3 cards so the static snap row renders (drift needs >=4).
+
 ## Known render warns
 
 - `[FONT_MISSING]` "SF Pro Text", "Inter" — deliberate system-stack references, nothing to ship.
