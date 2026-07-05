@@ -4,6 +4,10 @@
 # rather than tighter so the sleeping app still gets to sleep between probes.
 name: prod watchdog
 
+concurrency:
+  group: prod-watchdog
+  cancel-in-progress: false
+
 on:
   schedule:
     - cron: '*/30 * * * *'
@@ -46,6 +50,10 @@ jobs:
 
       - name: Raise the alarm
         if: steps.probe.outputs.code != '200'
+        env:
+          PROBE_CODE: ${{ steps.probe.outputs.code }}
+          PROVIDER_OVERALL: ${{ steps.provider.outputs.overall }}
+          PROVIDER_USWEST: ${{ steps.provider.outputs.uswest }}
         run: |
           gh label create watchdog --color D93F0B --description "Automated prod alarm" 2>/dev/null || true
           open=$(gh issue list --label watchdog --author 'github-actions[bot]' --state open --json number --jq '.[0].number // empty')
@@ -54,18 +62,18 @@ jobs:
             exit 0
           fi
           hint="does NOT look provider-side — investigate the app/deploy"
-          if [ "${{ steps.provider.outputs.uswest }}" != "operational" ]; then
+          if [ "$PROVIDER_USWEST" != "operational" ]; then
             hint="likely provider-side (check status.supabase.com before touching the app)"
           fi
           {
-            echo "Scheduled probe of $PROD_URL failed with HTTP ${{ steps.probe.outputs.code }} (after a cold-start retry)."
+            echo "Scheduled probe of $PROD_URL failed with HTTP $PROBE_CODE (after a cold-start retry)."
             echo
-            echo "Supabase status: **${{ steps.provider.outputs.overall }}** · us-west-1: **${{ steps.provider.outputs.uswest }}** — $hint."
+            echo "Supabase status: **$PROVIDER_OVERALL** · us-west-1: **$PROVIDER_USWEST** — $hint."
             echo
             echo "Runbook: docs/deploy.md § healthcheck triage. This issue closes automatically when a probe succeeds."
           } > /tmp/watchdog-body.md
           gh issue create --label watchdog \
-            --title "🚨 Watchdog: prod unreachable (HTTP ${{ steps.probe.outputs.code }})" \
+            --title "🚨 Watchdog: prod unreachable (HTTP $PROBE_CODE)" \
             --body-file /tmp/watchdog-body.md
 
       - name: Stand down on recovery
