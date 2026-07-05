@@ -1,20 +1,9 @@
 import { SiteNav } from 'wt-records'
-import type { ReactNode } from 'react'
-
-function Hall({ children }: { children: ReactNode }) {
-  return (
-    <div
-      className="rounded-[26px] bg-base p-8 text-fg"
-      style={{ width: '42rem' }}
-    >
-      {children}
-    </div>
-  )
-}
+import { Hall } from './hall'
 
 export function AllModesLive() {
   return (
-    <Hall>
+    <Hall width="42rem">
       <SiteNav
         modes={[
           { mode: 'grb', name: 'Ground RB', isLive: true },
@@ -28,7 +17,7 @@ export function AllModesLive() {
 
 export function TwoModesLive() {
   return (
-    <Hall>
+    <Hall width="42rem">
       <SiteNav
         modes={[
           { mode: 'grb', name: 'Ground RB', isLive: true },
