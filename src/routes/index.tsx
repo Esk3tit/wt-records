@@ -1,28 +1,12 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
-import { ModeLanding } from '#/components/mode-landing'
-import { db } from '#/db'
-import { getModeLanding } from '#/db/queries'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
 const DEFAULT_MODE = 'grb'
 
-const loadHome = createServerFn({ method: 'GET' }).handler(() =>
-  getModeLanding(db, DEFAULT_MODE),
-)
-
+// The home IS the default mode's landing. Serving it at / too split the
+// page across two URLs (duplicate content, no active mode pill); temporary
+// redirect so / can become the cross-mode hall once a second mode is live.
 export const Route = createFileRoute('/')({
-  loader: () => loadHome(),
-  component: Home,
+  beforeLoad: () => {
+    throw redirect({ to: '/$mode', params: { mode: DEFAULT_MODE } })
+  },
 })
-
-// The home page IS the default mode's landing (GRB at launch).
-function Home() {
-  const data = Route.useLoaderData()
-  return (
-    <ModeLanding
-      mode={DEFAULT_MODE}
-      modeName={data.modeName ?? 'Ground Realistic Battles'}
-      data={data}
-    />
-  )
-}
