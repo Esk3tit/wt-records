@@ -223,7 +223,7 @@ export function ModeLanding({
       {/* Open titles */}
       {stats && stats.remainingVehicles > 0 && (
         <section className="glass-thin mt-12 flex flex-wrap items-center justify-between gap-x-8 gap-y-4 rounded-[22px] px-6 py-5">
-          <div className="flex items-baseline gap-4">
+          <div className="flex items-center gap-4">
             <p className="text-4xl leading-none font-bold tracking-[-0.03em] text-fg">
               <CountUp value={stats.remainingVehicles} />
             </p>
