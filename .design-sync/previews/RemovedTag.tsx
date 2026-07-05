@@ -1,9 +1,5 @@
 import { RemovedTag } from 'wt-records'
-import type { ReactNode } from 'react'
-
-function Hall({ children }: { children: ReactNode }) {
-  return <div className="rounded-[26px] bg-base p-8 text-fg">{children}</div>
-}
+import { Hall } from './hall'
 
 export function Standalone() {
   return (
