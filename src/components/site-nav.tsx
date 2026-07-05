@@ -26,7 +26,7 @@ export function SiteNav({ modes }: { modes: ModeNavItem[] }) {
             key={m.mode}
             to="/$mode"
             params={{ mode: m.mode }}
-            aria-label={m.name}
+            aria-label={`${m.mode.toUpperCase()} · ${m.name}`}
             title={m.name}
             aria-current={m.mode === activeMode ? 'page' : undefined}
             className={

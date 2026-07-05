@@ -74,7 +74,7 @@ export function WeekMarquee({
         {records.map((r, i) => (
           <WeekCard key={r.id} mode={mode} record={r} rank={i} />
         ))}
-        <div aria-hidden="true" className="flex gap-3.5">
+        <div aria-hidden="true" inert className="flex gap-3.5">
           {records.map((r, i) => (
             <WeekCard key={r.id} mode={mode} record={r} rank={i} />
           ))}
