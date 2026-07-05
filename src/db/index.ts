@@ -26,6 +26,13 @@ const client =
     // A stalled pooler handshake must fail fast and loudly (a 500 Sentry
     // sees) instead of hanging requests and deploy healthchecks forever.
     connect_timeout: 10,
+    // Small pool, recycled connections: queries are tens of ms, so a burst
+    // costs little serialized — while every extra connection is another
+    // chance to stall when the shared pooler browns out, and recycling lets
+    // the pool heal after a database failover without a restart.
+    max: 4,
+    idle_timeout: 120,
+    max_lifetime: 1800,
   })
 if (import.meta.env.DEV) globalForDb.__wtRecordsPg = client
 
