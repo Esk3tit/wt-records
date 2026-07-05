@@ -1,0 +1,181 @@
+import { RecordName } from '#/components/record-name'
+import { VehicleLink } from '#/components/vehicle-link'
+import { daysSince, formatDayYear } from '#/lib/dates'
+import type { TopRecordRow } from '#/components/top-records'
+
+export interface PodiumRecord extends TopRecordRow {
+  id: number
+  verifiedAt: Date | null
+}
+
+type Metal = 'gold' | 'silver' | 'bronze'
+const METAL_TEXT: Record<Metal, string> = {
+  gold: 'text-gold',
+  silver: 'text-silver',
+  bronze: 'text-bronze',
+}
+const METAL_PANE: Record<Metal, string> = {
+  gold: 'pane-gold',
+  silver: 'pane-silver',
+  bronze: 'pane-bronze',
+}
+
+function heldLine(verifiedAt: Date): string {
+  const days = daysSince(verifiedAt)
+  if (days === 0) return `Set today · ${formatDayYear(verifiedAt)}`
+  return `Held ${days} ${days === 1 ? 'day' : 'days'} · since ${formatDayYear(verifiedAt)}`
+}
+
+function PodiumCard({
+  mode,
+  rank,
+  metal,
+  record,
+  big = false,
+}: {
+  mode: string
+  rank: number
+  metal: Metal
+  record: PodiumRecord
+  big?: boolean
+}) {
+  return (
+    <article
+      className={`glass-mid pane-lift ${METAL_PANE[metal]} ${big ? 'p-7' : 'p-5'}`}
+    >
+      <p
+        className={`flex items-baseline justify-between text-[0.6875rem] font-semibold tracking-[0.12em] uppercase ${METAL_TEXT[metal]}`}
+      >
+        <span>#{rank}</span>
+        <span>{metal}</span>
+      </p>
+      <div
+        className={
+          big
+            ? 'mt-3 flex flex-wrap items-end justify-between gap-x-8 gap-y-3'
+            : ''
+        }
+      >
+        <p
+          className={`mt-2 leading-none font-bold tracking-[-0.03em] text-fg ${big ? 'text-6xl' : 'text-5xl'}`}
+        >
+          {record.kills}
+          <span className="ml-1.5 text-xs font-medium tracking-[0.06em] text-fg-muted">
+            kills
+          </span>
+        </p>
+        <div className={big ? 'text-right' : ''}>
+          <p className="mt-3 text-[1.0625rem] font-semibold text-fg">
+            <VehicleLink
+              mode={mode}
+              slug={record.vehicleSlug}
+              name={record.vehicleName}
+              isRemoved={record.isRemoved}
+            />
+          </p>
+          <p className="mt-0.5 text-[0.8125rem] text-fg-muted">
+            <RecordName
+              displayName={record.displayName}
+              playerSlug={record.playerSlug}
+              ignSnapshot={record.ignSnapshot}
+              displayNameSnapshot={record.displayNameSnapshot}
+            />
+            {' · '}
+            {record.nationName}
+          </p>
+          {big && record.verifiedAt && (
+            <p className="mt-1 text-xs text-fg-faint">
+              {heldLine(record.verifiedAt)}
+            </p>
+          )}
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function LedgerRows({
+  mode,
+  rows,
+  startRank,
+}: {
+  mode: string
+  rows: PodiumRecord[]
+  startRank: number
+}) {
+  return (
+    <div className="glass-mid overflow-hidden">
+      <ol>
+        {rows.map((r, i) => (
+          <li
+            key={r.id}
+            className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-3.5 border-b border-hairline-soft px-5 py-3 transition-colors duration-200 last:border-b-0 hover:bg-[var(--row-hover)]"
+          >
+            <span className="text-center font-bold text-fg-faint">
+              {startRank + i}
+            </span>
+            <span className="min-w-0 truncate">
+              <span className="font-semibold text-fg">
+                <VehicleLink
+                  mode={mode}
+                  slug={r.vehicleSlug}
+                  name={r.vehicleName}
+                  isRemoved={r.isRemoved}
+                />
+              </span>
+              <span className="ml-2 text-xs text-fg-muted">
+                <RecordName
+                  displayName={r.displayName}
+                  playerSlug={r.playerSlug}
+                  ignSnapshot={r.ignSnapshot}
+                  displayNameSnapshot={r.displayNameSnapshot}
+                />
+                {' · '}
+                {r.nationName}
+              </span>
+            </span>
+            <span className="text-right text-[1.0625rem] font-bold text-fg">
+              {r.kills}
+              <span className="ml-1 text-[0.6875rem] font-medium tracking-[0.06em] text-fg-muted">
+                kills
+              </span>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  )
+}
+
+/* Ranks 1–5: gold panel on top, silver + bronze pair, ledger tail. */
+export function Podium({
+  mode,
+  records,
+}: {
+  mode: string
+  records: PodiumRecord[]
+}) {
+  // Indexed access is typed always-present here; make emptiness explicit.
+  const first = records.length > 0 ? records[0] : null
+  const second = records.length > 1 ? records[1] : null
+  const third = records.length > 2 ? records[2] : null
+  const rest = records.slice(3)
+  return (
+    <div className="flex flex-col gap-3.5">
+      {first && (
+        <PodiumCard mode={mode} rank={1} metal="gold" record={first} big />
+      )}
+      {(second || third) && (
+        <div className="podium-pair">
+          {second && (
+            <PodiumCard mode={mode} rank={2} metal="silver" record={second} />
+          )}
+          {third && (
+            <PodiumCard mode={mode} rank={3} metal="bronze" record={third} />
+          )}
+        </div>
+      )}
+      {rest.length > 0 && <LedgerRows mode={mode} rows={rest} startRank={4} />}
+    </div>
+  )
+}

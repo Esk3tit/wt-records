@@ -2,7 +2,7 @@ import type { ExtractTablesWithRelations } from 'drizzle-orm'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 import * as schema from '#/db/schema'
 
-type SeedDb = PgDatabase<
+export type SeedDb = PgDatabase<
   PgQueryResultHKT,
   typeof schema,
   ExtractTablesWithRelations<typeof schema>
@@ -163,20 +163,44 @@ export async function seed(db: SeedDb): Promise<void> {
     { playerId: floppa.id, name: 'Floppa', kind: 'ign', source: 'migration' },
   ])
 
-  // M4A1: Maverick held 12 (history), Ace superseded it with 14 (current).
-  await db.insert(schema.records).values({
-    vehicleId: byExt['us_m4a1'].id,
-    mode: 'grb',
-    playerId: maverick.id,
-    ignSnapshot: 'Maverick',
-    displayNameSnapshot: 'Maverick',
-    kills: 12,
-    runBr: 3.7,
-    patch: '2.51',
-    status: 'verified',
-    isCurrent: false,
-    importedFrom: 'sheet',
+  // Relative dates keep the landing's time-windowed sections (feed, weekly
+  // top, fallen, longest standing) alive however old the seed run is.
+  const verified = (daysAgo: number) => ({
+    submittedAt: new Date(Date.now() - daysAgo * 86_400_000 - 3 * 3_600_000),
+    verifiedAt: new Date(Date.now() - daysAgo * 86_400_000),
   })
+
+  // M4A1 progression: Floppa 9 → Maverick 12 → Ace 14 (current).
+  await db.insert(schema.records).values([
+    {
+      vehicleId: byExt['us_m4a1'].id,
+      mode: 'grb',
+      playerId: floppa.id,
+      ignSnapshot: 'Floppa',
+      displayNameSnapshot: 'Floppa',
+      kills: 9,
+      runBr: 3.7,
+      patch: '2.49',
+      status: 'verified',
+      isCurrent: false,
+      importedFrom: 'sheet',
+      ...verified(120),
+    },
+    {
+      vehicleId: byExt['us_m4a1'].id,
+      mode: 'grb',
+      playerId: maverick.id,
+      ignSnapshot: 'Maverick',
+      displayNameSnapshot: 'Maverick',
+      kills: 12,
+      runBr: 3.7,
+      patch: '2.51',
+      status: 'verified',
+      isCurrent: false,
+      importedFrom: 'sheet',
+      ...verified(60),
+    },
+  ])
   const [m4Current] = await db
     .insert(schema.records)
     .values({
@@ -191,6 +215,7 @@ export async function seed(db: SeedDb): Promise<void> {
       status: 'verified',
       isCurrent: true,
       importedFrom: 'sheet',
+      ...verified(2),
     })
     .returning()
 
@@ -207,6 +232,7 @@ export async function seed(db: SeedDb): Promise<void> {
       status: 'verified',
       isCurrent: true,
       importedFrom: 'sheet',
+      ...verified(200),
     },
     {
       vehicleId: byExt['ger_tiger2h'].id,
@@ -220,6 +246,7 @@ export async function seed(db: SeedDb): Promise<void> {
       status: 'verified',
       isCurrent: true,
       importedFrom: 'sheet',
+      ...verified(1),
     },
     {
       vehicleId: byExt['ger_panther'].id,
@@ -233,9 +260,23 @@ export async function seed(db: SeedDb): Promise<void> {
       status: 'verified',
       isCurrent: true,
       importedFrom: 'sheet',
+      ...verified(420),
+    },
+    // In the moderation queue — feeds the landing's verification panel.
+    {
+      vehicleId: byExt['ger_wirbel'].id,
+      mode: 'grb',
+      playerId: maverick.id,
+      ignSnapshot: 'Maverick',
+      displayNameSnapshot: 'Maverick',
+      kills: 6,
+      runBr: 3.0,
+      status: 'pending',
+      isCurrent: false,
     },
   ])
-  // M18 GMC, M163, and Wirbelwind are left unclaimed (open bounties).
+  // M18 GMC and M163 are left unclaimed (open bounties); the Wirbelwind's
+  // only submission is still pending, so it stays an open bounty too.
 
   await db.insert(schema.recordProof).values([
     {
