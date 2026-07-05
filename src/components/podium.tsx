@@ -20,6 +20,12 @@ const METAL_PANE: Record<Metal, string> = {
   bronze: 'pane-bronze',
 }
 
+function heldLine(verifiedAt: Date): string {
+  const days = daysSince(verifiedAt)
+  if (days === 0) return `Set today · ${formatDayYear(verifiedAt)}`
+  return `Held ${days} ${days === 1 ? 'day' : 'days'} · since ${formatDayYear(verifiedAt)}`
+}
+
 function PodiumCard({
   mode,
   rank,
@@ -79,9 +85,7 @@ function PodiumCard({
           </p>
           {big && record.verifiedAt && (
             <p className="mt-1 text-xs text-fg-faint">
-              {daysSince(record.verifiedAt) >= 1
-                ? `Held ${daysSince(record.verifiedAt)} days · since ${formatDayYear(record.verifiedAt)}`
-                : `Set today · ${formatDayYear(record.verifiedAt)}`}
+              {heldLine(record.verifiedAt)}
             </p>
           )}
         </div>

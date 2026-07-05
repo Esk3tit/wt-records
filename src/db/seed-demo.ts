@@ -23,6 +23,10 @@ export async function seedDemo(db: SeedDb): Promise<void> {
     .select()
     .from(schema.nations)
     .where(eq(schema.nations.slug, 'germany'))
+  if (!usa || !germany)
+    throw new Error(
+      'seedDemo requires seed() to have run first (missing usa/germany nations)',
+    )
 
   const [ussr, britain, france, sweden, japan] = await db
     .insert(schema.nations)
