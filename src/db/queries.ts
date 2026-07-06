@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, ilike, inArray, sql } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 import type { Db } from '#/db'
 import {
   globalStats,
@@ -18,6 +19,13 @@ import {
 const isCurrentVerified = and(
   eq(records.isCurrent, true),
   eq(records.status, 'verified'),
+)
+
+// The branch guard shared by every counted-record read: a record only counts
+// when its mode's branch matches its vehicle's branch.
+const modeMatchesBranch = and(
+  eq(modes.mode, records.mode),
+  eq(modes.branch, vehicles.branch),
 )
 
 // The schema runs without noUncheckedIndexedAccess, so a destructured first row
@@ -86,10 +94,7 @@ function countedRecordRows(db: Db) {
     })
     .from(records)
     .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
-    .innerJoin(
-      modes,
-      and(eq(modes.mode, records.mode), eq(modes.branch, vehicles.branch)),
-    )
+    .innerJoin(modes, modeMatchesBranch)
     .innerJoin(nations, eq(nations.id, vehicles.nationId))
     .innerJoin(players, eq(players.id, records.playerId))
 }
@@ -99,6 +104,10 @@ function countedRecordRows(db: Db) {
 const WEEK_START = sql`date_trunc('week', now() at time zone 'utc') at time zone 'utc'`
 
 export async function getModeLanding(db: Db, mode: string) {
+  // The current title holder, joined beside every historical record of the
+  // same (vehicle, mode) title so counting and holder lookup are one read.
+  const holderRecord = alias(records, 'holder_record')
+  const contestCount = sql<number>`count(*)::int`
   const [
     m,
     stats,
@@ -107,7 +116,7 @@ export async function getModeLanding(db: Db, mode: string) {
     latestFeed,
     weekTop,
     queueRows,
-    hotVehicles,
+    contestedTitles,
     nationRows,
     recentCurrent,
     longestStanding,
@@ -155,31 +164,37 @@ export async function getModeLanding(db: Db, mode: string) {
         and(eq(modes.mode, records.mode), eq(modes.branch, vehicles.branch)),
       )
       .where(eq(records.mode, mode)),
-    // Submission heat: verified + pending attempts, public as counts only.
+    // Contest count = every verified record ever set for the (vehicle, mode)
+    // title, self-improvements included; one record is an uncontested holder.
     db
       .select({
         vehicleSlug: vehicles.slug,
         vehicleName: vehicles.name,
         isRemoved: vehicles.isRemoved,
         nationName: nations.name,
-        submissions: sql<number>`count(*)::int`,
+        contests: contestCount,
+        kills: holderRecord.kills,
+        playerSlug: players.slug,
+        displayName: players.displayName,
       })
       .from(records)
       .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
-      .innerJoin(
-        modes,
-        and(eq(modes.mode, records.mode), eq(modes.branch, vehicles.branch)),
-      )
+      .innerJoin(modes, modeMatchesBranch)
       .innerJoin(nations, eq(nations.id, vehicles.nationId))
-      .where(
+      .innerJoin(
+        holderRecord,
         and(
-          eq(records.mode, mode),
-          inArray(records.status, ['verified', 'pending']),
-          sql`${records.submittedAt} >= now() - interval '7 days'`,
+          eq(holderRecord.vehicleId, records.vehicleId),
+          eq(holderRecord.mode, records.mode),
+          eq(holderRecord.isCurrent, true),
+          eq(holderRecord.status, 'verified'),
         ),
       )
-      .groupBy(vehicles.slug, vehicles.name, vehicles.isRemoved, nations.name)
-      .orderBy(desc(sql`count(*)`), asc(vehicles.name))
+      .innerJoin(players, eq(players.id, holderRecord.playerId))
+      .where(and(eq(records.mode, mode), eq(records.status, 'verified')))
+      .groupBy(vehicles.id, nations.id, holderRecord.id, players.id)
+      .having(sql`${contestCount} >= 2`)
+      .orderBy(desc(contestCount), asc(vehicles.name), asc(vehicles.slug))
       .limit(5),
     listNations(db, mode),
     countedRecordRows(db)
@@ -290,7 +305,7 @@ export async function getModeLanding(db: Db, mode: string) {
               : Number(queue.medianReviewSecs),
         }
       : { pending: 0, verifiedThisWeek: 0, medianReviewSecs: null },
-    hotVehicles,
+    contestedTitles,
     nations: nationRows ?? [],
     // The chart needs a progression; a single point is not a story.
     historySteps: historySteps.length >= 2 ? historySteps : [],
@@ -462,14 +477,7 @@ export async function getPlayer(db: Db, slug: string) {
       .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
       // Same counted-record definition as the stats views: live mode + branch
       // match, so an off-branch record (invalid data) never renders here either.
-      .innerJoin(
-        modes,
-        and(
-          eq(modes.mode, records.mode),
-          eq(modes.isLive, true),
-          eq(modes.branch, vehicles.branch),
-        ),
-      )
+      .innerJoin(modes, and(modeMatchesBranch, eq(modes.isLive, true)))
       .where(and(eq(records.playerId, player.id), isCurrentVerified))
       .orderBy(asc(records.mode), desc(records.kills)),
   ])

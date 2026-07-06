@@ -4,7 +4,7 @@
 
 ## Setup — two things every page needs
 
-1. **Wrap the app in `PreviewProvider`** (a bundle export). Most components (`LeaderboardList`, `RecordMonument`, `TopRecords`, `LatestRecord`, `RecordName`, `SiteNav`, `Podium`, `LatestFeed`, `WeekMarquee`, `VehicleLink`, `FallenRecords`, `LongestStanding`, `NationCompletion`, `RecordHistory`, `HotVehicles`) render internal links and **crash with a router-context error without it**:
+1. **Wrap the app in `PreviewProvider`** (a bundle export). Most components (`LeaderboardList`, `RecordMonument`, `TopRecords`, `LatestRecord`, `RecordName`, `SiteNav`, `Podium`, `LatestFeed`, `WeekMarquee`, `VehicleLink`, `FallenRecords`, `LongestStanding`, `NationCompletion`, `RecordHistory`, `ContestedTitles`) render internal links and **crash with a router-context error without it**:
 
 ```jsx
 const { PreviewProvider, SiteNav, RecordMonument } = window.WTRecords
