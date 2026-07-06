@@ -58,8 +58,8 @@ function VehicleDetail() {
             />
           </p>
           <p className="mt-1 text-sm text-fg-faint">
-            {current.runBr != null ? `Run BR ${current.runBr}` : null}
-            {current.patch ? ` · patch ${current.patch}` : null}
+            {current.runBr != null ? `Run BR ${current.runBr} · ` : null}
+            {`patch ${current.patch}`}
           </p>
           {proofs.length > 0 && (
             <ul className="mt-2 space-y-1 text-sm">

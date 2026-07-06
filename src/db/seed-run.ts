@@ -2,7 +2,7 @@ import process from 'node:process'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from '#/db/schema'
-import { seed } from '#/db/seed'
+import { resetFixture, seed } from '#/db/seed'
 import { seedDemo } from '#/db/seed-demo'
 
 // Applies the deterministic dev fixture (src/db/seed.ts) to the DATABASE_URL
@@ -25,7 +25,7 @@ try {
   // Opt-in wipe: the seed is not idempotent, so re-seeding a populated DB
   // needs the fixture tables cleared. Cascades cover every dependent table.
   if (process.env.SEED_RESET === '1') {
-    await sql`truncate table modes, nations, players restart identity cascade`
+    await resetFixture(db)
     console.log('Fixture tables truncated.')
   }
   await seed(db)

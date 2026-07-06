@@ -10,6 +10,20 @@ const verified = (daysAgo: number) => ({
   verifiedAt: new Date(Date.now() - daysAgo * DAY_MS),
 })
 
+// Rough patch eras so demo records don't all claim the current version.
+const PATCH_ERAS: Array<[minDaysAgo: number, version: string]> = [
+  [1200, '2.29'],
+  [800, '2.33'],
+  [400, '2.37'],
+  [250, '2.41'],
+  [180, '2.45'],
+  [100, '2.49'],
+  [40, '2.51'],
+  [0, '2.53'],
+]
+const patchFor = (daysAgo: number): string =>
+  PATCH_ERAS.find(([min]) => daysAgo >= min)![1]
+
 // Demo dressing on top of the canonical fixture (src/db/seed.ts): enough
 // records, nations, and recency for every landing band to demonstrate itself
 // — week carousel drifting, podium full, dethronements, a deep history chain.
@@ -145,6 +159,12 @@ export async function seedDemo(db: SeedDb): Promise<void> {
     })),
   )
 
+  // Demo-only patch eras; the fixture (seed.ts) owns 2.49–2.53.
+  await db
+    .insert(schema.patches)
+    .values(PATCH_ERAS.map(([, version]) => ({ version })))
+    .onConflictDoNothing()
+
   type Rec = typeof schema.records.$inferInsert
   const rec = (
     vehicleSlug: string,
@@ -159,6 +179,7 @@ export async function seedDemo(db: SeedDb): Promise<void> {
     ignSnapshot: player,
     displayNameSnapshot: player,
     kills,
+    patch: patchFor(daysAgo),
     isCurrent: true,
     importedFrom: 'sheet',
     ...verified(daysAgo),

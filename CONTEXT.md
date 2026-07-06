@@ -60,6 +60,14 @@ A Record with `status = pending` (Phase 2). Not a separate entity — a submissi
 **Proof**:
 An artifact attached to a Record — a scoreboard / end-game / end-life screenshot, or a video. All proof is modeled uniformly (no separate scalar video field).
 
+**Record date**:
+The official date of a Record — the moment it was **verified** (approved), not when the run happened or was submitted. Migrated records are backdated to their historical approval (approximated by proof upload time).
+_Avoid_: achieved date, submission date (as the record's date).
+
+**Patch**:
+A canonical War Thunder game version (its own entity, with release date) — the community's primary temporal axis. Every Record references exactly one Patch: the version it was achieved on.
+_Avoid_: version, update; free-text patch strings.
+
 ### Catalog & rules
 
 **Branch**:
@@ -69,6 +77,10 @@ _Avoid_: type, category.
 **Class**:
 A vehicle's class/type (light, medium, heavy, spg, spaa, fighter, attacker, bomber, heli, other) — drives the qualifying threshold.
 _Avoid_: type.
+
+**Acquisition** (event / premium / squadron):
+How a vehicle is obtained — independent, overlapping flags (an event vehicle may also be premium). Every applicable flag is shown; a tech-tree vehicle carries none.
+_Avoid_: a single exclusive acquisition "type".
 
 **Difficult vehicle**:
 A vehicle flagged `isDifficult` that uses the Mode's single difficult threshold instead of its (Mode, Class) minimum.
@@ -87,6 +99,10 @@ _Avoid_: empty, missing.
 
 **Completion %**:
 Per Mode, the fraction of eligible vehicles (by Branch) that have a Current record.
+
+**Contest count**:
+Per (vehicle, Mode), how many verified Records that title has ever had — self-improvements included. Ranks the "most contested titles".
+_Avoid_: times changed hands (implies holder-change only), hotness.
 
 **Leaderboard**:
 Players ranked by Current verified record count — per Mode, plus an all-Modes view. Derived from Records, never stored as counters.
