@@ -117,7 +117,7 @@ function LedgerRows({
             {/* One ledger line on sm+; narrow screens stack holder under the
                 name so chips and holder stay whole instead of clipping. */}
             <span className="min-w-0 sm:truncate">
-              <span className="block font-semibold text-fg sm:inline">
+              <span className="block font-semibold break-words text-fg sm:inline">
                 <VehicleLink
                   mode={mode}
                   slug={r.vehicleSlug}
