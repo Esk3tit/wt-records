@@ -39,6 +39,17 @@ describe('seed fixture', () => {
     expect(history.length).toBeGreaterThanOrEqual(1)
   })
 
+  it('demo dressing covers the acquisition-flag matrix', async () => {
+    await seedDemo(t.db)
+    const all = await t.db.select().from(vehicles)
+    const treeOnly = (v: (typeof all)[number]) =>
+      !v.isEvent && !v.isPremium && !v.isSquadron
+    expect(all.some(treeOnly)).toBe(true)
+    expect(all.some((v) => v.isEvent && v.isPremium)).toBe(true)
+    expect(all.some((v) => v.isSquadron)).toBe(true)
+    expect(all.some((v) => v.isEvent && v.isRemoved)).toBe(true)
+  })
+
   // Guards the resetFixture truncate list: a fixture root missing from it
   // (e.g. a newly seeded table) makes the re-seed hit a duplicate key.
   it('re-seeds cleanly after resetFixture (full fixture + demo)', async () => {

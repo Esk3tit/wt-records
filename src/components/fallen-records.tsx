@@ -1,11 +1,11 @@
 import { Link } from '@tanstack/react-router'
 import { VehicleLink } from '#/components/vehicle-link'
 import { formatDaysAgo } from '#/lib/dates'
+import type { VehicleTagFlags } from '#/components/vehicle-tags'
 
-export interface FallenRow {
+export interface FallenRow extends VehicleTagFlags {
   vehicleSlug: string
   vehicleName: string
-  isRemoved: boolean
   oldKills: number
   oldHolder: string
   oldHolderSlug: string
@@ -36,7 +36,7 @@ export function FallenRecords({
                   mode={mode}
                   slug={f.vehicleSlug}
                   name={f.vehicleName}
-                  isRemoved={f.isRemoved}
+                  tags={f}
                 />
               </span>
               <span className="mt-0.5 block text-xs font-medium text-fg-muted">

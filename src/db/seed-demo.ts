@@ -59,27 +59,27 @@ export async function seedDemo(db: SeedDb): Promise<void> {
     .insert(schema.vehicles)
     .values([
       // prettier-ignore
-      { externalId: 'ussr_obj279', name: 'Object 279', slug: 'object-279', nationId: ussr.id, branch: 'ground' as const, class: 'heavy' as const, rank: 5, isDifficult: true },
+      { externalId: 'ussr_obj279', name: 'Object 279', slug: 'object-279', nationId: ussr.id, branch: 'ground' as const, class: 'heavy' as const, rank: 5, isDifficult: true, isEvent: true },
       // prettier-ignore
       { externalId: 'ussr_t80bvm', name: 'T-80BVM', slug: 't-80bvm', nationId: ussr.id, branch: 'ground' as const, class: 'medium' as const, rank: 8 },
       // prettier-ignore
-      { externalId: 'ussr_is7', name: 'IS-7', slug: 'is-7', nationId: ussr.id, branch: 'ground' as const, class: 'heavy' as const, rank: 5, isDifficult: true },
+      { externalId: 'ussr_is7', name: 'IS-7', slug: 'is-7', nationId: ussr.id, branch: 'ground' as const, class: 'heavy' as const, rank: 5, isDifficult: true, isEvent: true, isPremium: true },
       // prettier-ignore
-      { externalId: 'ussr_t34_100', name: 'T-34-100', slug: 't-34-100', nationId: ussr.id, branch: 'ground' as const, class: 'medium' as const, rank: 4, isRemoved: true },
+      { externalId: 'ussr_t34_100', name: 'T-34-100', slug: 't-34-100', nationId: ussr.id, branch: 'ground' as const, class: 'medium' as const, rank: 4, isPremium: true, isRemoved: true },
       // prettier-ignore
-      { externalId: 'ussr_2s38', name: '2S38', slug: '2s38', nationId: ussr.id, branch: 'ground' as const, class: 'light' as const, rank: 8 },
+      { externalId: 'ussr_2s38', name: '2S38', slug: '2s38', nationId: ussr.id, branch: 'ground' as const, class: 'light' as const, rank: 8, isPremium: true },
       // prettier-ignore
       { externalId: 'ussr_obj120', name: 'Object 120', slug: 'object-120', nationId: ussr.id, branch: 'ground' as const, class: 'spg' as const, rank: 6 },
       // prettier-ignore
-      { externalId: 'ussr_bmp2m', name: 'BMP-2M', slug: 'bmp-2m', nationId: ussr.id, branch: 'ground' as const, class: 'light' as const, rank: 8 },
+      { externalId: 'ussr_bmp2m', name: 'BMP-2M', slug: 'bmp-2m', nationId: ussr.id, branch: 'ground' as const, class: 'light' as const, rank: 8, isSquadron: true },
       // prettier-ignore
-      { externalId: 'gb_chall2e', name: 'Challenger 2E', slug: 'challenger-2e', nationId: britain.id, branch: 'ground' as const, class: 'medium' as const, rank: 8 },
+      { externalId: 'gb_chall2e', name: 'Challenger 2E', slug: 'challenger-2e', nationId: britain.id, branch: 'ground' as const, class: 'medium' as const, rank: 8, isPremium: true },
       // prettier-ignore
       { externalId: 'gb_cent3', name: 'Centurion Mk 3', slug: 'centurion-mk-3', nationId: britain.id, branch: 'ground' as const, class: 'medium' as const, rank: 5 },
       // prettier-ignore
       { externalId: 'ger_leo2a7v', name: 'Leopard 2A7V', slug: 'leopard-2a7v', nationId: germany.id, branch: 'ground' as const, class: 'medium' as const, rank: 8 },
       // prettier-ignore
-      { externalId: 'ger_maus', name: 'Maus', slug: 'maus', nationId: germany.id, branch: 'ground' as const, class: 'heavy' as const, rank: 5, isDifficult: true, isRemoved: true },
+      { externalId: 'ger_maus', name: 'Maus', slug: 'maus', nationId: germany.id, branch: 'ground' as const, class: 'heavy' as const, rank: 5, isDifficult: true, isEvent: true, isRemoved: true },
       // prettier-ignore
       { externalId: 'us_m1a2sep2', name: 'M1A2 SEP v2', slug: 'm1a2-sep-v2', nationId: usa.id, branch: 'ground' as const, class: 'medium' as const, rank: 8 },
       // prettier-ignore
@@ -87,7 +87,7 @@ export async function seedDemo(db: SeedDb): Promise<void> {
       // prettier-ignore
       { externalId: 'fr_amx13', name: 'AMX-13', slug: 'amx-13', nationId: france.id, branch: 'ground' as const, class: 'light' as const, rank: 4 },
       // prettier-ignore
-      { externalId: 'se_strv122b', name: 'Strv 122B PLSS', slug: 'strv-122b-plss', nationId: sweden.id, branch: 'ground' as const, class: 'medium' as const, rank: 8 },
+      { externalId: 'se_strv122b', name: 'Strv 122B PLSS', slug: 'strv-122b-plss', nationId: sweden.id, branch: 'ground' as const, class: 'medium' as const, rank: 8, isSquadron: true },
       // prettier-ignore
       { externalId: 'se_strv103', name: 'Strv 103-0', slug: 'strv-103-0', nationId: sweden.id, branch: 'ground' as const, class: 'medium' as const, rank: 6 },
       // prettier-ignore

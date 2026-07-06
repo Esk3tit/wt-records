@@ -1,7 +1,6 @@
-import { Link } from '@tanstack/react-router'
 import { CountUp } from '#/components/count-up'
 import { RecordName } from '#/components/record-name'
-import { RemovedTag } from '#/components/removed-tag'
+import { VehicleLink } from '#/components/vehicle-link'
 import type { TopRecordRow } from '#/components/top-records'
 
 /* The lock-screen moment: the mode's all-time high standing over the scene.
@@ -43,14 +42,12 @@ export function RecordMonument({
         </span>
       </p>
       <p className="mt-2 text-[1.0625rem] font-semibold">
-        <Link
-          to="/$mode/vehicle/$slug"
-          params={{ mode, slug: record.vehicleSlug }}
-          className="no-underline hover:underline"
-        >
-          {record.vehicleName}
-        </Link>
-        {record.isRemoved && <RemovedTag />}
+        <VehicleLink
+          mode={mode}
+          slug={record.vehicleSlug}
+          name={record.vehicleName}
+          tags={record}
+        />
       </p>
       <p className="mt-0.5 text-[0.8125rem] text-fg-muted">
         <RecordName

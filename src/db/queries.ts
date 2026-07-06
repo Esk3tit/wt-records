@@ -28,6 +28,30 @@ const modeMatchesBranch = and(
   eq(modes.branch, vehicles.branch),
 )
 
+// Every vehicle-facing read exposes the same tag facet (acquisition chips +
+// removed), so no surface can drift to a partial set.
+const vehicleTagFlags = {
+  isEvent: vehicles.isEvent,
+  isPremium: vehicles.isPremium,
+  isSquadron: vehicles.isSquadron,
+  isRemoved: vehicles.isRemoved,
+}
+
+// Runtime counterpart of vehicleTagFlags, for rows reshaped after the read.
+function pickVehicleTags(r: {
+  isEvent: boolean
+  isPremium: boolean
+  isSquadron: boolean
+  isRemoved: boolean
+}) {
+  return {
+    isEvent: r.isEvent,
+    isPremium: r.isPremium,
+    isSquadron: r.isSquadron,
+    isRemoved: r.isRemoved,
+  }
+}
+
 // The schema runs without noUncheckedIndexedAccess, so a destructured first row
 // is typed as always-present; this makes "row might be missing" explicit.
 function one<T>(rows: T[]): T | null {
@@ -84,7 +108,7 @@ function countedRecordRows(db: Db) {
       kills: records.kills,
       vehicleSlug: vehicles.slug,
       vehicleName: vehicles.name,
-      isRemoved: vehicles.isRemoved,
+      ...vehicleTagFlags,
       nationName: nations.name,
       playerSlug: players.slug,
       displayName: players.displayName,
@@ -167,7 +191,7 @@ export async function getModeLanding(db: Db, mode: string) {
       .select({
         vehicleSlug: vehicles.slug,
         vehicleName: vehicles.name,
-        isRemoved: vehicles.isRemoved,
+        ...vehicleTagFlags,
         nationName: nations.name,
         contests: contestCount,
         kills: holderRecord.kills,
@@ -271,7 +295,7 @@ export async function getModeLanding(db: Db, mode: string) {
         {
           vehicleSlug: r.vehicleSlug,
           vehicleName: r.vehicleName,
-          isRemoved: r.isRemoved,
+          ...pickVehicleTags(r),
           oldKills: prev.kills,
           oldHolder: prev.displayName,
           oldHolderSlug: prev.playerSlug,
@@ -347,7 +371,7 @@ export async function getNationSheet(db: Db, mode: string, slug: string) {
       class: vehicles.class,
       rank: vehicles.rank,
       isDifficult: vehicles.isDifficult,
-      isRemoved: vehicles.isRemoved,
+      ...vehicleTagFlags,
       br: vehicleBr.br,
       kills: records.kills,
       runBr: records.runBr,
@@ -391,7 +415,7 @@ export async function getVehicle(db: Db, mode: string, slug: string) {
         class: vehicles.class,
         rank: vehicles.rank,
         isDifficult: vehicles.isDifficult,
-        isRemoved: vehicles.isRemoved,
+        ...vehicleTagFlags,
         nationSlug: nations.slug,
         nationName: nations.name,
       })
@@ -466,7 +490,7 @@ export async function getPlayer(db: Db, slug: string) {
         kills: records.kills,
         vehicleSlug: vehicles.slug,
         vehicleName: vehicles.name,
-        isRemoved: vehicles.isRemoved,
+        ...vehicleTagFlags,
         ignSnapshot: records.ignSnapshot,
         displayNameSnapshot: records.displayNameSnapshot,
       })
@@ -535,7 +559,7 @@ export async function search(db: Db, q: string) {
         slug: vehicles.slug,
         name: vehicles.name,
         branch: vehicles.branch,
-        isRemoved: vehicles.isRemoved,
+        ...vehicleTagFlags,
       })
       .from(vehicles)
       .where(ilike(vehicles.name, like))
@@ -551,7 +575,7 @@ export async function search(db: Db, q: string) {
       return {
         slug: v.slug,
         name: v.name,
-        isRemoved: v.isRemoved,
+        ...pickVehicleTags(v),
         linkMode: pref && liveModes.has(pref) ? pref : null,
       }
     }),

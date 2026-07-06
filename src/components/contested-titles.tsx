@@ -1,10 +1,10 @@
 import { Link } from '@tanstack/react-router'
 import { VehicleLink } from '#/components/vehicle-link'
+import type { VehicleTagFlags } from '#/components/vehicle-tags'
 
-export interface ContestedTitleRow {
+export interface ContestedTitleRow extends VehicleTagFlags {
   vehicleSlug: string
   vehicleName: string
-  isRemoved: boolean
   nationName: string
   contests: number
   kills: number
@@ -34,7 +34,7 @@ export function ContestedTitles({
                   mode={mode}
                   slug={r.vehicleSlug}
                   name={r.vehicleName}
-                  isRemoved={r.isRemoved}
+                  tags={r}
                 />
               </span>
               <span className="mt-0.5 block text-xs font-medium text-fg-muted">
@@ -52,7 +52,7 @@ export function ContestedTitles({
               <span className="block text-2xl leading-none font-bold tracking-[-0.03em] tabular-nums text-fg">
                 {r.contests}
               </span>
-              <span className="text-[0.6875rem] font-medium tracking-[0.08em] uppercase text-fg-faint">
+              <span className="text-[0.6875rem] font-medium tracking-[0.08em] whitespace-nowrap uppercase text-fg-faint">
                 records set
               </span>
             </span>

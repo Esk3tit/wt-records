@@ -185,7 +185,15 @@ describe('getRules', () => {
 describe('search', () => {
   it('finds vehicles and players by name, case-insensitively', async () => {
     expect((await search(t.db, 'm4')).vehicles).toEqual([
-      { slug: 'm4a1', name: 'M4A1', isRemoved: false, linkMode: 'grb' },
+      {
+        slug: 'm4a1',
+        name: 'M4A1',
+        isEvent: false,
+        isPremium: false,
+        isSquadron: false,
+        isRemoved: false,
+        linkMode: 'grb',
+      },
     ])
     expect((await search(t.db, 'ace')).players).toEqual([
       { slug: 'ace', displayName: 'Ace' },
@@ -290,6 +298,100 @@ describe('removed vehicles', () => {
     expect(
       p?.records.find((r) => r.vehicleSlug === 'removed-tank')?.isRemoved,
     ).toBe(true)
+  })
+})
+
+describe('acquisition flags', () => {
+  // The flags overlap in WT — an event vehicle can also be premium.
+  async function addEventPremiumRecord() {
+    const [usa] = await t.db
+      .select()
+      .from(nations)
+      .where(eq(nations.slug, 'usa'))
+    const [veh] = await t.db
+      .insert(vehicles)
+      .values({
+        externalId: 'us_event_prem',
+        name: 'Event Premium Tank',
+        slug: 'event-premium-tank',
+        nationId: usa.id,
+        branch: 'ground',
+        class: 'medium',
+        isEvent: true,
+        isPremium: true,
+      })
+      .returning()
+    const [ace] = await t.db
+      .select()
+      .from(players)
+      .where(eq(players.slug, 'ace'))
+    await t.db.insert(records).values({
+      vehicleId: veh.id,
+      mode: 'grb',
+      playerId: ace.id,
+      ignSnapshot: 'Ace',
+      patch: '2.53',
+      kills: 20,
+      status: 'verified',
+      isCurrent: true,
+    })
+  }
+
+  it('flow through the landing record rows', async () => {
+    await addEventPremiumRecord()
+
+    const landing = await getModeLanding(t.db, 'grb')
+    expect(landing.topRecords[0]).toMatchObject({
+      vehicleSlug: 'event-premium-tank',
+      isEvent: true,
+      isPremium: true,
+      isSquadron: false,
+      isRemoved: false,
+    })
+    expect(landing.topRecords[1]).toMatchObject({
+      vehicleSlug: 'm4a1',
+      isEvent: false,
+      isPremium: false,
+      isSquadron: false,
+    })
+    expect(landing.contestedTitles[0]).toMatchObject({
+      vehicleSlug: 'm4a1',
+      isEvent: false,
+      isPremium: false,
+      isSquadron: false,
+    })
+    expect(landing.fallen[0]).toMatchObject({
+      vehicleSlug: 'm4a1',
+      isEvent: false,
+      isPremium: false,
+      isSquadron: false,
+    })
+  })
+
+  it('flow through the nation sheet, vehicle page, player profile and search', async () => {
+    await addEventPremiumRecord()
+    const flagged = {
+      isEvent: true,
+      isPremium: true,
+      isSquadron: false,
+      isRemoved: false,
+    }
+
+    const sheet = await getNationSheet(t.db, 'grb', 'usa')
+    expect(
+      sheet?.rows.find((r) => r.vehicleSlug === 'event-premium-tank'),
+    ).toMatchObject(flagged)
+
+    const v = await getVehicle(t.db, 'grb', 'event-premium-tank')
+    expect(v?.vehicle).toMatchObject(flagged)
+
+    const p = await getPlayer(t.db, 'ace')
+    expect(
+      p?.records.find((r) => r.vehicleSlug === 'event-premium-tank'),
+    ).toMatchObject(flagged)
+
+    const found = await search(t.db, 'Event Premium')
+    expect(found.vehicles[0]).toMatchObject(flagged)
   })
 })
 
@@ -448,6 +550,9 @@ describe('getModeLanding contested titles', () => {
       {
         vehicleSlug: 'm4a1',
         vehicleName: 'M4A1',
+        isEvent: false,
+        isPremium: false,
+        isSquadron: false,
         isRemoved: false,
         nationName: 'USA',
         contests: 3,
