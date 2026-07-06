@@ -1,16 +1,17 @@
 import { Link } from '@tanstack/react-router'
-import { RemovedTag } from '#/components/removed-tag'
+import { VehicleTags } from '#/components/vehicle-tags'
+import type { VehicleTagFlags } from '#/components/vehicle-tags'
 
 export function VehicleLink({
   mode,
   slug,
   name,
-  isRemoved,
+  tags,
 }: {
   mode: string
   slug: string
   name: string
-  isRemoved: boolean
+  tags: VehicleTagFlags
 }) {
   return (
     <>
@@ -21,7 +22,7 @@ export function VehicleLink({
       >
         {name}
       </Link>
-      {isRemoved && <RemovedTag />}
+      <VehicleTags tags={tags} />
     </>
   )
 }

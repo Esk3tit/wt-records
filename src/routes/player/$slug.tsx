@@ -1,6 +1,6 @@
 import { Link, createFileRoute, notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { RemovedTag } from '#/components/removed-tag'
+import { VehicleTags } from '#/components/vehicle-tags'
 import { db } from '#/db'
 import { getPlayer } from '#/db/queries'
 
@@ -37,14 +37,18 @@ function PlayerProfile() {
         <ul className="mt-2 space-y-1">
           {records.map((r) => (
             <li key={`${r.mode}-${r.vehicleSlug}`} className="flex gap-3">
-              <span className="w-12 text-fg-faint">{r.mode.toUpperCase()}</span>
-              <Link
-                to="/$mode/vehicle/$slug"
-                params={{ mode: r.mode, slug: r.vehicleSlug }}
-              >
-                {r.vehicleName}
-              </Link>
-              {r.isRemoved && <RemovedTag />}
+              <span className="w-12 shrink-0 text-fg-faint">
+                {r.mode.toUpperCase()}
+              </span>
+              <span className="min-w-0">
+                <Link
+                  to="/$mode/vehicle/$slug"
+                  params={{ mode: r.mode, slug: r.vehicleSlug }}
+                >
+                  {r.vehicleName}
+                </Link>
+                <VehicleTags tags={r} />
+              </span>
               <span className="ml-auto text-fg-muted">{r.kills}</span>
             </li>
           ))}

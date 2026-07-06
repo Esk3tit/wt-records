@@ -1,4 +1,5 @@
-import { VehicleLink } from '#/components/vehicle-link'
+import { Link } from '@tanstack/react-router'
+import { VehicleTags, hasVehicleTags } from '#/components/vehicle-tags'
 import type { PodiumRecord } from '#/components/podium'
 
 const MEDAL = [
@@ -34,13 +35,21 @@ function WeekCard({
         </span>
       </p>
       <p className="mt-3 truncate text-[0.9375rem] font-semibold text-fg">
-        <VehicleLink
-          mode={mode}
-          slug={record.vehicleSlug}
-          name={record.vehicleName}
-          isRemoved={record.isRemoved}
-        />
+        <Link
+          to="/$mode/vehicle/$slug"
+          params={{ mode, slug: record.vehicleSlug }}
+          className="no-underline hover:underline"
+        >
+          {record.vehicleName}
+        </Link>
       </p>
+      {/* Chips on their own wrapping row: the fixed card is the one surface
+          where the truncating name line would clip them. */}
+      {hasVehicleTags(record) && (
+        <p className="-ml-1.5 flex flex-wrap">
+          <VehicleTags tags={record} />
+        </p>
+      )}
       <p className="mt-0.5 truncate text-[0.8125rem] text-fg-muted">
         {record.displayName} · {record.nationName}
       </p>

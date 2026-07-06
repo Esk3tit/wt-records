@@ -70,7 +70,7 @@ function PodiumCard({
               mode={mode}
               slug={record.vehicleSlug}
               name={record.vehicleName}
-              isRemoved={record.isRemoved}
+              tags={record}
             />
           </p>
           <p className="mt-0.5 text-[0.8125rem] text-fg-muted">
@@ -114,16 +114,18 @@ function LedgerRows({
             <span className="text-center font-bold text-fg-faint">
               {startRank + i}
             </span>
-            <span className="min-w-0 truncate">
-              <span className="font-semibold text-fg">
+            {/* One ledger line on sm+; narrow screens stack holder under the
+                name so chips and holder stay whole instead of clipping. */}
+            <span className="min-w-0 sm:truncate">
+              <span className="block font-semibold break-words text-fg sm:inline">
                 <VehicleLink
                   mode={mode}
                   slug={r.vehicleSlug}
                   name={r.vehicleName}
-                  isRemoved={r.isRemoved}
+                  tags={r}
                 />
               </span>
-              <span className="ml-2 text-xs text-fg-muted">
+              <span className="block truncate text-xs text-fg-muted sm:ml-2 sm:inline">
                 <RecordName
                   displayName={r.displayName}
                   playerSlug={r.playerSlug}

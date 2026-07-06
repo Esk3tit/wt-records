@@ -24,7 +24,7 @@ export function LongestStanding({
                   mode={mode}
                   slug={r.vehicleSlug}
                   name={r.vehicleName}
-                  isRemoved={r.isRemoved}
+                  tags={r}
                 />
               </span>
               <span className="mt-0.5 block text-xs font-medium text-fg-muted">

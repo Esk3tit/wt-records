@@ -1,7 +1,7 @@
 import { Link, createFileRoute, notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { RecordName } from '#/components/record-name'
-import { RemovedTag } from '#/components/removed-tag'
+import { VehicleTags } from '#/components/vehicle-tags'
 import { db } from '#/db'
 import { getNationSheet } from '#/db/queries'
 
@@ -52,7 +52,7 @@ function NationSheet() {
                   {r.vehicleName}
                 </Link>
                 {r.isDifficult && <span className="ml-1 text-fg-faint">◆</span>}
-                {r.isRemoved && <RemovedTag />}
+                <VehicleTags tags={r} />
               </td>
               <td className="py-1 pr-4 text-fg-muted">{r.br ?? '—'}</td>
               <td className="py-1 pr-4">{r.kills ?? '—'}</td>

@@ -1,12 +1,11 @@
-import { Link } from '@tanstack/react-router'
 import { RecordName } from '#/components/record-name'
-import { RemovedTag } from '#/components/removed-tag'
+import { VehicleLink } from '#/components/vehicle-link'
+import type { VehicleTagFlags } from '#/components/vehicle-tags'
 
-export interface TopRecordRow {
+export interface TopRecordRow extends VehicleTagFlags {
   kills: number
   vehicleSlug: string
   vehicleName: string
-  isRemoved: boolean
   nationName: string
   playerSlug: string
   displayName: string
@@ -36,14 +35,12 @@ export function TopRecords({
             </span>
           </p>
           <p className="mt-3.5 text-[1.0625rem] font-semibold">
-            <Link
-              to="/$mode/vehicle/$slug"
-              params={{ mode, slug: r.vehicleSlug }}
-              className="no-underline hover:underline"
-            >
-              {r.vehicleName}
-            </Link>
-            {r.isRemoved && <RemovedTag />}
+            <VehicleLink
+              mode={mode}
+              slug={r.vehicleSlug}
+              name={r.vehicleName}
+              tags={r}
+            />
           </p>
           <p className="mt-0.5 text-[0.8125rem] text-fg-muted">
             <RecordName

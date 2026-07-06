@@ -50,4 +50,4 @@ const { PreviewProvider, SceneBackdrop, SiteNav, RecordMonument, LeaderboardList
 </PreviewProvider>
 ```
 
-Content voice: records are *held*, *verified*, *chased*; vehicles that left the game show their `RemovedTag` but always count (never filter them). Player-facing numbers are facts — no rounding-up flourish.
+Content voice: records are *held*, *verified*, *chased*; vehicles that left the game show their `RemovedTag` but always count (never filter them). Acquisition (event / premium / squadron) renders as stacked `VehicleTags` chips beside the vehicle name — every applicable chip, none for tech-tree vehicles. Player-facing numbers are facts — no rounding-up flourish.
