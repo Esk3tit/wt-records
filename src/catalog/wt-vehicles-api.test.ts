@@ -53,7 +53,8 @@ function stubFetch(routes: Array<StubRoute>): {
     const url = String(input)
     requests.push(url)
     const route = routes.find((r) => r.pattern.test(url))
-    if (!route) return new Response('{"error":"Route not found"}', { status: 404 })
+    if (!route)
+      return new Response('{"error":"Route not found"}', { status: 404 })
     const { status = 200, body } = route.reply(url)
     return new Response(body, { status })
   }) as typeof fetch
@@ -77,7 +78,9 @@ function source(routes: Array<StubRoute>) {
 const statsRoute: StubRoute = {
   pattern: /\/vehicles\/stats/,
   reply: () => ({
-    body: JSON.stringify({ versions: ['2.55.1.153', '2.57.0.8', '2.47.0.134'] }),
+    body: JSON.stringify({
+      versions: ['2.55.1.153', '2.57.0.8', '2.47.0.134'],
+    }),
   }),
 }
 const csvRoute: StubRoute = {
@@ -117,7 +120,9 @@ describe('WtVehiclesApiSource', () => {
         pattern: /\/vehicles\?/,
         reply: (url) => {
           const page = Number(new URL(url).searchParams.get('page'))
-          return { body: JSON.stringify(page === 0 ? page0 : page === 1 ? page1 : []) }
+          return {
+            body: JSON.stringify(page === 0 ? page0 : page === 1 ? page1 : []),
+          }
         },
       },
     ])
@@ -128,7 +133,9 @@ describe('WtVehiclesApiSource', () => {
     expect(snapshot.vehicles).toHaveLength(201)
     expect(snapshot.warnings ?? []).toEqual([])
 
-    const abrams = snapshot.vehicles.find((v) => v.externalId === 'us_m1_abrams')!
+    const abrams = snapshot.vehicles.find(
+      (v) => v.externalId === 'us_m1_abrams',
+    )!
     expect(abrams).toMatchObject({
       name: 'M1 Abrams',
       country: 'usa',
@@ -222,16 +229,18 @@ describe('WtVehiclesApiSource', () => {
     expect(snapshot.warnings!.join('\n')).toMatch(/killstreak/)
   })
 
-  it('accepts boolean flags from the API, not just 0/1', async () => {
+  it('normalizes flag encodings: 0/1, booleans, and their string forms', async () => {
     const { source: s } = source([
       statsRoute,
       csvRoute,
       {
         pattern: /\/vehicles\?/,
         reply: () => ({
+          // string forms deliberately bypass the ApiVehicle type — the wire
+          // format is unvalidated JSON
           body: JSON.stringify([
             apiVehicle({ is_premium: true, squadron_vehicle: false }),
-          ]),
+          ]).replace('"squadron_vehicle":false', '"squadron_vehicle":"0"'),
         }),
       },
     ])
@@ -239,6 +248,24 @@ describe('WtVehiclesApiSource', () => {
     const [v] = (await s.fetchSnapshot()).vehicles
     expect(v.isPremium).toBe(true)
     expect(v.isSquadron).toBe(false)
+  })
+
+  it('keeps semicolons inside quoted locale names intact', async () => {
+    const csvWithSemi = [
+      '"<ID|readonly|noverify>";"<English>";"<French>"',
+      '"us_m1_abrams_shop";"M1; Abrams ""Semi""";"M1"',
+    ].join('\n')
+    const { source: s } = source([
+      statsRoute,
+      { pattern: /units\.csv/, reply: () => ({ body: csvWithSemi }) },
+      {
+        pattern: /\/vehicles\?/,
+        reply: () => ({ body: JSON.stringify([apiVehicle()]) }),
+      },
+    ])
+
+    const [v] = (await s.fetchSnapshot()).vehicles
+    expect(v.name).toBe('M1; Abrams "Semi"')
   })
 
   it('does not retry a non-transient 4xx', async () => {
@@ -277,7 +304,10 @@ describe('WtVehiclesApiSource', () => {
 
   it('throws once retries are exhausted', async () => {
     const { source: s } = source([
-      { pattern: /\/vehicles\/stats/, reply: () => ({ status: 500, body: 'down' }) },
+      {
+        pattern: /\/vehicles\/stats/,
+        reply: () => ({ status: 500, body: 'down' }),
+      },
       csvRoute,
       {
         pattern: /\/vehicles\?/,

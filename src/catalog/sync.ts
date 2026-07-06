@@ -156,7 +156,9 @@ async function apply(
     }
     const nation = nationForCountry(v.country)
     if (!nation) {
-      warnings.push(`unknown country "${v.country}" (${v.externalId}) — skipped`)
+      warnings.push(
+        `unknown country "${v.country}" (${v.externalId}) — skipped`,
+      )
       continue
     }
     mapped.push({
@@ -276,7 +278,10 @@ async function apply(
   }
 
   let brRowCount = 0
-  for (const chunk of chunks(buildBrRows(mapped, brModesByBranch, idByExternalId, warnings), CHUNK)) {
+  for (const chunk of chunks(
+    buildBrRows(mapped, brModesByBranch, idByExternalId, warnings),
+    CHUNK,
+  )) {
     brRowCount += chunk.length
     await tx
       .insert(schema.vehicleBr)
@@ -371,7 +376,9 @@ async function warnOnBranchFlips(
     const n = recordsByVehicle.get(f.id) ?? 0
     warnings.push(
       `branch changed ${f.branch} → ${f.newBranch} for ${f.externalId}` +
-        (n > 0 ? ` which holds ${n} record(s) now outside its mode's stats` : ''),
+        (n > 0
+          ? ` which holds ${n} record(s) now outside its mode's stats`
+          : ''),
     )
   }
 }

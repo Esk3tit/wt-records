@@ -92,8 +92,8 @@ export class WtVehiclesApiSource implements CatalogSource {
         arcadeBr: v.arcade_br,
         realisticBr: v.realistic_br,
         simulatorBr: v.simulator_br,
-        isPremium: Boolean(v.is_premium),
-        isSquadron: Boolean(v.squadron_vehicle),
+        isPremium: toFlag(v.is_premium),
+        isSquadron: toFlag(v.squadron_vehicle),
         event: v.event,
         imageUrl: v.images?.image ?? null,
       })
@@ -178,6 +178,12 @@ export class WtVehiclesApiSource implements CatalogSource {
     }
     throw lastError
   }
+}
+
+/* Accepts 0/1, booleans, or their string forms — a truthy non-flag string
+   ("0") must not become premium. */
+function toFlag(value: 0 | 1 | boolean): boolean {
+  return Number(value) === 1
 }
 
 /* units.csv is semicolon-separated with double-quoted fields. */

@@ -216,8 +216,16 @@ describe('syncCatalog', () => {
     await syncCatalog(
       t.db,
       snapshot([
-        vehicle({ externalId: 'ussr_t_34_1941', name: 'T-34 (1941)', country: 'ussr' }),
-        vehicle({ externalId: 'sw_t_34_1941', name: 'T-34 (1941)', country: 'sweden' }),
+        vehicle({
+          externalId: 'ussr_t_34_1941',
+          name: 'T-34 (1941)',
+          country: 'ussr',
+        }),
+        vehicle({
+          externalId: 'sw_t_34_1941',
+          name: 'T-34 (1941)',
+          country: 'sweden',
+        }),
       ]),
       relaxed,
     )
@@ -304,10 +312,7 @@ describe('syncCatalog', () => {
       .set({ backgroundUrl: 'https://cdn.test/usa.jpg' })
       .where(eq(nations.slug, 'usa'))
     await syncCatalog(t.db, snapshot([vehicle({ era: 5 })]), relaxed)
-    const usa = await t.db
-      .select()
-      .from(nations)
-      .where(eq(nations.slug, 'usa'))
+    const usa = await t.db.select().from(nations).where(eq(nations.slug, 'usa'))
     expect(usa[0].backgroundUrl).toBe('https://cdn.test/usa.jpg')
   })
 
@@ -420,10 +425,7 @@ describe('syncCatalog', () => {
       relaxed,
     )
     const brModes = (
-      await t.db
-        .select()
-        .from(vehicleBr)
-        .where(eq(vehicleBr.vehicleId, row.id))
+      await t.db.select().from(vehicleBr).where(eq(vehicleBr.vehicleId, row.id))
     )
       .map((r) => r.mode)
       .sort()

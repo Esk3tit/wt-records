@@ -97,9 +97,9 @@ describe('patchFromGameVersion', () => {
 
 describe('latestGameVersion', () => {
   it('picks the numerically greatest version, not the last element', () => {
-    expect(
-      latestGameVersion(['2.55.1.153', '2.57.0.8', '2.47.0.134']),
-    ).toBe('2.57.0.8')
+    expect(latestGameVersion(['2.55.1.153', '2.57.0.8', '2.47.0.134'])).toBe(
+      '2.57.0.8',
+    )
     // numeric compare: 2.9 < 2.55
     expect(latestGameVersion(['2.9.0.1', '2.55.0.1'])).toBe('2.55.0.1')
   })
