@@ -4,9 +4,11 @@ The SSR app deploys to Railway from `main` via the [`Dockerfile`](../Dockerfile)
 
 ## Required Railway variables (production service)
 
-- **`DATABASE_URL`** — the Supabase **Transaction pooler** (Supavisor) string: host `…pooler.supabase.com`, port **6543**, user `postgres.<ref>`. The client sets `prepare: false` for it.
-  - Do **not** use the **direct** host (`db.<ref>.supabase.co:5432`) — it's IPv6-only and Railway egresses over IPv4, so the connection hangs.
-  - Do **not** paste the local `postgresql://…@127.0.0.1:54322/…` value.
+- **`DATABASE_URL`** — any reachable Postgres; two known-good values:
+  - **Railway managed Postgres** (current): the `${{Postgres.DATABASE_URL}}` variable reference — private networking, no external pooler in the path. Stand a fresh one up per [Vanilla Postgres](#vanilla-postgres-any-non-supabase-host) below.
+  - **Supabase Transaction pooler** (Supavisor): host `…pooler.supabase.com`, port **6543**, user `postgres.<ref>`. The client sets `prepare: false` for it.
+    - Do **not** use the **direct** host (`db.<ref>.supabase.co:5432`) — it's IPv6-only and Railway egresses over IPv4, so the connection hangs.
+    - Do **not** paste the local `postgresql://…@127.0.0.1:54322/…` value.
 - `SUPABASE_URL`; plus `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` once Realtime/Auth land (Phase 2).
 - `SENTRY_DSN` and the `VITE_*` observability keys.
 
@@ -37,6 +39,19 @@ SEED_RESET=1 SEED_REMOTE=1 DATABASE_URL='<hosted transaction-pooler URL>' bun ru
 ```
 
 Real GRB data lands via the importer (#20).
+
+## Vanilla Postgres (any non-Supabase host)
+
+Nothing at runtime uses Supabase-specific services yet (Realtime and Auth are future phases), so any Postgres serves the app once the Supabase-provided objects are shimmed in — the same recipe the per-PR migration check runs against a fresh `postgres` container. Against a direct (non-transaction-pooler) URL:
+
+```bash
+export DATABASE_URL='<direct connection URL>'
+node scripts/prepare-vanilla-pg.mjs   # auth schema/roles shim + realtime publication
+bun run db:migrate
+SEED_REMOTE=1 bun run db:seed
+```
+
+Switching the app between providers is then just repointing the service's `DATABASE_URL`. When doing so, also repoint the `PROD_MIGRATE_DATABASE_URL` secret (see [Apply migrations](#apply-migrations)) — otherwise merges keep migrating the old provider's database and the live one drifts.
 
 ## Deploy
 
