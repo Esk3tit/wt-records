@@ -36,7 +36,7 @@
     "WeekMarquee": "mode: string; records: Array<{ id: number; kills: number; vehicleSlug: string; vehicleName: string; isRemoved: boolean; nationName: string; playerSlug: string; displayName: string; ignSnapshot: string | null; displayNameSnapshot: string | null; verifiedAt: Date | string | null }>;",
     "RecordHistory": "steps: Array<{ kills: number; verifiedAt: Date | string | null; displayName: string; playerSlug: string }>;",
     "VerificationQueue": "queue: { pending: number; verifiedThisWeek: number; medianReviewSecs: number | null };",
-    "HotVehicles": "mode: string; rows: Array<{ vehicleSlug: string; vehicleName: string; isRemoved: boolean; nationName: string; submissions: number }>;",
+    "ContestedTitles": "mode: string; rows: Array<{ vehicleSlug: string; vehicleName: string; isRemoved: boolean; nationName: string; contests: number; kills: number; playerSlug: string; displayName: string }>;",
     "FallenRecords": "mode: string; rows: Array<{ vehicleSlug: string; vehicleName: string; isRemoved: boolean; oldKills: number; oldHolder: string; oldHolderSlug: string; newKills: number; newHolder: string; newHolderSlug: string; verifiedAt: Date | string | null }>;",
     "LongestStanding": "mode: string; rows: Array<{ id: number; kills: number; vehicleSlug: string; vehicleName: string; isRemoved: boolean; nationName: string; playerSlug: string; displayName: string; ignSnapshot: string | null; displayNameSnapshot: string | null; verifiedAt: Date | string | null }>;",
     "NationCompletion": "mode: string; nations: Array<{ slug: string; name: string; eligibleVehicles: number; coveredVehicles: number; completionPct: number }>;",

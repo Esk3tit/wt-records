@@ -1,8 +1,8 @@
 import { Link } from '@tanstack/react-router'
 import { Brand } from '#/components/brand'
 import { CountUp } from '#/components/count-up'
+import { ContestedTitles } from '#/components/contested-titles'
 import { FallenRecords } from '#/components/fallen-records'
-import { HotVehicles } from '#/components/hot-vehicles'
 import { LatestFeed } from '#/components/latest-feed'
 import { LeaderboardList } from '#/components/leaderboard-list'
 import { LongestStanding } from '#/components/longest-standing'
@@ -35,7 +35,7 @@ export function ModeLanding({
     latestFeed,
     weekTop,
     verifyQueue,
-    hotVehicles,
+    contestedTitles,
     nations,
     historySteps,
     fallen,
@@ -44,8 +44,8 @@ export function ModeLanding({
   const monument = topRecords.length > 0 ? topRecords[0] : null
   const anchors = [
     { label: 'Leaderboard', hash: 'standings' },
-    ...(hotVehicles.length > 0
-      ? [{ label: 'Vehicles', hash: 'hot-vehicles' }]
+    ...(contestedTitles.length > 0
+      ? [{ label: 'Contested', hash: 'contested-titles' }]
       : []),
     ...(nations.length > 0 ? [{ label: 'Nations', hash: 'nations' }] : []),
   ]
@@ -147,12 +147,15 @@ export function ModeLanding({
         </section>
       </div>
 
-      {/* Hottest vehicles + standings */}
-      <div className={hotVehicles.length > 0 ? 'band-duo mt-12' : 'mt-12'}>
-        {hotVehicles.length > 0 && (
-          <section id="hot-vehicles" className="min-w-0 scroll-mt-24">
-            <SectionHead title="Hottest vehicles" aside="submissions, 7 days" />
-            <HotVehicles mode={mode} rows={hotVehicles} />
+      {/* Most contested titles + standings */}
+      <div className={contestedTitles.length > 0 ? 'band-duo mt-12' : 'mt-12'}>
+        {contestedTitles.length > 0 && (
+          <section id="contested-titles" className="min-w-0 scroll-mt-24">
+            <SectionHead
+              title="Most contested titles"
+              aside="records set, all-time"
+            />
+            <ContestedTitles mode={mode} rows={contestedTitles} />
           </section>
         )}
         <section id="standings" className="min-w-0 scroll-mt-24">

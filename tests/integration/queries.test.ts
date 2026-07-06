@@ -439,30 +439,132 @@ describe('getModeLanding verification queue', () => {
   })
 })
 
-describe('getModeLanding hot vehicles', () => {
-  it('counts verified + pending submissions per vehicle inside 7 days only', async () => {
-    await resetDates()
-    const now = new Date()
-    const m4 = await vehicleBySlug('m4a1')
-    const wirbel = await vehicleBySlug('wirbelwind')
-    await t.db
-      .update(records)
-      .set({ submittedAt: now })
-      .where(and(eq(records.vehicleId, m4.id), eq(records.isCurrent, true)))
-    await t.db
-      .update(records)
-      .set({ submittedAt: now })
-      .where(eq(records.vehicleId, wirbel.id))
-
+describe('getModeLanding contested titles', () => {
+  it('ranks titles by verified-record count, only count ≥ 2 qualifies', async () => {
     const landing = await getModeLanding(t.db, 'grb')
-    // Count ties order alphabetically; the M4A1's out-of-window history rows
-    // must not count, and the Wirbelwind's pending submission must.
-    expect(
-      landing.hotVehicles.map((v) => [v.vehicleSlug, v.submissions]),
-    ).toEqual([
-      ['m4a1', 1],
-      ['wirbelwind', 1],
+    // Straight from the seed: only the M4A1 has changed hands (3 verified
+    // records); every other title has one and must not appear.
+    expect(landing.contestedTitles).toEqual([
+      {
+        vehicleSlug: 'm4a1',
+        vehicleName: 'M4A1',
+        isRemoved: false,
+        nationName: 'USA',
+        contests: 3,
+        kills: 14,
+        playerSlug: 'ace',
+        displayName: 'Ace',
+      },
     ])
+  })
+
+  it('counts a holder beating their own record as a contest', async () => {
+    const panther = await vehicleBySlug('panther-d')
+    const ace = await playerBySlug('ace')
+    // Ace held the Panther D at 10 before improving to his current 13.
+    await t.db.insert(records).values({
+      vehicleId: panther.id,
+      mode: 'grb',
+      playerId: ace.id,
+      ignSnapshot: 'Ace',
+      patch: '2.51',
+      kills: 10,
+      status: 'verified',
+      isCurrent: false,
+    })
+    const landing = await getModeLanding(t.db, 'grb')
+    expect(
+      landing.contestedTitles.map((c) => [c.vehicleSlug, c.contests]),
+    ).toEqual([
+      ['m4a1', 3],
+      ['panther-d', 2],
+    ])
+    expect(landing.contestedTitles[1]).toMatchObject({
+      kills: 13,
+      playerSlug: 'ace',
+      displayName: 'Ace',
+    })
+  })
+
+  it('breaks contest-count ties alphabetically', async () => {
+    const floppa = await playerBySlug('floppa')
+    const m26 = await vehicleBySlug('m26')
+    const tiger = await vehicleBySlug('tiger-ii-h')
+    // A superseded record each on the M26 and Tiger II (H) ties them at 2.
+    await t.db.insert(records).values(
+      [m26, tiger].map((v) => ({
+        vehicleId: v.id,
+        mode: 'grb',
+        playerId: floppa.id,
+        ignSnapshot: 'Floppa',
+        patch: '2.49',
+        kills: 5,
+        status: 'verified' as const,
+        isCurrent: false,
+      })),
+    )
+    const landing = await getModeLanding(t.db, 'grb')
+    expect(
+      landing.contestedTitles.map((c) => [c.vehicleSlug, c.contests]),
+    ).toEqual([
+      ['m4a1', 3],
+      ['m26', 2],
+      ['tiger-ii-h', 2],
+    ])
+  })
+
+  it('ignores pending and rejected submissions', async () => {
+    const m26 = await vehicleBySlug('m26')
+    const floppa = await playerBySlug('floppa')
+    await t.db.insert(records).values(
+      (['pending', 'rejected'] as const).map((status) => ({
+        vehicleId: m26.id,
+        mode: 'grb',
+        playerId: floppa.id,
+        ignSnapshot: 'Floppa',
+        patch: '2.53',
+        kills: 15,
+        status,
+        isCurrent: false,
+      })),
+    )
+    const landing = await getModeLanding(t.db, 'grb')
+    expect(landing.contestedTitles.map((c) => c.vehicleSlug)).toEqual(['m4a1'])
+  })
+
+  it('never lists an off-branch title, matching the stats views', async () => {
+    const [usa] = await t.db
+      .select()
+      .from(nations)
+      .where(eq(nations.slug, 'usa'))
+    const ace = await playerBySlug('ace')
+    const [jet] = await t.db
+      .insert(vehicles)
+      .values({
+        externalId: 'jet_contest',
+        name: 'JetContest',
+        slug: 'jet-contest',
+        nationId: usa.id,
+        branch: 'air',
+        class: 'fighter',
+      })
+      .returning()
+    // Invalid data (no constraint forbids it): ground-mode records on an
+    // air vehicle, enough of them to qualify as contested.
+    await t.db.insert(records).values(
+      [false, true].map((isCurrent) => ({
+        vehicleId: jet.id,
+        mode: 'grb',
+        playerId: ace.id,
+        ignSnapshot: 'Ace',
+        patch: '2.53',
+        kills: isCurrent ? 99 : 98,
+        status: 'verified' as const,
+        isCurrent,
+      })),
+    )
+    const landing = await getModeLanding(t.db, 'grb')
+    expect(landing.contestedTitles.map((c) => c.vehicleSlug)).toEqual(['m4a1'])
   })
 })
 
@@ -528,7 +630,7 @@ describe('getModeLanding empty mode', () => {
     expect(landing.topRecords).toEqual([])
     expect(landing.latestFeed).toEqual([])
     expect(landing.weekTop).toEqual([])
-    expect(landing.hotVehicles).toEqual([])
+    expect(landing.contestedTitles).toEqual([])
     expect(landing.fallen).toEqual([])
     expect(landing.historySteps).toEqual([])
     expect(landing.longestStanding).toEqual([])
