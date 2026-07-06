@@ -1,7 +1,5 @@
 import process from 'node:process'
-import { drizzle } from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
-import * as schema from '#/db/schema'
+import { openCliDb } from '#/db/cli'
 import { resetFixture, seed } from '#/db/seed'
 import { seedDemo } from '#/db/seed-demo'
 
@@ -19,9 +17,8 @@ if (!isLocal && process.env.SEED_REMOTE !== '1') {
   )
 }
 
-const sql = postgres(url, { prepare: false })
+const { db, close } = openCliDb(url)
 try {
-  const db = drizzle(sql, { schema })
   // Opt-in wipe: the seed is not idempotent, so re-seeding a populated DB
   // needs the fixture tables cleared. Cascades cover every dependent table.
   if (process.env.SEED_RESET === '1') {
@@ -32,5 +29,5 @@ try {
   await seedDemo(db)
   console.log('Seeded (fixture + demo dressing).')
 } finally {
-  await sql.end()
+  await close()
 }
