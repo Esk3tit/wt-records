@@ -230,24 +230,34 @@ describe('WtVehiclesApiSource', () => {
   })
 
   it('normalizes flag encodings: 0/1, booleans, and their string forms', async () => {
+    // string forms deliberately bypass the ApiVehicle type — the wire format
+    // is unvalidated JSON
+    const wire = [
+      { ...apiVehicle(), is_premium: '1', squadron_vehicle: '0' },
+      apiVehicle({
+        identifier: 'germ_flakpanzer_IV_Wirbelwind',
+        is_premium: true,
+        squadron_vehicle: false,
+      }),
+    ]
     const { source: s } = source([
       statsRoute,
       csvRoute,
       {
         pattern: /\/vehicles\?/,
-        reply: () => ({
-          // string forms deliberately bypass the ApiVehicle type — the wire
-          // format is unvalidated JSON
-          body: JSON.stringify([
-            apiVehicle({ is_premium: true, squadron_vehicle: false }),
-          ]).replace('"squadron_vehicle":false', '"squadron_vehicle":"0"'),
-        }),
+        reply: () => ({ body: JSON.stringify(wire) }),
       },
     ])
 
-    const [v] = (await s.fetchSnapshot()).vehicles
-    expect(v.isPremium).toBe(true)
-    expect(v.isSquadron).toBe(false)
+    const { vehicles } = await s.fetchSnapshot()
+    const stringly = vehicles.find((v) => v.externalId === 'us_m1_abrams')!
+    expect(stringly.isPremium).toBe(true) // "1"
+    expect(stringly.isSquadron).toBe(false) // "0"
+    const boolly = vehicles.find(
+      (v) => v.externalId === 'germ_flakpanzer_IV_Wirbelwind',
+    )!
+    expect(boolly.isPremium).toBe(true) // true
+    expect(boolly.isSquadron).toBe(false) // false
   })
 
   it('keeps semicolons inside quoted locale names intact', async () => {
