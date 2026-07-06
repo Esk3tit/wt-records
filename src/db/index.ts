@@ -29,8 +29,9 @@ const client =
     // Small pool, recycled connections: queries are tens of ms, so a burst
     // costs little serialized — while every extra connection is another
     // chance to stall when the shared pooler browns out, and recycling lets
-    // the pool heal after a database failover without a restart.
-    max: 4,
+    // the pool heal after a database failover without a restart. Tune per
+    // environment via DB_POOL_MAX when sustained concurrency demands it.
+    max: Number(process.env.DB_POOL_MAX ?? 4),
     idle_timeout: 120,
     max_lifetime: 1800,
   })
