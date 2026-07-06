@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm'
 import type { ExtractTablesWithRelations } from 'drizzle-orm'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 import * as schema from '#/db/schema'
@@ -7,6 +8,15 @@ export type SeedDb = PgDatabase<
   typeof schema,
   ExtractTablesWithRelations<typeof schema>
 >
+
+// The seed is not idempotent: re-seeding a populated DB needs every fixture
+// root truncated first. Cascades cover the dependent tables; list every table
+// the seed inserts into that nothing else cascades from.
+export async function resetFixture(db: SeedDb): Promise<void> {
+  await db.execute(
+    sql`truncate table modes, nations, players, patches restart identity cascade`,
+  )
+}
 
 // Deterministic dev/design fixture — NOT the real data. The catalog-sync and
 // GRB migration importer replace this later. Moderators (profiles) are omitted
