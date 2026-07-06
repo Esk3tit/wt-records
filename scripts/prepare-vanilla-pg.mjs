@@ -1,7 +1,7 @@
 // Applies the Supabase-provided objects (auth schema/roles) and the Realtime
 // publication to a bare Postgres, mirroring migration-check.yml's psql steps,
 // so drizzle migrations replay unchanged. Run before `bun run db:migrate`.
-import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import postgres from 'postgres'
 
 const url = process.env.DATABASE_URL
@@ -15,7 +15,9 @@ const sql = postgres(url, {
 })
 
 try {
-  await sql.file(resolve(import.meta.dirname, '..', 'tests/supabase-shim.sql'))
+  await sql.file(
+    fileURLToPath(new URL('../tests/supabase-shim.sql', import.meta.url)),
+  )
 
   const [pub] =
     await sql`select 1 as ok from pg_publication where pubname = 'supabase_realtime'`
