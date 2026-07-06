@@ -159,10 +159,7 @@ export async function getModeLanding(db: Db, mode: string) {
       })
       .from(records)
       .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
-      .innerJoin(
-        modes,
-        and(eq(modes.mode, records.mode), eq(modes.branch, vehicles.branch)),
-      )
+      .innerJoin(modes, modeMatchesBranch)
       .where(eq(records.mode, mode)),
     // Contest count = every verified record ever set for the (vehicle, mode)
     // title, self-improvements included; one record is an uncontested holder.
