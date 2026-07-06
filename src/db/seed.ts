@@ -52,6 +52,15 @@ export async function seed(db: SeedDb): Promise<void> {
     { mode: 'grb', class: 'spaa', minKills: 6 },
   ])
 
+  await db
+    .insert(schema.patches)
+    .values([
+      { version: '2.49' },
+      { version: '2.51' },
+      { version: '2.52' },
+      { version: '2.53' },
+    ])
+
   const [usa, germany] = await db
     .insert(schema.nations)
     .values([
@@ -271,6 +280,7 @@ export async function seed(db: SeedDb): Promise<void> {
       displayNameSnapshot: 'Maverick',
       kills: 6,
       runBr: 3.0,
+      patch: '2.53',
       status: 'pending',
       isCurrent: false,
     },

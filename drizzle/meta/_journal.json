@@ -22,6 +22,13 @@
       "when": 1783116311069,
       "tag": "0002_stats_views",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1783319236101,
+      "tag": "0003_patches",
+      "breakpoints": true
     }
   ]
 }

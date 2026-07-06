@@ -140,6 +140,14 @@ export const playerAliases = pgTable(
   (t) => [uniqueIndex('alias_uq').on(t.playerId, t.name, t.kind)],
 ).enableRLS()
 
+/* Canonical WT game versions — the community's temporal axis. Catalog-sync
+   upserts the current one and /admin can add inline, so entry never blocks. */
+export const patches = pgTable('patches', {
+  version: text('version').primaryKey(), // "2.53"
+  name: text('name'), // e.g. "Sons of Attila"
+  releasedAt: timestamp('released_at', { withTimezone: true }),
+}).enableRLS()
+
 export const records = pgTable(
   'records',
   {
@@ -157,7 +165,9 @@ export const records = pgTable(
     displayNameSnapshot: text('display_name_snapshot'), // SECONDARY, immutable
     kills: integer('kills').notNull(),
     runBr: numeric('run_br', { precision: 3, scale: 1, mode: 'number' }),
-    patch: text('patch'),
+    patch: text('patch')
+      .references(() => patches.version)
+      .notNull(),
     // Safe defaults: a bare insert is an unverified, non-current submission.
     // The import/seed/mod-accept paths set verified + current explicitly.
     status: recordStatus('status').notNull().default('pending'),

@@ -4,6 +4,7 @@ import type { TestDb } from './pglite'
 import {
   modes,
   nations,
+  patches,
   players,
   recordProof,
   records,
@@ -26,6 +27,7 @@ async function seedBaseline() {
     branch: 'ground',
     isLive: true,
   })
+  await t.db.insert(patches).values({ version: '2.53' })
   const [usa] = await t.db
     .insert(nations)
     .values({ slug: 'usa', name: 'USA', sort: 1 })
@@ -67,6 +69,7 @@ describe('records constraints (committed migrations replayed on PGlite)', () => 
       mode: 'grb',
       playerId: ply.id,
       ignSnapshot: 'Ace',
+      patch: '2.53',
       kills: 12,
       status: 'verified',
       isCurrent: true,
@@ -81,6 +84,7 @@ describe('records constraints (committed migrations replayed on PGlite)', () => 
       mode: 'grb',
       playerId: ply.id,
       ignSnapshot: 'Ace',
+      patch: '2.53',
       status: 'verified' as const,
       isCurrent: true,
     }
@@ -97,6 +101,7 @@ describe('records constraints (committed migrations replayed on PGlite)', () => 
       mode: 'grb',
       playerId: ply.id,
       ignSnapshot: 'Ace',
+      patch: '2.53',
       status: 'verified' as const,
     }
     await t.db.insert(records).values({ ...base, kills: 10, isCurrent: false })
@@ -112,6 +117,7 @@ describe('records constraints (committed migrations replayed on PGlite)', () => 
         mode: 'grb',
         playerId: ply.id,
         ignSnapshot: 'Ace',
+        patch: '2.53',
         kills: 12,
         status: 'pending',
         isCurrent: true,
@@ -126,6 +132,7 @@ describe('records constraints (committed migrations replayed on PGlite)', () => 
       mode: 'grb',
       playerId: ply.id,
       ignSnapshot: 'Ace',
+      patch: '2.53',
       kills: 12,
       status: 'pending',
       isCurrent: false,
@@ -140,6 +147,7 @@ describe('records constraints (committed migrations replayed on PGlite)', () => 
       mode: 'grb',
       playerId: ply.id,
       ignSnapshot: 'Ace',
+      patch: '2.53',
       kills: 12,
       status: 'verified',
       isCurrent: true,
@@ -149,6 +157,7 @@ describe('records constraints (committed migrations replayed on PGlite)', () => 
       mode: 'grb',
       playerId: ply.id,
       ignSnapshot: 'Ace',
+      patch: '2.53',
       kills: 9,
       status: 'verified',
       isCurrent: true,
@@ -164,7 +173,36 @@ describe('records constraints (committed migrations replayed on PGlite)', () => 
         mode: 'grb',
         playerId: ply.id,
         ignSnapshot: 'Ace',
+        patch: '2.53',
         kills: 0,
+      }),
+    ).rejects.toThrow()
+  })
+
+  it('rejects a record on an unregistered patch version', async () => {
+    const { veh, ply } = await seedBaseline()
+    await expect(
+      t.db.insert(records).values({
+        vehicleId: veh.id,
+        mode: 'grb',
+        playerId: ply.id,
+        ignSnapshot: 'Ace',
+        patch: '9.99',
+        kills: 12,
+      }),
+    ).rejects.toThrow()
+  })
+
+  it('rejects a record without a patch', async () => {
+    const { veh, ply } = await seedBaseline()
+    await expect(
+      // @ts-expect-error patch is required at the type level too
+      t.db.insert(records).values({
+        vehicleId: veh.id,
+        mode: 'grb',
+        playerId: ply.id,
+        ignSnapshot: 'Ace',
+        kills: 12,
       }),
     ).rejects.toThrow()
   })
@@ -178,6 +216,7 @@ describe('records constraints (committed migrations replayed on PGlite)', () => 
         mode: 'grb',
         playerId: ply.id,
         ignSnapshot: 'Ace',
+        patch: '2.53',
         kills: 12,
         status: 'verified',
         isCurrent: true,
