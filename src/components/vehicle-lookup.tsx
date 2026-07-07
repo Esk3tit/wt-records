@@ -71,6 +71,13 @@ export function VehicleLookup({ mode }: { mode: string }) {
       setOpen(false)
       return
     }
+    if (e.key === 'Enter') {
+      // Also fires while the dropdown hasn't opened yet (mid-debounce):
+      // free text always falls through to Browse.
+      e.preventDefault()
+      go(open && active >= 0 && active < items.length ? active : -1)
+      return
+    }
     if (!open) return
     if (e.key === 'ArrowDown') {
       e.preventDefault()
@@ -78,9 +85,6 @@ export function VehicleLookup({ mode }: { mode: string }) {
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
       setActive((a) => Math.max(a - 1, -1))
-    } else if (e.key === 'Enter') {
-      e.preventDefault()
-      go(active === items.length ? -1 : active)
     }
   }
 
@@ -102,7 +106,12 @@ export function VehicleLookup({ mode }: { mode: string }) {
         autoComplete="off"
         value={value}
         placeholder="Check a vehicle…"
-        onChange={(e) => setValue(e.target.value)}
+        onChange={(e) => {
+          setValue(e.target.value)
+          // A hover-highlighted row from the previous query must not stay
+          // the Enter target while new suggestions are in flight.
+          setActive(-1)
+        }}
         onKeyDown={onKeyDown}
         onFocus={() => items.length > 0 && setOpen(true)}
         onBlur={() => setOpen(false)}

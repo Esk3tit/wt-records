@@ -126,6 +126,8 @@ function BrowsePage() {
           id="browse-q"
           type="search"
           name="q"
+          // Uncontrolled; the key re-syncs it when history changes q.
+          key={search.q ?? ''}
           defaultValue={search.q ?? ''}
           placeholder="Vehicle name…"
           className="rounded border border-hairline bg-transparent px-3 py-1"
