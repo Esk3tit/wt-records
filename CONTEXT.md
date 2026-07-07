@@ -95,6 +95,24 @@ The matchmaking rating — a one-decimal value, per (vehicle, Mode). The run's B
 An eligible vehicle with no Current record in a Mode.
 _Avoid_: empty, missing.
 
+### Search
+
+**Quick search**:
+The single global, cross-Mode search — matches Players and vehicles by name and jumps to a page. Reached from the site header.
+_Avoid_: header search (a location, not the concept).
+
+**Browse**:
+The Mode-scoped filtered view of that Mode's catalog (nation, class, BR, rank, acquisition), each vehicle with its Current record or Open bounty. The full-filter search surface.
+_Avoid_: search page, catalog page.
+
+**Lookup**:
+A typeahead that resolves a vehicle *name* to one vehicle and jumps straight to it; free text falls through to Browse. Lives in the Mode hero.
+_Avoid_: search box (a Lookup navigates, it doesn't list).
+
+**Search term**:
+A matchable variant of a vehicle's name — its normalized form plus deterministic numeral variants (Tiger II ⇄ tiger 2) and, later, curated nicknames. A vehicle has many Search terms; matching any of them finds the vehicle. Display always uses the real name (tree-marker glyphs kept).
+_Avoid_: alias (reserved for Player names).
+
 ### Aggregates
 
 **Completion %**:
