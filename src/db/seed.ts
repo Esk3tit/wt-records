@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import type { ExtractTablesWithRelations } from 'drizzle-orm'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 import * as schema from '#/db/schema'
+import { replaceSearchTerms } from '#/db/search-terms'
 
 export type SeedDb = PgDatabase<
   PgQueryResultHKT,
@@ -151,6 +152,8 @@ export async function seed(db: SeedDb): Promise<void> {
 
   const byExt: Record<string, (typeof vehs)[number]> = {}
   for (const v of vehs) byExt[v.externalId] = v
+
+  await replaceSearchTerms(db, vehs)
 
   await db.insert(schema.vehicleBr).values([
     { vehicleId: byExt['us_m4a1'].id, mode: 'grb', br: 3.7 },

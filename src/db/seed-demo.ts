@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm'
 import * as schema from '#/db/schema'
+import { replaceSearchTerms } from '#/db/search-terms'
 import type { SeedDb } from '#/db/seed'
 
 const DAY_MS = 86_400_000
@@ -98,6 +99,8 @@ export async function seedDemo(db: SeedDb): Promise<void> {
     .returning()
   const veh: Record<string, (typeof vehicleRows)[number]> = {}
   for (const v of vehicleRows) veh[v.slug] = v
+
+  await replaceSearchTerms(db, vehicleRows)
 
   await db.insert(schema.vehicleBr).values(
     (

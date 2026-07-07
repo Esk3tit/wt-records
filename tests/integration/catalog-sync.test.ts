@@ -11,6 +11,7 @@ import {
   players,
   records,
   vehicleBr,
+  vehicleSearchTerms,
   vehicles,
 } from '#/db/schema'
 
@@ -175,6 +176,15 @@ describe('syncCatalog', () => {
         .from(vehicleBr)
         .where(eq(vehicleBr.vehicleId, m26[0].id)),
     ).toHaveLength(2)
+    // and their search terms — removed vehicles stay searchable
+    expect(
+      (
+        await t.db
+          .select()
+          .from(vehicleSearchTerms)
+          .where(eq(vehicleSearchTerms.vehicleId, m26[0].id))
+      ).length,
+    ).toBeGreaterThan(0)
 
     const restore = await syncCatalog(t.db, both, relaxed)
     expect(restore).toMatchObject({ removed: 0, restored: 1 })
@@ -196,6 +206,13 @@ describe('syncCatalog', () => {
     const [row] = await t.db.select().from(vehicles)
     expect(row.name).toBe('M1 Abrams (105)')
     expect(row.slug).toBe('m1-abrams')
+
+    // A rename fully replaces the search terms — no stale variants linger.
+    const terms = (await t.db.select().from(vehicleSearchTerms)).map(
+      (r) => r.term,
+    )
+    expect(terms).toContain('m1abrams105')
+    expect(terms).not.toContain('m1abrams')
   })
 
   it('never touches the manual isDifficult overlay', async () => {

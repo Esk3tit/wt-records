@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, inArray, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Db } from '#/db'
 import {
@@ -13,8 +13,10 @@ import {
   recordProof,
   records,
   vehicleBr,
+  vehicleSearchTerms,
   vehicles,
 } from '#/db/schema'
+import { searchKey } from '#/lib/search-terms'
 
 const isCurrentVerified = and(
   eq(records.isCurrent, true),
@@ -542,6 +544,57 @@ const BRANCH_MODE: Record<'ground' | 'air' | 'naval', string | undefined> = {
   naval: undefined,
 }
 
+// word_similarity, not similarity: the query key is much shorter than a
+// collapsed term, and plain similarity punishes the length difference so
+// hard that one-typo queries ("tigre") fall below any usable floor.
+const SIMILARITY_FLOOR = 0.3
+// Below this, single-trigram extents let any term sharing a first letter
+// clear the floor ("m4" matches every m-vehicle), so short keys stay exact.
+const MIN_FUZZY_KEY_LENGTH = 4
+
+/** Two-tier vehicle matcher over precomputed search terms (ADR 0005):
+ * exact-substring hits rank first (match position, then term length, then
+ * name), pg_trgm word-similarity catches typos below them. */
+export function searchVehicles(db: Db, q: string, limit: number) {
+  const key = searchKey(q)
+  if (!key) return Promise.resolve([])
+  const isExact = sql`position(${key} in ${vehicleSearchTerms.term}) > 0`
+  const bestPos = sql<number>`min(case when ${isExact} then position(${key} in ${vehicleSearchTerms.term}) end)`
+  const bestLen = sql<number>`min(case when ${isExact} then length(${vehicleSearchTerms.term}) end)`
+  const bestSim = sql<number>`max(word_similarity(${key}, ${vehicleSearchTerms.term}))`
+  return db
+    .select({
+      slug: vehicles.slug,
+      name: vehicles.name,
+      branch: vehicles.branch,
+      nation: nations.name,
+      ...vehicleTagFlags,
+    })
+    .from(vehicles)
+    .innerJoin(
+      vehicleSearchTerms,
+      eq(vehicleSearchTerms.vehicleId, vehicles.id),
+    )
+    .innerJoin(nations, eq(nations.id, vehicles.nationId))
+    .where(
+      key.length >= MIN_FUZZY_KEY_LENGTH
+        ? or(
+            isExact,
+            sql`word_similarity(${key}, ${vehicleSearchTerms.term}) > ${SIMILARITY_FLOOR}`,
+          )
+        : isExact,
+    )
+    .groupBy(vehicles.id, nations.id)
+    .orderBy(
+      sql`${bestPos} is null`,
+      bestPos,
+      bestLen,
+      desc(bestSim),
+      asc(vehicles.name),
+    )
+    .limit(limit)
+}
+
 export async function search(db: Db, q: string) {
   const term = q.trim()
   if (!term) return { players: [], vehicles: [] }
@@ -554,17 +607,7 @@ export async function search(db: Db, q: string) {
       .where(ilike(players.displayName, like))
       .orderBy(asc(players.displayName))
       .limit(10),
-    db
-      .select({
-        slug: vehicles.slug,
-        name: vehicles.name,
-        branch: vehicles.branch,
-        ...vehicleTagFlags,
-      })
-      .from(vehicles)
-      .where(ilike(vehicles.name, like))
-      .orderBy(asc(vehicles.name))
-      .limit(10),
+    searchVehicles(db, term, 10),
     db.select({ mode: modes.mode }).from(modes).where(eq(modes.isLive, true)),
   ])
   const liveModes = new Set(liveRows.map((r) => r.mode))
@@ -575,6 +618,7 @@ export async function search(db: Db, q: string) {
       return {
         slug: v.slug,
         name: v.name,
+        nation: v.nation,
         ...pickVehicleTags(v),
         linkMode: pref && liveModes.has(pref) ? pref : null,
       }

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { PGlite } from '@electric-sql/pglite'
+import { pg_trgm } from '@electric-sql/pglite/contrib/pg_trgm'
 import { drizzle } from 'drizzle-orm/pglite'
 import type { PgliteDatabase } from 'drizzle-orm/pglite'
 import { migrate } from 'drizzle-orm/pglite/migrator'
@@ -20,7 +21,7 @@ export interface TestDb {
 
 /** Fresh in-memory Postgres with the committed migrations applied. */
 export async function freshDb(): Promise<TestDb> {
-  const client = new PGlite()
+  const client = new PGlite({ extensions: { pg_trgm } })
   await client.exec(SUPABASE_SHIM)
   const db = drizzle(client, { schema })
   await migrate(db, { migrationsFolder: './drizzle' })

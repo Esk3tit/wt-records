@@ -3,6 +3,7 @@ import { and, eq } from 'drizzle-orm'
 import { freshDb } from './pglite'
 import type { TestDb } from './pglite'
 import { seed } from '#/db/seed'
+import { replaceSearchTerms } from '#/db/search-terms'
 import { modes, nations, records, players, vehicles } from '#/db/schema'
 import {
   getLeaderboard,
@@ -188,6 +189,7 @@ describe('search', () => {
       {
         slug: 'm4a1',
         name: 'M4A1',
+        nation: 'USA',
         isEvent: false,
         isPremium: false,
         isSquadron: false,
@@ -205,14 +207,18 @@ describe('search', () => {
       .select()
       .from(nations)
       .where(eq(nations.slug, 'usa'))
-    await t.db.insert(vehicles).values({
-      externalId: 'jetx',
-      name: 'Jetx',
-      slug: 'jetx',
-      nationId: usa.id,
-      branch: 'air',
-      class: 'fighter',
-    })
+    const jets = await t.db
+      .insert(vehicles)
+      .values({
+        externalId: 'jetx',
+        name: 'Jetx',
+        slug: 'jetx',
+        nationId: usa.id,
+        branch: 'air',
+        class: 'fighter',
+      })
+      .returning()
+    await replaceSearchTerms(t.db, jets)
     // ARB is not live yet → no link target.
     expect((await search(t.db, 'Jetx')).vehicles[0].linkMode).toBeNull()
     await t.db.update(modes).set({ isLive: true }).where(eq(modes.mode, 'arb'))
@@ -221,6 +227,27 @@ describe('search', () => {
 
   it('returns empty results for a blank query', async () => {
     expect(await search(t.db, '   ')).toEqual({ players: [], vehicles: [] })
+  })
+
+  it('matches numeral variants and separator-blind input', async () => {
+    for (const q of ['tiger 2', 'TigerII', 'tiger2h']) {
+      expect((await search(t.db, q)).vehicles.map((v) => v.slug)).toContain(
+        'tiger-ii-h',
+      )
+    }
+  })
+
+  it('catches one-typo queries via the similarity tier', async () => {
+    expect((await search(t.db, 'tigre')).vehicles.map((v) => v.slug)).toContain(
+      'tiger-ii-h',
+    )
+  })
+
+  it('ranks shorter exact matches above longer ones', async () => {
+    expect((await search(t.db, 'm1')).vehicles.map((v) => v.slug)).toEqual([
+      'm163',
+      'm18-gmc',
+    ])
   })
 
   it('treats LIKE metacharacters in the term literally', async () => {
@@ -321,6 +348,7 @@ describe('acquisition flags', () => {
         isPremium: true,
       })
       .returning()
+    await replaceSearchTerms(t.db, [veh])
     const [ace] = await t.db
       .select()
       .from(players)
