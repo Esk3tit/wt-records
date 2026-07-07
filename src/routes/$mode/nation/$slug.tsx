@@ -4,6 +4,7 @@ import { RecordName } from '#/components/record-name'
 import { VehicleTags } from '#/components/vehicle-tags'
 import { db } from '#/db'
 import { getNationSheet } from '#/db/queries'
+import { formatBr } from '#/lib/format'
 
 const loadNationSheet = createServerFn({ method: 'GET' })
   .validator((data: { mode: string; slug: string }) => data)
@@ -54,7 +55,9 @@ function NationSheet() {
                 {r.isDifficult && <span className="ml-1 text-fg-faint">◆</span>}
                 <VehicleTags tags={r} />
               </td>
-              <td className="py-1 pr-4 text-fg-muted">{r.br ?? '—'}</td>
+              <td className="py-1 pr-4 text-fg-muted">
+                {r.br != null ? formatBr(r.br) : '—'}
+              </td>
               <td className="py-1 pr-4">{r.kills ?? '—'}</td>
               <td className="py-1">
                 {r.playerSlug && r.displayName ? (

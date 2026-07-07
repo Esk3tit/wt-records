@@ -4,6 +4,7 @@ import { RecordName } from '#/components/record-name'
 import { VehicleTags } from '#/components/vehicle-tags'
 import { db } from '#/db'
 import { getVehicle } from '#/db/queries'
+import { formatBr } from '#/lib/format'
 
 const loadVehicle = createServerFn({ method: 'GET' })
   .validator((data: { mode: string; slug: string }) => data)
@@ -42,7 +43,7 @@ function VehicleDetail() {
         </Link>{' '}
         · {vehicle.class}
         {vehicle.rank ? ` · rank ${vehicle.rank}` : ''}
-        {br != null ? ` · BR ${br}` : ''}
+        {br != null ? ` · BR ${formatBr(br)}` : ''}
       </p>
 
       {current ? (
@@ -58,7 +59,9 @@ function VehicleDetail() {
             />
           </p>
           <p className="mt-1 text-sm text-fg-faint">
-            {current.runBr != null ? `Run BR ${current.runBr} · ` : null}
+            {current.runBr != null
+              ? `Run BR ${formatBr(current.runBr)} · `
+              : null}
             {`patch ${current.patch}`}
           </p>
           {proofs.length > 0 && (
