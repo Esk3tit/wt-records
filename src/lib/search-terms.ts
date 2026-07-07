@@ -1,7 +1,7 @@
-// Search-term generation for vehicle name matching (ADR 0005). One
-// implementation serves every surface: catalog sync and seed write terms
-// through nameSearchTerms(); query paths normalize input through
-// searchKey(). SQL only ever compares precomputed terms.
+// Search-term generation for vehicle name matching. One implementation
+// serves every surface: catalog sync and seed write terms through
+// nameSearchTerms(); query paths normalize input through searchKey().
+// SQL only ever compares precomputed terms.
 
 const ROMAN_VALUES: Record<string, number> = { i: 1, v: 5, x: 10 }
 

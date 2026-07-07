@@ -552,7 +552,7 @@ const SIMILARITY_FLOOR = 0.3
 // clear the floor ("m4" matches every m-vehicle), so short keys stay exact.
 const MIN_FUZZY_KEY_LENGTH = 4
 
-/** Two-tier vehicle matcher over precomputed search terms (ADR 0005):
+/** Two-tier vehicle matcher over precomputed search terms:
  * exact-substring hits rank first (match position, then term length, then
  * name), pg_trgm word-similarity catches typos below them. */
 export function searchVehicles(db: Db, q: string, limit: number) {

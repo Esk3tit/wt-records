@@ -111,7 +111,7 @@ export const vehicleBr = pgTable(
   (t) => [primaryKey({ columns: [t.vehicleId, t.mode] })],
 ).enableRLS()
 
-/* Matchable name variants per vehicle (ADR 0005): collapsed key + numeral
+/* Matchable name variants per vehicle: collapsed key + numeral
    variants. Written only by catalog sync and seed via nameSearchTerms(). */
 export const vehicleSearchTerms = pgTable(
   'vehicle_search_terms',
