@@ -111,6 +111,19 @@ export const vehicleBr = pgTable(
   (t) => [primaryKey({ columns: [t.vehicleId, t.mode] })],
 ).enableRLS()
 
+/* Matchable name variants per vehicle: collapsed key + numeral
+   variants. Written only by catalog sync and seed via nameSearchTerms(). */
+export const vehicleSearchTerms = pgTable(
+  'vehicle_search_terms',
+  {
+    vehicleId: integer('vehicle_id')
+      .references(() => vehicles.id)
+      .notNull(),
+    term: text('term').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.vehicleId, t.term] })],
+).enableRLS()
+
 export const players = pgTable(
   'players',
   {

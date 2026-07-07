@@ -29,6 +29,13 @@
       "when": 1783319236101,
       "tag": "0003_patches",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1783397242096,
+      "tag": "0004_vehicle_search_terms",
+      "breakpoints": true
     }
   ]
 }

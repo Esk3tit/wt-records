@@ -73,6 +73,9 @@ function Search() {
                     ) : (
                       <span className="text-fg-muted">{v.name}</span>
                     )}
+                    <span className="ml-1.5 text-sm text-fg-faint">
+                      {v.nation}
+                    </span>
                     <VehicleTags tags={v} />
                   </li>
                 )

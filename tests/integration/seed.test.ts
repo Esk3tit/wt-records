@@ -4,7 +4,7 @@ import type { TestDb } from './pglite'
 import { freshDb } from './pglite'
 import { resetFixture, seed } from '#/db/seed'
 import { seedDemo } from '#/db/seed-demo'
-import { records, vehicles } from '#/db/schema'
+import { records, vehicleSearchTerms, vehicles } from '#/db/schema'
 
 let t: TestDb
 
@@ -48,6 +48,23 @@ describe('seed fixture', () => {
     expect(all.some((v) => v.isEvent && v.isPremium)).toBe(true)
     expect(all.some((v) => v.isSquadron)).toBe(true)
     expect(all.some((v) => v.isEvent && v.isRemoved)).toBe(true)
+  })
+
+  it('writes search terms for every fixture and demo vehicle', async () => {
+    await seedDemo(t.db)
+    const all = await t.db.select().from(vehicles)
+    const withTerms = new Set(
+      (await t.db.select().from(vehicleSearchTerms)).map((r) => r.vehicleId),
+    )
+    expect(all.filter((v) => !withTerms.has(v.id))).toEqual([])
+    const tiger = all.find((v) => v.name === 'Tiger II (H)')!
+    const tigerTerms = (
+      await t.db
+        .select()
+        .from(vehicleSearchTerms)
+        .where(eq(vehicleSearchTerms.vehicleId, tiger.id))
+    ).map((r) => r.term)
+    expect(tigerTerms).toEqual(expect.arrayContaining(['tigeriih', 'tiger2h']))
   })
 
   // Guards the resetFixture truncate list: a fixture root missing from it

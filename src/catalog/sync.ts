@@ -1,6 +1,7 @@
 import { and, count, eq, inArray, sql } from 'drizzle-orm'
 import type { Db } from '#/db'
 import * as schema from '#/db/schema'
+import { replaceSearchTerms } from '#/db/search-terms'
 import type { CatalogSnapshot, SourceVehicle } from '#/catalog/source'
 import type { Branch } from '#/catalog/mapping'
 import {
@@ -250,6 +251,11 @@ async function apply(
       })
     for (const r of returned) idByExternalId.set(r.externalId, r.id)
   }
+
+  await replaceSearchTerms(
+    tx,
+    rows.map((r) => ({ id: idByExternalId.get(r.externalId)!, name: r.name })),
+  )
 
   // Everything in this snapshot was just stamped with syncedAt, so "absent"
   // is one indexed-free predicate instead of a 3000-parameter NOT IN list.
