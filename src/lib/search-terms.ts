@@ -30,15 +30,18 @@ function arabicToRoman(token: string): string | null {
   return 'x'.repeat(Math.floor(value / 10)) + ROMAN_UNITS[value % 10]
 }
 
-/** Collapse text to its bare-alphanumeric matching key: NFKD, diacritics
- * stripped, lowercased, everything outside [a-z0-9] dropped — so `t34`,
- * `t-34`, and `t 34` are the same key and tree-marker glyphs vanish. */
-export function searchKey(input: string): string {
+function foldDiacritics(input: string): string {
   return input
     .normalize('NFKD')
     .replace(/\p{Diacritic}/gu, '')
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '')
+}
+
+/** Collapse text to its bare-alphanumeric matching key: NFKD, diacritics
+ * stripped, lowercased, everything outside [a-z0-9] dropped — so `t34`,
+ * `t-34`, and `t 34` are the same key and tree-marker glyphs vanish. */
+export function searchKey(input: string): string {
+  return foldDiacritics(input).replace(/[^a-z0-9]+/g, '')
 }
 
 const MAX_TERMS = 16
@@ -48,10 +51,7 @@ const MAX_TERMS = 16
  * Wrong expansions are additive only — an extra low-ranked match, never a
  * missed one. */
 export function nameSearchTerms(name: string): string[] {
-  const tokens = name
-    .normalize('NFKD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
+  const tokens = foldDiacritics(name)
     .split(/[^a-z0-9]+/)
     .filter((t) => t.length > 0)
 
