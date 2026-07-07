@@ -3,9 +3,13 @@ import { and, eq } from 'drizzle-orm'
 import { freshDb } from './pglite'
 import type { TestDb } from './pglite'
 import { seed } from '#/db/seed'
+import { seedDemo } from '#/db/seed-demo'
 import { replaceSearchTerms } from '#/db/search-terms'
+import { browseFilters } from '#/lib/browse-params'
 import { modes, nations, records, players, vehicles } from '#/db/schema'
 import {
+  browseVehicles,
+  lookupVehicles,
   getLeaderboard,
   getMode,
   getModeLanding,
@@ -132,6 +136,19 @@ describe('getNationSheet', () => {
   it('returns null for an unknown nation', async () => {
     expect(await getNationSheet(t.db, 'grb', 'nope')).toBeNull()
   })
+
+  it('applies the shared catalog filters, pinned to the nation', async () => {
+    const sheet = await getNationSheet(
+      t.db,
+      'grb',
+      'usa',
+      browseFilters({ status: 'open' }),
+    )
+    expect(sheet?.rows.map((r) => r.vehicleSlug).sort()).toEqual([
+      'm163',
+      'm18-gmc',
+    ])
+  })
 })
 
 describe('getVehicle', () => {
@@ -257,6 +274,140 @@ describe('search', () => {
     ])
     const res = await search(t.db, 'x_ace')
     expect(res.players.map((p) => p.slug)).toEqual(['x_ace'])
+  })
+})
+
+describe('browseVehicles', () => {
+  const filters = (params: Parameters<typeof browseFilters>[0] = {}) =>
+    browseFilters(params)
+
+  it('returns the whole branch population unfiltered, name-ordered', async () => {
+    const r = await browseVehicles(t.db, 'grb', filters())
+    expect(r?.total).toBe(7)
+    expect(r?.pageCount).toBe(1)
+    expect(r?.rows.map((v) => v.vehicleName)).toEqual([
+      'M163',
+      'M18 GMC',
+      'M26',
+      'M4A1',
+      'Panther D',
+      'Tiger II (H)',
+      'Wirbelwind',
+    ])
+  })
+
+  it('composes AND across categories, OR within one', async () => {
+    const r = await browseVehicles(
+      t.db,
+      'grb',
+      filters({ nation: 'germany', class: 'heavy,medium' }),
+    )
+    expect(r?.rows.map((v) => v.vehicleSlug)).toEqual([
+      'panther-d',
+      'tiger-ii-h',
+    ])
+  })
+
+  it('splits held titles from open bounties', async () => {
+    const open = await browseVehicles(t.db, 'grb', filters({ status: 'open' }))
+    expect(open?.rows.map((v) => v.vehicleSlug).sort()).toEqual([
+      'm163',
+      'm18-gmc',
+      'wirbelwind',
+    ])
+    const held = await browseVehicles(t.db, 'grb', filters({ status: 'held' }))
+    expect(held?.total).toBe(4)
+    expect(held?.rows.every((v) => v.playerSlug !== null)).toBe(true)
+  })
+
+  it('BR range is inclusive at both bounds', async () => {
+    const r = await browseVehicles(t.db, 'grb', filters({ br: '3.7-5.7' }))
+    expect(r?.rows.map((v) => v.vehicleSlug).sort()).toEqual([
+      'm18-gmc',
+      'm4a1',
+      'panther-d',
+    ])
+  })
+
+  it('acquisition chips OR together; tech-tree means unflagged', async () => {
+    await seedDemo(t.db)
+    const eventOrRemoved = await browseVehicles(
+      t.db,
+      'grb',
+      filters({ acq: 'event,removed' }),
+    )
+    expect(eventOrRemoved?.rows.map((v) => v.vehicleSlug).sort()).toEqual([
+      'is-7',
+      'maus',
+      'object-279',
+      't-34-100',
+    ])
+    const tree = await browseVehicles(
+      t.db,
+      'grb',
+      filters({ acq: 'tech-tree' }),
+    )
+    expect(
+      tree?.rows.every((v) => !v.isEvent && !v.isPremium && !v.isSquadron),
+    ).toBe(true)
+    // Removed is orthogonal to acquisition — a removed tech-tree stays tech-tree.
+    expect(tree?.rows.some((v) => v.isRemoved)).toBe(false)
+  })
+
+  it('q matches via search terms and leads with relevance', async () => {
+    const r = await browseVehicles(t.db, 'grb', filters({ q: 'm1' }))
+    expect(r?.rows.map((v) => v.vehicleSlug)).toEqual(['m163', 'm18-gmc'])
+    const tiger = await browseVehicles(t.db, 'grb', filters({ q: 'tiger 2' }))
+    expect(tiger?.rows.map((v) => v.vehicleSlug)).toEqual(['tiger-ii-h'])
+  })
+
+  it('explicit sort overrides, nulls last', async () => {
+    const r = await browseVehicles(
+      t.db,
+      'grb',
+      filters({ sort: 'br', dir: 'desc' }),
+    )
+    expect(r?.rows[0].vehicleSlug).toBe('m163')
+    expect(r?.rows[0].br).toBe(8.7)
+  })
+
+  it('clamps a page past the end instead of returning nothing', async () => {
+    const r = await browseVehicles(t.db, 'grb', filters({ page: 99 }))
+    expect(r?.page).toBe(1)
+    expect(r?.rows).toHaveLength(7)
+  })
+
+  it('returns null for an unknown mode', async () => {
+    expect(await browseVehicles(t.db, 'nope', filters())).toBeNull()
+  })
+})
+
+describe('lookupVehicles', () => {
+  it('scopes to the mode branch and carries that mode BR', async () => {
+    const [usa] = await t.db
+      .select()
+      .from(nations)
+      .where(eq(nations.slug, 'usa'))
+    const jets = await t.db
+      .insert(vehicles)
+      .values({
+        externalId: 'tiger_jet',
+        name: 'Tiger Jet',
+        slug: 'tiger-jet',
+        nationId: usa.id,
+        branch: 'air',
+        class: 'fighter',
+      })
+      .returning()
+    await replaceSearchTerms(t.db, jets)
+
+    const found = await lookupVehicles(t.db, 'grb', 'tiger')
+    expect(found.map((v) => v.slug)).toEqual(['tiger-ii-h'])
+    expect(found[0].br).toBe(6.7)
+  })
+
+  it('returns nothing for an unknown mode', async () => {
+    expect(await lookupVehicles(t.db, 'nope', 'tiger')).toEqual([])
   })
 })
 

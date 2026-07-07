@@ -12,6 +12,7 @@ import { Podium } from '#/components/podium'
 import { RecordHistory } from '#/components/record-history'
 import { RecordMonument } from '#/components/record-monument'
 import { SectionHead } from '#/components/section-head'
+import { VehicleLookup } from '#/components/vehicle-lookup'
 import { VerificationQueue } from '#/components/verification-queue'
 import { WeekMarquee } from '#/components/week-marquee'
 import { weekRangeLabel } from '#/lib/dates'
@@ -65,6 +66,9 @@ export function ModeLanding({
               Single-life kill records for every vehicle in War Thunder. One
               title per vehicle — only strictly more kills takes it.
             </p>
+            <div className="mt-5">
+              <VehicleLookup mode={mode} />
+            </div>
           </div>
           <RecordMonument
             mode={mode}
@@ -236,8 +240,9 @@ export function ModeLanding({
             </p>
           </div>
           <Link
-            to="/$mode/nations"
+            to="/$mode/vehicles"
             params={{ mode }}
+            search={{ status: 'open' }}
             className="rounded-[4px] border border-hairline px-3 py-1.5 text-sm font-medium text-fg-muted no-underline transition-colors hover:text-fg"
           >
             Browse open titles
