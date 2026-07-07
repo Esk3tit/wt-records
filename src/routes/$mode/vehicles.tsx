@@ -36,6 +36,16 @@ export const Route = createFileRoute('/$mode/vehicles')({
   component: BrowsePage,
 })
 
+// On the <th>, not the sort button — only columnheader/rowheader roles
+// support aria-sort; on a button it's ignored by assistive tech.
+function sortAriaValue(
+  search: BrowseSearch,
+  sort: BrowseSort,
+): 'ascending' | 'descending' | undefined {
+  if (search.sort !== sort) return undefined
+  return search.dir === 'desc' ? 'descending' : 'ascending'
+}
+
 function SortHeader({
   sort,
   search,
@@ -55,13 +65,6 @@ function SortHeader({
       className={
         'font-inherit inline-flex items-center gap-1 ' +
         (active ? 'text-fg' : 'hover:text-fg')
-      }
-      aria-sort={
-        active
-          ? search.dir === 'desc'
-            ? 'descending'
-            : 'ascending'
-          : undefined
       }
       onClick={() => {
         const next: BrowseSearch = { ...search }
@@ -141,18 +144,21 @@ function BrowsePage() {
       <table className="mt-5 w-full max-w-4xl text-left">
         <thead className="text-sm text-fg-faint">
           <tr>
-            <th className="py-1 pr-4">
+            <th className="py-1 pr-4" aria-sort={sortAriaValue(search, 'name')}>
               <SortHeader sort="name" search={search} onChange={setSearch}>
                 Vehicle
               </SortHeader>
             </th>
             <th className="py-1 pr-4">Nation</th>
-            <th className="py-1 pr-4">
+            <th className="py-1 pr-4" aria-sort={sortAriaValue(search, 'br')}>
               <SortHeader sort="br" search={search} onChange={setSearch}>
                 BR
               </SortHeader>
             </th>
-            <th className="py-1 pr-4">
+            <th
+              className="py-1 pr-4"
+              aria-sort={sortAriaValue(search, 'kills')}
+            >
               <SortHeader sort="kills" search={search} onChange={setSearch}>
                 Kills
               </SortHeader>

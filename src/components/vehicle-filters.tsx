@@ -1,6 +1,6 @@
 import { formatBr, formatRank } from '#/lib/format'
 import type { BrowseSearch, TitleStatus } from '#/lib/browse-params'
-import { ACQUISITIONS } from '#/lib/browse-params'
+import { ACQUISITIONS, TITLE_STATUSES } from '#/lib/browse-params'
 import type { VehicleClass } from '#/lib/vehicle-classes'
 
 export interface BrowseFacetOptions {
@@ -23,6 +23,11 @@ const ACQ_LABELS: Record<(typeof ACQUISITIONS)[number], string> = {
   squadron: 'Squadron',
   removed: 'Removed',
   'tech-tree': 'Tech tree',
+}
+
+const STATUS_LABELS: Record<TitleStatus, string> = {
+  held: 'Held',
+  open: 'Open bounty',
 }
 
 function classLabel(c: VehicleClass): string {
@@ -206,7 +211,7 @@ export function VehicleFilters({
         ))}
       </FilterGroup>
       <FilterGroup label="Title">
-        {(['held', 'open'] as TitleStatus[]).map((s) => (
+        {TITLE_STATUSES.map((s) => (
           <FilterChip
             key={s}
             active={search.status === s}
@@ -214,7 +219,7 @@ export function VehicleFilters({
               apply({ status: search.status === s ? undefined : s })
             }
           >
-            {s === 'held' ? 'Held' : 'Open bounty'}
+            {STATUS_LABELS[s]}
           </FilterChip>
         ))}
       </FilterGroup>
