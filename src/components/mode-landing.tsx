@@ -54,8 +54,15 @@ export function ModeLanding({
   return (
     <>
       {/* Hero */}
-      <section className="glass-thick relative mt-8 overflow-hidden p-8 md:p-10">
-        <div className="monument-glow" aria-hidden="true" />
+      {/* No overflow-hidden here — the Lookup dropdown must escape the pane;
+          the glow gets its own clipper instead. */}
+      <section className="glass-thick relative z-10 mt-8 p-8 md:p-10">
+        <div
+          className="absolute inset-0 overflow-hidden rounded-[26px]"
+          aria-hidden="true"
+        >
+          <div className="monument-glow" />
+        </div>
         <div className="relative grid items-start gap-8 md:grid-cols-[1fr_auto]">
           <div className="max-w-[30rem]">
             <p className="kicker">Live registry</p>

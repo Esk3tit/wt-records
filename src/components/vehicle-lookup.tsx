@@ -122,7 +122,7 @@ export function VehicleLookup({ mode }: { mode: string }) {
           id="vehicle-lookup-listbox"
           role="listbox"
           aria-label="Vehicles"
-          className="glass-thin absolute top-full right-0 left-0 z-30 mt-1.5 overflow-hidden rounded-[14px] py-1"
+          className="menu-glass absolute top-full right-0 left-0 z-30 mt-1.5 overflow-hidden rounded-[14px] py-1"
         >
           {items.map((v, i) => (
             <li
