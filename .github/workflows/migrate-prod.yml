@@ -26,6 +26,29 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # No environment on this job, so it runs the moment the workflow triggers —
+  # while `migrate` below is still paused on the approval gate. Without it the
+  # pending approval is invisible unless someone happens to open the Actions tab.
+  notify-approval-needed:
+    name: ping for approval
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Post to Discord
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_MIGRATIONS_WEBHOOK_URL }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TRIGGER: ${{ github.event_name == 'workflow_dispatch' && format('manual dispatch by {0}', github.actor) || github.event.head_commit.message }}
+        run: |
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "::notice::DISCORD_MIGRATIONS_WEBHOOK_URL not set — skipping notification"
+            exit 0
+          fi
+          FIRST_LINE=$(printf '%s' "$TRIGGER" | head -1 | cut -c1-140)
+          CONTENT=$(printf '🗄️ **Prod migration awaiting approval** — %s\nApprove: %s' "$FIRST_LINE" "$RUN_URL")
+          jq -n --arg content "$CONTENT" '{content: $content}' \
+            | curl -sf -H 'Content-Type: application/json' -d @- "$WEBHOOK_URL"
+
   migrate:
     name: migrate production
     runs-on: ubuntu-latest
@@ -77,3 +100,29 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.PROD_MIGRATE_DATABASE_URL }}
         run: bun run db:migrate
+
+  # Closes the loop after approval: did the migration actually apply?
+  notify-result:
+    name: ping result
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    needs: migrate
+    if: ${{ always() && needs.migrate.result != 'skipped' }}
+    steps:
+      - name: Post to Discord
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_MIGRATIONS_WEBHOOK_URL }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RESULT: ${{ needs.migrate.result }}
+        run: |
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "::notice::DISCORD_MIGRATIONS_WEBHOOK_URL not set — skipping notification"
+            exit 0
+          fi
+          case "$RESULT" in
+            success) MSG="✅ **Prod migration applied**" ;;
+            cancelled) MSG="🚫 **Prod migration rejected/cancelled**" ;;
+            *) MSG="❌ **Prod migration FAILED** — ${RUN_URL}" ;;
+          esac
+          jq -n --arg content "$MSG" '{content: $content}' \
+            | curl -sf -H 'Content-Type: application/json' -d @- "$WEBHOOK_URL"
