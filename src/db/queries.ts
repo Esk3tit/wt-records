@@ -1,4 +1,15 @@
-import { and, asc, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNotNull,
+  or,
+  sql,
+} from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Db } from '#/db'
 import {
@@ -17,6 +28,8 @@ import {
   vehicles,
 } from '#/db/schema'
 import { searchKey } from '#/lib/search-terms'
+import { BROWSE_PAGE_SIZE, browseFilters } from '#/lib/browse-params'
+import type { Acquisition, BrowseFilters } from '#/lib/browse-params'
 
 const isCurrentVerified = and(
   eq(records.isCurrent, true),
@@ -356,33 +369,177 @@ export async function listNations(db: Db, mode: string) {
   return m ? rows : null
 }
 
-export async function getNationSheet(db: Db, mode: string, slug: string) {
-  // The nation (by slug) and mode lookups are independent — run together.
-  const [nationRows, m] = await Promise.all([
-    db.select().from(nations).where(eq(nations.slug, slug)).limit(1),
-    getMode(db, mode),
-  ])
-  const nation = one(nationRows)
-  if (!nation) return null
+// One row shape for every catalog surface (nation sheet, Browse): vehicle +
+// tags + this mode's BR + Current record or open bounty.
+const catalogRowShape = {
+  vehicleSlug: vehicles.slug,
+  vehicleName: vehicles.name,
+  class: vehicles.class,
+  rank: vehicles.rank,
+  isDifficult: vehicles.isDifficult,
+  ...vehicleTagFlags,
+  nationSlug: nations.slug,
+  nationName: nations.name,
+  br: vehicleBr.br,
+  kills: records.kills,
+  runBr: records.runBr,
+  playerSlug: players.slug,
+  displayName: players.displayName,
+  ignSnapshot: records.ignSnapshot,
+  displayNameSnapshot: records.displayNameSnapshot,
+}
+
+const ACQ_CONDITIONS: Record<Acquisition, ReturnType<typeof and>> = {
+  event: eq(vehicles.isEvent, true),
+  premium: eq(vehicles.isPremium, true),
+  squadron: eq(vehicles.isSquadron, true),
+  removed: eq(vehicles.isRemoved, true),
+  // Removed is orthogonal: a removed tech-tree vehicle is still tech-tree.
+  'tech-tree': and(
+    eq(vehicles.isEvent, false),
+    eq(vehicles.isPremium, false),
+    eq(vehicles.isSquadron, false),
+  ),
+}
+
+function catalogConditions(
+  branch: Branch,
+  filters: BrowseFilters,
+  nationId: number | null,
+) {
+  const conds = [eq(vehicles.branch, branch)]
+  if (nationId != null) {
+    conds.push(eq(vehicles.nationId, nationId))
+  } else if (filters.nations.length > 0) {
+    conds.push(inArray(nations.slug, filters.nations))
+  }
+  if (filters.classes.length > 0)
+    conds.push(inArray(vehicles.class, filters.classes))
+  if (filters.ranks.length > 0)
+    conds.push(inArray(vehicles.rank, filters.ranks))
+  if (filters.br)
+    conds.push(
+      sql`${vehicleBr.br} between ${filters.br.min} and ${filters.br.max}`,
+    )
+  if (filters.acq.length > 0)
+    conds.push(or(...filters.acq.map((a) => ACQ_CONDITIONS[a]))!)
+  if (filters.status === 'held') conds.push(sql`${records.id} is not null`)
+  if (filters.status === 'open') conds.push(sql`${records.id} is null`)
+  if (filters.q) {
+    const key = searchKey(filters.q)
+    conds.push(
+      key
+        ? sql`exists (select 1 from ${vehicleSearchTerms} where ${vehicleSearchTerms.vehicleId} = ${vehicles.id} and ${termMatch(key)})`
+        : sql`false`,
+    )
+  }
+  return and(...conds)
+}
+
+function catalogOrder(filters: BrowseFilters) {
+  const named = filters.dir === 'desc' ? desc : asc
+  switch (filters.sort) {
+    case 'name':
+      return [named(vehicles.name)]
+    case 'br':
+      return [
+        filters.dir === 'desc'
+          ? sql`${vehicleBr.br} desc nulls last`
+          : sql`${vehicleBr.br} asc nulls last`,
+        asc(vehicles.name),
+      ]
+    case 'kills':
+      return [
+        filters.dir === 'desc'
+          ? sql`${records.kills} desc nulls last`
+          : sql`${records.kills} asc nulls last`,
+        asc(vehicles.name),
+      ]
+    default: {
+      const key = filters.q ? searchKey(filters.q) : ''
+      if (!key) return [asc(vehicles.name)]
+      const pos = sql`(select min(position(${key} in t.term)) from ${vehicleSearchTerms} t where t.vehicle_id = ${vehicles.id} and position(${key} in t.term) > 0)`
+      const len = sql`(select min(length(t.term)) from ${vehicleSearchTerms} t where t.vehicle_id = ${vehicles.id} and position(${key} in t.term) > 0)`
+      return [sql`${pos} is null`, pos, len, asc(vehicles.name)]
+    }
+  }
+}
+
+/** Filter-control options for a mode: only values that exist in its catalog,
+ * so the UI never offers a dead filter. */
+export async function browseFacets(db: Db, mode: string) {
+  const m = await getMode(db, mode)
   if (!m) return null
+  const [nationRows, brRows, rankRows, classRows] = await Promise.all([
+    db
+      .selectDistinct({
+        slug: nations.slug,
+        name: nations.name,
+        sort: nations.sort,
+      })
+      .from(nations)
+      .innerJoin(vehicles, eq(vehicles.nationId, nations.id))
+      .where(eq(vehicles.branch, m.branch))
+      .orderBy(asc(nations.sort)),
+    db
+      .selectDistinct({ br: vehicleBr.br })
+      .from(vehicleBr)
+      .where(eq(vehicleBr.mode, mode))
+      .orderBy(asc(vehicleBr.br)),
+    db
+      .selectDistinct({ rank: vehicles.rank })
+      .from(vehicles)
+      .where(and(eq(vehicles.branch, m.branch), isNotNull(vehicles.rank)))
+      .orderBy(asc(vehicles.rank)),
+    db
+      .selectDistinct({ class: vehicles.class })
+      .from(vehicles)
+      .where(eq(vehicles.branch, m.branch))
+      .orderBy(asc(vehicles.class)),
+  ])
+  return {
+    nations: nationRows.map((n) => ({ slug: n.slug, name: n.name })),
+    brSteps: brRows.map((r) => r.br),
+    ranks: rankRows.map((r) => r.rank!),
+    classes: classRows.map((r) => r.class),
+  }
+}
+
+/** The Browse page query: the mode's whole eligibility denominator, filtered
+ * and paginated. A page past the end clamps to the last page. */
+export async function browseVehicles(
+  db: Db,
+  mode: string,
+  filters: BrowseFilters,
+) {
+  const m = await getMode(db, mode)
+  if (!m) return null
+  const conds = catalogConditions(m.branch, filters, null)
+
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(vehicles)
+    .innerJoin(nations, eq(nations.id, vehicles.nationId))
+    .leftJoin(
+      vehicleBr,
+      and(eq(vehicleBr.vehicleId, vehicles.id), eq(vehicleBr.mode, mode)),
+    )
+    .leftJoin(
+      records,
+      and(
+        eq(records.vehicleId, vehicles.id),
+        eq(records.mode, mode),
+        isCurrentVerified,
+      ),
+    )
+    .where(conds)
+  const pageCount = Math.max(1, Math.ceil(total / BROWSE_PAGE_SIZE))
+  const page = Math.min(Math.max(1, filters.page), pageCount)
 
   const rows = await db
-    .select({
-      vehicleSlug: vehicles.slug,
-      vehicleName: vehicles.name,
-      class: vehicles.class,
-      rank: vehicles.rank,
-      isDifficult: vehicles.isDifficult,
-      ...vehicleTagFlags,
-      br: vehicleBr.br,
-      kills: records.kills,
-      runBr: records.runBr,
-      playerSlug: players.slug,
-      displayName: players.displayName,
-      ignSnapshot: records.ignSnapshot,
-      displayNameSnapshot: records.displayNameSnapshot,
-    })
+    .select(catalogRowShape)
     .from(vehicles)
+    .innerJoin(nations, eq(nations.id, vehicles.nationId))
     .leftJoin(
       vehicleBr,
       and(eq(vehicleBr.vehicleId, vehicles.id), eq(vehicleBr.mode, mode)),
@@ -396,7 +553,47 @@ export async function getNationSheet(db: Db, mode: string, slug: string) {
       ),
     )
     .leftJoin(players, eq(players.id, records.playerId))
-    .where(and(eq(vehicles.nationId, nation.id), eq(vehicles.branch, m.branch)))
+    .where(conds)
+    .orderBy(...catalogOrder(filters))
+    .limit(BROWSE_PAGE_SIZE)
+    .offset((page - 1) * BROWSE_PAGE_SIZE)
+
+  return { rows, total, page, pageCount }
+}
+
+export async function getNationSheet(
+  db: Db,
+  mode: string,
+  slug: string,
+  filters: BrowseFilters = browseFilters({}),
+) {
+  // The nation (by slug) and mode lookups are independent — run together.
+  const [nationRows, m] = await Promise.all([
+    db.select().from(nations).where(eq(nations.slug, slug)).limit(1),
+    getMode(db, mode),
+  ])
+  const nation = one(nationRows)
+  if (!nation) return null
+  if (!m) return null
+
+  const rows = await db
+    .select(catalogRowShape)
+    .from(vehicles)
+    .innerJoin(nations, eq(nations.id, vehicles.nationId))
+    .leftJoin(
+      vehicleBr,
+      and(eq(vehicleBr.vehicleId, vehicles.id), eq(vehicleBr.mode, mode)),
+    )
+    .leftJoin(
+      records,
+      and(
+        eq(records.vehicleId, vehicles.id),
+        eq(records.mode, mode),
+        isCurrentVerified,
+      ),
+    )
+    .leftJoin(players, eq(players.id, records.playerId))
+    .where(catalogConditions(m.branch, filters, nation.id))
     .orderBy(asc(vehicles.rank), asc(vehicles.name))
 
   return { nation, rows }
@@ -552,10 +749,30 @@ const SIMILARITY_FLOOR = 0.3
 // clear the floor ("m4" matches every m-vehicle), so short keys stay exact.
 const MIN_FUZZY_KEY_LENGTH = 4
 
+// The one term-match rule shared by every search surface: exact substring,
+// plus the typo tier for keys long enough that trigrams discriminate.
+function termMatch(key: string) {
+  const isExact = sql`position(${key} in ${vehicleSearchTerms.term}) > 0`
+  return key.length >= MIN_FUZZY_KEY_LENGTH
+    ? or(
+        isExact,
+        sql`word_similarity(${key}, ${vehicleSearchTerms.term}) > ${SIMILARITY_FLOOR}`,
+      )
+    : isExact
+}
+
+type Branch = (typeof vehicles.branch.enumValues)[number]
+
 /** Two-tier vehicle matcher over precomputed search terms:
  * exact-substring hits rank first (match position, then term length, then
- * name), pg_trgm word-similarity catches typos below them. */
-export function searchVehicles(db: Db, q: string, limit: number) {
+ * name), pg_trgm word-similarity catches typos below them. With `scope`,
+ * results are limited to one branch and carry that mode's BR. */
+export function searchVehicles(
+  db: Db,
+  q: string,
+  limit: number,
+  scope?: { branch: Branch; mode: string },
+) {
   const key = searchKey(q)
   if (!key) return Promise.resolve([])
   const isExact = sql`position(${key} in ${vehicleSearchTerms.term}) > 0`
@@ -568,6 +785,7 @@ export function searchVehicles(db: Db, q: string, limit: number) {
       name: vehicles.name,
       branch: vehicles.branch,
       nation: nations.name,
+      br: vehicleBr.br,
       ...vehicleTagFlags,
     })
     .from(vehicles)
@@ -576,15 +794,19 @@ export function searchVehicles(db: Db, q: string, limit: number) {
       eq(vehicleSearchTerms.vehicleId, vehicles.id),
     )
     .innerJoin(nations, eq(nations.id, vehicles.nationId))
-    .where(
-      key.length >= MIN_FUZZY_KEY_LENGTH
-        ? or(
-            isExact,
-            sql`word_similarity(${key}, ${vehicleSearchTerms.term}) > ${SIMILARITY_FLOOR}`,
-          )
-        : isExact,
+    .leftJoin(
+      vehicleBr,
+      and(
+        eq(vehicleBr.vehicleId, vehicles.id),
+        eq(vehicleBr.mode, scope?.mode ?? ''),
+      ),
     )
-    .groupBy(vehicles.id, nations.id)
+    .where(
+      scope
+        ? and(termMatch(key), eq(vehicles.branch, scope.branch))
+        : termMatch(key),
+    )
+    .groupBy(vehicles.id, nations.id, vehicleBr.br)
     .orderBy(
       sql`${bestPos} is null`,
       bestPos,
@@ -593,6 +815,13 @@ export function searchVehicles(db: Db, q: string, limit: number) {
       asc(vehicles.name),
     )
     .limit(limit)
+}
+
+/** Hero Lookup suggestions: the mode's branch only, with that mode's BR. */
+export async function lookupVehicles(db: Db, mode: string, q: string) {
+  const m = await getMode(db, mode)
+  if (!m) return []
+  return searchVehicles(db, q, 8, { branch: m.branch, mode })
 }
 
 export async function search(db: Db, q: string) {
