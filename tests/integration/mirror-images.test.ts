@@ -181,7 +181,7 @@ describe('mirrorVehicleImages', () => {
       fetchImpl: fakeFetch({
         'https://api.test/assets/us_m1_abrams.png': { status: 500 },
       }).impl,
-      retries: 1,
+      maxAttempts: 1,
     })
 
     expect(summary).toMatchObject({ mirrored: 1, failed: 1 })
@@ -199,6 +199,24 @@ describe('mirrorVehicleImages', () => {
 
     expect(summary).toMatchObject({ mirrored: 1, deferred: 1 })
     expect(store.puts).toHaveLength(1)
+  })
+
+  it('refuses to mirror non-raster content (SVG is active content)', async () => {
+    const store = fakeStore()
+    const summary = await mirrorVehicleImages(t.db, store, {
+      fetchImpl: fakeFetch({
+        'https://api.test/assets/us_m1_abrams.png': {
+          type: 'image/svg+xml; charset=utf-8',
+        },
+      }).impl,
+      maxAttempts: 1,
+    })
+
+    expect(summary).toMatchObject({ mirrored: 1, failed: 1 })
+    expect(summary.warnings).toEqual([
+      expect.stringContaining('unexpected content type "image/svg+xml"'),
+    ])
+    expect(store.puts.map((p) => p.contentType)).toEqual(['image/png'])
   })
 
   it('a malformed source URL fails that row only, without crashing the pass', async () => {
@@ -272,7 +290,7 @@ describe('mirrorVehicleImages', () => {
     const summary = await mirrorVehicleImages(t.db, store, {
       fetchImpl: impl,
       concurrency: 1,
-      retries: 1,
+      maxAttempts: 1,
     })
 
     expect(summary.failed).toBe(20)

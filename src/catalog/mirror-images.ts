@@ -11,12 +11,23 @@ type AssetStore = Pick<Storage, 'put' | 'delete'>
 // catalog before anyone notices — stop the run after this many failures in a row.
 const MAX_CONSECUTIVE_FAILURES = 20
 
+// Raster only: an SVG (or anything else active) mirrored verbatim would be
+// served as third-party executable content from the assets origin.
+const SAFE_CONTENT_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+  'image/avif',
+])
+
 export interface MirrorOptions {
   /** Mirror at most this many images this run (backfill throttle). */
   limit?: number
   concurrency?: number
   fetchImpl?: typeof fetch
-  retries?: number
+  /** Total fetch attempts per image, including the first. */
+  maxAttempts?: number
   retryDelayMs?: number
 }
 
@@ -95,12 +106,18 @@ export async function mirrorVehicleImages(
       const res = await fetchUpstream(v.imageUrl, {
         fetchImpl,
         timeoutMs: 30_000,
-        retries: options.retries,
+        maxAttempts: options.maxAttempts,
         retryDelayMs: options.retryDelayMs,
       })
-      const bytes = new Uint8Array(await res.arrayBuffer())
       const contentType =
-        res.headers.get('content-type') ?? 'application/octet-stream'
+        res.headers.get('content-type')?.split(';')[0].trim().toLowerCase() ??
+        ''
+      if (!SAFE_CONTENT_TYPES.has(contentType)) {
+        throw new Error(
+          `unexpected content type ${JSON.stringify(contentType)}`,
+        )
+      }
+      const bytes = new Uint8Array(await res.arrayBuffer())
       await store.put('assets', v.wantKey, bytes, contentType)
       await db
         .update(schema.vehicles)
@@ -135,6 +152,7 @@ export async function mirrorVehicleImages(
       `aborted after ${MAX_CONSECUTIVE_FAILURES} consecutive failures — ` +
         `check credentials/bucket before the next run`,
     )
+    return summary // cleanup would hammer the same broken backend
   }
 
   await cleanOrphanedMirrors(db, store, summary)

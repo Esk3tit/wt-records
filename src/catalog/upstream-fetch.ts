@@ -1,9 +1,10 @@
 const USER_AGENT = 'wt-records-catalog-sync (+https://wtrecords.gg)'
-const RETRIES = 3
+const MAX_ATTEMPTS = 3
 
 export interface UpstreamFetchOptions {
   fetchImpl?: typeof fetch
-  retries?: number
+  /** Total attempts including the first (not "extra retries"). */
+  maxAttempts?: number
   retryDelayMs?: number
   /** Per-attempt cap; unset = no timeout. */
   timeoutMs?: number
@@ -16,11 +17,11 @@ export async function fetchUpstream(
   options: UpstreamFetchOptions = {},
 ): Promise<Response> {
   const fetchImpl = options.fetchImpl ?? fetch
-  const retries = options.retries ?? RETRIES
+  const maxAttempts = options.maxAttempts ?? MAX_ATTEMPTS
   const retryDelayMs = options.retryDelayMs ?? 1000
 
   let lastError: unknown
-  for (let attempt = 1; attempt <= retries; attempt++) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     if (attempt > 1) await sleep(retryDelayMs * (attempt - 1))
     let response: Response
     try {

@@ -1,15 +1,9 @@
 import { createHash } from 'node:crypto'
 import { assertValidObjectKey } from '#/storage/urls'
 
-const IMAGE_EXTENSIONS = new Set([
-  'png',
-  'jpg',
-  'jpeg',
-  'webp',
-  'gif',
-  'avif',
-  'svg',
-])
+// Raster only — SVG is active content and must never be served from the
+// assets origin with a third-party body.
+const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif'])
 
 /** Assets-bucket key for a vehicle image; embeds a source-URL hash so an
     upstream URL change yields a new key (= "needs re-mirror"). */
