@@ -2,7 +2,7 @@
 
 Public, server-rendered world-record registry & leaderboard for War Thunder — most kills in a single life, per vehicle, **per game mode** (launching with Ground Realistic Battles). Replaces a Google Sheet + ad-hoc Discord intake with a fast, searchable, shareable site.
 
-**Stack:** [TanStack Start](https://tanstack.com/start) (React SSR, file routing, Vite/Nitro) · **Bun** (package manager + script runner) · **Node** (server + test runtime) · Supabase (Postgres, Auth, Storage, Realtime) · Drizzle ORM · Railway · CI on GitHub Actions. Why Bun-installs-but-Node-runs: [ADR-0003](./docs/adr/0003-bun-runtime-vitest-on-node.md).
+**Stack:** [TanStack Start](https://tanstack.com/start) (React SSR, file routing, Vite/Nitro) · **Bun** (package manager + script runner) · **Node** (server + test runtime) · Supabase (Postgres, Auth, Realtime) · Cloudflare R2 (proof/asset storage) · Drizzle ORM · Railway · CI on GitHub Actions. Why Bun-installs-but-Node-runs: [ADR-0003](./docs/adr/0003-bun-runtime-vitest-on-node.md).
 
 ## Source of truth
 

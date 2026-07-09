@@ -229,12 +229,12 @@ export const recordProof = pgTable(
       .references(() => records.id)
       .notNull(),
     kind: proofKind('kind').notNull(), // incl. "video"
-    storagePath: text('storage_path'), // Supabase Storage key
+    storagePath: text('storage_path'), // opaque R2 object key (see #/storage)
     originalUrl: text('original_url'), // source Imgur/Discord URL
     sort: integer('sort').notNull().default(0),
   },
   () => [
-    // a proof row must reference something — a Storage key and/or a source URL:
+    // a proof row must reference something — an object key and/or a source URL:
     check(
       'proof_has_location_ck',
       sql`storage_path is not null or original_url is not null`,
