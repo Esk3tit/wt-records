@@ -17,6 +17,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "bun run src/db/seed-run.ts",
     "catalog:sync": "bun run src/catalog/sync-run.ts",
+    "r2:verify": "bun run src/storage/r2-verify.ts",
     "build": "vite build",
     "preview": "vite preview",
     "start": "node ./.output/server/index.mjs",
@@ -29,6 +30,8 @@
     "check": "prettier --check ."
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1083.0",
+    "@aws-sdk/s3-request-presigner": "3.1083.0",
     "@sentry/react": "10.63.0",
     "@tailwindcss/vite": "4.3.1",
     "@tanstack/react-router": "1.170.16",
