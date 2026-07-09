@@ -64,7 +64,14 @@ export function createStorage(config: StorageConfig) {
         )
         return (await result.Body?.transformToByteArray()) ?? null
       } catch (error) {
-        if (error instanceof Error && error.name === 'NoSuchKey') return null
+        // Not-found shape varies across S3 stores: NoSuchKey, NotFound, bare 404.
+        const e = error as {
+          name?: string
+          $metadata?: { httpStatusCode?: number }
+        }
+        if (e.name === 'NoSuchKey' || e.$metadata?.httpStatusCode === 404) {
+          return null
+        }
         throw error
       }
     },
