@@ -6,11 +6,14 @@ const absent: PublicEnv = {
   sentryDsn: undefined,
   posthogKey: undefined,
   posthogHost: undefined,
+  supabaseUrl: undefined,
+  supabaseAnonKey: undefined,
 }
 
 describe('observabilityStatus', () => {
   it('reports both providers configured when their keys are present', () => {
     const env: PublicEnv = {
+      ...absent,
       sentryDsn: 'https://k@o.ingest.sentry.io/1',
       posthogKey: 'phc_abc',
       posthogHost: 'https://us.i.posthog.com',

@@ -113,6 +113,12 @@ _Avoid_: search box (a Lookup navigates, it doesn't list).
 A matchable variant of a vehicle's name — its normalized form plus deterministic numeral variants (Tiger II ⇄ tiger 2) and, later, curated nicknames. A vehicle has many Search terms; matching any of them finds the vehicle. Display always uses the real name (tree-marker glyphs kept).
 _Avoid_: alias (reserved for Player names).
 
+### Surfaces
+
+**Live feed**:
+The Mode-scoped, kill-feed-style log of the newest verified Records — new records append at the bottom, the oldest fades out at the top; it moves only when a record actually lands.
+_Avoid_: ticker, carousel, "latest feed" (implies rotation).
+
 ### Aggregates
 
 **Completion %**:

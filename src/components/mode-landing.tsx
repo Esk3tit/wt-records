@@ -3,7 +3,7 @@ import { Brand } from '#/components/brand'
 import { CountUp } from '#/components/count-up'
 import { ContestedTitles } from '#/components/contested-titles'
 import { FallenRecords } from '#/components/fallen-records'
-import { LatestFeed } from '#/components/latest-feed'
+import { LiveFeed } from '#/components/live-feed'
 import { LeaderboardList } from '#/components/leaderboard-list'
 import { LongestStanding } from '#/components/longest-standing'
 import { ModeStats } from '#/components/mode-stats'
@@ -120,7 +120,7 @@ export function ModeLanding({
           </section>
           <div className="feed-col">
             <div className="feed-rail">
-              <LatestFeed mode={mode} entries={latestFeed} cycle />
+              <LiveFeed mode={mode} entries={latestFeed} />
             </div>
           </div>
         </div>

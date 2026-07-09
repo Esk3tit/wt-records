@@ -3,6 +3,8 @@ import { createServerFn } from '@tanstack/react-start'
 import { db } from '#/db'
 import { getMode } from '#/db/queries'
 import { ComingSoon } from '#/components/coming-soon'
+import { LiveSignalsContext } from '#/realtime/live-signals-context'
+import { useLiveModeSignals } from '#/realtime/use-live-mode-signals'
 
 const loadMode = createServerFn({ method: 'GET' })
   .validator((mode: string) => mode)
@@ -22,6 +24,14 @@ export const Route = createFileRoute('/$mode')({
 
 function ModeLayout() {
   const { mode } = Route.useRouteContext()
+  const params = Route.useParams()
+  // One subscription per tab for the whole mode-world: any records event in
+  // this mode re-runs whichever page's loader is active (ADR 0006).
+  const live = useLiveModeSignals(params.mode, mode.isLive)
   if (!mode.isLive) return <ComingSoon modeName={mode.name} />
-  return <Outlet />
+  return (
+    <LiveSignalsContext.Provider value={live}>
+      <Outlet />
+    </LiveSignalsContext.Provider>
+  )
 }
