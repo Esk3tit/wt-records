@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { LatestRecord } from '#/components/latest-record'
 import { formatFeedDay } from '#/lib/dates'
 import { mergeFeedRows } from '#/components/live-feed-rows'
@@ -48,13 +48,36 @@ export function LiveFeed({
     setRows((prev) => mergeFeedRows(prev, oldestFirst))
   }, [oldestFirst])
 
+  // Each exiting row is stamped with its own removal deadline: a later exit
+  // wave gets its full fade, yet a busy event stream can't postpone the sweep.
+  const exitDeadlines = useRef(new Map<number, number>())
+
   useEffect(() => {
-    // Keyed on `rows` so a later exit wave re-arms the timer instead of being
-    // swept out mid-fade by an earlier wave's deadline.
-    if (!rows.some((row) => row.phase === 'exiting')) return
-    const timer = setTimeout(() => {
-      setRows((prev) => prev.filter((row) => row.phase !== 'exiting'))
-    }, EXIT_REMOVE_MS)
+    const deadlines = exitDeadlines.current
+    const exitingIds = new Set(
+      rows.filter((row) => row.phase === 'exiting').map((row) => row.entry.id),
+    )
+    for (const id of deadlines.keys()) {
+      if (!exitingIds.has(id)) deadlines.delete(id)
+    }
+    const now = Date.now()
+    for (const id of exitingIds) {
+      if (!deadlines.has(id)) deadlines.set(id, now + EXIT_REMOVE_MS)
+    }
+    if (deadlines.size === 0) return
+    const timer = setTimeout(
+      () => {
+        const cutoff = Date.now()
+        setRows((prev) =>
+          prev.filter(
+            (row) =>
+              row.phase !== 'exiting' ||
+              (exitDeadlines.current.get(row.entry.id) ?? 0) > cutoff,
+          ),
+        )
+      },
+      Math.max(0, Math.min(...deadlines.values()) - now),
+    )
     return () => clearTimeout(timer)
   }, [rows])
 

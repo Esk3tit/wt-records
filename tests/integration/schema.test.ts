@@ -236,14 +236,31 @@ describe('anon read surface', () => {
        from information_schema.columns c
        where c.table_schema = 'public' and c.table_name = 'records'`,
     )
-    const granted = new Map(rows.map((r) => [r.column, r.granted]))
     // The signal-only subscription needs exactly these; everything else stays
     // closed to the anon key's Data API (verifier/submitter identities).
-    expect(granted.get('id')).toBe(true)
-    expect(granted.get('mode')).toBe(true)
-    for (const closed of ['verified_by_id', 'submitted_by_id', 'kills']) {
-      expect(granted.get(closed), closed).toBe(false)
+    for (const { column, granted } of rows) {
+      expect(granted, column).toBe(column === 'id' || column === 'mode')
     }
+  })
+
+  it('pins the records anon policy to verified, current rows only', async () => {
+    const { rows } = await t.client.query<{
+      name: string
+      cmd: string
+      qual: string
+    }>(
+      `select p.polname as name, p.polcmd as cmd,
+              pg_get_expr(p.polqual, p.polrelid) as qual
+       from pg_policy p join pg_class c on c.oid = p.polrelid
+       where c.relname = 'records' and p.polroles @> array['anon'::regrole::oid]`,
+    )
+    // The grant only opens columns; this predicate is what keeps unverified
+    // and superseded rows away from anon Realtime and the Data API.
+    expect(rows).toHaveLength(1)
+    expect(rows[0].name).toBe('records_anon_select_current')
+    expect(rows[0].cmd).toBe('r')
+    expect(rows[0].qual).toContain(`status = 'verified'`)
+    expect(rows[0].qual).toContain('is_current')
   })
 
   it('every table carrying an anon policy has the SELECT privilege Realtime needs', async () => {

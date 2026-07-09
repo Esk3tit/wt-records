@@ -12,12 +12,18 @@ export function realtimeConfigured(): boolean {
 
 function getClient(): Promise<SupabaseClient> {
   // On-demand: ~50kB gzip that belongs in neither the route chunk nor SSR.
-  clientPromise ??= import('@supabase/supabase-js').then(({ createClient }) =>
-    createClient(publicEnv.supabaseUrl!, publicEnv.supabaseAnonKey!, {
-      // Anon-only: never touch auth storage (no session, no cookies).
-      auth: { persistSession: false, autoRefreshToken: false },
-    }),
-  )
+  clientPromise ??= import('@supabase/supabase-js')
+    .then(({ createClient }) =>
+      createClient(publicEnv.supabaseUrl!, publicEnv.supabaseAnonKey!, {
+        // Anon-only: never touch auth storage (no session, no cookies).
+        auth: { persistSession: false, autoRefreshToken: false },
+      }),
+    )
+    .catch((error: unknown) => {
+      // Un-memoize the rejection so the next subscribe retries the import.
+      clientPromise = undefined
+      throw error
+    })
   return clientPromise
 }
 

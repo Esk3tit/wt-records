@@ -91,6 +91,29 @@ describe('LiveFeed', () => {
     }
   })
 
+  it('sweeps each exiting row on its own deadline under a sustained stream', async () => {
+    const view = await renderFeed(newestFirst)
+    vi.useFakeTimers()
+    try {
+      view.push([entry(4, 'Object 279'), entry(3, 'Maus'), entry(2, 'IS-7')])
+      act(() => vi.advanceTimersByTime(300))
+      // A second wave lands mid-fade: it must not extend the first row's stay.
+      view.push([
+        entry(5, 'Leopard 2A7'),
+        entry(4, 'Object 279'),
+        entry(3, 'Maus'),
+      ])
+      act(() => vi.advanceTimersByTime(300))
+      expect(view.queryByText(/T-34/)).toBeNull()
+      expect(view.queryByText(/IS-7/)).not.toBeNull()
+      act(() => vi.advanceTimersByTime(300))
+      expect(view.queryByText(/IS-7/)).toBeNull()
+      expect(view.getAllByRole('listitem')).toHaveLength(3)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('dims rows with age: the oldest rests fainter than the newest', async () => {
     const { getAllByRole } = await renderFeed(newestFirst)
     const items = getAllByRole('listitem')
