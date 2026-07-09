@@ -32,6 +32,9 @@ export function createStorage(config: StorageConfig) {
       accessKeyId: config.accessKeyId,
       secretAccessKey: config.secretAccessKey,
     },
+    // Fail fast instead of hanging SSR requests when the store is unreachable
+    // (same posture as the db client's connect_timeout).
+    requestHandler: { connectionTimeout: 5_000, requestTimeout: 15_000 },
     // The SDK's flexible-checksum defaults inject x-amz-checksum-* headers that
     // non-AWS S3 stores may reject; only checksum when the API requires it.
     requestChecksumCalculation: 'WHEN_REQUIRED',

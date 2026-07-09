@@ -6,7 +6,7 @@ Proof images are the only bytes we cannot recreate: verified proofs live in the
 upstream source, so backing it up buys nothing.
 
 The corpus is ~1–2 GB, so a full copy is cheap; there is no need for anything
-smarter than a periodic one-way sync.
+smarter than a periodic append-only copy.
 
 ## What you need
 
@@ -27,15 +27,19 @@ export RCLONE_CONFIG_R2_ENDPOINT="https://$R2_ACCOUNT_ID.r2.cloudflarestorage.co
 export RCLONE_CONFIG_R2_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID"
 export RCLONE_CONFIG_R2_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY"
 
-rclone sync R2:wt-records-proofs         ./r2-backup/wt-records-proofs
-rclone sync R2:wt-records-proofs-pending ./r2-backup/wt-records-proofs-pending
+rclone copy R2:wt-records-proofs         ./r2-backup/wt-records-proofs
+rclone copy R2:wt-records-proofs-pending ./r2-backup/wt-records-proofs-pending
 ```
 
-Then verify each copy (compares size + hash, transfers nothing):
+`copy` (not `sync`) so bucket-side deletions never propagate: if the bucket is
+ever emptied by mistake, a backup run afterwards must not erase the only copy.
+
+Then verify the backup contains everything the bucket does (checks size + hash,
+transfers nothing; extra backup-only files are expected and fine):
 
 ```sh
-rclone check R2:wt-records-proofs         ./r2-backup/wt-records-proofs
-rclone check R2:wt-records-proofs-pending ./r2-backup/wt-records-proofs-pending
+rclone check --one-way R2:wt-records-proofs         ./r2-backup/wt-records-proofs
+rclone check --one-way R2:wt-records-proofs-pending ./r2-backup/wt-records-proofs-pending
 ```
 
 Keep the `r2-backup/` directory anywhere durable that is not Cloudflare (local

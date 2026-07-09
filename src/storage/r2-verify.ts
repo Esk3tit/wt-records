@@ -20,7 +20,7 @@ async function expectBody(step: string, bytes: Uint8Array | null) {
 }
 
 async function fetchBytes(step: string, url: string): Promise<Uint8Array> {
-  const res = await fetch(url)
+  const res = await fetch(url, { signal: AbortSignal.timeout(30_000) })
   if (!res.ok) throw new Error(`${step} returned ${res.status}`)
   return new Uint8Array(await res.arrayBuffer())
 }
