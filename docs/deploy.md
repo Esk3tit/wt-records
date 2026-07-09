@@ -12,7 +12,7 @@ The SSR app deploys to Railway from `main` via the [`Dockerfile`](../Dockerfile)
   - **Railway managed Postgres**: the `${{Postgres.DATABASE_URL}}` variable reference — private networking, no external pooler in the path. Stand a fresh one up per [Vanilla Postgres](#vanilla-postgres-any-non-supabase-host) below.
 - `SUPABASE_URL`; plus `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` once Realtime/Auth land (Phase 2).
 - `SENTRY_DSN` and the `VITE_*` observability keys.
-- The `R2_*` proof/asset storage vars (see `.env.example` for names and defaults). The token is scoped Object Read & Write to exactly the three buckets; verify with `bun run r2:verify` after any rotation.
+- The `R2_*` proof/asset storage vars (see `.env.example` for names and defaults) — set on **both** the web service and the `catalog-sync` service (the cron mirrors vehicle images). The token is scoped Object Read & Write to exactly the three buckets; verify with `bun run r2:verify` after any rotation.
 
 ## Apply migrations
 

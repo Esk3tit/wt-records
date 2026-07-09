@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { createStorage } from '#/storage/r2'
+import { afterEach, describe, expect, it } from 'vitest'
+import { createStorage, storageFromEnvIfConfigured } from '#/storage/r2'
 import type { StorageConfig } from '#/storage/r2'
 
 const config: StorageConfig = {
@@ -45,6 +45,37 @@ describe('publicUrl', () => {
     expect(() => storage.publicUrl('proofs', '../etc/passwd')).toThrow(
       /object key/i,
     )
+  })
+})
+
+describe('storageFromEnvIfConfigured', () => {
+  const NAMES = [
+    'R2_ACCOUNT_ID',
+    'R2_ACCESS_KEY_ID',
+    'R2_SECRET_ACCESS_KEY',
+    'R2_BUCKET_PUBLIC',
+    'R2_BUCKET_PENDING',
+    'R2_BUCKET_ASSETS',
+    'R2_PUBLIC_BASE_URL',
+    'R2_ASSETS_BASE_URL',
+  ]
+  const saved = NAMES.map((n) => [n, process.env[n]] as const)
+  afterEach(() => {
+    for (const [name, value] of saved) {
+      if (value === undefined) delete process.env[name]
+      else process.env[name] = value
+    }
+  })
+
+  it('returns a storage when every R2 var is set', () => {
+    for (const name of NAMES) process.env[name] = `test-${name}`
+    expect(storageFromEnvIfConfigured()).toBeDefined()
+  })
+
+  it('returns undefined instead of throwing on a partial config', () => {
+    for (const name of NAMES) process.env[name] = `test-${name}`
+    delete process.env.R2_BUCKET_PENDING
+    expect(storageFromEnvIfConfigured()).toBeUndefined()
   })
 })
 

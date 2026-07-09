@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { assertValidObjectKey, publicObjectUrl } from '#/storage/urls'
+import { afterEach, describe, expect, it } from 'vitest'
+import { assertValidObjectKey, assetUrl, publicObjectUrl } from '#/storage/urls'
 
 describe('publicObjectUrl', () => {
   it('joins the base URL and key with a single slash', () => {
@@ -24,6 +24,26 @@ describe('publicObjectUrl', () => {
         'proofs/12 3/shot #1?.webp',
       ),
     ).toBe('https://proofs.wtrecords.gg/proofs/12%203/shot%20%231%3F.webp')
+  })
+})
+
+describe('assetUrl', () => {
+  const saved = process.env.R2_ASSETS_BASE_URL
+  afterEach(() => {
+    if (saved === undefined) delete process.env.R2_ASSETS_BASE_URL
+    else process.env.R2_ASSETS_BASE_URL = saved
+  })
+
+  it('builds a serving URL from the assets base URL alone', () => {
+    process.env.R2_ASSETS_BASE_URL = 'https://assets.wtrecords.gg'
+    expect(assetUrl('vehicles/us_m1_abrams-0a1b2c3d.png')).toBe(
+      'https://assets.wtrecords.gg/vehicles/us_m1_abrams-0a1b2c3d.png',
+    )
+  })
+
+  it('fails loudly when the base URL is not configured', () => {
+    delete process.env.R2_ASSETS_BASE_URL
+    expect(() => assetUrl('vehicles/a.png')).toThrow(/R2_ASSETS_BASE_URL/)
   })
 })
 

@@ -108,10 +108,29 @@ export function createStorage(config: StorageConfig) {
 
 export type Storage = ReturnType<typeof createStorage>
 
+const REQUIRED_ENV = [
+  'R2_ACCOUNT_ID',
+  'R2_ACCESS_KEY_ID',
+  'R2_SECRET_ACCESS_KEY',
+  'R2_BUCKET_PUBLIC',
+  'R2_BUCKET_PENDING',
+  'R2_BUCKET_ASSETS',
+  'R2_PUBLIC_BASE_URL',
+  'R2_ASSETS_BASE_URL',
+] as const
+
 function required(name: string): string {
   const value = process.env[name]
   if (!value) throw new Error(`${name} is not set`)
   return value
+}
+
+/** For optional consumers (e.g. the sync cron): a Storage when the full R2
+    env is present, undefined otherwise — never a partial-config throw. */
+export function storageFromEnvIfConfigured(): Storage | undefined {
+  return REQUIRED_ENV.every((name) => process.env[name])
+    ? storageFromEnv()
+    : undefined
 }
 
 export function storageFromEnv(): Storage {

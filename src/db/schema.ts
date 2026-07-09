@@ -86,7 +86,8 @@ export const vehicles = pgTable(
     isSquadron: boolean('is_squadron').notNull().default(false),
     isEvent: boolean('is_event').notNull().default(false),
     isRemoved: boolean('is_removed').notNull().default(false),
-    imageUrl: text('image_url'),
+    imageUrl: text('image_url'), // upstream source URL (adapter-provided)
+    imageKey: text('image_key'), // mirrored copy in the R2 assets bucket
     isDifficult: boolean('is_difficult').notNull().default(false), // manual rules overlay
     lastSyncedAt: timestamp('last_synced_at', { withTimezone: true }),
   },

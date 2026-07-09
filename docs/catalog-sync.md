@@ -37,6 +37,30 @@ max(25, 5% of the catalog) vehicles as removed aborts and rolls back —
 mapping drift (a renamed type vocabulary, a new country) must not mass-remove
 live vehicles from an unattended cron.
 
+## Image mirroring
+
+After a real (non-dry) sync commits, vehicle images are mirrored from the
+upstream host into the R2 assets bucket so the site never hotlinks third-party
+hosting. Best-effort and outside the sync transaction: a mirror failure is a
+warning in the summary, never a failed sync.
+
+- `vehicles.image_url` keeps the upstream source URL; `vehicles.image_key`
+  holds the mirrored object's key. Read paths build serving URLs with
+  `assetUrl(key)` from `#/storage/urls` (needs only `R2_ASSETS_BASE_URL`, never
+  bucket credentials) — no UI consumes it yet; that lands with the record-sheet
+  work.
+- Keys embed a hash of the source URL (`vehicles/<external_id>-<hash8>.<ext>`),
+  which makes runs idempotent: an unchanged URL is skipped, a changed URL
+  re-mirrors under a new key and deletes the stale object; an upstream image
+  that disappears gets its mirror cleaned up. Changing the key format itself
+  re-mirrors the whole catalog on the next run — deliberate, but pair it with
+  `--mirror-limit`.
+- Mirroring is skipped with a note when the `R2_*` vars are absent, so local
+  dev without R2 credentials still syncs.
+- `--mirror-limit=N` caps a run's uploads — use it to spread the initial
+  ~2,700-image backfill over a few daily runs instead of one burst against the
+  upstream API.
+
 ## Environment
 
 | Variable | Default | Purpose |
@@ -45,6 +69,7 @@ live vehicles from an unattended cron.
 | `CATALOG_SYNC_REMOTE` | unset | A real (non-dry) sync against a non-local DB refuses to run unless this is `1`. Slugs are first-run-wins, so accidental remote syncs are irreversible; `Dockerfile.sync` sets it for the cron service. |
 | `WT_VEHICLES_API_URL` | `https://wtvehiclesapi.duckdns.org/api` | API base — point at the self-hosted instance to switch |
 | `WT_UNITS_CSV_URL` | gszabi99 `units.csv` on raw.githubusercontent.com | English display names |
+| `R2_*` | unset (mirroring skipped) | Assets-bucket credentials for image mirroring — see `.env.example` |
 
 ## Scheduling (Railway cron)
 
@@ -54,7 +79,8 @@ so run daily. Create a second Railway service on this repo:
 - **Dockerfile path:** `Dockerfile.sync` (a short-lived Bun process — no
   server; it syncs and exits)
 - **Cron schedule:** `0 6 * * *`
-- **Variables:** `DATABASE_URL` (same reference the web service uses)
+- **Variables:** `DATABASE_URL` (same reference the web service uses) and the
+  `R2_*` vars (same values as the web service) so the cron mirrors images
 
 ## Data source & licensing
 
