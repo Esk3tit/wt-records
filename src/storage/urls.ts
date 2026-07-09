@@ -9,3 +9,12 @@ export function publicObjectUrl(baseUrl: string, key: string): string {
   const path = key.split('/').map(encodeURIComponent).join('/')
   return `${baseUrl.replace(/\/+$/, '')}/${path}`
 }
+
+/** Serving URL for a mirrored asset — needs only the public base URL, never
+    the bucket credentials, so read paths can build image URLs anywhere. */
+export function assetUrl(key: string): string {
+  const base = process.env.R2_ASSETS_BASE_URL
+  if (!base) throw new Error('R2_ASSETS_BASE_URL is not set')
+  assertValidObjectKey(key)
+  return publicObjectUrl(base, key)
+}

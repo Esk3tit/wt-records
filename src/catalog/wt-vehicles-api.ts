@@ -4,6 +4,7 @@ import type {
   SourceVehicle,
 } from '#/catalog/source'
 import { latestGameVersion } from '#/catalog/mapping'
+import { fetchUpstream } from '#/catalog/upstream-fetch'
 
 /* WT Vehicles API (self-hostable — the base URL is configuration) plus the
    datamine locale CSV for English names, which the API does not carry. */
@@ -35,8 +36,6 @@ const PAGE_SIZE = 200
 // ~8000 vehicles; the catalog is ~3300 — exceeding this means the upstream
 // stopped honoring the page param and the loop must not spin forever.
 const MAX_PAGES = 40
-const RETRIES = 3
-const USER_AGENT = 'wt-records-catalog-sync (+https://wtrecords.gg)'
 
 export class WtVehiclesApiSource implements CatalogSource {
   readonly name = 'wt-vehicles-api'
@@ -156,27 +155,11 @@ export class WtVehiclesApiSource implements CatalogSource {
   }
 
   private async fetchText(url: string): Promise<string> {
-    let lastError: unknown
-    for (let attempt = 1; attempt <= RETRIES; attempt++) {
-      if (attempt > 1) await sleep(this.retryDelayMs * (attempt - 1))
-      let response: Response
-      try {
-        response = await this.fetchImpl(url, {
-          headers: { 'user-agent': USER_AGENT },
-        })
-        if (response.ok) return await response.text()
-      } catch (e) {
-        lastError = e // network/body failure — worth retrying
-        continue
-      }
-      await response.text().catch(() => undefined) // release the connection
-      const error = new Error(`GET ${url} → ${response.status}`)
-      const transient = response.status >= 500 || response.status === 429
-      // A non-transient 4xx will fail identically — retrying only adds load.
-      if (!transient) throw error
-      lastError = error
-    }
-    throw lastError
+    const response = await fetchUpstream(url, {
+      fetchImpl: this.fetchImpl,
+      retryDelayMs: this.retryDelayMs,
+    })
+    return response.text()
   }
 }
 

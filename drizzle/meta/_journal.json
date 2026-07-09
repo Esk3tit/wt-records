@@ -36,6 +36,13 @@
       "when": 1783397242096,
       "tag": "0004_vehicle_search_terms",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1783582567084,
+      "tag": "0005_vehicle_image_key",
+      "breakpoints": true
     }
   ]
 }
