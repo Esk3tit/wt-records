@@ -120,7 +120,9 @@ export function ModeLanding({
           </section>
           <div className="feed-col">
             <div className="feed-rail">
-              <LiveFeed mode={mode} entries={latestFeed} />
+              {/* Keyed so a cross-mode navigation can't diff one mode's rows
+                  against another's and misread them as live arrivals. */}
+              <LiveFeed key={mode} mode={mode} entries={latestFeed} />
             </div>
           </div>
         </div>

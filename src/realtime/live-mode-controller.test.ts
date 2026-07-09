@@ -4,9 +4,9 @@ import type { ModeSignalHandlers } from './live-mode-controller'
 
 function harness() {
   const unsubscribe = vi.fn()
-  let handlers: ModeSignalHandlers | undefined
+  const subscriptions: ModeSignalHandlers[] = []
   const subscribe = vi.fn((h: ModeSignalHandlers) => {
-    handlers = h
+    subscriptions.push(h)
     return unsubscribe
   })
   const invalidate = vi.fn()
@@ -14,9 +14,11 @@ function harness() {
     subscribe,
     invalidate,
     unsubscribe,
+    subscriptions,
     get handlers() {
-      if (!handlers) throw new Error('not subscribed')
-      return handlers
+      const latest = subscriptions.at(-1)
+      if (!latest) throw new Error('not subscribed')
+      return latest
     },
   }
 }
@@ -73,7 +75,7 @@ describe('createLiveModeController', () => {
     }
   })
 
-  it('does not invalidate on the initial subscribed status (fresh SSR data)', () => {
+  it('does not invalidate on a prompt first join (fresh SSR data)', () => {
     vi.useFakeTimers()
     try {
       const h = harness()
@@ -85,6 +87,26 @@ describe('createLiveModeController', () => {
       h.handlers.onStatus('subscribed')
       vi.runAllTimers()
       expect(h.invalidate).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('resyncs on a first join delayed past the grace window', () => {
+    vi.useFakeTimers()
+    try {
+      const h = harness()
+      const controller = createLiveModeController({
+        subscribe: h.subscribe,
+        invalidate: h.invalidate,
+        firstJoinGraceMs: 5_000,
+      })
+      controller.setVisible(true)
+      // Join retries kept the channel down while events may have landed.
+      vi.advanceTimersByTime(6_000)
+      h.handlers.onStatus('subscribed')
+      vi.runAllTimers()
+      expect(h.invalidate).toHaveBeenCalledTimes(1)
     } finally {
       vi.useRealTimers()
     }
@@ -160,7 +182,35 @@ describe('createLiveModeController', () => {
     expect(h.subscribe).toHaveBeenCalledTimes(1)
   })
 
-  it('reports a subscribe error once, however often the channel fails', () => {
+  it('reports joined state and ignores a torn-down channel’s late callbacks', () => {
+    vi.useFakeTimers()
+    try {
+      const h = harness()
+      const activeChanges: boolean[] = []
+      const controller = createLiveModeController({
+        subscribe: h.subscribe,
+        invalidate: h.invalidate,
+        onActiveChange: (active) => activeChanges.push(active),
+      })
+      controller.setVisible(true)
+      const stale = h.handlers
+      stale.onStatus('subscribed')
+      controller.setVisible(false)
+      controller.setVisible(true)
+      h.handlers.onStatus('subscribed')
+      // supabase emits CLOSED asynchronously after removeChannel.
+      stale.onStatus('closed')
+      stale.onEvent()
+      vi.runAllTimers()
+      expect(activeChanges).toEqual([true, false, true])
+      // Only the live channel's resync ran; the stale event scheduled nothing.
+      expect(h.invalidate).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('forwards every subscribe error; dedupe belongs to the reporter', () => {
     const h = harness()
     const onSubscribeError = vi.fn()
     const controller = createLiveModeController({
@@ -171,7 +221,7 @@ describe('createLiveModeController', () => {
     controller.setVisible(true)
     h.handlers.onStatus('error')
     h.handlers.onStatus('error')
-    expect(onSubscribeError).toHaveBeenCalledTimes(1)
+    expect(onSubscribeError).toHaveBeenCalledTimes(2)
   })
 
   it('stop() tears down and goes dead: later events and visibility do nothing', () => {

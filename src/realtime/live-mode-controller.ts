@@ -8,8 +8,10 @@ export interface ModeSignalHandlers {
 export interface LiveModeControllerOptions {
   subscribe: (handlers: ModeSignalHandlers) => () => void
   invalidate: () => void
+  onActiveChange?: (active: boolean) => void
   onSubscribeError?: () => void
   debounceMs?: number
+  firstJoinGraceMs?: number
 }
 
 export interface LiveModeController {
@@ -18,18 +20,22 @@ export interface LiveModeController {
 }
 
 const DEFAULT_DEBOUNCE_MS = 300
+const DEFAULT_FIRST_JOIN_GRACE_MS = 5_000
 
-// Visibility-aware lifecycle around one mode-signals subscription: debounces
-// events into router invalidations, resyncs after any dark period (hidden tab
-// or dropped connection), and reports channel failure once per page.
 export function createLiveModeController(
   options: LiveModeControllerOptions,
 ): LiveModeController {
   const debounceMs = options.debounceMs ?? DEFAULT_DEBOUNCE_MS
+  const firstJoinGraceMs =
+    options.firstJoinGraceMs ?? DEFAULT_FIRST_JOIN_GRACE_MS
+  const createdAt = Date.now()
   let timer: ReturnType<typeof setTimeout> | undefined
   let unsubscribe: (() => void) | undefined
+  // Bumped on every open/teardown so a torn-down channel's late async
+  // callbacks (supabase emits CLOSED after removeChannel) can't act.
+  let joinSeq = 0
   let everSubscribed = false
-  let errorReported = false
+  let active = false
   let stopped = false
 
   const scheduleInvalidate = () => {
@@ -40,45 +46,50 @@ export function createLiveModeController(
     }, debounceMs)
   }
 
-  const cancelInvalidate = () => {
-    if (timer === undefined) return
-    clearTimeout(timer)
-    timer = undefined
+  const setActive = (next: boolean) => {
+    if (active === next) return
+    active = next
+    options.onActiveChange?.(next)
   }
 
   const teardown = () => {
-    cancelInvalidate()
+    joinSeq += 1
+    if (timer !== undefined) clearTimeout(timer)
+    timer = undefined
     unsubscribe?.()
     unsubscribe = undefined
+    setActive(false)
   }
 
-  const handlers: ModeSignalHandlers = {
-    onEvent() {
-      if (stopped || unsubscribe === undefined) return
-      scheduleInvalidate()
-    },
-    onStatus(status) {
-      if (stopped) return
-      if (status === 'error') {
-        if (!errorReported) {
-          errorReported = true
-          options.onSubscribeError?.()
+  const open = () => {
+    const seq = ++joinSeq
+    unsubscribe = options.subscribe({
+      onEvent() {
+        if (seq !== joinSeq) return
+        scheduleInvalidate()
+      },
+      onStatus(status) {
+        if (seq !== joinSeq) return
+        if (status !== 'subscribed') {
+          setActive(false)
+          if (status === 'error') options.onSubscribeError?.()
+          return
         }
-        return
-      }
-      if (status !== 'subscribed') return
-      // The first join serves fresh SSR data; only rejoins can have missed
-      // events and need a resync.
-      if (everSubscribed) scheduleInvalidate()
-      everSubscribed = true
-    },
+        setActive(true)
+        // Only a prompt first join can trust the SSR data; rejoins and
+        // delayed first joins may have missed events and need a resync.
+        const delayed = Date.now() - createdAt > firstJoinGraceMs
+        if (everSubscribed || delayed) scheduleInvalidate()
+        everSubscribed = true
+      },
+    })
   }
 
   return {
     setVisible(visible) {
       if (stopped) return
       if (visible) {
-        unsubscribe ??= options.subscribe(handlers)
+        if (unsubscribe === undefined) open()
       } else {
         teardown()
       }

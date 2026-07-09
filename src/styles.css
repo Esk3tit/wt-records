@@ -576,6 +576,7 @@
       feed-just-in 2.4s ease-out;
   }
   .feed-item-exit {
+    overflow: hidden;
     animation: feed-out 360ms ease-out forwards;
   }
   .feed-dot {
@@ -600,10 +601,18 @@
     background-color: transparent;
   }
 }
+/* Collapses height too: on auto-height rails (below lg) a leaving row must
+   not pop out of the layout when its removal timer fires. */
 @keyframes feed-out {
+  from {
+    max-height: 8rem;
+  }
   to {
     opacity: 0;
     transform: translateY(-6px);
+    max-height: 0;
+    padding-block: 0;
+    border-bottom-width: 0;
   }
 }
 @keyframes feed-pulse {

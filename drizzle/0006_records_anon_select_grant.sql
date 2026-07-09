@@ -1,14 +1,13 @@
 -- Custom SQL migration file, put your code below! --
 
--- The anon RLS policy on `records` is not enough by itself: Supabase's default
--- privileges give roles no SELECT on tables created by `postgres`, and without
--- the table privilege Realtime's RLS check silently delivers no events (the
--- subscribe still succeeds). Row exposure stays governed by the
--- records_anon_select_current policy — this grants the privilege, not the rows.
--- Guarded so it is a no-op where the anon role is absent (PGlite test DBs).
+-- Realtime needs the SELECT privilege on top of the anon RLS policy — without
+-- it, WALRUS silently delivers no events while the subscribe still succeeds.
+-- Column-scoped to (id, mode): enough for the signal-only subscription, and it
+-- keeps the anon key's Data API surface closed (no verifier/submitter reads).
+-- Guarded so it is a no-op where the anon role is absent (vanilla Postgres).
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
-    GRANT SELECT ON TABLE public.records TO anon;
+    GRANT SELECT (id, mode) ON public.records TO anon;
   END IF;
 END $$;

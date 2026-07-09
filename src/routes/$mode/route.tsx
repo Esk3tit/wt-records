@@ -10,14 +10,23 @@ const loadMode = createServerFn({ method: 'GET' })
   .validator((mode: string) => mode)
   .handler(({ data }) => getMode(db, data))
 
+// Last-good per-mode context: router.invalidate() re-runs beforeLoad on every
+// realtime signal, and a background refresh must neither pay a loadMode round
+// trip nor let a transient failure notFound a page that was rendering fine.
+const modeCache = new Map<string, { name: string; isLive: boolean }>()
+
 export const Route = createFileRoute('/$mode')({
-  beforeLoad: async ({ params }) => {
+  beforeLoad: async ({ params, cause }) => {
+    const cached = modeCache.get(params.mode)
+    if (cause === 'stay' && cached) return { mode: cached }
     const mode = await loadMode({ data: params.mode })
     if (!mode) throw notFound()
     // Only expose what the layout + child gates use — beforeLoad context is
     // dehydrated into the SSR payload, so the full row would leak a non-live
     // mode's staged rulesMd/difficultMinKills.
-    return { mode: { name: mode.name, isLive: mode.isLive } }
+    const slim = { name: mode.name, isLive: mode.isLive }
+    modeCache.set(params.mode, slim)
+    return { mode: slim }
   },
   component: ModeLayout,
 })

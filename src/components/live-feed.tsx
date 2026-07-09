@@ -3,7 +3,7 @@ import { LatestRecord } from '#/components/latest-record'
 import { formatFeedDay } from '#/lib/dates'
 import { mergeFeedRows } from '#/components/live-feed-rows'
 import { LiveSignalsContext } from '#/realtime/live-signals-context'
-import type { FeedRow } from '#/components/live-feed-rows'
+import type { FeedRow, FeedRowPhase } from '#/components/live-feed-rows'
 import type { LatestRecordData } from '#/components/latest-record'
 
 export interface FeedEntry extends LatestRecordData {
@@ -18,21 +18,19 @@ const EXIT_REMOVE_MS = 500
 // fade implies the log's flow direction even between events.
 const REST_MIN_OPACITY = 0.55
 
-const phaseClass = {
+const phaseClass: Record<FeedRowPhase, string> = {
   settled: '',
-  entering: ' feed-item-new',
-  exiting: ' feed-item-exit',
-} satisfies Record<string, string>
+  entering: 'feed-item-new',
+  exiting: 'feed-item-exit',
+}
 
 function restOpacity(index: number, count: number): number {
   if (count <= 1) return 1
   return REST_MIN_OPACITY + ((1 - REST_MIN_OPACITY) * index) / (count - 1)
 }
 
-/* Kill-feed register: a static log that moves only when a record actually
-   lands — the newcomer slots in at the bottom with the just-in treatment while
-   the oldest fades out under the top. Rows dim with age at rest so the flow
-   direction reads even between events. */
+/* Kill-feed register: a static log that moves only when a record lands —
+   the newcomer slots in at the bottom, the displaced oldest fades out. */
 export function LiveFeed({
   mode,
   entries,
@@ -50,16 +48,15 @@ export function LiveFeed({
     setRows((prev) => mergeFeedRows(prev, oldestFirst))
   }, [oldestFirst])
 
-  const hasExiting = rows.some((row) => row.phase === 'exiting')
   useEffect(() => {
-    if (!hasExiting) return
-    // Timer-driven removal so exiting rows leave even when the CSS animation
-    // never runs (reduced motion, hidden tab).
+    // Keyed on `rows` so a later exit wave re-arms the timer instead of being
+    // swept out mid-fade by an earlier wave's deadline.
+    if (!rows.some((row) => row.phase === 'exiting')) return
     const timer = setTimeout(() => {
       setRows((prev) => prev.filter((row) => row.phase !== 'exiting'))
     }, EXIT_REMOVE_MS)
     return () => clearTimeout(timer)
-  }, [hasExiting])
+  }, [rows])
 
   return (
     <aside
@@ -86,7 +83,12 @@ export function LiveFeed({
           {rows.map((row, i) => (
             <li
               key={row.entry.id}
-              className={`border-b border-hairline-soft py-3 text-[0.8125rem] leading-[1.45] text-fg last:border-b-0${phaseClass[row.phase]}`}
+              className={[
+                'border-b border-hairline-soft py-3 text-[0.8125rem] leading-[1.45] text-fg last:border-b-0',
+                phaseClass[row.phase],
+              ]
+                .filter(Boolean)
+                .join(' ')}
               style={{ opacity: restOpacity(i, rows.length) }}
             >
               <span className="mr-2 font-medium tabular-nums text-fg-faint">

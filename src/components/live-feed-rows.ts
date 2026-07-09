@@ -5,24 +5,48 @@ export interface FeedRow<T extends { id: number }> {
   phase: FeedRowPhase
 }
 
-// Reconciles the displayed rows against a freshly refetched feed (oldest
-// first). Retained rows keep their position and take the fresh entry data;
-// dropped rows are held in place as 'exiting' until their exit animation ends;
-// new rows append at the bottom as 'entering'.
+// Reconciles displayed rows against a refetched feed (oldest first): the fresh
+// order is the spine, dropped rows hold their position as 'exiting'.
 export function mergeFeedRows<T extends { id: number }>(
   prev: FeedRow<T>[],
   next: T[],
 ): FeedRow<T>[] {
-  const nextById = new Map(next.map((entry) => [entry.id, entry]))
-  const prevIds = new Set(prev.map((row) => row.entry.id))
-  const retained = prev.map((row): FeedRow<T> => {
-    const fresh = nextById.get(row.entry.id)
-    return fresh
-      ? { entry: fresh, phase: 'settled' }
-      : { entry: row.entry, phase: 'exiting' }
+  if (
+    prev.length === next.length &&
+    prev.every((row, i) => row.entry === next[i] && row.phase === 'settled')
+  ) {
+    return prev
+  }
+
+  const prevById = new Map(prev.map((row) => [row.entry.id, row]))
+  const nextIds = new Set(next.map((entry) => entry.id))
+
+  // A new id is a live arrival only when it extends the newest end of the
+  // feed; one surfacing mid-list (or in a wholesale swap) is backfill that
+  // never deserves the just-in fanfare.
+  let lastKnownIdx = -1
+  for (let i = next.length - 1; i >= 0 && lastKnownIdx === -1; i--) {
+    if (prevById.has(next[i].id)) lastKnownIdx = i
+  }
+  const spine = next.map((entry, i): FeedRow<T> => {
+    const old = prevById.get(entry.id)
+    if (old) {
+      return { entry, phase: old.phase === 'exiting' ? 'settled' : old.phase }
+    }
+    const arriving = lastKnownIdx !== -1 && i > lastKnownIdx
+    return { entry, phase: arriving ? 'entering' : 'settled' }
   })
-  const entering = next
-    .filter((entry) => !prevIds.has(entry.id))
-    .map((entry): FeedRow<T> => ({ entry, phase: 'entering' }))
-  return [...retained, ...entering]
+
+  // An exiting row fades out anchored after its nearest surviving upstream
+  // neighbor, so the log stays chronological while it leaves.
+  const merged: FeedRow<T>[] = [...spine]
+  prev.forEach((row, prevIdx) => {
+    if (nextIds.has(row.entry.id)) return
+    let anchor = -1
+    for (let i = prevIdx - 1; i >= 0 && anchor === -1; i--) {
+      anchor = merged.findIndex((m) => m.entry.id === prev[i].entry.id)
+    }
+    merged.splice(anchor + 1, 0, { entry: row.entry, phase: 'exiting' })
+  })
+  return merged
 }

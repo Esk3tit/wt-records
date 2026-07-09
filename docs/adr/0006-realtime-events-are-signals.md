@@ -7,3 +7,5 @@ The browser's Supabase Realtime subscription (`records` row changes, filtered by
 **Considered and rejected:** render-from-payload and a hybrid (payload-driven skeleton, refetch fills in) — both trade a wider public read surface and two data paths for latency we don't need.
 
 **Consequence:** reversing this later means adding `anon` policies table-by-table — an auditable widening, per ADR 0002's consequence clause, not a refactor. The future §9.2 aggregate-streaming path (stats-table changes or Broadcast) is unaffected: it slots in as a new channel behind the same signal seam.
+
+**Known limit (empirically verified):** removal-only transitions produce no signal. An UPDATE that flips a record out of `anon` visibility (retraction) is RLS-checked against its new, invisible row and never delivered; a DELETE's old-row payload carries only the PK, which the mode filter can't match. Open tabs keep showing a retracted record until the next visible event or navigation. Acceptable while moderation writes are rare and pre-`/admin`; when Phase-2 moderation lands, retractions should emit an explicit signal (Realtime Broadcast from the moderation path — the same channel seam).

@@ -227,3 +227,41 @@ describe('records constraints (committed migrations replayed on PGlite)', () => 
     ).rejects.toThrow()
   })
 })
+
+describe('anon read surface', () => {
+  it('pairs the records anon policy with its column-scoped SELECT grant', async () => {
+    const { rows } = await t.client.query<{ column: string; granted: boolean }>(
+      `select c.column_name as column,
+              has_column_privilege('anon', 'public.records', c.column_name, 'select') as granted
+       from information_schema.columns c
+       where c.table_schema = 'public' and c.table_name = 'records'`,
+    )
+    const granted = new Map(rows.map((r) => [r.column, r.granted]))
+    // The signal-only subscription needs exactly these; everything else stays
+    // closed to the anon key's Data API (verifier/submitter identities).
+    expect(granted.get('id')).toBe(true)
+    expect(granted.get('mode')).toBe(true)
+    for (const closed of ['verified_by_id', 'submitted_by_id', 'kills']) {
+      expect(granted.get(closed), closed).toBe(false)
+    }
+  })
+
+  it('every table carrying an anon policy has the SELECT privilege Realtime needs', async () => {
+    const { rows } = await t.client.query<{ tablename: string }>(
+      `select distinct c.relname as tablename
+       from pg_policy p join pg_class c on c.oid = p.polrelid
+       where p.polroles @> array['anon'::regrole::oid]`,
+    )
+    for (const { tablename } of rows) {
+      const { rows: cols } = await t.client.query<{ any_select: boolean }>(
+        `select bool_or(has_column_privilege('anon', $1::regclass, column_name, 'select')) as any_select
+         from information_schema.columns
+         where table_schema = 'public' and table_name = $2`,
+        [`public.${tablename}`, tablename],
+      )
+      // A policy without any SELECT privilege = Realtime silently delivers
+      // nothing while the subscribe still succeeds.
+      expect(cols[0].any_select, tablename).toBe(true)
+    }
+  })
+})
