@@ -117,9 +117,36 @@ describe('LiveFeed', () => {
   it('dims rows with age: the oldest rests fainter than the newest', async () => {
     const { getAllByRole } = await renderFeed(newestFirst)
     const items = getAllByRole('listitem')
-    const opacity = (li: HTMLElement) => Number.parseFloat(li.style.opacity)
-    expect(opacity(items[0])).toBeLessThan(opacity(items[2]))
-    expect(opacity(items[2])).toBe(1)
+    const ageT = (li: HTMLElement) =>
+      Number.parseFloat(li.style.getPropertyValue('--feed-age-t'))
+    expect(ageT(items[0])).toBeLessThan(ageT(items[2]))
+    expect(ageT(items[2])).toBe(1)
+  })
+
+  it('renders at most seven rows so no entry can hide clipped from view', async () => {
+    const eight = Array.from({ length: 8 }, (_, i) =>
+      entry(20 - i, `Vehicle ${20 - i}`),
+    )
+    const { getAllByRole, queryByText } = await renderFeed(eight)
+    expect(getAllByRole('listitem')).toHaveLength(7)
+    // The oldest of the eight is the one that never renders.
+    expect(queryByText(/Vehicle 13/)).toBeNull()
+  })
+
+  it('announces arrivals: the log is a polite live region', async () => {
+    const { getByRole } = await renderFeed(newestFirst)
+    expect(getByRole('list').getAttribute('aria-live')).toBe('polite')
+  })
+
+  it('marks today’s records with the recency accent', async () => {
+    const today = { ...entry(9, 'Object 279'), verifiedAt: new Date() }
+    const view = await renderFeed([today, ...newestFirst])
+    const items = view.getAllByRole('listitem')
+    const dateSpan = (li: HTMLElement) => li.querySelector('span')
+    expect(dateSpan(items[items.length - 1])?.className).toContain(
+      'text-accent-text',
+    )
+    expect(dateSpan(items[0])?.className).toContain('text-fg-faint')
   })
 
   it('renders the empty state when no records exist', async () => {

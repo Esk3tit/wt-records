@@ -1,8 +1,9 @@
 import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { LatestRecord } from '#/components/latest-record'
-import { formatFeedDay } from '#/lib/dates'
+import { formatFeedDay, isToday } from '#/lib/dates'
 import { mergeFeedRows } from '#/components/live-feed-rows'
 import { LiveSignalsContext } from '#/realtime/live-signals-context'
+import type { CSSProperties } from 'react'
 import type { FeedRow, FeedRowPhase } from '#/components/live-feed-rows'
 import type { LatestRecordData } from '#/components/latest-record'
 
@@ -14,9 +15,9 @@ export interface FeedEntry extends LatestRecordData {
 // Slightly past the CSS exit animation so the fade always completes first.
 const EXIT_REMOVE_MS = 500
 
-// The at-rest age gradient: oldest row dimmest, newest full strength — the
-// fade implies the log's flow direction even between events.
-const REST_MIN_OPACITY = 0.55
+// The lg rail can't fit more; an overflow-clipped row would still be read by
+// assistive tech, so never render one.
+const MAX_ROWS = 7
 
 const phaseClass: Record<FeedRowPhase, string> = {
   settled: '',
@@ -24,9 +25,11 @@ const phaseClass: Record<FeedRowPhase, string> = {
   exiting: 'feed-item-exit',
 }
 
-function restOpacity(index: number, count: number): number {
+// Age position 0 (oldest) → 1 (newest); CSS maps it to an opacity per
+// breakpoint so the mask fade never stacks the top rows into illegibility.
+function ageT(index: number, count: number): number {
   if (count <= 1) return 1
-  return REST_MIN_OPACITY + ((1 - REST_MIN_OPACITY) * index) / (count - 1)
+  return index / (count - 1)
 }
 
 /* Kill-feed register: a static log that moves only when a record lands —
@@ -39,7 +42,10 @@ export function LiveFeed({
   entries: FeedEntry[]
 }) {
   const live = useContext(LiveSignalsContext)
-  const oldestFirst = useMemo(() => entries.slice().reverse(), [entries])
+  const oldestFirst = useMemo(
+    () => entries.slice(0, MAX_ROWS).reverse(),
+    [entries],
+  )
   const [rows, setRows] = useState<FeedRow<FeedEntry>[]>(() =>
     oldestFirst.map((entry) => ({ entry, phase: 'settled' })),
   )
@@ -90,11 +96,14 @@ export function LiveFeed({
         {live && (
           <span
             aria-hidden="true"
-            className="feed-dot h-1.5 w-1.5 rounded-full bg-accent"
+            className="feed-dot h-1.5 w-1.5 rounded-full"
           />
         )}
         <h2 className="text-[0.6875rem] font-semibold tracking-[0.12em] uppercase text-fg-muted">
           Latest · verified
+          {live && (
+            <span className="sr-only"> — live, updates automatically</span>
+          )}
         </h2>
       </header>
       {rows.length === 0 ? (
@@ -102,24 +111,40 @@ export function LiveFeed({
           No verified records yet.
         </p>
       ) : (
-        <ol className="feed-scroll flex min-h-0 flex-1 flex-col justify-end overflow-hidden px-5 pb-4">
+        <ol
+          aria-live="polite"
+          className="feed-scroll flex min-h-0 flex-1 flex-col justify-end overflow-hidden px-5 pb-4"
+        >
           {rows.map((row, i) => (
             <li
               key={row.entry.id}
               className={[
-                'border-b border-hairline-soft py-3 text-[0.8125rem] leading-[1.45] text-fg last:border-b-0',
+                'feed-row border-b border-hairline-soft py-3 text-[0.8125rem] leading-[1.45] text-fg last:border-b-0',
                 phaseClass[row.phase],
               ]
                 .filter(Boolean)
                 .join(' ')}
-              style={{ opacity: restOpacity(i, rows.length) }}
+              style={{ '--feed-age-t': ageT(i, rows.length) } as CSSProperties}
             >
-              <span className="mr-2 font-medium tabular-nums text-fg-faint">
-                {row.entry.verifiedAt
-                  ? formatFeedDay(row.entry.verifiedAt)
-                  : '—'}
-              </span>
-              <LatestRecord mode={mode} record={row.entry} />
+              <div className="flex min-h-0 gap-2 overflow-hidden">
+                <span
+                  className={[
+                    'w-12 shrink-0 font-medium tabular-nums',
+                    // The newest entries keep a recency glow until the date
+                    // ages out — a glance can tell something landed today.
+                    row.entry.verifiedAt && isToday(row.entry.verifiedAt)
+                      ? 'font-semibold text-accent-text'
+                      : 'text-fg-faint',
+                  ].join(' ')}
+                >
+                  {row.entry.verifiedAt
+                    ? formatFeedDay(row.entry.verifiedAt)
+                    : '—'}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <LatestRecord mode={mode} record={row.entry} />
+                </span>
+              </div>
             </li>
           ))}
         </ol>
