@@ -8,6 +8,8 @@ slug: src-components-live-feed-tsx
 ---
 Method: dual-agent (A: design-review agent · B: detector-evidence agent)
 
+> **Resolution note (post-snapshot):** this is the point-in-time record that drove the fixes on the #16 branch. The P1 (double-dim), both P2s (wash envelope, arrival layout-shift), and the P3 (day dot token, live-region silence, phantom eighth row) were addressed in `f64d550`; date contrast and kill-count emphasis followed in `84ecbe8`. Findings below describe the pre-fix state by design — do not "fix" this file; run a fresh critique to update the trend.
+
 # Critique — LiveFeed (kill-feed) on the mode landing, both themes, live motion
 
 ## Design Health Score
