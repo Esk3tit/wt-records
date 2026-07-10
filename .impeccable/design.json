@@ -201,13 +201,29 @@
         "displayName": "Title",
         "purpose": "Section headings within a page."
       },
+      "lede": {
+        "displayName": "Lede",
+        "purpose": "Intro paragraphs and emphasized row values; one notch above body, never headings."
+      },
       "body": {
         "displayName": "Body",
         "purpose": "Prose and table content; 65–75ch prose cap, tables may run denser."
       },
+      "body-compact": {
+        "displayName": "Body compact",
+        "purpose": "Explanatory copy inside panes and filter/control text."
+      },
+      "data": {
+        "displayName": "Data",
+        "purpose": "The ledger register: feed rows, captions, table metadata; pairs with tabular numerals."
+      },
       "label": {
         "displayName": "Label",
         "purpose": "Uppercase metadata tags (removed chip); sparing."
+      },
+      "kicker": {
+        "displayName": "Kicker",
+        "purpose": "Tracked-uppercase micro section labels and the hero kicker; never running text."
       }
     },
     "shadows": [

@@ -174,7 +174,7 @@ One committed base per lighting state, mirrored ink ramps, one warm accent with 
 - **Body compact** (400, 0.9375rem, 1.4): explanatory copy inside panes and filter/control text.
 - **Data** (400, 0.8125rem, 1.45): the ledger register — feed rows, captions, table metadata; usually paired with tabular numerals.
 - **Label** (500, 0.75rem, 0.05em tracking, uppercase where used): metadata tags like the removed chip; used sparingly.
-- **Kicker** (600, 0.6875rem, 0.12–0.24em tracking, uppercase): micro section labels and the hero kicker — the smallest step, always tracked and uppercase, never for running text.
+- **Kicker** (600, 0.6875rem, 0.12em tracking, uppercase): micro section labels — the smallest step, always tracked and uppercase, never for running text. The hero `.kicker` alone widens tracking to 0.24em.
 
 ### Named Rules
 **The Tabular Rule.** `font-variant-numeric: tabular-nums` applies globally, no exceptions. A kill count that shifts width when it changes is a bug.
