@@ -129,12 +129,12 @@ export function LiveFeed({
               <div className="flex min-h-0 gap-2 overflow-hidden">
                 <span
                   className={[
-                    'w-12 shrink-0 font-medium tabular-nums',
+                    'min-w-12 shrink-0 font-medium whitespace-nowrap tabular-nums',
                     // The newest entries keep a recency glow until the date
                     // ages out — a glance can tell something landed today.
                     row.entry.verifiedAt && isToday(row.entry.verifiedAt)
                       ? 'font-semibold text-accent-text'
-                      : 'text-fg-faint',
+                      : 'text-fg',
                   ].join(' ')}
                 >
                   {row.entry.verifiedAt

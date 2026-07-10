@@ -146,7 +146,7 @@ describe('LiveFeed', () => {
     expect(dateSpan(items[items.length - 1])?.className).toContain(
       'text-accent-text',
     )
-    expect(dateSpan(items[0])?.className).toContain('text-fg-faint')
+    expect(dateSpan(items[0])?.className).toContain('text-fg')
   })
 
   it('renders the empty state when no records exist', async () => {
