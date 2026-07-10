@@ -35,7 +35,7 @@ function ModeLayout() {
   const { mode } = Route.useRouteContext()
   const params = Route.useParams()
   // One subscription per tab for the whole mode-world: any records event in
-  // this mode re-runs whichever page's loader is active (ADR 0006).
+  // this mode re-runs whichever page's loader is active.
   const live = useLiveModeSignals(params.mode, mode.isLive)
   if (!mode.isLive) return <ComingSoon modeName={mode.name} />
   return (
