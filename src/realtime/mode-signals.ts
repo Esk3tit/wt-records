@@ -47,13 +47,18 @@ export function subscribeToModeSignals(
         .channel(topic)
         .on(
           'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'records',
-            filter: `mode=eq.${mode}`,
+          { event: '*', schema: 'public', table: 'records' },
+          (payload) => {
+            // No server-side filter: current Realtime versions silently drop
+            // filtered subscriptions while still acking the join (verified
+            // live) — scope by mode here instead. A row without a readable
+            // mode (DELETE carries only the PK) still signals; a spurious
+            // refetch is harmless, a missed one is not.
+            const next = payload.new as { mode?: unknown }
+            const prev = payload.old as { mode?: unknown }
+            const rowMode = next.mode ?? prev.mode
+            if (rowMode === undefined || rowMode === mode) handlers.onEvent()
           },
-          () => handlers.onEvent(),
         )
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') handlers.onStatus('subscribed')
