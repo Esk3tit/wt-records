@@ -35,6 +35,17 @@ export function formatFeedDay(d: DateLike): string {
 }
 export const formatMonthYear = (d: DateLike) => monthYear.format(asDate(d))
 
+// UTC like every formatter here, so server and client agree on the boundary.
+export function isToday(d: DateLike): boolean {
+  const a = asDate(d)
+  const b = new Date()
+  return (
+    a.getUTCFullYear() === b.getUTCFullYear() &&
+    a.getUTCMonth() === b.getUTCMonth() &&
+    a.getUTCDate() === b.getUTCDate()
+  )
+}
+
 export function daysSince(d: DateLike): number {
   return Math.max(0, Math.floor((Date.now() - asDate(d).getTime()) / DAY_MS))
 }

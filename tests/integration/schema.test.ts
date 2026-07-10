@@ -227,3 +227,58 @@ describe('records constraints (committed migrations replayed on PGlite)', () => 
     ).rejects.toThrow()
   })
 })
+
+describe('anon read surface', () => {
+  it('pairs the records anon policy with its column-scoped SELECT grant', async () => {
+    const { rows } = await t.client.query<{ column: string; granted: boolean }>(
+      `select c.column_name as column,
+              has_column_privilege('anon', 'public.records', c.column_name, 'select') as granted
+       from information_schema.columns c
+       where c.table_schema = 'public' and c.table_name = 'records'`,
+    )
+    // The signal-only subscription needs exactly these; everything else stays
+    // closed to the anon key's Data API (verifier/submitter identities).
+    for (const { column, granted } of rows) {
+      expect(granted, column).toBe(column === 'id' || column === 'mode')
+    }
+  })
+
+  it('pins the records anon policy to verified, current rows only', async () => {
+    const { rows } = await t.client.query<{
+      name: string
+      cmd: string
+      qual: string
+    }>(
+      `select p.polname as name, p.polcmd as cmd,
+              pg_get_expr(p.polqual, p.polrelid) as qual
+       from pg_policy p join pg_class c on c.oid = p.polrelid
+       where c.relname = 'records' and p.polroles @> array['anon'::regrole::oid]`,
+    )
+    // The grant only opens columns; this predicate is what keeps unverified
+    // and superseded rows away from anon Realtime and the Data API.
+    expect(rows).toHaveLength(1)
+    expect(rows[0].name).toBe('records_anon_select_current')
+    expect(rows[0].cmd).toBe('r')
+    expect(rows[0].qual).toContain(`status = 'verified'`)
+    expect(rows[0].qual).toContain('is_current')
+  })
+
+  it('every table carrying an anon policy has the SELECT privilege Realtime needs', async () => {
+    const { rows } = await t.client.query<{ tablename: string }>(
+      `select distinct c.relname as tablename
+       from pg_policy p join pg_class c on c.oid = p.polrelid
+       where p.polroles @> array['anon'::regrole::oid]`,
+    )
+    for (const { tablename } of rows) {
+      const { rows: cols } = await t.client.query<{ any_select: boolean }>(
+        `select bool_or(has_column_privilege('anon', $1::regclass, column_name, 'select')) as any_select
+         from information_schema.columns
+         where table_schema = 'public' and table_name = $2`,
+        [`public.${tablename}`, tablename],
+      )
+      // A policy without any SELECT privilege = Realtime silently delivers
+      // nothing while the subscribe still succeeds.
+      expect(cols[0].any_select, tablename).toBe(true)
+    }
+  })
+})

@@ -40,16 +40,36 @@ typography:
     fontSize: "1.125rem"
     fontWeight: 600
     lineHeight: 1.3
+  lede:
+    fontFamily: "ui-sans-serif, system-ui, -apple-system, 'SF Pro Text', Inter, sans-serif"
+    fontSize: "1.0625rem"
+    fontWeight: 400
+    lineHeight: 1.5
   body:
     fontFamily: "ui-sans-serif, system-ui, -apple-system, 'SF Pro Text', Inter, sans-serif"
     fontSize: "1rem"
     fontWeight: 400
     lineHeight: 1.5
+  body-compact:
+    fontFamily: "ui-sans-serif, system-ui, -apple-system, 'SF Pro Text', Inter, sans-serif"
+    fontSize: "0.9375rem"
+    fontWeight: 400
+    lineHeight: 1.4
+  data:
+    fontFamily: "ui-sans-serif, system-ui, -apple-system, 'SF Pro Text', Inter, sans-serif"
+    fontSize: "0.8125rem"
+    fontWeight: 400
+    lineHeight: 1.45
   label:
     fontFamily: "ui-sans-serif, system-ui, -apple-system, 'SF Pro Text', Inter, sans-serif"
     fontSize: "0.75rem"
     fontWeight: 500
     letterSpacing: "0.05em"
+  kicker:
+    fontFamily: "ui-sans-serif, system-ui, -apple-system, 'SF Pro Text', Inter, sans-serif"
+    fontSize: "0.6875rem"
+    fontWeight: 600
+    letterSpacing: "0.12em"
 rounded:
   control: "4px"
   card: "22px"
@@ -149,8 +169,12 @@ One committed base per lighting state, mirrored ink ramps, one warm accent with 
 - **Display** (700, 2.25rem, 1.1, -0.01em): landing hero and page-defining moments only.
 - **Headline** (600, 1.5rem, 1.2): page titles — mode home, nation sheet, player profile.
 - **Title** (600, 1.125rem, 1.3): section headings within a page.
+- **Lede** (400, 1.0625rem, 1.5): intro paragraphs and emphasized row values — one notch above body, never for headings.
 - **Body** (400, 1rem, 1.5): prose and table content; cap prose at 65–75ch (data tables may run denser).
+- **Body compact** (400, 0.9375rem, 1.4): explanatory copy inside panes and filter/control text.
+- **Data** (400, 0.8125rem, 1.45): the ledger register — feed rows, captions, table metadata; usually paired with tabular numerals.
 - **Label** (500, 0.75rem, 0.05em tracking, uppercase where used): metadata tags like the removed chip; used sparingly.
+- **Kicker** (600, 0.6875rem, 0.12em tracking, uppercase): micro section labels — the smallest step, always tracked and uppercase, never for running text. The hero `.kicker` alone widens tracking to 0.24em.
 
 ### Named Rules
 **The Tabular Rule.** `font-variant-numeric: tabular-nums` applies globally, no exceptions. A kill count that shifts width when it changes is a bug.

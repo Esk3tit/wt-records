@@ -43,6 +43,13 @@
       "when": 1783582567084,
       "tag": "0005_vehicle_image_key",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783625091819,
+      "tag": "0006_records_anon_select_grant",
+      "breakpoints": true
     }
   ]
 }

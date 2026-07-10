@@ -81,6 +81,18 @@ function enableAnalytics(): void {
   posthog.capture('$pageview')
 }
 
+let warningSent = false
+
+// One warning per page session (e.g. the Realtime connection tripwire) — a
+// failing channel retries forever and must not spend the Sentry quota per try.
+export function captureWarningOnce(message: string): void {
+  if (warningSent || typeof window === 'undefined') return
+  warningSent = true
+  void import('@sentry/react')
+    .then((Sentry) => Sentry.captureMessage(message, 'warning'))
+    .catch(() => {})
+}
+
 // Called by the consent banner. Safe to call before the async PostHog init
 // resolves — `readConsent()` inside `initAnalytics` catches that race.
 export function grantConsent(): void {

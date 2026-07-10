@@ -28,7 +28,8 @@ export function LatestRecord({
       >
         {record.vehicleName}
       </Link>
-      <VehicleTags tags={record} /> — {record.kills} kills by{' '}
+      <VehicleTags tags={record} /> —{' '}
+      <span className="font-semibold">{record.kills}</span> kills by{' '}
       <RecordName
         displayName={record.displayName}
         playerSlug={record.playerSlug}

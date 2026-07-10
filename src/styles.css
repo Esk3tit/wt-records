@@ -558,31 +558,91 @@
 }
 
 /* Feed reads as a chat log: bottom-anchored, oldest dissolving under a fade.
-   The fade only makes sense where the rail is fixed-height (lg and up). */
+   The mask only softens the overflow crop where the rail is fixed-height
+   (lg and up); the age gradient below owns the at-rest dimming. */
 @media (min-width: 1024px) {
   .feed-scroll {
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 26%);
-    mask-image: linear-gradient(to bottom, transparent 0, black 26%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 12%);
+    mask-image: linear-gradient(to bottom, transparent 0, black 12%);
   }
 }
 
-/* New feed entries rise in chat-log style; the header dot marks the flow. */
+/* Age gradient: oldest dimmest, newest full. Gentler floor at lg+ where the
+   mask fade stacks on top — 0.55 × mask ghosted the top rows below AA. */
+.feed-scroll > li {
+  opacity: calc(0.55 + 0.45 * var(--feed-age-t, 1));
+}
+@media (min-width: 1024px) {
+  .feed-scroll > li {
+    opacity: calc(0.75 + 0.25 * var(--feed-age-t, 1));
+  }
+}
+
+/* Ink-form amber (flips to the Deep form by day): a raw amber fill dot dies
+   at ~1.5:1 on Daylight Hall. */
+.feed-dot {
+  background: var(--accent-text);
+}
+
+/* Kill-feed motion: a new entry rises in at the bottom under a brief amber
+   just-in wash while the displaced oldest fades out at the top; the header
+   dot pulses only while the live channel is joined. */
+/* Rows are single-track grids so enter/exit can animate grid-template-rows
+   0fr⇄1fr — the only way the trade is exact for any wrapped row height. */
+.feed-row {
+  display: grid;
+  grid-template-rows: 1fr;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .feed-item-new {
-    animation: feed-in 420ms cubic-bezier(0.22, 1, 0.36, 1);
+    animation:
+      feed-in 360ms cubic-bezier(0.22, 1, 0.36, 1),
+      feed-just-in 2.4s ease-out;
+  }
+  .feed-item-exit {
+    animation: feed-out 360ms ease-out forwards;
   }
   .feed-dot {
     animation: feed-pulse 2.4s ease-in-out infinite;
   }
 }
+/* Enter and exit run the same 360ms so an arrival's growth and the displaced
+   row's collapse trade height nearly net-zero — nothing below the pane jumps. */
 @keyframes feed-in {
   from {
     opacity: 0;
     transform: translateY(10px);
+    grid-template-rows: 0fr;
+    padding-block: 0;
+    border-bottom-width: 0;
   }
   to {
     opacity: 1;
     transform: none;
+    grid-template-rows: 1fr;
+  }
+}
+/* Plateau ~35% before easing out: the wash must survive the scene glow long
+   enough to be witnessed, then decay without a trace. */
+@keyframes feed-just-in {
+  0% {
+    background-color: color-mix(in oklab, var(--color-accent) 14%, transparent);
+  }
+  35% {
+    background-color: color-mix(in oklab, var(--color-accent) 12%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+@keyframes feed-out {
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+    grid-template-rows: 0fr;
+    padding-block: 0;
+    border-bottom-width: 0;
   }
 }
 @keyframes feed-pulse {

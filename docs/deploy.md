@@ -10,7 +10,8 @@ The SSR app deploys to Railway from `main` via the [`Dockerfile`](../Dockerfile)
     - Do **not** use the **direct** host (`db.<ref>.supabase.co:5432`) — it's IPv6-only and Railway egresses over IPv4, so the connection hangs.
     - Do **not** paste the local `postgresql://…@127.0.0.1:54322/…` value.
   - **Railway managed Postgres**: the `${{Postgres.DATABASE_URL}}` variable reference — private networking, no external pooler in the path. Stand a fresh one up per [Vanilla Postgres](#vanilla-postgres-any-non-supabase-host) below.
-- `SUPABASE_URL`; plus `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` once Realtime/Auth land (Phase 2).
+- `SUPABASE_URL`; plus `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` once Auth lands (Phase 2).
+- **`VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`** — the browser Realtime client (live feed + leaderboard refetch). Build-time vars like the other `VITE_*` keys (Vite inlines them; a change requires a redeploy). The anon key is public by design — RLS lets it read only verified+current records, and the client is Realtime-only (ADR 0006). Absent keys degrade silently to the static SSR site. **Caveat:** Realtime streams the *Supabase* database's changes — while `DATABASE_URL` points anywhere else (incident fallback), live events won't match what the site serves, so leave these unset in that state.
 - `SENTRY_DSN` and the `VITE_*` observability keys.
 - The `R2_*` proof/asset storage vars (see `.env.example` for names and defaults) — set on **both** the web service and the `catalog-sync` service (the cron mirrors vehicle images). The token is scoped Object Read & Write to exactly the three buckets; verify with `bun run r2:verify` after any rotation.
 
@@ -44,7 +45,7 @@ Real GRB data lands via the importer (#20).
 
 ## Vanilla Postgres (any non-Supabase host)
 
-Nothing at runtime uses Supabase-specific services yet (Realtime and Auth are future phases), so any Postgres serves the app once the Supabase-provided objects are shimmed in — the same recipe the per-PR migration check runs against a fresh `postgres` container. Against a direct (non-transaction-pooler) URL:
+Server-side rendering uses no Supabase-specific services (Auth is Phase 2; the browser's Realtime live feed degrades silently when `VITE_SUPABASE_*` is unset), so any Postgres serves the app once the Supabase-provided objects are shimmed in — the same recipe the per-PR migration check runs against a fresh `postgres` container. Against a direct (non-transaction-pooler) URL:
 
 ```bash
 export DATABASE_URL='<direct connection URL>'

@@ -134,7 +134,7 @@ export function VehicleLookup({ mode }: { mode: string }) {
               onMouseEnter={() => setActive(i)}
               onClick={() => go(i)}
               className={
-                'flex cursor-pointer items-baseline gap-2 px-3.5 py-1.5 text-[0.875rem] ' +
+                'flex cursor-pointer items-baseline gap-2 px-3.5 py-1.5 text-sm ' +
                 (active === i ? 'bg-[var(--pill-active)]' : '')
               }
             >
@@ -149,7 +149,7 @@ export function VehicleLookup({ mode }: { mode: string }) {
             </li>
           ))}
           {items.length === 0 && (
-            <li className="px-3.5 py-1.5 text-[0.875rem] text-fg-faint">
+            <li className="px-3.5 py-1.5 text-sm text-fg-faint">
               No vehicles found.
             </li>
           )}
