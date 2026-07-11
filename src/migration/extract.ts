@@ -16,6 +16,8 @@ export interface MigrationSnapshot {
   spreadsheetId: string
   extractedAt: string
   rows: Array<RawRow>
+  /** Unclaimed vehicle rows (name/BR only) — listed but not imported. */
+  placeholderRows: number
   /** Resolved imgur posts keyed by post id. */
   imgur: Record<string, ResolvedImgurPost>
   crossChecks: SnapshotCrossChecks
@@ -42,13 +44,17 @@ export async function extract(
   const log = deps.log ?? (() => {})
   const problems: Array<string> = []
   const rows: Array<RawRow> = []
+  let placeholderRows = 0
 
   for (const [tab, nation] of Object.entries(config.nationTabs)) {
     const grid = await fetchTabGrid(config.spreadsheetId, tab, deps.sheets)
     const parsed = parseNationTab(tab, nation, grid)
     rows.push(...parsed.rows)
     problems.push(...parsed.problems)
-    log(`${tab}: ${parsed.rows.length} rows`)
+    placeholderRows += parsed.placeholders
+    log(
+      `${tab}: ${parsed.rows.length} rows (+${parsed.placeholders} unclaimed)`,
+    )
   }
 
   const crossChecks = await fetchCrossChecks(config, deps.sheets)
@@ -82,6 +88,7 @@ export async function extract(
     spreadsheetId: config.spreadsheetId,
     extractedAt: (deps.now ?? (() => new Date()))().toISOString(),
     rows,
+    placeholderRows,
     imgur,
     crossChecks,
   }
@@ -190,7 +197,7 @@ export function buildFindings(
   )
   lines.push('')
   lines.push(
-    `- Rows: **${rows.length}** (Leaderboard declares ${snapshot.crossChecks.leaderboardTotal ?? 'unknown'})`,
+    `- Rows: **${rows.length}** (Leaderboard declares ${snapshot.crossChecks.leaderboardTotal ?? 'unknown'}); unclaimed vehicle rows skipped: ${snapshot.placeholderRows}`,
   )
   lines.push(
     `- Distinct players: **${players.size}** (DataSheet declares ${snapshot.crossChecks.dataSheetDistinctPlayers ?? 'unknown'})`,

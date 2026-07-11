@@ -75,6 +75,9 @@ export interface RawRow {
 export interface ParsedTab {
   rows: Array<RawRow>
   problems: Array<string>
+  /** Vehicle rows nobody has claimed yet (name/BR only) — the tabs list every
+      eligible vehicle; the DataSheet's "Out Of" counts these too. */
+  placeholders: number
 }
 
 const EXPECTED_HEADER = [
@@ -107,6 +110,7 @@ export function parseNationTab(
 ): ParsedTab {
   const problems: Array<string> = []
   const rows: Array<RawRow> = []
+  let placeholders = 0
 
   const header = grid[0] ?? []
   for (let i = 0; i < EXPECTED_HEADER.length; i++) {
@@ -134,6 +138,14 @@ export function parseNationTab(
     if (!vehicleName) missing.push('tank')
     if (!playerName) missing.push('player')
     if (!patch) missing.push('patch')
+    const hasProofLink = PROOF_COLUMNS.some(({ index }) => {
+      const cell = cellAt(row, index)
+      return cell.hyperlink !== null || cell.value !== null
+    })
+    if (vehicleName && !kills && !playerName && !patch && !hasProofLink) {
+      placeholders += 1
+      continue
+    }
     if (missing.length > 0) {
       problems.push(`${tab} row ${rowNumber}: missing ${missing.join(', ')}`)
       continue
@@ -183,7 +195,7 @@ export function parseNationTab(
     })
   }
 
-  return { rows, problems }
+  return { rows, problems, placeholders }
 }
 
 function isUrl(value: string | null): value is string {

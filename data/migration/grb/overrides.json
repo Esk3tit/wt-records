@@ -1,0 +1,64 @@
+{
+  "$comment": "Human adjudications for the GRB resolve stage (2026-07-11). Conventions found in the sheet: a 🌩️ prefix marks the marketplace twin of a vehicle (datamine `_sm`, shown in-game with ◍); ◇M4 is the sheet's marker for the giveaway M4 twin (us_m4_sherman_promo); split SAM systems map to their player-controlled launcher unit (TEL/TELAR), not the radar (TADS); yt_cup/race/tutorial catalog clones are never record holders. BR columns in the sheet confirmed every pick (e.g. P204(f) PaK @2.7 = KwK 39/1, KWK @2.0 = KwK 38; Type 69-IIG @9.0 = cn_type_69_2g). Difficult-list arrays flag both name-identical event/marketplace twins.",
+  "vehicles": {
+    "usa:NASAMS 3": "us_nasams_launcher",
+    "usa:CLAWS": "us_sl_amraam_launcher",
+    "usa:M1A1 HC": "us_m1a1_hc_abrams",
+    "usa:🌩️M1A1 HC": "us_m1a1_hc_usmc_sm",
+    "usa:M1A1": "us_m1a1_abrams",
+    "usa:◇M4": "us_m4_sherman_promo",
+    "usa:M4": "us_m4_sherman",
+    "usa:LVT(A)(1)": "us_lvt_a_1",
+    "usa:LVT(A)(1) (RussianBadger)": "us_lvt_a_1_trb",
+    "germany:IRIS-T SLM": "germ_iris_slm_launcher",
+    "germany:Leopard 2A5": "germ_leopard_2a5",
+    "germany:Leopard 2A4M": "germ_leopard_2a4m_can",
+    "germany:🌩️Leopard 2A4M": "germ_leopard_2a4m_can_sm",
+    "germany:38 cm Sturmmörser": "germ_sturmmorser_sturmtiger",
+    "germany:KV-1B": "germ_kv_1B_finland",
+    "germany:Pz.Sp.Wg.P204(f) PaK": "germ_amd_35_kwk39",
+    "germany:Pz.Sp.Wg.P204(f) KWK": "germ_amd_35_kwk",
+    "germany:A7V": "germ_a7v",
+    "ussr:9K317M \"BUK-M3\"": "ussr_buk_m3_launcher",
+    "ussr:T-80U": "ussr_t_80u",
+    "ussr:🌩️T-80-U-E1": "ussr_t_80ue1_sm",
+    "ussr:T-72B3": "ussr_t_72b3_2011",
+    "ussr:ZSU-23-4": "ussr_zsu_23_4",
+    "ussr:T-50": "ussr_t_50",
+    "britain:Sky Sabre": "uk_sky_sabre_launcher",
+    "britain:Challenger 2": "uk_challenger_II",
+    "britain:Challenger 2 OES": "uk_challenger_2_megatron",
+    "japan:Type 90 (B)": "jp_type_90b",
+    "japan:🌩️ Type 90 (B)": "jp_type_90b_sm",
+    "china:MBT-2000": "cn_mbt2000",
+    "china:🌩️ MBT-2000": "cn_mbt2000_sm",
+    "china:ZTZ96A": "cn_ztz_96a",
+    "china:ZLT11": "cn_ztl_11",
+    "china:M3A3": "cn_m3a3_stuart",
+    "china:Type 69-IIG": "cn_type_69_2g",
+    "italy:FSAF SAMP/T": "it_samp_t_launcher",
+    "france:FSAF SAMP/T (Mamba)": "fr_samp_t_launcher",
+    "sweden:NASAMS 3": "sw_nasams_launcher"
+  },
+  "difficultVehicles": {
+    "38 cm Sturmmörser": [
+      "germ_sturmmorser_sturmtiger",
+      "germ_sturmmorser_sturmtiger_event"
+    ],
+    "Beutepanzer Mk IV": [
+      "germ_beutepanzer_mk_iv",
+      "germ_beutepanzer_mk_iv_event"
+    ],
+    "Mark V": ["uk_mark_v", "uk_mark_v_event"],
+    "Garford": ["ussr_garford_putilov", "uk_garford_putilov_event"],
+    "Garford-Beute": ["germ_garford_putilov", "germ_garford_putilov_event"]
+  },
+  "players": {
+    "МОРИАРТИ": { "slug": "moriarty" },
+    "御坂いもうと": { "slug": "misaka-imouto" },
+    "К А Р А Т Е Л Ь": { "slug": "karatel" },
+    "ナヒナヒの胎児": { "slug": "nahinahi-no-taiji" },
+    "不如玩原神": { "slug": "buruwanyuanshen" },
+    "黙劇": { "slug": "mokugeki" }
+  }
+}

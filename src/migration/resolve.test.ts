@@ -92,6 +92,7 @@ function snapshot(
     spreadsheetId: 'sheet-id',
     extractedAt: '2026-07-11T00:00:00Z',
     rows,
+    placeholderRows: 0,
     imgur,
     crossChecks: { leaderboardTotal: rows.length, dataSheetDistinctPlayers: 1 },
   }
@@ -163,6 +164,40 @@ describe('resolve', () => {
     ])
     expect(review).toContain('Proof gaps')
     expect(review).toContain('all proof links dead')
+  })
+
+  it('keeps an alive-but-empty album as an original-URL proof and flags the gap', () => {
+    const imgur = {
+      empty01: {
+        id: 'empty01',
+        status: 'ok' as const,
+        createdAt: '2026-06-25T00:00:00Z',
+        media: [],
+      },
+    }
+    const { resolution, review } = run(
+      [
+        row({
+          rowNumber: 2,
+          proofs: [
+            { column: 'screenshot', url: 'https://imgur.com/a/empty01' },
+          ],
+        }),
+      ],
+      {},
+      imgur,
+    )
+    const resolved = resolution.rows[0]
+    expect(resolved.problems).toEqual([])
+    expect(resolved.verifiedAt).toBe('2026-06-25T00:00:00Z')
+    expect(resolved.proofs).toEqual([
+      {
+        kind: 'scoreboard',
+        originalUrl: 'https://imgur.com/a/empty01',
+        sort: 0,
+      },
+    ])
+    expect(review).toContain('no usable image behind the proof links')
   })
 
   it('blocks unmatched vehicles and missing patches', () => {

@@ -57,7 +57,7 @@ describe('parseNationTab', () => {
     ])
   })
 
-  it('skips blank rows and keeps short rows without proofs', () => {
+  it('skips blank rows, counts unclaimed placeholders, keeps proof-less rows', () => {
     const grid: Array<SheetRow> = [
       HEADER,
       [cell(), cell(), cell()],
@@ -68,11 +68,13 @@ describe('parseNationTab', () => {
         cell('12.7'),
         cell('2.55'),
       ],
+      [cell(), cell('2S38'), cell(), cell('10.0')],
     ]
-    const { rows, problems } = parseNationTab('USA', 'usa', grid)
+    const { rows, problems, placeholders } = parseNationTab('USA', 'usa', grid)
     expect(problems).toEqual([])
     expect(rows).toHaveLength(1)
     expect(rows[0].proofs).toEqual([])
+    expect(placeholders).toBe(1)
   })
 
   it('accepts a bare URL typed as cell text', () => {

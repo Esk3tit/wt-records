@@ -51,6 +51,7 @@ export interface MigrationResolution {
 }
 
 export interface MigrationOverrides {
+  $comment?: string
   /** `"<nation>:<sheet vehicle name>"` → catalog externalId. */
   vehicles?: Record<string, string>
   /** `"<tab>:<row>"` → row-level adjudications. */
@@ -60,8 +61,9 @@ export interface MigrationOverrides {
   >
   /** Sheet player name → fixed slug. */
   players?: Record<string, { slug: string }>
-  /** Difficult-list name → catalog externalId. */
-  difficultVehicles?: Record<string, string>
+  /** Difficult-list name → catalog externalId(s) — arrays cover the
+      name-identical event/marketplace twins that must all be flagged. */
+  difficultVehicles?: Record<string, string | Array<string>>
   /** Duplicate vehicle externalId → rowKey that keeps `is_current`. */
   duplicates?: Record<string, string>
 }
@@ -262,6 +264,11 @@ function resolveRow(
     ) {
       earliestUpload = post.createdAt
     }
+    if (post.media.length === 0) {
+      // Alive but emptied album — keep the link as provenance, like dead ones.
+      proofs.push({ kind, originalUrl: proof.url, sort: sort++ })
+      continue
+    }
     for (const media of post.media) {
       if (media.ext && RASTER_EXTENSIONS.has(media.ext)) {
         proofs.push({
@@ -276,9 +283,18 @@ function resolveRow(
       }
     }
   }
-  if (proofs.length === 0 || proofs.every((p) => p.dead)) {
+  const hasEvidence = proofs.some(
+    (p) => p.mirror !== undefined || p.kind === 'video',
+  )
+  if (!hasEvidence) {
+    const why =
+      raw.proofs.length === 0
+        ? 'no proof link in the sheet'
+        : proofs.length > 0 && proofs.every((p) => p.dead)
+          ? 'all proof links dead'
+          : 'no usable image behind the proof links'
     notes.proofGaps.push(
-      `${rowKey} (${raw.vehicleName}, ${raw.playerName}): ${raw.proofs.length === 0 ? 'no proof link in the sheet' : 'all proof links dead'}`,
+      `${rowKey} (${raw.vehicleName}, ${raw.playerName}): ${why}`,
     )
   }
 
@@ -429,12 +445,18 @@ function resolveDifficultList(
   for (const entry of rules.difficultVehicles) {
     const override = overrides.difficultVehicles?.[entry.name]
     if (override) {
-      if (byExternalId.has(override)) {
-        resolved.push({ name: entry.name, externalId: override })
-        notes.difficultLines.push(`${entry.name} → ${override} [override]`)
+      const externalIds = Array.isArray(override) ? override : [override]
+      const missing = externalIds.filter((id) => !byExternalId.has(id))
+      if (missing.length === 0) {
+        for (const externalId of externalIds) {
+          resolved.push({ name: entry.name, externalId })
+        }
+        notes.difficultLines.push(
+          `${entry.name} → ${externalIds.join(', ')} [override]`,
+        )
       } else {
         unresolved.push(
-          `${entry.name}: override "${override}" is not in the catalog`,
+          `${entry.name}: override "${missing.join(', ')}" is not in the catalog`,
         )
       }
       continue
