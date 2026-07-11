@@ -167,7 +167,8 @@ export class ImgurResolver {
     if (wait > 0) await this.sleepImpl(wait)
     this.lastRequestAt = Date.now()
     this.networkFetches += 1
-    return this.fetchImpl(url)
+    // A timeout abort surfaces as a network error, so the retry flow owns it.
+    return this.fetchImpl(url, { signal: AbortSignal.timeout(30_000) })
   }
 
   private async fetchPost(id: string): Promise<ResolvedImgurPost> {
