@@ -33,9 +33,9 @@ export async function fetchTabGrid(
 ): Promise<Array<SheetRow>> {
   const url =
     `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}` +
-    `?key=${apiKey}&ranges=${encodeURIComponent(`'${tab}'`)}` +
+    `?key=${encodeURIComponent(apiKey)}&ranges=${encodeURIComponent(`'${tab}'`)}` +
     `&includeGridData=true&fields=${FIELDS}`
-  const res = await fetchImpl(url)
+  const res = await fetchImpl(url, { signal: AbortSignal.timeout(30_000) })
   if (!res.ok) {
     throw new Error(`Sheets API ${res.status} for tab "${tab}"`)
   }

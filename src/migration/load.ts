@@ -75,6 +75,9 @@ export async function loadMigration(
   options: LoadOptions = {},
 ): Promise<LoadSummary> {
   refuseUnlessResolved(resolution)
+  // Checked again inside the transaction; failing here first keeps a refused
+  // load from spending the whole mirror phase on uploads it will never use.
+  await guardAgainstUserData(db)
 
   const summary: LoadSummary = {
     players: 0,

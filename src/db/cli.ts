@@ -7,10 +7,16 @@ export interface CliDb {
   close: () => Promise<void>
 }
 
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
+
 /** Guard input for the destructive CLI runners: anything not provably local
-    must be an explicit env-var opt-in. */
+    (unparseable included) must be an explicit env-var opt-in. */
 export function isLocalDatabaseUrl(url: string): boolean {
-  return /@(localhost|127\.0\.0\.1|\[::1\])[:/]/.test(url)
+  try {
+    return LOCAL_HOSTS.has(new URL(url).hostname)
+  } catch {
+    return false
+  }
 }
 
 /** One-shot DB handle for CLI scripts (seed, catalog-sync) — connection

@@ -18,8 +18,12 @@ if (!isLocalDatabaseUrl(url) && process.env.IMPORT_RESET_REMOTE !== '1') {
 
 const { db, close } = openCliDb(url)
 try {
-  await resetFixture(db)
-  await db.insert(schema.modes).values([...CANONICAL_MODES])
+  // One transaction: an interrupted reset must never leave modes empty, or
+  // the next catalog:sync would see no playable branches and sync nothing.
+  await db.transaction(async (tx) => {
+    await resetFixture(tx)
+    await tx.insert(schema.modes).values([...CANONICAL_MODES])
+  })
   console.log(
     `Fixture truncated; ${CANONICAL_MODES.length} canonical modes seeded. ` +
       'Next: catalog:sync, then import:load.',

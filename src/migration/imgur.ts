@@ -129,6 +129,11 @@ export class ImgurResolver {
   }
 
   async resolve(id: string): Promise<ResolvedImgurPost> {
+    // Validate before anything — readCache swallows errors as cache misses,
+    // which would otherwise let an unsafe id straight through to the network.
+    if (!/^[A-Za-z0-9]+$/.test(id)) {
+      throw new Error(`Unsafe imgur id ${JSON.stringify(id)}`)
+    }
     const cached = this.readCache(id)
     if (cached) return cached.resolved
 
@@ -138,9 +143,6 @@ export class ImgurResolver {
   }
 
   private cachePath(id: string): string {
-    if (!/^[A-Za-z0-9]+$/.test(id)) {
-      throw new Error(`Unsafe imgur id ${JSON.stringify(id)}`)
-    }
     return join(this.cacheDir, `${id}.json`)
   }
 
