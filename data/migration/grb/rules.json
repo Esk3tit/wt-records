@@ -1,0 +1,25 @@
+{
+  "$comment": "Human-transcribed from the sheet's Rules/Submitting tab (2026-07-11). Load syncs these into modes/mode_min_kills/vehicles.is_difficult — never parsed from the sheet.",
+  "minKills": {
+    "light": 12,
+    "medium": 12,
+    "heavy": 12,
+    "spg": 10,
+    "spaa": 6
+  },
+  "difficultMinKills": 6,
+  "difficultVehicles": [
+    { "name": "LOSAT", "nation": "usa" },
+    { "name": "38 cm Sturmmörser", "nation": "germany" },
+    { "name": "BM-13N", "nation": "ussr" },
+    { "name": "BM-8-24", "nation": "ussr" },
+    { "name": "BM-31-12", "nation": "ussr" },
+    { "name": "FV4005", "nation": "britain" },
+    { "name": "Type 60 ATM", "nation": "japan" },
+    { "name": "Zachlam Tager", "nation": "israel" },
+    { "name": "Beutepanzer Mk IV", "nation": "germany" },
+    { "name": "Mark V", "nation": "britain" },
+    { "name": "Garford", "nation": "ussr" },
+    { "name": "Garford-Beute", "nation": "germany" }
+  ]
+}

@@ -19,6 +19,9 @@ src/routeTree.gen.ts
 !.env.example
 *.local
 
+# Migration pipeline resume caches — the committed artifacts are the record
+data/migration/*/cache/
+
 # Test / coverage artifacts
 coverage
 /test-results
