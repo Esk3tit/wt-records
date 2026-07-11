@@ -105,8 +105,10 @@ so run daily. Create a second Railway service on this repo:
 ## Production rollout order
 
 The dev/staging seed fixture occupies real slugs (`m4a1`, `wirbelwind`, …).
-Before the real GRB import (#20): truncate the fixture (`resetFixture`),
-run `catalog:sync`, then run the importer against the synced catalog.
-Running the sync on a seeded DB is safe — fixture vehicles just get flagged
-removed and the real ones take nation-suffixed slugs — but the clean order
-above gives the real catalog the canonical slugs.
+Before the real GRB import: `bun run import:reset` (truncates the fixture and
+re-seeds the canonical modes — the sync needs `modes` populated to know which
+branches to fill BRs for), then `catalog:sync`, then `import:load` against the
+synced catalog (see docs/grb-migration.md). Running the sync on a seeded DB is
+safe — fixture vehicles just get flagged removed and the real ones take
+nation-suffixed slugs — but the clean order above gives the real catalog the
+canonical slugs.

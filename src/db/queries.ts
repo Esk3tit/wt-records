@@ -28,6 +28,7 @@ import {
   vehicles,
 } from '#/db/schema'
 import { searchKey } from '#/lib/search-terms'
+import { proofUrlIfConfigured } from '#/storage/urls'
 import { BROWSE_PAGE_SIZE, browseFilters } from '#/lib/browse-params'
 import type { Acquisition, BrowseFilters } from '#/lib/browse-params'
 
@@ -657,13 +658,19 @@ export async function getVehicle(db: Db, mode: string, slug: string) {
   const brRow = one(brRows)
   const current = one(currentRows)
 
-  const proofs = current
+  const proofRows = current
     ? await db
         .select()
         .from(recordProof)
         .where(eq(recordProof.recordId, current.recordId))
         .orderBy(asc(recordProof.sort))
     : []
+  // Serve the mirrored copy when one exists — the original host may be gone.
+  const proofs = proofRows.map((p) => ({
+    ...p,
+    url:
+      (p.storagePath && proofUrlIfConfigured(p.storagePath)) || p.originalUrl,
+  }))
 
   return { vehicle, br: brRow ? brRow.br : null, current, proofs }
 }

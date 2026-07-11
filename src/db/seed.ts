@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import type { ExtractTablesWithRelations } from 'drizzle-orm'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 import * as schema from '#/db/schema'
+import { CANONICAL_MODES } from '#/db/modes'
 import { replaceSearchTerms } from '#/db/search-terms'
 
 export type SeedDb = PgDatabase<
@@ -23,37 +24,12 @@ export async function resetFixture(db: SeedDb): Promise<void> {
 // GRB migration importer replace this later. Moderators (profiles) are omitted
 // on purpose: they need real auth.users ids from Discord/Google sign-in.
 export async function seed(db: SeedDb): Promise<void> {
-  await db.insert(schema.modes).values([
-    {
-      mode: 'grb',
-      name: 'Ground Realistic Battles',
-      branch: 'ground',
-      difficultMinKills: 5,
-      isLive: true,
-      sort: 1,
-    },
-    {
-      mode: 'gab',
-      name: 'Ground Arcade Battles',
-      branch: 'ground',
-      isLive: false,
-      sort: 2,
-    },
-    {
-      mode: 'arb',
-      name: 'Air Realistic Battles',
-      branch: 'air',
-      isLive: false,
-      sort: 3,
-    },
-    {
-      mode: 'aab',
-      name: 'Air Arcade Battles',
-      branch: 'air',
-      isLive: false,
-      sort: 4,
-    },
-  ])
+  await db.insert(schema.modes).values(
+    CANONICAL_MODES.map((mode) =>
+      // demo-only threshold; the real value lands with the GRB import
+      mode.mode === 'grb' ? { ...mode, difficultMinKills: 5 } : { ...mode },
+    ),
+  )
 
   await db.insert(schema.modeMinKills).values([
     { mode: 'grb', class: 'light', minKills: 8 },

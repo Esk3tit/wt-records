@@ -18,3 +18,12 @@ export function assetUrl(key: string): string {
   assertValidObjectKey(key)
   return publicObjectUrl(base, key)
 }
+
+/** Serving URL for a mirrored proof (the public proofs bucket), or null when
+    the base URL isn't configured — callers fall back to the original URL. */
+export function proofUrlIfConfigured(key: string): string | null {
+  const base = process.env.R2_PUBLIC_BASE_URL
+  if (!base) return null
+  assertValidObjectKey(key)
+  return publicObjectUrl(base, key)
+}

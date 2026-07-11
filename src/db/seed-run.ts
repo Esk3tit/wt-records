@@ -1,5 +1,5 @@
 import process from 'node:process'
-import { openCliDb } from '#/db/cli'
+import { isLocalDatabaseUrl, openCliDb } from '#/db/cli'
 import { resetFixture, seed } from '#/db/seed'
 import { seedDemo } from '#/db/seed-demo'
 
@@ -10,8 +10,7 @@ if (!url) throw new Error('DATABASE_URL is not set')
 
 // The fixture is FAKE data — refuse to seed a non-local database unless the
 // caller opts in, so a stray DATABASE_URL can't overwrite staging/production.
-const isLocal = /@(localhost|127\.0\.0\.1|\[::1\])[:/]/.test(url)
-if (!isLocal && process.env.SEED_REMOTE !== '1') {
+if (!isLocalDatabaseUrl(url) && process.env.SEED_REMOTE !== '1') {
   throw new Error(
     'Refusing to seed a non-local database. Set SEED_REMOTE=1 to override.',
   )
