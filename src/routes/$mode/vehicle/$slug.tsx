@@ -68,8 +68,8 @@ function VehicleDetail() {
             <ul className="mt-2 space-y-1 text-sm">
               {proofs.map((p) => (
                 <li key={p.id}>
-                  {p.originalUrl ? (
-                    <a href={p.originalUrl} className="text-accent">
+                  {p.url ? (
+                    <a href={p.url} className="text-accent">
                       {p.kind}
                     </a>
                   ) : (

@@ -76,7 +76,11 @@ transaction:
 4. Inserts players (accountless, claimable later) with `migration`-source
    aliases, records (`status=verified`, `imported_from='sheet'`,
    `submitted_by_id=null`), and proofs (mirrored `storage_path` +
-   `original_url`; videos stay external by design).
+   `original_url`; videos stay external by design). Proof `kind` is an
+   approximation — every image behind a Screenshot column is `scoreboard`,
+   behind Screenshot 2 `end_game` — because historical albums can't be
+   classified per image. The vehicle page serves the mirrored copy and falls
+   back to the original URL.
 
 `--dry-run` applies everything and rolls back (mirroring skipped). Guards
 match the house pattern: a non-local `DATABASE_URL` refuses without

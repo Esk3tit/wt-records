@@ -1,5 +1,5 @@
 import process from 'node:process'
-import { openCliDb } from '#/db/cli'
+import { isLocalDatabaseUrl, openCliDb } from '#/db/cli'
 import { WtVehiclesApiSource } from '#/catalog/wt-vehicles-api'
 import { syncCatalog } from '#/catalog/sync'
 import { mirrorVehicleImages } from '#/catalog/mirror-images'
@@ -24,8 +24,11 @@ if (
 
 // Slug assignment is first-run-wins on a live catalog, so a stray remote
 // DATABASE_URL must not sync by accident (the cron image opts in).
-const isLocal = /@(localhost|127\.0\.0\.1|\[::1\])[:/]/.test(url)
-if (!isLocal && !dryRun && process.env.CATALOG_SYNC_REMOTE !== '1') {
+if (
+  !isLocalDatabaseUrl(url) &&
+  !dryRun &&
+  process.env.CATALOG_SYNC_REMOTE !== '1'
+) {
   throw new Error(
     'Refusing to sync a non-local database. Set CATALOG_SYNC_REMOTE=1 to override.',
   )

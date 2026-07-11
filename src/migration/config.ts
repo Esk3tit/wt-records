@@ -30,6 +30,10 @@ const GRB: MigrationModeConfig = {
 
 const CONFIGS = new Map<string, MigrationModeConfig>([['grb', GRB]])
 
+export function modeFromArgv(argv: ReadonlyArray<string>): string {
+  return argv.find((a) => a.startsWith('--mode='))?.split('=')[1] ?? 'grb'
+}
+
 export function migrationConfig(mode: string): MigrationModeConfig {
   const config = CONFIGS.get(mode)
   if (!config) {

@@ -1,6 +1,6 @@
 # GRB resolution review
 
-Resolved 2026-07-11T09:43:39.025Z from the 2026-07-11T09:36:09.891Z snapshot.
+Resolved 2026-07-11T10:05:42.528Z from the 2026-07-11T09:36:09.891Z snapshot.
 
 - Rows: 1108, blocked: **0**
 - Players: 263
@@ -83,3 +83,4 @@ Everything is resolved — Load will accept this resolution.
 - Britain:132 (Staghound AA, Bvo): no usable image behind the proof links
 - Israel:37 (Magach 6, K_run): all proof links dead
 - Israel:42 (Magach 1, K_run): all proof links dead
+

@@ -152,9 +152,8 @@ describe('loadMigration', () => {
           kind: 'scoreboard',
           originalUrl: 'https://i.imgur.com/img1.png',
           mirror: { imgurId: 'alive01', mediaId: 'img1', ext: 'png' },
-          sort: 0,
         },
-        { kind: 'video', originalUrl: 'https://youtu.be/xyz', sort: 1 },
+        { kind: 'video', originalUrl: 'https://youtu.be/xyz' },
       ],
     }),
     resolvedRow({
@@ -175,7 +174,6 @@ describe('loadMigration', () => {
           kind: 'scoreboard',
           originalUrl: 'https://imgur.com/a/dead01',
           dead: true,
-          sort: 0,
         },
       ],
     }),

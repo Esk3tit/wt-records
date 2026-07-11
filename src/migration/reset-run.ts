@@ -1,18 +1,16 @@
-/* Step 1 of the production rollout (docs/catalog-sync.md): truncate the
-   dev/design fixture, then re-seed the canonical modes so the following
-   catalog:sync has branches to fill BRs for. */
+/* Truncates the dev/design fixture and re-seeds the canonical modes, so a
+   following catalog:sync has branches to fill BRs for (docs/catalog-sync.md). */
 
 import process from 'node:process'
-import { openCliDb } from '#/db/cli'
+import { isLocalDatabaseUrl, openCliDb } from '#/db/cli'
 import * as schema from '#/db/schema'
+import { CANONICAL_MODES } from '#/db/modes'
 import { resetFixture } from '#/db/seed'
-import { CANONICAL_MODES } from '#/migration/rules'
 
 const url = process.env.DATABASE_URL
 if (!url) throw new Error('DATABASE_URL is not set')
 
-const isLocal = /@(localhost|127\.0\.0\.1|\[::1\])[:/]/.test(url)
-if (!isLocal && process.env.IMPORT_RESET_REMOTE !== '1') {
+if (!isLocalDatabaseUrl(url) && process.env.IMPORT_RESET_REMOTE !== '1') {
   throw new Error(
     'Refusing to reset a non-local database. Set IMPORT_RESET_REMOTE=1 to override.',
   )

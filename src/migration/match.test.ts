@@ -11,14 +11,11 @@ function vehicle(
   externalId: string,
   name: string,
   nation: string,
-  cls: CatalogVehicle['class'] = 'medium',
 ): CatalogVehicle {
   return {
     externalId,
     name,
     nation,
-    class: cls,
-    isRemoved: false,
     terms: nameSearchTerms(name),
   }
 }
@@ -26,13 +23,13 @@ function vehicle(
 const CATALOG: Array<CatalogVehicle> = [
   vehicle('us_m1a2_sep_v3', 'M1A2 SEPv3', 'usa'),
   vehicle('us_m1a2', 'M1A2 Abrams', 'usa'),
-  vehicle('de_tiger_2_h', '␗Tiger II (H)', 'germany', 'heavy'),
+  vehicle('de_tiger_2_h', '␗Tiger II (H)', 'germany'),
   vehicle('de_leopard_2a7v', 'Leopard 2A7V', 'germany'),
   vehicle('uk_sherman_2', 'Sherman II', 'britain'),
   vehicle('us_sherman_2', 'Sherman II', 'usa'),
-  vehicle('uk_fv4005', 'FV4005', 'britain', 'spg'),
-  vehicle('il_zachlam_tager', 'Zachlam Tager', 'israel', 'spg'),
-  vehicle('ussr_bm_13n', 'BM-13N', 'ussr', 'spg'),
+  vehicle('uk_fv4005', 'FV4005', 'britain'),
+  vehicle('il_zachlam_tager', 'Zachlam Tager', 'israel'),
+  vehicle('ussr_bm_13n', 'BM-13N', 'ussr'),
 ]
 
 describe('matchVehicle', () => {

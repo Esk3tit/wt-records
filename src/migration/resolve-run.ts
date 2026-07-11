@@ -1,12 +1,12 @@
 import process from 'node:process'
 import { openCliDb } from '#/db/cli'
-import { migrationConfig } from '#/migration/config'
+import { migrationConfig, modeFromArgv } from '#/migration/config'
 import type { MigrationSnapshot } from '#/migration/extract'
 import { loadCatalogVehicles } from '#/migration/catalog'
 import type { MigrationOverrides } from '#/migration/resolve'
 import { resolve } from '#/migration/resolve'
 import type { MigrationRules, PatchBackfillEntry } from '#/migration/rules'
-import { CANONICAL_MODES } from '#/migration/rules'
+import { CANONICAL_MODES } from '#/db/modes'
 import {
   artifactPaths,
   readJsonArtifact,
@@ -15,8 +15,7 @@ import {
   writeJsonArtifact,
 } from '#/migration/artifacts'
 
-const mode =
-  process.argv.find((a) => a.startsWith('--mode='))?.split('=')[1] ?? 'grb'
+const mode = modeFromArgv(process.argv)
 const url = process.env.DATABASE_URL
 if (!url) throw new Error('DATABASE_URL is not set')
 

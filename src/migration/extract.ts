@@ -109,8 +109,10 @@ async function fetchCrossChecks(
   for (const row of leaderboard) {
     const labelIndex = row.findIndex((c) => c.value === 'Number of Records:')
     const value = labelIndex >= 0 ? row[labelIndex + 1]?.value : null
-    if (value && Number.isInteger(Number(value))) {
-      leaderboardTotal = Number(value)
+    // strip thousands separators a formatted count cell may carry
+    const parsed = Number(value?.replace(/,/g, ''))
+    if (value && Number.isInteger(parsed)) {
+      leaderboardTotal = parsed
       break
     }
   }
@@ -168,7 +170,7 @@ function proofHost(url: string): string {
   }
 }
 
-export function buildFindings(
+function buildFindings(
   snapshot: MigrationSnapshot,
   problems: Array<string>,
 ): string {

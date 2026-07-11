@@ -1,14 +1,11 @@
-/* Imgur album resolution via imgur's web-client endpoint (ADR 0007). The
-   official API is unobtainable; this endpoint returns all album media and
-   exact upload timestamps anonymously, using the public client-id imgur's
-   own site ships in its JS bundle. */
-
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
+// The public client-id imgur's own web client ships in its JS bundle — the
+// anonymous album endpoint (ADR 0007) rejects requests without one.
 export const IMGUR_WEB_CLIENT_ID = '546c25a59c58ad7'
 
-export type ProofUrlKind = 'imgur-album' | 'imgur-image' | 'video' | 'unknown'
+type ProofUrlKind = 'imgur-album' | 'imgur-image' | 'video' | 'unknown'
 
 export interface ClassifiedProofUrl {
   kind: ProofUrlKind
@@ -111,9 +108,8 @@ interface ApiPost {
   media?: Array<ApiMedia>
 }
 
-/** Resolves imgur posts with an on-disk cache so a killed run resumes where
-    it stopped instead of re-hammering imgur. Dead posts (404/400) are cached;
-    transient failures (429/5xx/network) retry and then abort the run. */
+/** Post resolver with an on-disk resume cache: dead posts (404/400) are
+    cached verdicts; transient failures retry, then abort the run. */
 export class ImgurResolver {
   private readonly cacheDir: string
   private readonly fetchImpl: typeof fetch
@@ -222,24 +218,31 @@ export class ImgurResolver {
           `imgur fetch failed after ${attempt} attempts (${detail}): ${url}`,
         )
       }
-      const retryAfter = res?.headers.get('retry-after')
-      const backoff = retryAfter
-        ? Number(retryAfter) * 1000
-        : 2000 * 2 ** (attempt - 1)
+      const retryAfter = Number(res?.headers.get('retry-after'))
+      const backoff =
+        Number.isFinite(retryAfter) && retryAfter > 0
+          ? retryAfter * 1000
+          : 2000 * 2 ** (attempt - 1)
       await this.sleepImpl(backoff)
     }
   }
 
   private toResolved(id: string, body: ApiPost): ResolvedImgurPost {
     const media = (body.media ?? []).map((m, index) => {
-      const mediaId = m.id ?? `${id}-${index}`
       const ext = m.ext?.replace(/^\./, '').toLowerCase() ?? null
+      // Only a real media id can anchor a constructed URL — an invented one
+      // would fabricate an i.imgur.com address that 404s two stages later.
       const url =
-        m.url ?? (ext ? `https://i.imgur.com/${mediaId}.${ext}` : null)
+        m.url ?? (m.id && ext ? `https://i.imgur.com/${m.id}.${ext}` : null)
       if (!url) {
-        throw new Error(`imgur media ${mediaId} in post ${id} has no URL`)
+        throw new Error(`imgur media ${index} in post ${id} has no URL`)
       }
-      return { id: mediaId, url, ext, createdAt: m.created_at ?? null }
+      return {
+        id: m.id ?? `${id}-${index}`,
+        url,
+        ext,
+        createdAt: m.created_at ?? null,
+      }
     })
     const mediaDates = media
       .map((m) => m.createdAt)

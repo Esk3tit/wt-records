@@ -3,6 +3,7 @@ import type { Db } from '#/db'
 import * as schema from '#/db/schema'
 import { vehicleImageKey } from '#/catalog/image-key'
 import { fetchUpstream } from '#/catalog/upstream-fetch'
+import { RASTER_IMAGE_CONTENT_TYPES } from '#/storage/image-types'
 import type { Storage } from '#/storage/r2'
 
 type AssetStore = Pick<Storage, 'put' | 'delete'>
@@ -10,16 +11,6 @@ type AssetStore = Pick<Storage, 'put' | 'delete'>
 // A systemic failure (revoked token, dead bucket) must not download the whole
 // catalog before anyone notices — stop the run after this many failures in a row.
 const MAX_CONSECUTIVE_FAILURES = 20
-
-// Raster only: an SVG (or anything else active) mirrored verbatim would be
-// served as third-party executable content from the assets origin.
-const SAFE_CONTENT_TYPES = new Set([
-  'image/png',
-  'image/jpeg',
-  'image/webp',
-  'image/gif',
-  'image/avif',
-])
 
 export interface MirrorOptions {
   /** Mirror at most this many images this run (backfill throttle). */
@@ -112,7 +103,7 @@ export async function mirrorVehicleImages(
       const contentType =
         res.headers.get('content-type')?.split(';')[0].trim().toLowerCase() ??
         ''
-      if (!SAFE_CONTENT_TYPES.has(contentType)) {
+      if (!RASTER_IMAGE_CONTENT_TYPES.has(contentType)) {
         throw new Error(
           `unexpected content type ${JSON.stringify(contentType)}`,
         )

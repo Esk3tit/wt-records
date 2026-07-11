@@ -12,14 +12,11 @@ function vehicle(
   externalId: string,
   name: string,
   nation: string,
-  cls: CatalogVehicle['class'] = 'medium',
 ): CatalogVehicle {
   return {
     externalId,
     name,
     nation,
-    class: cls,
-    isRemoved: false,
     terms: nameSearchTerms(name),
   }
 }
@@ -27,7 +24,7 @@ function vehicle(
 const VEHICLES = [
   vehicle('us_m1a2_sep_v3', 'M1A2 SEPv3', 'usa'),
   vehicle('uk_sherman_2', 'Sherman II', 'britain'),
-  vehicle('uk_fv4005', 'FV4005', 'britain', 'spg'),
+  vehicle('uk_fv4005', 'FV4005', 'britain'),
 ]
 
 const PATCHES: Array<PatchBackfillEntry> = [
@@ -133,9 +130,8 @@ describe('resolve', () => {
         kind: 'scoreboard',
         originalUrl: 'https://i.imgur.com/img1.png',
         mirror: { imgurId: 'alive01', mediaId: 'img1', ext: 'png' },
-        sort: 0,
       },
-      { kind: 'video', originalUrl: 'https://i.imgur.com/img2.mp4', sort: 1 },
+      { kind: 'video', originalUrl: 'https://i.imgur.com/img2.mp4' },
     ])
     expect(resolution.difficultVehicles).toEqual([
       { name: 'FV4005', externalId: 'uk_fv4005' },
@@ -159,7 +155,6 @@ describe('resolve', () => {
         kind: 'scoreboard',
         originalUrl: 'https://imgur.com/a/dead01',
         dead: true,
-        sort: 0,
       },
     ])
     expect(review).toContain('Proof gaps')
@@ -194,7 +189,6 @@ describe('resolve', () => {
       {
         kind: 'scoreboard',
         originalUrl: 'https://imgur.com/a/empty01',
-        sort: 0,
       },
     ])
     expect(review).toContain('no usable image behind the proof links')

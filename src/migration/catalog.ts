@@ -15,8 +15,6 @@ export async function loadCatalogVehicles(
       externalId: schema.vehicles.externalId,
       name: schema.vehicles.name,
       nation: schema.nations.slug,
-      class: schema.vehicles.class,
-      isRemoved: schema.vehicles.isRemoved,
     })
     .from(schema.vehicles)
     .innerJoin(schema.nations, eq(schema.vehicles.nationId, schema.nations.id))
@@ -28,6 +26,11 @@ export async function loadCatalogVehicles(
       term: schema.vehicleSearchTerms.term,
     })
     .from(schema.vehicleSearchTerms)
+    .innerJoin(
+      schema.vehicles,
+      eq(schema.vehicleSearchTerms.vehicleId, schema.vehicles.id),
+    )
+    .where(eq(schema.vehicles.branch, branch))
 
   const termsByVehicle = new Map<number, Array<string>>()
   for (const { vehicleId, term } of terms) {
@@ -40,8 +43,6 @@ export async function loadCatalogVehicles(
     externalId: row.externalId,
     name: row.name,
     nation: row.nation,
-    class: row.class,
-    isRemoved: row.isRemoved,
     terms: termsByVehicle.get(row.id) ?? [],
   }))
 }

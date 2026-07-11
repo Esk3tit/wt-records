@@ -2,12 +2,14 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { inArray, isNotNull, sql } from 'drizzle-orm'
 import * as schema from '#/db/schema'
+import { CANONICAL_MODES } from '#/db/modes'
 import type { SeedDb } from '#/db/seed'
+import { fetchUpstream } from '#/catalog/upstream-fetch'
 import { assertValidObjectKey } from '#/storage/urls'
+import { RASTER_IMAGE_CONTENT_TYPES } from '#/storage/image-types'
 import type { Storage } from '#/storage/r2'
 import type { MigrationResolution, ResolvedProof } from '#/migration/resolve'
 import type { MigrationRules, PatchBackfillEntry } from '#/migration/rules'
-import { CANONICAL_MODES } from '#/migration/rules'
 
 type ProofStore = Pick<Storage, 'put'>
 
@@ -38,7 +40,6 @@ export interface LoadSummary {
   difficultFlagged: number
   wipedRecords: number
   wipedPlayers: number
-  warnings: Array<string>
 }
 
 class DryRunRollback extends Error {
@@ -48,14 +49,6 @@ class DryRunRollback extends Error {
 }
 
 const CHUNK = 500
-
-const SAFE_CONTENT_TYPES = new Set([
-  'image/png',
-  'image/jpeg',
-  'image/webp',
-  'image/gif',
-  'image/avif',
-])
 
 interface MirrorManifest {
   /** media id → object key already uploaded by a previous run. */
@@ -71,9 +64,8 @@ export function proofObjectKey(
   return key
 }
 
-/** Transactional, all-or-nothing load of a fully-resolved migration into the
-    live schema. Image mirroring to R2 happens first, outside the transaction —
-    R2 uploads can't roll back, but re-running overwrites the same keys. */
+/** All-or-nothing load; R2 mirroring runs first, outside the transaction —
+    uploads can't roll back, but re-running overwrites the same keys. */
 export async function loadMigration(
   db: SeedDb,
   resolution: MigrationResolution,
@@ -95,7 +87,6 @@ export async function loadMigration(
     difficultFlagged: 0,
     wipedRecords: 0,
     wipedPlayers: 0,
-    warnings: [],
   }
 
   const storageKeys = await mirrorProofImages(
@@ -133,8 +124,8 @@ function refuseUnlessResolved(resolution: MigrationResolution): void {
   }
 }
 
-/* The wipe below is only safe while every record is fixture or migration
-   data. The first real user submission (Phase 2) carries submitted_by_id. */
+/* The wipe is only safe while nothing user-owned exists: no submitted
+   records and no account-claimed players. */
 async function guardAgainstUserData(tx: SeedDb): Promise<void> {
   const userRecords = await tx
     .select({ id: schema.records.id })
@@ -144,6 +135,16 @@ async function guardAgainstUserData(tx: SeedDb): Promise<void> {
   if (userRecords.length > 0) {
     throw new Error(
       'Refusing to load: user-submitted records exist — the full wipe-and-import is only valid pre-launch',
+    )
+  }
+  const claimedPlayers = await tx
+    .select({ id: schema.players.id })
+    .from(schema.players)
+    .where(isNotNull(schema.players.userId))
+    .limit(1)
+  if (claimedPlayers.length > 0) {
+    throw new Error(
+      'Refusing to load: account-claimed players exist — the full wipe-and-import is only valid pre-launch',
     )
   }
 }
@@ -194,12 +195,15 @@ async function mirrorProofImages(
       continue
     }
     try {
-      const res = await fetchImpl(target.url)
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const res = await fetchUpstream(target.url, {
+        fetchImpl,
+        timeoutMs: 30_000,
+        maxAttempts: 4,
+      })
       const contentType =
         res.headers.get('content-type')?.split(';')[0].trim().toLowerCase() ??
         ''
-      if (!SAFE_CONTENT_TYPES.has(contentType)) {
+      if (!RASTER_IMAGE_CONTENT_TYPES.has(contentType)) {
         throw new Error(
           `unexpected content type ${JSON.stringify(contentType)}`,
         )
@@ -239,9 +243,8 @@ function writeManifest(path: string, manifest: MirrorManifest): void {
   writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`)
 }
 
-/* Rules-sync (grilling decision 4): the sheet's Rules tab values replace the
-   seed's demo fiction. Modes are upserted so the rollout order never runs
-   against an empty modes table. */
+/* The sheet's Rules tab values replace the seed's demo fiction; modes are
+   upserted so the rollout order never runs against an empty modes table. */
 async function syncRules(
   tx: SeedDb,
   resolution: MigrationResolution,
@@ -284,20 +287,24 @@ async function upsertPatches(
   patches: Array<PatchBackfillEntry>,
   summary: LoadSummary,
 ): Promise<void> {
-  for (const patch of patches) {
-    await tx
-      .insert(schema.patches)
-      .values({
+  if (patches.length === 0) return
+  await tx
+    .insert(schema.patches)
+    .values(
+      patches.map((patch) => ({
         version: patch.version,
         name: patch.name,
         releasedAt: new Date(patch.releasedAt),
-      })
-      .onConflictDoUpdate({
-        target: schema.patches.version,
-        set: { name: patch.name, releasedAt: new Date(patch.releasedAt) },
-      })
-    summary.patchesUpserted += 1
-  }
+      })),
+    )
+    .onConflictDoUpdate({
+      target: schema.patches.version,
+      set: {
+        name: sql`excluded.name`,
+        releasedAt: sql`excluded.released_at`,
+      },
+    })
+  summary.patchesUpserted = patches.length
 }
 
 async function flagDifficultVehicles(
@@ -305,7 +312,15 @@ async function flagDifficultVehicles(
   resolution: MigrationResolution,
   summary: LoadSummary,
 ): Promise<void> {
-  const externalIds = resolution.difficultVehicles.map((d) => d.externalId)
+  // Clear first so a re-run with an amended list never leaves stale flags —
+  // this importer is the only writer of is_difficult.
+  await tx
+    .update(schema.vehicles)
+    .set({ isDifficult: false })
+    .where(sql`${schema.vehicles.isDifficult}`)
+  const externalIds = [
+    ...new Set(resolution.difficultVehicles.map((d) => d.externalId)),
+  ]
   if (externalIds.length === 0) return
   const updated = await tx
     .update(schema.vehicles)
@@ -324,7 +339,7 @@ async function flagDifficultVehicles(
 }
 
 /* prod currently serves the demo fixture's players/records; the migration
-   replaces them wholesale (grilling decision 1). */
+   replaces them wholesale. */
 async function wipe(tx: SeedDb, summary: LoadSummary): Promise<void> {
   await tx.delete(schema.recordProof)
   const records = await tx
@@ -410,14 +425,14 @@ async function insertEverything(
       .returning({ id: schema.records.id })
 
     const proofRows = chunk.flatMap((row, j) =>
-      row.proofs.map((proof) => ({
+      row.proofs.map((proof, index) => ({
         recordId: inserted[j].id,
         kind: proof.kind,
         storagePath: proof.mirror
           ? (storageKeys.get(proof.mirror.mediaId) ?? null)
           : null,
         originalUrl: proof.originalUrl,
-        sort: proof.sort,
+        sort: index,
       })),
     )
     for (let k = 0; k < proofRows.length; k += CHUNK) {

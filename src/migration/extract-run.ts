@@ -1,5 +1,5 @@
 import process from 'node:process'
-import { migrationConfig } from '#/migration/config'
+import { migrationConfig, modeFromArgv } from '#/migration/config'
 import { extract } from '#/migration/extract'
 import { ImgurResolver } from '#/migration/imgur'
 import {
@@ -8,15 +8,14 @@ import {
   writeJsonArtifact,
 } from '#/migration/artifacts'
 
-const mode =
-  process.argv.find((a) => a.startsWith('--mode='))?.split('=')[1] ?? 'grb'
+const mode = modeFromArgv(process.argv)
 const throttleArg = process.argv
   .find((a) => a.startsWith('--imgur-throttle-ms='))
   ?.split('=')[1]
 const throttleMs = throttleArg === undefined ? undefined : Number(throttleArg)
 if (
   throttleMs !== undefined &&
-  (!Number.isInteger(throttleMs) || throttleMs < 0)
+  (throttleArg === '' || !Number.isInteger(throttleMs) || throttleMs < 0)
 ) {
   throw new Error(
     `--imgur-throttle-ms must be a non-negative integer, got "${throttleArg}"`,

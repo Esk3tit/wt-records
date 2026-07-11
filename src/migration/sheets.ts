@@ -1,6 +1,5 @@
-/* Google Sheets grid reader. The proof URLs live behind cell hyperlinks,
-   which only the Sheets API exposes — CSV/xlsx exports are blocked for this
-   spreadsheet. */
+/* Google Sheets grid reader — the proof URLs live behind cell hyperlinks,
+   which only the API exposes (CSV/xlsx exports are blocked for this sheet). */
 
 export interface SheetCell {
   value: string | null

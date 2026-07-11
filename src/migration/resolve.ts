@@ -4,6 +4,7 @@ import type { RawRow } from '#/migration/sheets'
 import type { CatalogVehicle, MatchResult } from '#/migration/match'
 import { matchDifficultVehicle, matchVehicle } from '#/migration/match'
 import { classifyProofUrl } from '#/migration/imgur'
+import { RASTER_IMAGE_EXTENSIONS } from '#/storage/image-types'
 import type { MigrationRules, PatchBackfillEntry } from '#/migration/rules'
 
 export type ProofKind = 'scoreboard' | 'end_game' | 'end_life' | 'video'
@@ -15,7 +16,6 @@ export interface ResolvedProof {
   mirror?: { imgurId: string; mediaId: string; ext: string }
   /** The album link is dead; the proof survives as its original URL only. */
   dead?: boolean
-  sort: number
 }
 
 export interface ResolvedRow {
@@ -87,8 +87,6 @@ const COLUMN_KIND: Record<RawRow['proofs'][number]['column'], ProofKind> = {
   screenshot2: 'end_game',
   video: 'video',
 }
-
-const RASTER_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif'])
 
 function imgurPost(
   snapshot: MigrationSnapshot,
@@ -234,13 +232,12 @@ function resolveRow(
 
   // Proofs
   const proofs: Array<ResolvedProof> = []
-  let sort = 0
   let earliestUpload: string | null = null
   for (const proof of raw.proofs) {
     const classified = classifyProofUrl(proof.url)
     const kind = COLUMN_KIND[proof.column]
     if (classified.kind === 'video') {
-      proofs.push({ kind: 'video', originalUrl: proof.url, sort: sort++ })
+      proofs.push({ kind: 'video', originalUrl: proof.url })
       continue
     }
     if (classified.kind === 'unknown' || !classified.imgurId) {
@@ -255,7 +252,7 @@ function resolveRow(
       continue
     }
     if (post.status === 'dead') {
-      proofs.push({ kind, originalUrl: proof.url, dead: true, sort: sort++ })
+      proofs.push({ kind, originalUrl: proof.url, dead: true })
       continue
     }
     if (
@@ -266,25 +263,26 @@ function resolveRow(
     }
     if (post.media.length === 0) {
       // Alive but emptied album — keep the link as provenance, like dead ones.
-      proofs.push({ kind, originalUrl: proof.url, sort: sort++ })
+      proofs.push({ kind, originalUrl: proof.url })
       continue
     }
+    // A mirrored raster is never kind 'video', even from the Video column.
+    const imageKind = kind === 'video' ? 'scoreboard' : kind
     for (const media of post.media) {
-      if (media.ext && RASTER_EXTENSIONS.has(media.ext)) {
+      if (media.ext && RASTER_IMAGE_EXTENSIONS.has(media.ext)) {
         proofs.push({
-          kind,
+          kind: imageKind,
           originalUrl: media.url,
           mirror: { imgurId: post.id, mediaId: media.id, ext: media.ext },
-          sort: sort++,
         })
       } else {
         // imgur-hosted mp4/webm etc. — kept external like other video proof
-        proofs.push({ kind: 'video', originalUrl: media.url, sort: sort++ })
+        proofs.push({ kind: 'video', originalUrl: media.url })
       }
     }
   }
   const hasEvidence = proofs.some(
-    (p) => p.mirror !== undefined || p.kind === 'video',
+    (p) => p.mirror !== undefined || (p.kind === 'video' && p.dead !== true),
   )
   if (!hasEvidence) {
     const why =

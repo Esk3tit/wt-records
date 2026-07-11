@@ -2,14 +2,11 @@
    catalog slice; Resolve loads the slice from the DB. */
 
 import { nameSearchTerms, searchKey } from '#/lib/search-terms'
-import type { VehicleClass } from '#/lib/vehicle-classes'
 
 export interface CatalogVehicle {
   externalId: string
   name: string
   nation: string
-  class: VehicleClass
-  isRemoved: boolean
   /** Precomputed nameSearchTerms(name) — same generation the catalog uses. */
   terms: Array<string>
 }
@@ -27,9 +24,8 @@ export interface MatchResult {
   candidates: Array<MatchCandidate>
 }
 
-/** Character-bigram Dice similarity on collapsed keys — cheap and robust to
-    the sheet's abbreviations and symbol/emoji prefixes (searchKey drops
-    non-alphanumerics entirely). */
+/** Character-bigram Dice similarity on collapsed keys — robust to the
+    sheet's abbreviations and symbol prefixes (searchKey drops those). */
 export function diceSimilarity(a: string, b: string): number {
   if (a === b) return 1
   if (a.length < 2 || b.length < 2) return 0
