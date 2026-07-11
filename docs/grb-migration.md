@@ -85,7 +85,11 @@ transaction:
 `--dry-run` applies everything and rolls back (mirroring skipped). Guards
 match the house pattern: a non-local `DATABASE_URL` refuses without
 `IMPORT_LOAD_REMOTE=1`, and a remote load without R2 credentials refuses
-outright.
+outright. The pre-launch guard (no user-submitted records, no account-claimed
+players) runs before the mirror phase and again inside the transaction; R2
+uploads themselves can't be transactional, but every mirror side effect is
+confined to the `migration/<mode>/` prefix plus the gitignored manifest — a
+load that ends up permanently refused is cleaned by deleting that prefix.
 
 ## Production rollout
 
