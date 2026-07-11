@@ -60,6 +60,9 @@ A Record with `status = pending` (Phase 2). Not a separate entity — a submissi
 **Proof**:
 An artifact attached to a Record — a scoreboard / end-game / end-life screenshot, or a video. All proof is modeled uniformly (no separate scalar video field).
 
+**Migrated record**:
+A Record imported from the community's original spreadsheet rather than submitted through the site. Verified by definition (the sheet was moderated), holdable by an accountless Player, and backdated when its proof's upload time is known — shown simply as "migrated" when it isn't.
+
 **Record date**:
 The official date of a Record — the moment it was **verified** (approved), not when the run happened or was submitted. Migrated records are backdated to their historical approval (approximated by proof upload time).
 _Avoid_: achieved date, submission date (as the record's date).
