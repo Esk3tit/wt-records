@@ -240,6 +240,7 @@ export async function getModeLanding(db: Db, mode: string) {
         vehicleName: vehicles.name,
         ...vehicleTagFlags,
         nationName: nations.name,
+        nationSlug: nations.slug,
         contests: contestCount,
         kills: holderRecord.kills,
         playerSlug: players.slug,

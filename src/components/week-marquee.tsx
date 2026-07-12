@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { NationFlag } from '#/components/nation-flag'
 import { VehicleTags, hasVehicleTags } from '#/components/vehicle-tags'
 import type { PodiumRecord } from '#/components/podium'
 
@@ -20,39 +21,44 @@ function WeekCard({
   const medal = rank < MEDAL.length ? MEDAL[rank] : null
   return (
     <article
-      className={`glass-mid relative w-[13.5rem] shrink-0 snap-start p-5${medal ? ` ${medal.pane}` : ''}`}
+      className={`glass-mid relative w-[13.5rem] shrink-0 snap-start overflow-hidden p-5${medal ? ` ${medal.pane}` : ''}`}
     >
-      <p className="flex items-baseline justify-between text-[0.6875rem] font-semibold tracking-[0.12em] uppercase">
-        <span className={medal ? medal.text : 'text-fg-faint'}>
-          #{rank + 1}
-        </span>
-        {medal && <span className={medal.text}>{medal.label}</span>}
-      </p>
-      <p className="mt-3 text-4xl leading-none font-bold tracking-[-0.03em] text-fg">
-        {record.kills}
-        <span className="ml-1 text-xs font-medium tracking-[0.06em] text-fg-muted">
-          kills
-        </span>
-      </p>
-      <p className="mt-3 truncate text-[0.9375rem] font-semibold text-fg">
-        <Link
-          to="/$mode/vehicle/$slug"
-          params={{ mode, slug: record.vehicleSlug }}
-          className="no-underline hover:underline"
-        >
-          {record.vehicleName}
-        </Link>
-      </p>
-      {/* Chips on their own wrapping row: the fixed card is the one surface
-          where the truncating name line would clip them. */}
-      {hasVehicleTags(record) && (
-        <p className="-ml-1.5 flex flex-wrap">
-          <VehicleTags tags={record} />
+      <NationFlag slug={record.nationSlug} variant="wash" />
+      <div className="relative z-[1]">
+        <p className="flex items-baseline justify-between text-[0.6875rem] font-semibold tracking-[0.12em] uppercase">
+          <span className={medal ? medal.text : 'text-fg-faint'}>
+            #{rank + 1}
+          </span>
+          {medal && <span className={medal.text}>{medal.label}</span>}
         </p>
-      )}
-      <p className="mt-0.5 truncate text-[0.8125rem] text-fg-muted">
-        {record.displayName} · {record.nationName}
-      </p>
+        <p className="mt-3 text-4xl leading-none font-bold tracking-[-0.03em] text-fg">
+          {record.kills}
+          <span className="ml-1 text-xs font-medium tracking-[0.06em] text-fg-muted">
+            kills
+          </span>
+        </p>
+        <p className="mt-3 truncate text-[0.9375rem] font-semibold text-fg">
+          <Link
+            to="/$mode/vehicle/$slug"
+            params={{ mode, slug: record.vehicleSlug }}
+            className="no-underline hover:underline"
+          >
+            {record.vehicleName}
+          </Link>
+        </p>
+        {/* Chips on their own wrapping row: the fixed card is the one surface
+            where the truncating name line would clip them. */}
+        {hasVehicleTags(record) && (
+          <p className="-ml-1.5 flex flex-wrap">
+            <VehicleTags tags={record} />
+          </p>
+        )}
+        <p className="mt-0.5 truncate text-[0.8125rem] text-fg-muted">
+          {record.displayName} ·{' '}
+          <NationFlag slug={record.nationSlug} className="mr-0.5" />
+          {record.nationName}
+        </p>
+      </div>
     </article>
   )
 }

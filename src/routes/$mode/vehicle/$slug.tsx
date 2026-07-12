@@ -59,8 +59,9 @@ function VehicleDetail() {
   return (
     <section className="py-6">
       {/* ── The title pane: identity left, the machine itself right. ── */}
-      <div className="glass-thick relative p-7 md:p-9">
-        <div className="flex flex-col-reverse items-start gap-x-10 gap-y-6 md:flex-row md:items-center md:justify-between">
+      <div className="glass-thick relative overflow-hidden p-7 md:p-9">
+        <NationFlag slug={vehicle.nationSlug} variant="wash" />
+        <div className="relative z-[1] flex flex-col-reverse items-start gap-x-10 gap-y-6 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0">
             <p className="flex flex-wrap items-center gap-x-2 text-[0.8125rem] text-fg-muted">
               <NationFlag slug={vehicle.nationSlug} />

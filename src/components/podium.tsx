@@ -123,39 +123,43 @@ function LedgerRows({
         {rows.map((r, i) => (
           <li
             key={r.id}
-            className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-3.5 border-b border-hairline-soft px-5 py-3 transition-colors duration-200 last:border-b-0 hover:bg-[var(--row-hover)]"
+            className="relative overflow-hidden border-b border-hairline-soft transition-colors duration-200 last:border-b-0 hover:bg-[var(--row-hover)]"
           >
-            <span className="text-center font-bold text-fg-faint">
-              {startRank + i}
-            </span>
-            {/* One ledger line on sm+; narrow screens stack holder under the
-                name so chips and holder stay whole instead of clipping. */}
-            <span className="min-w-0 sm:truncate">
-              <span className="block font-semibold break-words text-fg sm:inline">
-                <VehicleLink
-                  mode={mode}
-                  slug={r.vehicleSlug}
-                  name={r.vehicleName}
-                  tags={r}
-                />
+            <NationFlag slug={r.nationSlug} variant="wash-row" />
+            <div className="relative z-[1] grid grid-cols-[2.5rem_1fr_auto] items-center gap-3.5 px-5 py-3">
+              <span className="text-center font-bold text-fg-faint">
+                {startRank + i}
               </span>
-              <span className="block truncate text-xs text-fg-muted sm:ml-2 sm:inline">
-                <RecordName
-                  displayName={r.displayName}
-                  playerSlug={r.playerSlug}
-                  ignSnapshot={r.ignSnapshot}
-                  displayNameSnapshot={r.displayNameSnapshot}
-                />
-                {' · '}
-                {r.nationName}
+              {/* One ledger line on sm+; narrow screens stack holder under the
+                  name so chips and holder stay whole instead of clipping. */}
+              <span className="min-w-0 sm:truncate">
+                <span className="block font-semibold break-words text-fg sm:inline">
+                  <VehicleLink
+                    mode={mode}
+                    slug={r.vehicleSlug}
+                    name={r.vehicleName}
+                    tags={r}
+                  />
+                </span>
+                <span className="block truncate text-xs text-fg-muted sm:ml-2 sm:inline">
+                  <RecordName
+                    displayName={r.displayName}
+                    playerSlug={r.playerSlug}
+                    ignSnapshot={r.ignSnapshot}
+                    displayNameSnapshot={r.displayNameSnapshot}
+                  />
+                  {' · '}
+                  <NationFlag slug={r.nationSlug} className="mr-0.5" />
+                  {r.nationName}
+                </span>
               </span>
-            </span>
-            <span className="text-right text-[1.0625rem] font-bold text-fg">
-              {r.kills}
-              <span className="ml-1 text-[0.6875rem] font-medium tracking-[0.06em] text-fg-muted">
-                kills
+              <span className="text-right text-[1.0625rem] font-bold text-fg">
+                {r.kills}
+                <span className="ml-1 text-[0.6875rem] font-medium tracking-[0.06em] text-fg-muted">
+                  kills
+                </span>
               </span>
-            </span>
+            </div>
           </li>
         ))}
       </ol>

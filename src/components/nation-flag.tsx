@@ -114,14 +114,21 @@ const FLAGS: Record<string, ReactNode> = {
   ),
 }
 
+const VARIANT_CLASS = {
+  chip: 'flag-chip',
+  wash: 'flag-wash',
+  'wash-row': 'flag-wash-row',
+} as const
+
 export function NationFlag({
   slug,
   variant = 'chip',
   className = '',
 }: {
   slug: string
-  /** chip: inline beside the nation name; wash: a faint pane watermark. */
-  variant?: 'chip' | 'wash'
+  /** chip: inline beside the nation name; wash / wash-row: faint watermarks
+      at pane and ledger-row scale. */
+  variant?: keyof typeof VARIANT_CLASS
   className?: string
 }) {
   const shapes = FLAGS[slug]
@@ -129,7 +136,7 @@ export function NationFlag({
   return (
     <span
       aria-hidden="true"
-      className={`${variant === 'chip' ? 'flag-chip' : 'flag-wash'} ${className}`}
+      className={`${VARIANT_CLASS[variant]} ${className}`}
     >
       <svg viewBox={`0 0 ${W} ${H}`} className="block h-full w-full">
         {shapes}

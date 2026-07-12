@@ -950,6 +950,7 @@
   right: -4%;
   bottom: -22%;
   width: 56%;
+  max-width: 26rem;
   aspect-ratio: 3 / 2;
   z-index: 0;
   opacity: 0.09;
@@ -962,4 +963,22 @@
 }
 :root[data-theme='light'] .flag-wash {
   opacity: 0.12;
+}
+
+/* Row-scale wash: same national watermark, sized for ledger rows — anchored
+   to the row's right edge, fading in from nothing well before the text. */
+.flag-wash-row {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8.5rem;
+  aspect-ratio: 3 / 2;
+  z-index: 0;
+  opacity: 0.06;
+  pointer-events: none;
+  mask-image: linear-gradient(to left, #000 30%, transparent 95%);
+}
+:root[data-theme='light'] .flag-wash-row {
+  opacity: 0.09;
 }
