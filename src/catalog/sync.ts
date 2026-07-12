@@ -11,6 +11,7 @@ import {
   modeBrField,
   nationForCountry,
   patchFromGameVersion,
+  sanitizeVehicleName,
 } from '#/catalog/mapping'
 
 export interface SyncOptions {
@@ -197,7 +198,7 @@ async function apply(
     takenSlugs.add(slug)
     rows.push({
       externalId: source.externalId,
-      name: source.name,
+      name: sanitizeVehicleName(source.name),
       slug,
       nationId: nationIdBySlug.get(nationSlug)!,
       branch,

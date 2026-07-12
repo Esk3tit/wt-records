@@ -38,6 +38,13 @@ export function branchAndClassForType(
   return TYPE_MAP[vehicleType] ?? null
 }
 
+/* WT's captured-vehicle markers are control pictures (␗, ␙, ␠) and
+   private-use codepoints the game's own font maps to flag icons — outside
+   WT they render as tofu. Standard geometric markers (▀, ▄, ◄, …) stay. */
+export function sanitizeVehicleName(name: string): string {
+  return name.replace(/[\u2400-\u243F\uE000-\uF8FF]/g, '').trim()
+}
+
 /* Patches are community-facing major.minor ("2.57"); the datamine reports
    full build versions ("2.57.0.8"). */
 export function patchFromGameVersion(gameVersion: string): string {
