@@ -1,4 +1,5 @@
 import { CountUp } from '#/components/count-up'
+import { NationFlag } from '#/components/nation-flag'
 import { RecordName } from '#/components/record-name'
 import { VehicleLink } from '#/components/vehicle-link'
 import type { TopRecordRow } from '#/components/top-records'
@@ -32,6 +33,15 @@ export function RecordMonument({
 
   return (
     <div className="flex flex-col md:items-end md:text-right">
+      {record.vehicleImage && (
+        <img
+          src={record.vehicleImage}
+          alt=""
+          className="vehicle-portrait mb-3 h-24 self-start md:h-32 md:self-end"
+          loading="eager"
+          draggable={false}
+        />
+      )}
       <p className="text-[0.6875rem] font-semibold tracking-[0.12em] text-fg-muted uppercase">
         All-time high
       </p>
@@ -57,6 +67,7 @@ export function RecordMonument({
           displayNameSnapshot={record.displayNameSnapshot}
         />
         {' · '}
+        <NationFlag slug={record.nationSlug} className="mr-0.5" />
         {record.nationName}
       </p>
     </div>

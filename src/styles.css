@@ -874,3 +874,92 @@
     transparent 55%
   );
 }
+
+/* ── Imagery: flags, portraits, proofs — additive, never load-bearing. ────── */
+
+/* Tiny national-flag chip: hairline-bound so light fields hold their shape
+   on any pane; always beside the nation's name, never a substitute for it. */
+.flag-chip {
+  display: inline-block;
+  width: 1.25em;
+  height: 0.875em;
+  vertical-align: -0.09em;
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--hairline-soft);
+  flex: none;
+}
+
+/* Vehicle portrait as a floating object in the hall — never a boxed
+   thumbnail. The mask grounds it into the pane's own light. */
+.vehicle-portrait {
+  display: block;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.45));
+  mask-image: linear-gradient(to bottom, #000 78%, transparent 100%);
+}
+:root[data-theme='light'] .vehicle-portrait {
+  filter: drop-shadow(0 14px 22px rgba(10, 12, 16, 0.28));
+}
+
+/* Proof thumbnails: the evidence wall. Fixed-height frames so mixed aspect
+   ratios sit on one rail; the image keeps its own proportions. */
+.proof-thumb {
+  display: block;
+  height: 7.5rem;
+  min-width: 8rem;
+  background: var(--tint-strong);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow:
+    inset 0 0 0 1px var(--hairline-soft),
+    0 8px 20px -10px rgba(0, 0, 0, 0.5);
+  transition:
+    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.proof-thumb img {
+  height: 100%;
+  width: auto;
+  max-width: 14rem;
+  object-fit: cover;
+  display: block;
+}
+.proof-thumb:hover,
+.proof-thumb:focus-visible {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 0 0 1px var(--hairline),
+    0 12px 24px -10px rgba(0, 0, 0, 0.6);
+}
+@media (prefers-reduced-motion: reduce) {
+  .proof-thumb,
+  .proof-thumb:hover {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* Faint national colors bleeding through a podium pane — a watermark, not a
+   banner. Sits under the content (z-0 vs the card body's z-1), fading out
+   toward the card so the metal tint stays the card's voice. */
+.flag-wash {
+  position: absolute;
+  right: -4%;
+  bottom: -22%;
+  width: 56%;
+  aspect-ratio: 3 / 2;
+  z-index: 0;
+  opacity: 0.09;
+  pointer-events: none;
+  mask-image: radial-gradient(
+    115% 115% at 100% 100%,
+    #000 25%,
+    transparent 72%
+  );
+}
+:root[data-theme='light'] .flag-wash {
+  opacity: 0.12;
+}

@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, isNull } from 'drizzle-orm'
+import { and, eq, isNotNull, isNull, sql } from 'drizzle-orm'
 import type { Db } from '#/db'
 import * as schema from '#/db/schema'
 import { vehicleImageKey } from '#/catalog/image-key'
@@ -60,6 +60,8 @@ export async function mirrorVehicleImages(
     warnings: [],
   }
 
+  // Ground first: record pages need their portraits before anything else,
+  // and the upstream rate limit means each run only mirrors a slice.
   const withImage = await db
     .select({
       id: schema.vehicles.id,
@@ -69,6 +71,7 @@ export async function mirrorVehicleImages(
     })
     .from(schema.vehicles)
     .where(isNotNull(schema.vehicles.imageUrl))
+    .orderBy(sql`${schema.vehicles.branch} = 'ground' desc`, schema.vehicles.id)
 
   const stale: Array<Candidate> = []
   for (const v of withImage) {

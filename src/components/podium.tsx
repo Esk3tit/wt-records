@@ -1,3 +1,4 @@
+import { NationFlag } from '#/components/nation-flag'
 import { RecordName } from '#/components/record-name'
 import { VehicleLink } from '#/components/vehicle-link'
 import { daysSince, formatDayYear } from '#/lib/dates'
@@ -41,53 +42,66 @@ function PodiumCard({
 }) {
   return (
     <article
-      className={`glass-mid pane-lift ${METAL_PANE[metal]} ${big ? 'p-7' : 'p-5'}`}
+      className={`glass-mid pane-lift ${METAL_PANE[metal]} overflow-hidden ${big ? 'p-7' : 'p-5'}`}
     >
-      <p
-        className={`flex items-baseline justify-between text-[0.6875rem] font-semibold tracking-[0.12em] uppercase ${METAL_TEXT[metal]}`}
-      >
-        <span>#{rank}</span>
-        <span>{metal}</span>
-      </p>
-      <div
-        className={
-          big
-            ? 'mt-3 flex flex-wrap items-end justify-between gap-x-8 gap-y-3'
-            : ''
-        }
-      >
+      <NationFlag slug={record.nationSlug} variant="wash" />
+      <div className="relative z-[1]">
         <p
-          className={`mt-2 leading-none font-bold tracking-[-0.03em] text-fg ${big ? 'text-6xl' : 'text-5xl'}`}
+          className={`flex items-baseline justify-between text-[0.6875rem] font-semibold tracking-[0.12em] uppercase ${METAL_TEXT[metal]}`}
         >
-          {record.kills}
-          <span className="ml-1.5 text-xs font-medium tracking-[0.06em] text-fg-muted">
-            kills
-          </span>
+          <span>#{rank}</span>
+          <span>{metal}</span>
         </p>
-        <div className={big ? 'text-right' : ''}>
-          <p className="mt-3 text-[1.0625rem] font-semibold text-fg">
-            <VehicleLink
-              mode={mode}
-              slug={record.vehicleSlug}
-              name={record.vehicleName}
-              tags={record}
-            />
+        <div
+          className={
+            big
+              ? 'mt-3 flex flex-wrap items-end justify-between gap-x-8 gap-y-3'
+              : ''
+          }
+        >
+          <p
+            className={`mt-2 leading-none font-bold tracking-[-0.03em] text-fg ${big ? 'text-6xl' : 'text-5xl'}`}
+          >
+            {record.kills}
+            <span className="ml-1.5 text-xs font-medium tracking-[0.06em] text-fg-muted">
+              kills
+            </span>
           </p>
-          <p className="mt-0.5 text-[0.8125rem] text-fg-muted">
-            <RecordName
-              displayName={record.displayName}
-              playerSlug={record.playerSlug}
-              ignSnapshot={record.ignSnapshot}
-              displayNameSnapshot={record.displayNameSnapshot}
+          {big && record.vehicleImage && (
+            <img
+              src={record.vehicleImage}
+              alt=""
+              className="vehicle-portrait h-24 md:h-28"
+              loading="lazy"
+              draggable={false}
             />
-            {' · '}
-            {record.nationName}
-          </p>
-          {big && record.verifiedAt && (
-            <p className="mt-1 text-xs text-fg-faint">
-              {heldLine(record.verifiedAt)}
-            </p>
           )}
+          <div className={big ? 'text-right' : ''}>
+            <p className="mt-3 text-[1.0625rem] font-semibold text-fg">
+              <VehicleLink
+                mode={mode}
+                slug={record.vehicleSlug}
+                name={record.vehicleName}
+                tags={record}
+              />
+            </p>
+            <p className="mt-0.5 text-[0.8125rem] text-fg-muted">
+              <RecordName
+                displayName={record.displayName}
+                playerSlug={record.playerSlug}
+                ignSnapshot={record.ignSnapshot}
+                displayNameSnapshot={record.displayNameSnapshot}
+              />
+              {' · '}
+              <NationFlag slug={record.nationSlug} className="mr-0.5" />
+              {record.nationName}
+            </p>
+            {big && record.verifiedAt && (
+              <p className="mt-1 text-xs text-fg-faint">
+                {heldLine(record.verifiedAt)}
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </article>

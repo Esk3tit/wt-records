@@ -19,6 +19,15 @@ export function assetUrl(key: string): string {
   return publicObjectUrl(base, key)
 }
 
+/** assetUrl, but null when the base URL isn't configured — read paths render
+    without imagery instead of crashing local dev. */
+export function assetUrlIfConfigured(key: string): string | null {
+  const base = process.env.R2_ASSETS_BASE_URL
+  if (!base) return null
+  assertValidObjectKey(key)
+  return publicObjectUrl(base, key)
+}
+
 /** Serving URL for a mirrored proof (the public proofs bucket), or null when
     the base URL isn't configured — callers fall back to the original URL. */
 export function proofUrlIfConfigured(key: string): string | null {

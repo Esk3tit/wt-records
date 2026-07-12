@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { NationFlag } from '#/components/nation-flag'
 
 export interface NationRow {
   slug: string
@@ -26,10 +27,11 @@ export function NationCompletion({
             <Link
               to="/$mode/nation/$slug"
               params={{ mode, slug: n.slug }}
-              className="grid grid-cols-[5.5rem_minmax(0,1fr)_auto_auto] items-center gap-3.5 no-underline transition-colors duration-200 hover:bg-[var(--row-hover)]"
+              className="grid grid-cols-[7rem_minmax(0,1fr)_auto_auto] items-center gap-3.5 no-underline transition-colors duration-200 hover:bg-[var(--row-hover)]"
             >
-              <span className="truncate text-[0.9375rem] font-semibold text-fg">
-                {n.name}
+              <span className="flex min-w-0 items-center gap-2 text-[0.9375rem] font-semibold text-fg">
+                <NationFlag slug={n.slug} />
+                <span className="truncate">{n.name}</span>
               </span>
               <span
                 aria-hidden="true"
