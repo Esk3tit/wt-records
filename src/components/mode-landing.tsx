@@ -6,6 +6,7 @@ import { FallenRecords } from '#/components/fallen-records'
 import { LiveFeed } from '#/components/live-feed'
 import { LeaderboardList } from '#/components/leaderboard-list'
 import { LongestStanding } from '#/components/longest-standing'
+import { NationFlag } from '#/components/nation-flag'
 import { ModeStats } from '#/components/mode-stats'
 import { NationCompletion } from '#/components/nation-completion'
 import { Podium } from '#/components/podium'
@@ -62,6 +63,9 @@ export function ModeLanding({
           aria-hidden="true"
         >
           <div className="monument-glow" />
+          {monument && (
+            <NationFlag slug={monument.nationSlug} variant="wash-hero" />
+          )}
         </div>
         <div className="relative grid items-start gap-8 md:grid-cols-[1fr_auto]">
           <div className="max-w-[30rem]">

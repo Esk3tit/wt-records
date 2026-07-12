@@ -952,8 +952,8 @@
   width: 56%;
   max-width: 26rem;
   aspect-ratio: 3 / 2;
-  z-index: 0;
-  opacity: 0.09;
+  z-index: 1;
+  opacity: 0.12;
   pointer-events: none;
   mask-image: radial-gradient(
     115% 115% at 100% 100%,
@@ -962,7 +962,7 @@
   );
 }
 :root[data-theme='light'] .flag-wash {
-  opacity: 0.12;
+  opacity: 0.15;
 }
 
 /* Row-scale wash: same national watermark, sized for ledger rows — anchored
@@ -974,11 +974,41 @@
   transform: translateY(-50%);
   width: 8.5rem;
   aspect-ratio: 3 / 2;
-  z-index: 0;
-  opacity: 0.06;
+  z-index: 1;
+  opacity: 0.09;
   pointer-events: none;
   mask-image: linear-gradient(to left, #000 30%, transparent 95%);
 }
 :root[data-theme='light'] .flag-wash-row {
-  opacity: 0.09;
+  opacity: 0.12;
+}
+
+/* Hero-scale wash: behind the monument, fading toward the pane's center. */
+.flag-wash-hero {
+  position: absolute;
+  right: 1.5%;
+  top: 7%;
+  width: 26rem;
+  max-width: 46%;
+  aspect-ratio: 3 / 2;
+  opacity: 0.1;
+  pointer-events: none;
+  mask-image: radial-gradient(110% 110% at 85% 15%, #000 25%, transparent 72%);
+}
+:root[data-theme='light'] .flag-wash-hero {
+  opacity: 0.13;
+}
+
+/* Tiny vehicle silhouette beside a row's name — identification, not
+   decoration; renders nothing until the catalog mirror has the image. */
+.vehicle-icon {
+  display: inline-block;
+  height: 1.5em;
+  width: auto;
+  max-width: 2.75em;
+  object-fit: contain;
+  vertical-align: -0.4em;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
 }

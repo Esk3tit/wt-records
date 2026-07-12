@@ -735,6 +735,7 @@ describe('getModeLanding contested titles', () => {
         isRemoved: false,
         nationName: 'USA',
         nationSlug: 'usa',
+        vehicleImage: null,
         contests: 3,
         kills: 14,
         playerSlug: 'ace',

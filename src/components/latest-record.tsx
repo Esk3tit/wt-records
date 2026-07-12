@@ -1,5 +1,7 @@
 import { Link } from '@tanstack/react-router'
+import { NationFlag } from '#/components/nation-flag'
 import { RecordName } from '#/components/record-name'
+import { VehicleIcon } from '#/components/vehicle-icon'
 import { VehicleTags } from '#/components/vehicle-tags'
 import type { VehicleTagFlags } from '#/components/vehicle-tags'
 
@@ -7,6 +9,8 @@ export interface LatestRecordData extends VehicleTagFlags {
   kills: number
   vehicleSlug: string
   vehicleName: string
+  nationSlug: string
+  vehicleImage: string | null
   playerSlug: string
   displayName: string
   ignSnapshot: string | null
@@ -22,6 +26,8 @@ export function LatestRecord({
 }) {
   return (
     <span>
+      <NationFlag slug={record.nationSlug} className="mr-1.5" />
+      <VehicleIcon src={record.vehicleImage} className="mr-1.5" />
       <Link
         to="/$mode/vehicle/$slug"
         params={{ mode, slug: record.vehicleSlug }}

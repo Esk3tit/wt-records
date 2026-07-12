@@ -239,6 +239,7 @@ export async function getModeLanding(db: Db, mode: string) {
         vehicleSlug: vehicles.slug,
         vehicleName: vehicles.name,
         ...vehicleTagFlags,
+        imageKey: vehicles.imageKey,
         nationName: nations.name,
         nationSlug: nations.slug,
         contests: contestCount,
@@ -343,6 +344,8 @@ export async function getModeLanding(db: Db, mode: string) {
         {
           vehicleSlug: r.vehicleSlug,
           vehicleName: r.vehicleName,
+          nationSlug: r.nationSlug,
+          vehicleImage: r.imageKey ? assetUrlIfConfigured(r.imageKey) : null,
           ...pickVehicleTags(r),
           oldKills: prev.kills,
           oldHolder: prev.displayName,
@@ -374,7 +377,7 @@ export async function getModeLanding(db: Db, mode: string) {
               : Number(queue.medianReviewSecs),
         }
       : { pending: 0, verifiedThisWeek: 0, medianReviewSecs: null },
-    contestedTitles,
+    contestedTitles: contestedTitles.map(withVehicleImage),
     nations: nationRows ?? [],
     // The chart needs a progression; a single point is not a story.
     historySteps: (() => {

@@ -118,6 +118,7 @@ const VARIANT_CLASS = {
   chip: 'flag-chip',
   wash: 'flag-wash',
   'wash-row': 'flag-wash-row',
+  'wash-hero': 'flag-wash-hero',
 } as const
 
 export function NationFlag({

@@ -1,5 +1,6 @@
 import { NationFlag } from '#/components/nation-flag'
 import { RecordName } from '#/components/record-name'
+import { VehicleIcon } from '#/components/vehicle-icon'
 import { VehicleLink } from '#/components/vehicle-link'
 import { daysSince, formatDayYear } from '#/lib/dates'
 import type { TopRecordRow } from '#/components/top-records'
@@ -78,6 +79,9 @@ function PodiumCard({
           )}
           <div className={big ? 'text-right' : ''}>
             <p className="mt-3 text-[1.0625rem] font-semibold text-fg">
+              {!big && (
+                <VehicleIcon src={record.vehicleImage} className="mr-1" />
+              )}
               <VehicleLink
                 mode={mode}
                 slug={record.vehicleSlug}
@@ -134,6 +138,7 @@ function LedgerRows({
                   name so chips and holder stay whole instead of clipping. */}
               <span className="min-w-0 sm:truncate">
                 <span className="block font-semibold break-words text-fg sm:inline">
+                  <VehicleIcon src={r.vehicleImage} className="mr-1" />
                   <VehicleLink
                     mode={mode}
                     slug={r.vehicleSlug}

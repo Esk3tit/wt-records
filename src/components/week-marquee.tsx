@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { NationFlag } from '#/components/nation-flag'
+import { VehicleIcon } from '#/components/vehicle-icon'
 import { VehicleTags, hasVehicleTags } from '#/components/vehicle-tags'
 import type { PodiumRecord } from '#/components/podium'
 
@@ -38,6 +39,7 @@ function WeekCard({
           </span>
         </p>
         <p className="mt-3 truncate text-[0.9375rem] font-semibold text-fg">
+          <VehicleIcon src={record.vehicleImage} className="mr-1" />
           <Link
             to="/$mode/vehicle/$slug"
             params={{ mode, slug: record.vehicleSlug }}

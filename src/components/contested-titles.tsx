@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { NationFlag } from '#/components/nation-flag'
+import { VehicleIcon } from '#/components/vehicle-icon'
 import { VehicleLink } from '#/components/vehicle-link'
 import type { VehicleTagFlags } from '#/components/vehicle-tags'
 
@@ -8,6 +9,7 @@ export interface ContestedTitleRow extends VehicleTagFlags {
   vehicleName: string
   nationName: string
   nationSlug: string
+  vehicleImage: string | null
   contests: number
   kills: number
   playerSlug: string
@@ -34,6 +36,7 @@ export function ContestedTitles({
             <div className="relative z-[1] flex items-center justify-between gap-6 px-5 py-4">
               <span className="min-w-0">
                 <span className="font-semibold text-fg">
+                  <VehicleIcon src={r.vehicleImage} className="mr-1" />
                   <VehicleLink
                     mode={mode}
                     slug={r.vehicleSlug}
