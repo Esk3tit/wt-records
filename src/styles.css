@@ -991,6 +991,7 @@
   width: 26rem;
   max-width: 46%;
   aspect-ratio: 3 / 2;
+  z-index: 1;
   opacity: 0.1;
   pointer-events: none;
   mask-image: radial-gradient(110% 110% at 85% 15%, #000 25%, transparent 72%);

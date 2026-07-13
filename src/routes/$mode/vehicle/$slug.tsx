@@ -55,6 +55,9 @@ function VehicleDetail() {
 
   const imageProofs = proofs.filter((p) => p.storagePath && p.url)
   const linkProofs = proofs.filter((p) => !(p.storagePath && p.url) && p.url)
+  // storagePath without a configured public base URL and no original link —
+  // the proof exists and must still be visible, just not reachable from here
+  const unreachableProofs = proofs.filter((p) => !p.url)
 
   return (
     <section className="py-6">
@@ -168,43 +171,57 @@ function VehicleDetail() {
       </div>
 
       {/* ── The evidence wall. ── */}
-      {current && (imageProofs.length > 0 || linkProofs.length > 0) && (
-        <div className="mt-8">
-          <SectionHead
-            title="Proof"
-            aside={current.verifiedAt ? 'archived at verification' : undefined}
-          />
-          <div className="flex flex-wrap items-start gap-3.5">
-            {imageProofs.map((p) => (
-              <a
-                key={p.id}
-                href={p.url!}
-                target="_blank"
-                rel="noreferrer"
-                className="proof-thumb"
-              >
-                <img
-                  src={p.url!}
-                  alt={`${PROOF_KIND_LABEL[p.kind] ?? p.kind} screenshot — verification proof`}
-                  loading="lazy"
-                />
-              </a>
-            ))}
-            {linkProofs.map((p) => (
-              <a
-                key={p.id}
-                href={p.url!}
-                target="_blank"
-                rel="noreferrer"
-                className="glass-thin inline-flex items-center gap-1.5 px-3.5 py-2 text-[0.8125rem] font-medium text-fg-muted no-underline transition-colors hover:text-fg"
-              >
-                {PROOF_KIND_LABEL[p.kind] ?? p.kind}
-                <span className="text-fg-faint">· {proofHost(p.url!)} ↗</span>
-              </a>
-            ))}
+      {current &&
+        (imageProofs.length > 0 ||
+          linkProofs.length > 0 ||
+          unreachableProofs.length > 0) && (
+          <div className="mt-8">
+            <SectionHead
+              title="Proof"
+              aside={
+                current.verifiedAt ? 'archived at verification' : undefined
+              }
+            />
+            <div className="flex flex-wrap items-start gap-3.5">
+              {imageProofs.map((p) => (
+                <a
+                  key={p.id}
+                  href={p.url!}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="proof-thumb"
+                >
+                  <img
+                    src={p.url!}
+                    alt={`${PROOF_KIND_LABEL[p.kind] ?? p.kind} screenshot — verification proof`}
+                    loading="lazy"
+                  />
+                </a>
+              ))}
+              {linkProofs.map((p) => (
+                <a
+                  key={p.id}
+                  href={p.url!}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="glass-thin inline-flex items-center gap-1.5 px-3.5 py-2 text-[0.8125rem] font-medium text-fg-muted no-underline transition-colors hover:text-fg"
+                >
+                  {PROOF_KIND_LABEL[p.kind] ?? p.kind}
+                  <span className="text-fg-faint">· {proofHost(p.url!)} ↗</span>
+                </a>
+              ))}
+              {unreachableProofs.map((p) => (
+                <span
+                  key={p.id}
+                  className="glass-thin inline-flex items-center gap-1.5 px-3.5 py-2 text-[0.8125rem] font-medium text-fg-faint"
+                >
+                  {PROOF_KIND_LABEL[p.kind] ?? p.kind}
+                  <span>· archived</span>
+                </span>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* ── How the record climbed. ── */}
       {history.length >= 2 && (

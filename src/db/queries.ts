@@ -337,6 +337,7 @@ export async function getModeLanding(db: Db, mode: string) {
 
   const beatenBySlug = new Map(predecessors.map((p) => [p.vehicleId, p]))
   const fallen = recentCurrent
+    .map(withVehicleImage)
     .flatMap((r) => {
       const prev = beatenBySlug.get(r.vehicleId)
       if (!prev) return []
@@ -345,7 +346,7 @@ export async function getModeLanding(db: Db, mode: string) {
           vehicleSlug: r.vehicleSlug,
           vehicleName: r.vehicleName,
           nationSlug: r.nationSlug,
-          vehicleImage: r.imageKey ? assetUrlIfConfigured(r.imageKey) : null,
+          vehicleImage: r.vehicleImage,
           ...pickVehicleTags(r),
           oldKills: prev.kills,
           oldHolder: prev.displayName,

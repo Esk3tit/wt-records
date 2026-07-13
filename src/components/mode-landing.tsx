@@ -58,8 +58,9 @@ export function ModeLanding({
       {/* No overflow-hidden here — the Lookup dropdown must escape the pane;
           the glow gets its own clipper instead. */}
       <section className="glass-thick relative z-10 mt-8 p-8 md:p-10">
+        {/* z-0 stacking context: the wash's z-1 stays contained in here */}
         <div
-          className="absolute inset-0 overflow-hidden rounded-[26px]"
+          className="absolute inset-0 z-0 overflow-hidden rounded-[26px]"
           aria-hidden="true"
         >
           <div className="monument-glow" />
