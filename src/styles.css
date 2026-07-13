@@ -947,18 +947,18 @@
    toward the card so the metal tint stays the card's voice. */
 .flag-wash {
   position: absolute;
-  right: -4%;
-  bottom: -22%;
-  width: 56%;
+  right: -2%;
+  bottom: -10%;
+  width: 64%;
   max-width: 26rem;
   aspect-ratio: 3 / 2;
   z-index: 1;
   opacity: 0.19;
   pointer-events: none;
   mask-image: radial-gradient(
-    115% 115% at 100% 100%,
-    #000 25%,
-    transparent 72%
+    130% 130% at 100% 100%,
+    #000 35%,
+    transparent 88%
   );
 }
 :root[data-theme='light'] .flag-wash {
@@ -1012,4 +1012,11 @@
   user-select: none;
   -webkit-user-drag: none;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+}
+
+/* Row-scale silhouette: enough presence to identify the machine at a glance. */
+.vehicle-icon-row {
+  height: 2.5rem;
+  max-width: 4.75rem;
+  vertical-align: middle;
 }

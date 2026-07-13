@@ -50,7 +50,7 @@ export function ContestedTitles({
                   <Link
                     to="/player/$slug"
                     params={{ slug: r.playerSlug }}
-                    className="text-fg-muted no-underline hover:underline"
+                    className="font-semibold text-fg no-underline hover:underline"
                   >
                     {r.displayName}
                   </Link>

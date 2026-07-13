@@ -57,55 +57,82 @@ function PodiumCard({
           className={
             big
               ? 'mt-3 flex flex-wrap items-end justify-between gap-x-8 gap-y-3'
-              : ''
+              : 'mt-2 flex items-center justify-between gap-4'
           }
         >
-          <p
-            className={`mt-2 leading-none font-bold tracking-[-0.03em] text-fg ${big ? 'text-6xl' : 'text-5xl'}`}
-          >
-            {record.kills}
-            <span className="ml-1.5 text-xs font-medium tracking-[0.06em] text-fg-muted">
-              kills
-            </span>
-          </p>
-          {big && record.vehicleImage && (
+          {big ? (
+            <p className="mt-2 text-6xl leading-none font-bold tracking-[-0.03em] text-fg">
+              {record.kills}
+              <span className="ml-1.5 text-xs font-medium tracking-[0.06em] text-fg-muted">
+                kills
+              </span>
+            </p>
+          ) : (
+            <div className="min-w-0">
+              <p className="text-5xl leading-none font-bold tracking-[-0.03em] text-fg">
+                {record.kills}
+                <span className="ml-1.5 text-xs font-medium tracking-[0.06em] text-fg-muted">
+                  kills
+                </span>
+              </p>
+              <p className="mt-3 text-[1.0625rem] font-semibold text-fg">
+                <VehicleLink
+                  mode={mode}
+                  slug={record.vehicleSlug}
+                  name={record.vehicleName}
+                  tags={record}
+                />
+              </p>
+              <p className="mt-0.5 text-[0.8125rem] text-fg-muted">
+                <RecordName
+                  displayName={record.displayName}
+                  playerSlug={record.playerSlug}
+                  ignSnapshot={record.ignSnapshot}
+                  displayNameSnapshot={record.displayNameSnapshot}
+                />
+                {' · '}
+                <NationFlag slug={record.nationSlug} className="mr-0.5" />
+                {record.nationName}
+              </p>
+            </div>
+          )}
+          {record.vehicleImage && (
             <img
               src={record.vehicleImage}
               alt=""
-              className="vehicle-portrait h-24 md:h-28"
+              className={`vehicle-portrait ${big ? 'h-24 md:h-28' : 'h-20 shrink-0 self-end sm:h-24'}`}
               loading="lazy"
               draggable={false}
             />
           )}
-          <div className={big ? 'text-right' : ''}>
-            <p className="mt-3 text-[1.0625rem] font-semibold text-fg">
-              {!big && (
-                <VehicleIcon src={record.vehicleImage} className="mr-1" />
-              )}
-              <VehicleLink
-                mode={mode}
-                slug={record.vehicleSlug}
-                name={record.vehicleName}
-                tags={record}
-              />
-            </p>
-            <p className="mt-0.5 text-[0.8125rem] text-fg-muted">
-              <RecordName
-                displayName={record.displayName}
-                playerSlug={record.playerSlug}
-                ignSnapshot={record.ignSnapshot}
-                displayNameSnapshot={record.displayNameSnapshot}
-              />
-              {' · '}
-              <NationFlag slug={record.nationSlug} className="mr-0.5" />
-              {record.nationName}
-            </p>
-            {big && record.verifiedAt && (
-              <p className="mt-1 text-xs text-fg-faint">
-                {heldLine(record.verifiedAt)}
+          {big && (
+            <div className="text-right">
+              <p className="mt-3 text-[1.0625rem] font-semibold text-fg">
+                <VehicleLink
+                  mode={mode}
+                  slug={record.vehicleSlug}
+                  name={record.vehicleName}
+                  tags={record}
+                />
               </p>
-            )}
-          </div>
+              <p className="mt-0.5 text-[0.8125rem] text-fg-muted">
+                <RecordName
+                  displayName={record.displayName}
+                  playerSlug={record.playerSlug}
+                  ignSnapshot={record.ignSnapshot}
+                  displayNameSnapshot={record.displayNameSnapshot}
+                />
+                {' · '}
+                <NationFlag slug={record.nationSlug} className="mr-0.5" />
+                {record.nationName}
+              </p>
+              {record.verifiedAt && (
+                <p className="mt-1 text-xs text-fg-faint">
+                  {heldLine(record.verifiedAt)}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </article>
