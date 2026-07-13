@@ -24,7 +24,11 @@ function WeekCard({
     <article
       className={`glass-mid relative w-[13.5rem] shrink-0 snap-start overflow-hidden p-5${medal ? ` ${medal.pane}` : ''}`}
     >
-      <NationFlag slug={record.nationSlug} variant="wash" />
+      <NationFlag
+        slug={record.nationSlug}
+        variant="wash"
+        className="flag-wash--soft"
+      />
       <div className="relative z-[1]">
         <p className="flex items-baseline justify-between text-[0.6875rem] font-semibold tracking-[0.12em] uppercase">
           <span className={medal ? medal.text : 'text-fg-faint'}>

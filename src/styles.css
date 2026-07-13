@@ -1016,3 +1016,13 @@
   max-width: 4.75rem;
   vertical-align: middle;
 }
+
+/* Narrow cards (week marquee) show far more of the wash's opaque zone than
+   wide panes do — soften so the perceived strength matches the podium. */
+.flag-wash--soft {
+  opacity: 0.12;
+  mask-image: linear-gradient(to left, #000 22%, transparent 88%);
+}
+:root[data-theme='light'] .flag-wash--soft {
+  opacity: 0.15;
+}
