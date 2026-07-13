@@ -139,7 +139,14 @@ export function NationFlag({
       aria-hidden="true"
       className={`${VARIANT_CLASS[variant]} ${className}`}
     >
-      <svg viewBox={`0 0 ${W} ${H}`} className="block h-full w-full">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        // washes cover their box (crop, never letterbox); chips keep the flag whole
+        preserveAspectRatio={
+          variant === 'chip' ? 'xMidYMid meet' : 'xMidYMid slice'
+        }
+        className="block h-full w-full"
+      >
         {shapes}
       </svg>
     </span>
