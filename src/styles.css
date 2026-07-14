@@ -967,15 +967,16 @@
   opacity: 0.22;
 }
 
-/* Row-scale wash: same national watermark, sized for ledger rows — anchored
-   to the row's right edge, fading in from nothing well before the text. */
+/* Row-scale wash: same national watermark, sized for ledger rows — full row
+   height at a fixed width so every row carries the same right-edge presence;
+   slice crops the art's sides on tall rows. */
 .flag-wash-row {
   position: absolute;
   right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
+  height: 100%;
   width: 8.5rem;
-  aspect-ratio: var(--flag-aspect);
+  max-width: 100%;
   z-index: 1;
   opacity: 0.09;
   pointer-events: none;
