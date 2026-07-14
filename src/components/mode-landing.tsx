@@ -6,6 +6,7 @@ import { FallenRecords } from '#/components/fallen-records'
 import { LiveFeed } from '#/components/live-feed'
 import { LeaderboardList } from '#/components/leaderboard-list'
 import { LongestStanding } from '#/components/longest-standing'
+import { NationFlag } from '#/components/nation-flag'
 import { ModeStats } from '#/components/mode-stats'
 import { NationCompletion } from '#/components/nation-completion'
 import { Podium } from '#/components/podium'
@@ -57,11 +58,15 @@ export function ModeLanding({
       {/* No overflow-hidden here — the Lookup dropdown must escape the pane;
           the glow gets its own clipper instead. */}
       <section className="glass-thick relative z-10 mt-8 p-8 md:p-10">
+        {/* z-0 stacking context: the wash's z-1 stays contained in here */}
         <div
-          className="absolute inset-0 overflow-hidden rounded-[26px]"
+          className="absolute inset-0 z-0 overflow-hidden rounded-[26px]"
           aria-hidden="true"
         >
           <div className="monument-glow" />
+          {monument && (
+            <NationFlag slug={monument.nationSlug} variant="wash-hero" />
+          )}
         </div>
         <div className="relative grid items-start gap-8 md:grid-cols-[1fr_auto]">
           <div className="max-w-[30rem]">

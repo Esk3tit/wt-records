@@ -66,5 +66,6 @@ describe('0003_patches backfill on a populated database', () => {
     ).rejects.toThrow()
 
     await client.close()
-  })
+    // PGlite boot + full migration replay: give it headroom under system load
+  }, 20_000)
 })

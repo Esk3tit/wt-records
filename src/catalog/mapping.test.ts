@@ -6,6 +6,7 @@ import {
   modeBrField,
   nationForCountry,
   patchFromGameVersion,
+  sanitizeVehicleName,
 } from '#/catalog/mapping'
 
 describe('branchAndClassForType', () => {
@@ -79,6 +80,20 @@ describe('branchAndClassForType', () => {
   it('returns null for unknown datamine types so the sync can warn, not guess', () => {
     expect(branchAndClassForType('exoskeleton')).toBeNull()
     expect(branchAndClassForType('')).toBeNull()
+  })
+})
+
+describe('sanitizeVehicleName', () => {
+  it('strips control-picture and private-use captured markers', () => {
+    expect(sanitizeVehicleName('\u2417A6M2')).toBe('A6M2')
+    expect(sanitizeVehicleName('\u2419Leopard 2A5')).toBe('Leopard 2A5')
+    expect(sanitizeVehicleName('\uF059A-4E Early (M)')).toBe('A-4E Early (M)')
+  })
+
+  it('keeps standard geometric tree markers', () => {
+    expect(sanitizeVehicleName('\u2580KV-IB')).toBe('\u2580KV-IB')
+    expect(sanitizeVehicleName('\u2584A-35B')).toBe('\u2584A-35B')
+    expect(sanitizeVehicleName('\u25CDM1A1 HC')).toBe('\u25CDM1A1 HC')
   })
 })
 

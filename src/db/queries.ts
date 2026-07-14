@@ -19,6 +19,7 @@ import {
   modes,
   nationStats,
   nations,
+  patches,
   playerAliases,
   players,
   recordProof,
@@ -28,7 +29,7 @@ import {
   vehicles,
 } from '#/db/schema'
 import { searchKey } from '#/lib/search-terms'
-import { proofUrlIfConfigured } from '#/storage/urls'
+import { assetUrlIfConfigured, proofUrlIfConfigured } from '#/storage/urls'
 import { BROWSE_PAGE_SIZE, browseFilters } from '#/lib/browse-params'
 import type { Acquisition, BrowseFilters } from '#/lib/browse-params'
 
@@ -125,7 +126,9 @@ function countedRecordRows(db: Db) {
       vehicleSlug: vehicles.slug,
       vehicleName: vehicles.name,
       ...vehicleTagFlags,
+      imageKey: vehicles.imageKey,
       nationName: nations.name,
+      nationSlug: nations.slug,
       playerSlug: players.slug,
       displayName: players.displayName,
       ignSnapshot: records.ignSnapshot,
@@ -137,6 +140,34 @@ function countedRecordRows(db: Db) {
     .innerJoin(modes, modeMatchesBranch)
     .innerJoin(nations, eq(nations.id, vehicles.nationId))
     .innerJoin(players, eq(players.id, records.playerId))
+}
+
+/* Only strictly more kills takes a title, so the chartable "history" is the
+   ascending frontier: entries that actually held the record when verified.
+   Migrated rows can carry a later date with fewer kills — verified, but never
+   holders. */
+function titleFrontier<T extends { kills: number }>(steps: T[]): T[] {
+  const frontier: T[] = []
+  let best = 0
+  for (const step of steps) {
+    if (step.kills > best) {
+      frontier.push(step)
+      best = step.kills
+    }
+  }
+  return frontier
+}
+
+// Serving URL beside the row (computed server-side: env stays off the client);
+// the raw key never ships.
+function withVehicleImage<T extends { imageKey: string | null }>({
+  imageKey,
+  ...row
+}: T): Omit<T, 'imageKey'> & { vehicleImage: string | null } {
+  return {
+    ...row,
+    vehicleImage: imageKey ? assetUrlIfConfigured(imageKey) : null,
+  }
 }
 
 // UTC-pinned so the window always matches the UTC week label on the page,
@@ -208,7 +239,9 @@ export async function getModeLanding(db: Db, mode: string) {
         vehicleSlug: vehicles.slug,
         vehicleName: vehicles.name,
         ...vehicleTagFlags,
+        imageKey: vehicles.imageKey,
         nationName: nations.name,
+        nationSlug: nations.slug,
         contests: contestCount,
         kills: holderRecord.kills,
         playerSlug: players.slug,
@@ -304,6 +337,7 @@ export async function getModeLanding(db: Db, mode: string) {
 
   const beatenBySlug = new Map(predecessors.map((p) => [p.vehicleId, p]))
   const fallen = recentCurrent
+    .map(withVehicleImage)
     .flatMap((r) => {
       const prev = beatenBySlug.get(r.vehicleId)
       if (!prev) return []
@@ -311,6 +345,8 @@ export async function getModeLanding(db: Db, mode: string) {
         {
           vehicleSlug: r.vehicleSlug,
           vehicleName: r.vehicleName,
+          nationSlug: r.nationSlug,
+          vehicleImage: r.vehicleImage,
           ...pickVehicleTags(r),
           oldKills: prev.kills,
           oldHolder: prev.displayName,
@@ -329,9 +365,9 @@ export async function getModeLanding(db: Db, mode: string) {
     modeName: m ? m.name : null,
     stats,
     leaders,
-    topRecords,
-    latestFeed,
-    weekTop,
+    topRecords: topRecords.map(withVehicleImage),
+    latestFeed: latestFeed.map(withVehicleImage),
+    weekTop: weekTop.map(withVehicleImage),
     verifyQueue: queue
       ? {
           pending: queue.pending,
@@ -342,12 +378,15 @@ export async function getModeLanding(db: Db, mode: string) {
               : Number(queue.medianReviewSecs),
         }
       : { pending: 0, verifiedThisWeek: 0, medianReviewSecs: null },
-    contestedTitles,
+    contestedTitles: contestedTitles.map(withVehicleImage),
     nations: nationRows ?? [],
     // The chart needs a progression; a single point is not a story.
-    historySteps: historySteps.length >= 2 ? historySteps : [],
+    historySteps: (() => {
+      const frontier = titleFrontier(historySteps)
+      return frontier.length >= 2 ? frontier : []
+    })(),
     fallen,
-    longestStanding,
+    longestStanding: longestStanding.map(withVehicleImage),
   }
 }
 
@@ -616,6 +655,7 @@ export async function getVehicle(db: Db, mode: string, slug: string) {
         rank: vehicles.rank,
         isDifficult: vehicles.isDifficult,
         ...vehicleTagFlags,
+        imageKey: vehicles.imageKey,
         nationSlug: nations.slug,
         nationName: nations.name,
       })
@@ -626,8 +666,9 @@ export async function getVehicle(db: Db, mode: string, slug: string) {
   )
   if (!vehicle) return null
 
-  // BR and current record both depend only on vehicle.id + mode — run together.
-  const [brRows, currentRows] = await Promise.all([
+  // BR, current record, history, and the qualifying bar all depend only on
+  // vehicle.id + mode — run together.
+  const [brRows, currentRows, history, minKillRows] = await Promise.all([
     db
       .select({ br: vehicleBr.br })
       .from(vehicleBr)
@@ -639,8 +680,32 @@ export async function getVehicle(db: Db, mode: string, slug: string) {
         kills: records.kills,
         runBr: records.runBr,
         patch: records.patch,
+        patchName: patches.name,
+        verifiedAt: records.verifiedAt,
         playerSlug: players.slug,
         displayName: players.displayName,
+        ignSnapshot: records.ignSnapshot,
+        displayNameSnapshot: records.displayNameSnapshot,
+      })
+      .from(records)
+      .innerJoin(players, eq(players.id, records.playerId))
+      .leftJoin(patches, eq(patches.version, records.patch))
+      .where(
+        and(
+          eq(records.vehicleId, vehicle.id),
+          eq(records.mode, mode),
+          isCurrentVerified,
+        ),
+      )
+      .limit(1),
+    db
+      .select({
+        kills: records.kills,
+        verifiedAt: records.verifiedAt,
+        patch: records.patch,
+        isCurrent: records.isCurrent,
+        displayName: players.displayName,
+        playerSlug: players.slug,
         ignSnapshot: records.ignSnapshot,
         displayNameSnapshot: records.displayNameSnapshot,
       })
@@ -650,13 +715,27 @@ export async function getVehicle(db: Db, mode: string, slug: string) {
         and(
           eq(records.vehicleId, vehicle.id),
           eq(records.mode, mode),
-          isCurrentVerified,
+          eq(records.status, 'verified'),
         ),
+      )
+      .orderBy(sql`${records.verifiedAt} asc nulls first`, asc(records.id)),
+    db
+      .select({ minKills: modeMinKills.minKills })
+      .from(modeMinKills)
+      .where(
+        and(eq(modeMinKills.mode, mode), eq(modeMinKills.class, vehicle.class)),
       )
       .limit(1),
   ])
   const brRow = one(brRows)
   const current = one(currentRows)
+
+  // A Difficult vehicle's flat bar beats the class bar (PRD rules semantics).
+  const classMin = one(minKillRows)?.minKills ?? null
+  const minKills =
+    vehicle.isDifficult && m.difficultMinKills != null
+      ? m.difficultMinKills
+      : classMin
 
   const proofRows = current
     ? await db
@@ -672,7 +751,19 @@ export async function getVehicle(db: Db, mode: string, slug: string) {
       (p.storagePath && proofUrlIfConfigured(p.storagePath)) || p.originalUrl,
   }))
 
-  return { vehicle, br: brRow ? brRow.br : null, current, proofs }
+  const { imageKey, ...vehicleRow } = vehicle
+  return {
+    vehicle: {
+      ...vehicleRow,
+      image: imageKey ? assetUrlIfConfigured(imageKey) : null,
+    },
+    br: brRow ? brRow.br : null,
+    current,
+    proofs,
+    history,
+    titleSteps: titleFrontier(history),
+    minKills,
+  }
 }
 
 export async function getPlayer(db: Db, slug: string) {

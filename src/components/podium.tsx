@@ -1,4 +1,6 @@
+import { NationFlag } from '#/components/nation-flag'
 import { RecordName } from '#/components/record-name'
+import { VehicleIcon } from '#/components/vehicle-icon'
 import { VehicleLink } from '#/components/vehicle-link'
 import { daysSince, formatDayYear } from '#/lib/dates'
 import type { TopRecordRow } from '#/components/top-records'
@@ -41,52 +43,95 @@ function PodiumCard({
 }) {
   return (
     <article
-      className={`glass-mid pane-lift ${METAL_PANE[metal]} ${big ? 'p-7' : 'p-5'}`}
+      className={`glass-mid pane-lift ${METAL_PANE[metal]} overflow-hidden ${big ? 'p-7' : 'p-5'}`}
     >
-      <p
-        className={`flex items-baseline justify-between text-[0.6875rem] font-semibold tracking-[0.12em] uppercase ${METAL_TEXT[metal]}`}
-      >
-        <span>#{rank}</span>
-        <span>{metal}</span>
-      </p>
-      <div
-        className={
-          big
-            ? 'mt-3 flex flex-wrap items-end justify-between gap-x-8 gap-y-3'
-            : ''
-        }
-      >
+      <NationFlag slug={record.nationSlug} variant="wash" />
+      <div className="relative z-[1]">
         <p
-          className={`mt-2 leading-none font-bold tracking-[-0.03em] text-fg ${big ? 'text-6xl' : 'text-5xl'}`}
+          className={`flex items-baseline justify-between text-[0.6875rem] font-semibold tracking-[0.12em] uppercase ${METAL_TEXT[metal]}`}
         >
-          {record.kills}
-          <span className="ml-1.5 text-xs font-medium tracking-[0.06em] text-fg-muted">
-            kills
-          </span>
+          <span>#{rank}</span>
+          <span>{metal}</span>
         </p>
-        <div className={big ? 'text-right' : ''}>
-          <p className="mt-3 text-[1.0625rem] font-semibold text-fg">
-            <VehicleLink
-              mode={mode}
-              slug={record.vehicleSlug}
-              name={record.vehicleName}
-              tags={record}
-            />
-          </p>
-          <p className="mt-0.5 text-[0.8125rem] text-fg-muted">
-            <RecordName
-              displayName={record.displayName}
-              playerSlug={record.playerSlug}
-              ignSnapshot={record.ignSnapshot}
-              displayNameSnapshot={record.displayNameSnapshot}
-            />
-            {' · '}
-            {record.nationName}
-          </p>
-          {big && record.verifiedAt && (
-            <p className="mt-1 text-xs text-fg-faint">
-              {heldLine(record.verifiedAt)}
+        <div
+          className={
+            big
+              ? 'mt-3 flex flex-wrap items-end justify-between gap-x-8 gap-y-3'
+              : 'mt-2 flex items-center justify-between gap-4'
+          }
+        >
+          {big ? (
+            <p className="mt-2 text-6xl leading-none font-bold tracking-[-0.03em] text-fg">
+              {record.kills}
+              <span className="ml-1.5 text-xs font-medium tracking-[0.06em] text-fg-muted">
+                kills
+              </span>
             </p>
+          ) : (
+            <div className="min-w-0">
+              <p className="text-5xl leading-none font-bold tracking-[-0.03em] text-fg">
+                {record.kills}
+                <span className="ml-1.5 text-xs font-medium tracking-[0.06em] text-fg-muted">
+                  kills
+                </span>
+              </p>
+              <p className="mt-3 text-[1.0625rem] font-semibold text-fg">
+                <VehicleLink
+                  mode={mode}
+                  slug={record.vehicleSlug}
+                  name={record.vehicleName}
+                  tags={record}
+                />
+              </p>
+              <p className="mt-0.5 text-[0.8125rem] text-fg-muted">
+                <RecordName
+                  displayName={record.displayName}
+                  playerSlug={record.playerSlug}
+                  ignSnapshot={record.ignSnapshot}
+                  displayNameSnapshot={record.displayNameSnapshot}
+                />
+                {' · '}
+                <NationFlag slug={record.nationSlug} className="mr-0.5" />
+                {record.nationName}
+              </p>
+            </div>
+          )}
+          {record.vehicleImage && (
+            <img
+              src={record.vehicleImage}
+              alt=""
+              className={`vehicle-portrait ${big ? 'h-24 md:h-28' : 'h-20 shrink-0 self-end sm:h-24'}`}
+              loading="lazy"
+              draggable={false}
+            />
+          )}
+          {big && (
+            <div className="text-right">
+              <p className="mt-3 text-[1.0625rem] font-semibold text-fg">
+                <VehicleLink
+                  mode={mode}
+                  slug={record.vehicleSlug}
+                  name={record.vehicleName}
+                  tags={record}
+                />
+              </p>
+              <p className="mt-0.5 text-[0.8125rem] text-fg-muted">
+                <RecordName
+                  displayName={record.displayName}
+                  playerSlug={record.playerSlug}
+                  ignSnapshot={record.ignSnapshot}
+                  displayNameSnapshot={record.displayNameSnapshot}
+                />
+                {' · '}
+                <NationFlag slug={record.nationSlug} className="mr-0.5" />
+                {record.nationName}
+              </p>
+              {record.verifiedAt && (
+                <p className="mt-1 text-xs text-fg-faint">
+                  {heldLine(record.verifiedAt)}
+                </p>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -109,39 +154,44 @@ function LedgerRows({
         {rows.map((r, i) => (
           <li
             key={r.id}
-            className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-3.5 border-b border-hairline-soft px-5 py-3 transition-colors duration-200 last:border-b-0 hover:bg-[var(--row-hover)]"
+            className="relative overflow-hidden border-b border-hairline-soft transition-colors duration-200 last:border-b-0 hover:bg-[var(--row-hover)]"
           >
-            <span className="text-center font-bold text-fg-faint">
-              {startRank + i}
-            </span>
-            {/* One ledger line on sm+; narrow screens stack holder under the
-                name so chips and holder stay whole instead of clipping. */}
-            <span className="min-w-0 sm:truncate">
-              <span className="block font-semibold break-words text-fg sm:inline">
-                <VehicleLink
-                  mode={mode}
-                  slug={r.vehicleSlug}
-                  name={r.vehicleName}
-                  tags={r}
-                />
+            <NationFlag slug={r.nationSlug} variant="wash-row" />
+            <div className="relative z-[1] grid grid-cols-[2.5rem_1fr_auto] items-center gap-3.5 px-5 py-3">
+              <span className="text-center font-bold text-fg-faint">
+                {startRank + i}
               </span>
-              <span className="block truncate text-xs text-fg-muted sm:ml-2 sm:inline">
-                <RecordName
-                  displayName={r.displayName}
-                  playerSlug={r.playerSlug}
-                  ignSnapshot={r.ignSnapshot}
-                  displayNameSnapshot={r.displayNameSnapshot}
-                />
-                {' · '}
-                {r.nationName}
+              {/* One ledger line on sm+; narrow screens stack holder under the
+                  name so chips and holder stay whole instead of clipping. */}
+              <span className="min-w-0 sm:truncate">
+                <span className="block font-semibold break-words text-fg sm:inline">
+                  <VehicleIcon src={r.vehicleImage} className="mr-1" />
+                  <VehicleLink
+                    mode={mode}
+                    slug={r.vehicleSlug}
+                    name={r.vehicleName}
+                    tags={r}
+                  />
+                </span>
+                <span className="block truncate text-xs text-fg-muted sm:ml-2 sm:inline">
+                  <RecordName
+                    displayName={r.displayName}
+                    playerSlug={r.playerSlug}
+                    ignSnapshot={r.ignSnapshot}
+                    displayNameSnapshot={r.displayNameSnapshot}
+                  />
+                  {' · '}
+                  <NationFlag slug={r.nationSlug} className="mr-0.5" />
+                  {r.nationName}
+                </span>
               </span>
-            </span>
-            <span className="text-right text-[1.0625rem] font-bold text-fg">
-              {r.kills}
-              <span className="ml-1 text-[0.6875rem] font-medium tracking-[0.06em] text-fg-muted">
-                kills
+              <span className="text-right text-[1.0625rem] font-bold text-fg">
+                {r.kills}
+                <span className="ml-1 text-[0.6875rem] font-medium tracking-[0.06em] text-fg-muted">
+                  kills
+                </span>
               </span>
-            </span>
+            </div>
           </li>
         ))}
       </ol>
