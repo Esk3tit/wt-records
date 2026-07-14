@@ -35,11 +35,11 @@ export function FallenRecords({
             className="relative overflow-hidden border-b border-hairline-soft transition-colors duration-200 last:border-b-0 hover:bg-[var(--row-hover)]"
           >
             <NationFlag slug={f.nationSlug} variant="wash-row" />
-            <div className="relative z-[1] flex flex-wrap items-center justify-between gap-x-6 gap-y-1 px-5 py-3.5">
+            <div className="relative z-[1] grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 px-5 py-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-x-5">
+              <VehicleIcon src={f.vehicleImage} variant="row" />
               <span className="min-w-0">
                 <span className="font-semibold text-fg">
                   <NationFlag slug={f.nationSlug} className="mr-1" />
-                  <VehicleIcon src={f.vehicleImage} className="mr-1" />
                   <VehicleLink
                     mode={mode}
                     slug={f.vehicleSlug}
@@ -47,27 +47,32 @@ export function FallenRecords({
                     tags={f}
                   />
                 </span>
-                <span className="mt-0.5 block text-xs font-medium text-fg-muted">
+                <span className="mt-0.5 block text-sm text-fg">
                   <Link
                     to="/player/$slug"
                     params={{ slug: f.newHolderSlug }}
-                    className="text-fg no-underline hover:underline"
+                    className="font-semibold no-underline hover:underline"
                   >
                     {f.newHolder}
-                  </Link>{' '}
-                  dethroned {f.oldHolder}
-                  {f.verifiedAt && ` · ${formatDaysAgo(f.verifiedAt)}`}
+                  </Link>
+                  <span className="text-fg-muted">
+                    {' '}
+                    dethroned {f.oldHolder}
+                    {f.verifiedAt && ` · ${formatDaysAgo(f.verifiedAt)}`}
+                  </span>
                 </span>
               </span>
-              <span className="text-right tabular-nums">
-                <span className="text-sm text-fg-faint line-through">
-                  {f.oldKills}
+              <span className="text-right">
+                <span className="block leading-tight tabular-nums">
+                  <span className="text-sm text-fg-faint line-through">
+                    {f.oldKills}
+                  </span>
+                  <span className="mx-1.5 text-sm text-fg-faint">→</span>
+                  <span className="text-[1.0625rem] font-bold text-fg">
+                    {f.newKills}
+                  </span>
                 </span>
-                <span className="mx-1.5 text-sm text-fg-faint">→</span>
-                <span className="text-[1.0625rem] font-bold text-fg">
-                  {f.newKills}
-                </span>
-                <span className="ml-1 text-[0.6875rem] font-medium tracking-[0.06em] text-fg-muted">
+                <span className="text-[0.6875rem] font-medium tracking-[0.08em] uppercase text-fg-faint">
                   kills
                 </span>
               </span>
