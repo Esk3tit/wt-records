@@ -1,5 +1,5 @@
 /* Vehicle silhouette; renders nothing until the catalog mirror holds the
-   image — the row variant keeps its grid slot so row columns stay aligned. */
+   image — the row variant always fills its fixed-width ledger slot. */
 export function VehicleIcon({
   src,
   variant,
@@ -9,16 +9,17 @@ export function VehicleIcon({
   variant?: 'row'
   className?: string
 }) {
+  const rowSlot = variant === 'row' ? 'vehicle-icon-row hidden sm:block ' : ''
   if (!src) {
     return variant === 'row' ? (
-      <span className="hidden w-0 sm:block" aria-hidden="true" />
+      <span className={`${rowSlot}${className}`.trim()} aria-hidden="true" />
     ) : null
   }
   return (
     <img
       src={src}
       alt=""
-      className={`vehicle-icon ${variant === 'row' ? 'vehicle-icon-row hidden sm:block' : className}`}
+      className={`vehicle-icon ${rowSlot}${className}`.trim()}
       loading="lazy"
       draggable={false}
     />

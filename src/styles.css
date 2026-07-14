@@ -1011,10 +1011,13 @@
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
   }
 
-  /* Row-scale silhouette: enough presence to identify the machine at a glance. */
+  /* Row-scale silhouette in a fixed-width slot — names and numerals stay
+     ledger-aligned across rows whether or not the image exists yet. */
   .vehicle-icon-row {
     height: 2.5rem;
+    width: 4.75rem;
     max-width: 4.75rem;
+    object-position: left;
     vertical-align: middle;
   }
 }
