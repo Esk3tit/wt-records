@@ -114,9 +114,10 @@ const FLAGS: Record<string, ReactNode> = {
   ),
   france: (
     <>
-      <rect y="16" width="34" height="68" fill="#002395" />
-      <rect x="66" y="16" width="34" height="68" fill="#ed2939" />
-      <rect x="32" y="16" width="36" height="68" fill="#fff" />
+      {/* bands equalized to italy's 33/34/33 — the wiki source is 32/36/32 */}
+      <rect y="16" width="100" height="68" fill="#fff" />
+      <rect y="16" width="33" height="68" fill="#002395" />
+      <rect x="67" y="16" width="33" height="68" fill="#ed2939" />
     </>
   ),
   sweden: (
