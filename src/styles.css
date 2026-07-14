@@ -996,25 +996,30 @@
   opacity: 0.13;
 }
 
-/* Tiny vehicle silhouette beside a row's name — identification, not
-   decoration; renders nothing until the catalog mirror has the image. */
-.vehicle-icon {
-  display: inline-block;
-  height: 1.5em;
-  width: auto;
-  max-width: 2.75em;
-  object-fit: contain;
-  vertical-align: -0.4em;
-  user-select: none;
-  -webkit-user-drag: none;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
-}
+/* Tiny vehicle silhouette beside a row's name; renders nothing until the
+   catalog mirror has the image. Layered so display utilities can win. */
+@layer components {
+  .vehicle-icon {
+    display: inline-block;
+    height: 1.5em;
+    width: auto;
+    max-width: 2.75em;
+    object-fit: contain;
+    vertical-align: -0.4em;
+    user-select: none;
+    -webkit-user-drag: none;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+  }
 
-/* Row-scale silhouette: enough presence to identify the machine at a glance. */
-.vehicle-icon-row {
-  height: 2.5rem;
-  max-width: 4.75rem;
-  vertical-align: middle;
+  /* Row-scale silhouette in a fixed-width slot — names and numerals stay
+     ledger-aligned across rows whether or not the image exists yet. */
+  .vehicle-icon-row {
+    height: 2.5rem;
+    width: 4.75rem;
+    max-width: 4.75rem;
+    object-position: left;
+    vertical-align: middle;
+  }
 }
 
 /* Narrow cards (week marquee) show far more of the wash's opaque zone than

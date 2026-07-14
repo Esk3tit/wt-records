@@ -22,14 +22,7 @@ export function LongestStanding({
           >
             <NationFlag slug={r.nationSlug} variant="wash-row" />
             <div className="relative z-[1] grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-6 px-5 py-4 sm:grid-cols-[auto_minmax(0,1fr)_auto_auto] sm:gap-x-5">
-              {r.vehicleImage ? (
-                <VehicleIcon
-                  src={r.vehicleImage}
-                  className="vehicle-icon-row hidden sm:block"
-                />
-              ) : (
-                <span className="hidden w-0 sm:block" aria-hidden="true" />
-              )}
+              <VehicleIcon src={r.vehicleImage} variant="row" />
               <span className="min-w-0">
                 <span className="font-semibold text-fg">
                   <NationFlag slug={r.nationSlug} className="mr-1" />

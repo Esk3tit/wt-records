@@ -1,19 +1,25 @@
-/* Tiny inline vehicle silhouette — identification for a game full of
-   copy-paste vehicles, decorative markup-wise (the name is always adjacent).
-   Renders nothing until the catalog mirror holds the image. */
+/* Vehicle silhouette; renders nothing until the catalog mirror holds the
+   image — the row variant always fills its fixed-width ledger slot. */
 export function VehicleIcon({
   src,
+  variant,
   className = '',
 }: {
   src: string | null
+  variant?: 'row'
   className?: string
 }) {
-  if (!src) return null
+  const rowSlot = variant === 'row' ? 'vehicle-icon-row hidden sm:block ' : ''
+  if (!src) {
+    return variant === 'row' ? (
+      <span className={`${rowSlot}${className}`.trim()} aria-hidden="true" />
+    ) : null
+  }
   return (
     <img
       src={src}
       alt=""
-      className={`vehicle-icon ${className}`}
+      className={`vehicle-icon ${rowSlot}${className}`.trim()}
       loading="lazy"
       draggable={false}
     />
