@@ -20,10 +20,13 @@ describe('NationFlag', () => {
     expect(svg.querySelectorAll('rect, path, circle')).toHaveLength(0)
   })
 
-  it('renders nothing for an unknown nation', () => {
-    const { container } = render(<NationFlag slug="atlantis" />)
-    expect(container.innerHTML).toBe('')
-  })
+  it.each(['atlantis', 'toString', 'constructor'])(
+    'renders nothing for an unknown nation (%s)',
+    (slug) => {
+      const { container } = render(<NationFlag slug={slug} />)
+      expect(container.innerHTML).toBe('')
+    },
+  )
 
   it('is decorative: hidden from the accessibility tree', () => {
     const { container } = render(<NationFlag slug="japan" />)

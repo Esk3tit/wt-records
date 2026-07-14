@@ -967,9 +967,8 @@
   opacity: 0.22;
 }
 
-/* Row-scale wash: same national watermark, sized for ledger rows — full row
-   height at a fixed width so every row carries the same right-edge presence;
-   slice crops the art's sides on tall rows. */
+/* Row-scale wash: full row height at a fixed width so every row carries the
+   same right-edge presence; slice crops toward the art's center either way. */
 .flag-wash-row {
   position: absolute;
   right: 0;

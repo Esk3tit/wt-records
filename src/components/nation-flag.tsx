@@ -181,7 +181,7 @@ export function NationFlag({
   variant?: keyof typeof VARIANT_CLASS
   className?: string
 }) {
-  if (!(slug in FLAGS)) return null
+  if (!Object.hasOwn(FLAGS, slug)) return null
   return (
     <span
       aria-hidden="true"
