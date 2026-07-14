@@ -13,7 +13,7 @@ export function LongestStanding({
   rows: PodiumRecord[]
 }) {
   return (
-    <div className="glass-mid overflow-hidden">
+    <div className="glass-mid @container overflow-hidden">
       <ol>
         {rows.map((r) => (
           <li
@@ -21,7 +21,7 @@ export function LongestStanding({
             className="relative overflow-hidden border-b border-hairline-soft transition-colors duration-200 last:border-b-0 hover:bg-[var(--row-hover)]"
           >
             <NationFlag slug={r.nationSlug} variant="wash-row" />
-            <div className="relative z-[1] grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-6 px-5 py-4 sm:grid-cols-[auto_minmax(0,1fr)_auto_auto] sm:gap-x-5">
+            <div className="relative z-[1] grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-6 px-5 py-4 @[30rem]:grid-cols-[auto_minmax(0,1fr)_auto_auto] @[30rem]:gap-x-5">
               <VehicleIcon src={r.vehicleImage} variant="row" />
               <span className="min-w-0">
                 <span className="font-semibold text-fg">

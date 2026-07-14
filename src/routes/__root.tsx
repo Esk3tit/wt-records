@@ -14,6 +14,7 @@ import appCss from '../styles.css?url'
 import { startObservability } from '#/lib/observability'
 import { THEME_INIT_SCRIPT } from '#/lib/theme'
 import { ConsentBanner } from '#/components/consent-banner'
+import { NationFlagSprite } from '#/components/nation-flag'
 import { SceneBackdrop } from '#/components/scene-backdrop'
 import { SiteNav } from '#/components/site-nav'
 import { db } from '#/db'
@@ -75,6 +76,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
+        <NationFlagSprite />
         {children}
         <ConsentBanner />
         {import.meta.env.DEV && (

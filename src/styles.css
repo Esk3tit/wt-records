@@ -877,12 +877,18 @@
 
 /* ── Imagery: flags, portraits, proofs — additive, never load-bearing. ────── */
 
+/* The in-game flag canvas is 100:68 — chips and washes share the ratio so
+   meet fills exactly and slice never crops. */
+:root {
+  --flag-aspect: 50 / 34;
+}
+
 /* Tiny national-flag chip: hairline-bound so light fields hold their shape
    on any pane; always beside the nation's name, never a substitute for it. */
 .flag-chip {
   display: inline-block;
   width: 1.25em;
-  height: 0.875em;
+  aspect-ratio: var(--flag-aspect);
   vertical-align: -0.09em;
   border-radius: 2px;
   overflow: hidden;
@@ -950,7 +956,7 @@
   top: 0;
   right: 0;
   height: 100%;
-  aspect-ratio: 3 / 2;
+  aspect-ratio: var(--flag-aspect);
   max-width: 100%;
   z-index: 1;
   opacity: 0.19;
@@ -961,15 +967,15 @@
   opacity: 0.22;
 }
 
-/* Row-scale wash: same national watermark, sized for ledger rows — anchored
-   to the row's right edge, fading in from nothing well before the text. */
+/* Row-scale wash: full row height at a fixed width so every row carries the
+   same right-edge presence; slice crops toward the art's center either way. */
 .flag-wash-row {
   position: absolute;
   right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
+  height: 100%;
   width: 8.5rem;
-  aspect-ratio: 3 / 2;
+  max-width: 100%;
   z-index: 1;
   opacity: 0.09;
   pointer-events: none;
@@ -986,7 +992,7 @@
   top: 7%;
   width: 26rem;
   max-width: 46%;
-  aspect-ratio: 3 / 2;
+  aspect-ratio: var(--flag-aspect);
   z-index: 1;
   opacity: 0.1;
   pointer-events: none;

@@ -9,7 +9,8 @@ export function VehicleIcon({
   variant?: 'row'
   className?: string
 }) {
-  const rowSlot = variant === 'row' ? 'vehicle-icon-row hidden sm:block ' : ''
+  const rowSlot =
+    variant === 'row' ? 'vehicle-icon-row hidden @[30rem]:block ' : ''
   if (!src) {
     return variant === 'row' ? (
       <span className={`${rowSlot}${className}`.trim()} aria-hidden="true" />
