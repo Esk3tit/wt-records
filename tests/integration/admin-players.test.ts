@@ -202,6 +202,22 @@ describe('mergePlayers', () => {
     ).rejects.toThrow(/merged/i)
   })
 
+  it('keeps tombstones one hop deep across successive merges', async () => {
+    const ace = await playerBySlug('ace')
+    const maverick = await playerBySlug('maverick')
+    const floppa = await playerBySlug('floppa')
+    await mergePlayers(t.db, MOD, {
+      survivorId: maverick.id,
+      duplicateId: floppa.id,
+    })
+    await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: maverick.id,
+    })
+    expect((await playerBySlug('floppa')).mergedInto).toBe(ace.id)
+    expect((await playerBySlug('maverick')).mergedInto).toBe(ace.id)
+  })
+
   it('skips alias moves that would duplicate an existing survivor alias', async () => {
     const ace = await playerBySlug('ace')
     const floppa = await playerBySlug('floppa')

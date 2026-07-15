@@ -5,6 +5,8 @@ import {
   inputClass,
   selectClass,
 } from '#/components/admin/ui'
+import { Pager, pageParam } from '#/components/admin/pager'
+import { formatDayYear } from '#/lib/dates'
 import { adminRecordList } from '#/admin/api'
 
 interface RecordsSearch {
@@ -25,8 +27,7 @@ export const Route = createFileRoute('/admin/')({
     }
     if (typeof s.mode === 'string' && s.mode) out.mode = s.mode
     if (typeof s.q === 'string' && s.q.trim()) out.q = s.q.trim()
-    const page = Number(s.page)
-    if (Number.isInteger(page) && page > 1) out.page = page
+    out.page = pageParam(s.page)
     return out
   },
   loaderDeps: ({ search }) => search,
@@ -152,9 +153,7 @@ function RecordsIndex() {
                     <StatusChip status={r.status} isCurrent={r.isCurrent} />
                   </td>
                   <td className="py-2 pr-3 text-fg-muted">
-                    {r.verifiedAt
-                      ? new Date(r.verifiedAt).toLocaleDateString()
-                      : '—'}
+                    {r.verifiedAt ? formatDayYear(r.verifiedAt) : '—'}
                   </td>
                   <td className="py-2 text-fg-muted">
                     {r.verifierHandle ?? '—'}
@@ -166,31 +165,11 @@ function RecordsIndex() {
         </div>
       )}
 
-      {(page > 1 || result.hasMore) && (
-        <div className="mt-4 flex items-center justify-between text-sm">
-          <button
-            type="button"
-            disabled={page <= 1}
-            className="text-fg-muted hover:text-fg disabled:opacity-40"
-            onClick={() =>
-              navigate({
-                search: { ...search, page: page > 2 ? page - 1 : undefined },
-              })
-            }
-          >
-            ← Newer
-          </button>
-          <span className="text-fg-faint">Page {page}</span>
-          <button
-            type="button"
-            disabled={!result.hasMore}
-            className="text-fg-muted hover:text-fg disabled:opacity-40"
-            onClick={() => navigate({ search: { ...search, page: page + 1 } })}
-          >
-            Older →
-          </button>
-        </div>
-      )}
+      <Pager
+        page={page}
+        hasMore={result.hasMore}
+        onPage={(p) => navigate({ search: { ...search, page: p } })}
+      />
     </Panel>
   )
 }

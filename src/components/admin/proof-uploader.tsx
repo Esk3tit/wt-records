@@ -5,6 +5,8 @@ import {
   selectClass,
   subtleButtonClass,
 } from '#/components/admin/ui'
+import { RASTER_IMAGE_CONTENT_TYPES } from '#/storage/image-types'
+import { MAX_PROOF_BYTES } from '#/admin/proofs'
 
 /* One uploader for both flows — new entry and attach-to-existing-record.
    Files stay in the form until save; the server proxies them to R2. */
@@ -27,6 +29,10 @@ const KIND_LABELS = {
   end_game: 'End game',
   end_life: 'End life',
 } as const
+
+const ACCEPTED_FORMATS = [...RASTER_IMAGE_CONTENT_TYPES]
+  .map((t) => t.split('/')[1].toUpperCase())
+  .join(' / ')
 
 export function appendProofFormData(form: FormData, drafts: ProofDraftState) {
   for (const draft of drafts.files) {
@@ -67,12 +73,12 @@ export function ProofUploader({
           Add screenshot…
         </button>
         <span className="text-xs text-fg-faint">
-          PNG / JPEG / WebP / GIF / AVIF, up to 10 MB each
+          {ACCEPTED_FORMATS}, up to {MAX_PROOF_BYTES / 1024 / 1024} MB each
         </span>
         <input
           ref={fileInput}
           type="file"
-          accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+          accept={[...RASTER_IMAGE_CONTENT_TYPES].join(',')}
           multiple
           className="hidden"
           onChange={(e) => {

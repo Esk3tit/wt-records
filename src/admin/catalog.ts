@@ -3,6 +3,7 @@ import type { Db } from '#/db'
 import { modeMinKills, modes, nations, patches, vehicles } from '#/db/schema'
 import type { VehicleClass } from '#/lib/vehicle-classes'
 import { writeAudit } from '#/admin/audit'
+import { likeContains } from '#/lib/like'
 
 /* The vehicle editor exposes ONLY isDifficult — catalog sync owns everything
    else (ADR 0004). Rules edits never recompute existing records. */
@@ -46,48 +47,55 @@ export async function updateModeMinKills(
   mode: string,
   entries: { class: VehicleClass; minKills: number }[],
 ) {
+  return db.transaction((tx) => applyMinKills(tx, actorId, mode, entries))
+}
+
+async function applyMinKills(
+  tx: Db,
+  actorId: string,
+  mode: string,
+  entries: { class: VehicleClass; minKills: number }[],
+) {
   for (const e of entries) {
     if (!Number.isInteger(e.minKills) || e.minKills <= 0) {
       throw new Error('Min kills must be a positive integer')
     }
   }
-  return db.transaction(async (tx) => {
-    const existing = await tx
-      .select({ class: modeMinKills.class, minKills: modeMinKills.minKills })
-      .from(modeMinKills)
-      .where(eq(modeMinKills.mode, mode))
-    const current = new Map(existing.map((r) => [r.class, r.minKills]))
+  const existing = await tx
+    .select({ class: modeMinKills.class, minKills: modeMinKills.minKills })
+    .from(modeMinKills)
+    .where(eq(modeMinKills.mode, mode))
+  const current = new Map(existing.map((r) => [r.class, r.minKills]))
 
-    const before: Record<string, number | null> = {}
-    const after: Record<string, number> = {}
-    for (const e of entries) {
-      const prev = current.get(e.class)
-      if (prev === e.minKills) continue
-      before[e.class] = prev ?? null
-      after[e.class] = e.minKills
-      if (prev == null) {
-        await tx
-          .insert(modeMinKills)
-          .values({ mode, class: e.class, minKills: e.minKills })
-      } else {
-        await tx
-          .update(modeMinKills)
-          .set({ minKills: e.minKills })
-          .where(
-            and(eq(modeMinKills.mode, mode), eq(modeMinKills.class, e.class)),
-          )
-      }
+  const before: Record<string, number | null> = {}
+  const after: Record<string, number> = {}
+  for (const e of entries) {
+    const prev = current.get(e.class)
+    if (prev === e.minKills) continue
+    before[e.class] = prev ?? null
+    after[e.class] = e.minKills
+    if (prev == null) {
+      await tx
+        .insert(modeMinKills)
+        .values({ mode, class: e.class, minKills: e.minKills })
+    } else {
+      await tx
+        .update(modeMinKills)
+        .set({ minKills: e.minKills })
+        .where(
+          and(eq(modeMinKills.mode, mode), eq(modeMinKills.class, e.class)),
+        )
     }
-    if (Object.keys(after).length === 0) return { changed: false }
-    await writeAudit(tx, {
-      actorId,
-      action: 'rules.update_min_kills',
-      entity: 'rules',
-      entityId: mode,
-      diff: { before, after },
-    })
-    return { changed: true }
+  }
+  if (Object.keys(after).length === 0) return { changed: false }
+  await writeAudit(tx, {
+    actorId,
+    action: 'rules.update_min_kills',
+    entity: 'rules',
+    entityId: mode,
+    diff: { before, after },
   })
+  return { changed: true }
 }
 
 export async function updateDifficultMinKills(
@@ -96,33 +104,65 @@ export async function updateDifficultMinKills(
   mode: string,
   value: number | null,
 ) {
+  return db.transaction((tx) =>
+    applyDifficultMinKills(tx, actorId, mode, value),
+  )
+}
+
+async function applyDifficultMinKills(
+  tx: Db,
+  actorId: string,
+  mode: string,
+  value: number | null,
+) {
   if (value != null && (!Number.isInteger(value) || value <= 0)) {
     throw new Error('Difficult min kills must be a positive integer or unset')
   }
-  return db.transaction(async (tx) => {
-    const m = (
-      await tx
-        .select({ difficultMinKills: modes.difficultMinKills })
-        .from(modes)
-        .where(eq(modes.mode, mode))
-    ).at(0)
-    if (!m) throw new Error(`Unknown mode ${mode}`)
-    if (m.difficultMinKills === value) return { changed: false }
+  const m = (
     await tx
-      .update(modes)
-      .set({ difficultMinKills: value })
+      .select({ difficultMinKills: modes.difficultMinKills })
+      .from(modes)
       .where(eq(modes.mode, mode))
-    await writeAudit(tx, {
+  ).at(0)
+  if (!m) throw new Error(`Unknown mode ${mode}`)
+  if (m.difficultMinKills === value) return { changed: false }
+  await tx
+    .update(modes)
+    .set({ difficultMinKills: value })
+    .where(eq(modes.mode, mode))
+  await writeAudit(tx, {
+    actorId,
+    action: 'rules.update_difficult_min_kills',
+    entity: 'rules',
+    entityId: mode,
+    diff: {
+      before: { [mode]: m.difficultMinKills },
+      after: { [mode]: value },
+    },
+  })
+  return { changed: true }
+}
+
+/** The rules editor's save: matrix cells + difficult override land in ONE
+    transaction, so a rejected half can never leave a silent partial save. */
+export async function updateModeRules(
+  db: Db,
+  actorId: string,
+  mode: string,
+  input: {
+    entries: { class: VehicleClass; minKills: number }[]
+    difficultMinKills: number | null
+  },
+) {
+  return db.transaction(async (tx) => {
+    const matrix = await applyMinKills(tx, actorId, mode, input.entries)
+    const difficult = await applyDifficultMinKills(
+      tx,
       actorId,
-      action: 'rules.update_difficult_min_kills',
-      entity: 'rules',
-      entityId: mode,
-      diff: {
-        before: { [mode]: m.difficultMinKills },
-        after: { [mode]: value },
-      },
-    })
-    return { changed: true }
+      mode,
+      input.difficultMinKills,
+    )
+    return { changed: matrix.changed || difficult.changed }
   })
 }
 
@@ -201,7 +241,7 @@ export async function listAdminVehicles(
   const offset = opts.offset ?? 0
   const conds = []
   if (opts.q?.trim()) {
-    const like = `%${opts.q.trim().replace(/[\\%_]/g, '\\$&')}%`
+    const like = likeContains(opts.q.trim())
     conds.push(ilike(vehicles.name, like))
   }
   if (opts.difficultOnly) conds.push(eq(vehicles.isDifficult, true))

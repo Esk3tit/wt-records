@@ -26,11 +26,15 @@ const CANONICAL_ORIGIN = 'https://wtrecords.gg'
 
 const loadShell = createServerFn({ method: 'GET' }).handler(async () => {
   // The mod check short-circuits on the cookie so plain visitors never pay
-  // an auth round-trip; the real gate stays server-side in /admin.
+  // an auth round-trip; an auth outage must never take the public site down,
+  // so any gate failure just hides the chip.
   const [modes, isModerator] = await Promise.all([
     listModes(db),
     hasAuthCookie()
-      ? adminGate().then((gate) => gate.state === 'moderator')
+      ? adminGate().then(
+          (gate) => gate.state === 'moderator',
+          () => false,
+        )
       : false,
   ])
   return {

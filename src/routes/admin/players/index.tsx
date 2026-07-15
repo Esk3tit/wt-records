@@ -1,5 +1,6 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Panel, inputClass } from '#/components/admin/ui'
+import { Pager, pageParam } from '#/components/admin/pager'
 import { adminPlayerList } from '#/admin/api'
 
 interface PlayersSearch {
@@ -11,8 +12,7 @@ export const Route = createFileRoute('/admin/players/')({
   validateSearch: (s: Record<string, unknown>): PlayersSearch => {
     const out: PlayersSearch = {}
     if (typeof s.q === 'string' && s.q.trim()) out.q = s.q.trim()
-    const page = Number(s.page)
-    if (Number.isInteger(page) && page > 1) out.page = page
+    out.page = pageParam(s.page)
     return out
   },
   loaderDeps: ({ search }) => search,
@@ -91,31 +91,13 @@ function PlayersIndex() {
         </div>
       )}
 
-      {(page > 1 || result.hasMore) && (
-        <div className="mt-4 flex items-center justify-between text-sm">
-          <button
-            type="button"
-            disabled={page <= 1}
-            className="text-fg-muted hover:text-fg disabled:opacity-40"
-            onClick={() =>
-              navigate({
-                search: { ...search, page: page > 2 ? page - 1 : undefined },
-              })
-            }
-          >
-            ← Previous
-          </button>
-          <span className="text-fg-faint">Page {page}</span>
-          <button
-            type="button"
-            disabled={!result.hasMore}
-            className="text-fg-muted hover:text-fg disabled:opacity-40"
-            onClick={() => navigate({ search: { ...search, page: page + 1 } })}
-          >
-            Next →
-          </button>
-        </div>
-      )}
+      <Pager
+        page={page}
+        hasMore={result.hasMore}
+        prevLabel="← Previous"
+        nextLabel="Next →"
+        onPage={(p) => navigate({ search: { ...search, page: p } })}
+      />
     </Panel>
   )
 }

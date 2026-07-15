@@ -11,6 +11,7 @@ import {
   listRulesConfig,
   setVehicleDifficult,
   updateDifficultMinKills,
+  updateModeRules,
   updateModeMinKills,
 } from '#/admin/catalog'
 import { listAudit } from '#/admin/audit'
@@ -102,6 +103,23 @@ describe('rules updates', () => {
     await updateModeMinKills(t.db, MOD, 'grb', [
       { class: 'heavy', minKills: 10 },
     ])
+    expect((await listAudit(t.db, { entity: 'rules' })).rows).toHaveLength(0)
+  })
+
+  it('updateModeRules is atomic: a bad override rolls back the matrix cells', async () => {
+    await expect(
+      updateModeRules(t.db, MOD, 'grb', {
+        entries: [{ class: 'medium', minKills: 12 }],
+        difficultMinKills: 3.5,
+      }),
+    ).rejects.toThrow(/positive integer/i)
+    const [medium] = await t.db
+      .select()
+      .from(modeMinKills)
+      .where(
+        and(eq(modeMinKills.mode, 'grb'), eq(modeMinKills.class, 'medium')),
+      )
+    expect(medium.minKills).toBe(10)
     expect((await listAudit(t.db, { entity: 'rules' })).rows).toHaveLength(0)
   })
 

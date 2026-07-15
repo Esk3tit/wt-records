@@ -218,6 +218,18 @@ describe('createRecord', () => {
     expect(result.belowThreshold).toBe(false)
   })
 
+  it('refuses a vehicle whose branch does not match the mode', async () => {
+    const veh = await vehicleId('m4a1') // ground
+    const ace = await playerId('ace')
+    await expect(
+      createRecord(
+        t.db,
+        MOD,
+        entry({ vehicleId: veh, playerId: ace, mode: 'arb' }),
+      ),
+    ).rejects.toThrow(/branch|cannot hold/i)
+  })
+
   it('refuses to save without at least one proof', async () => {
     const veh = await vehicleId('m18-gmc')
     const ace = await playerId('ace')
@@ -310,6 +322,20 @@ describe('updateRecord', () => {
       after: { runBr: 4 },
     })
     expect((row.diff as { before: object }).before).not.toHaveProperty('kills')
+  })
+
+  it('refuses to reassign the holder to a merge tombstone', async () => {
+    const veh = await vehicleId('m4a1')
+    const current = await currentRecord(veh)
+    const floppa = await playerId('floppa')
+    const ace = await playerId('ace')
+    await t.db
+      .update(players)
+      .set({ mergedInto: ace })
+      .where(eq(players.id, floppa))
+    await expect(
+      updateRecord(t.db, MOD, current.id, { playerId: floppa }),
+    ).rejects.toThrow(/merged/i)
   })
 
   it('reassigns the holder without touching snapshots', async () => {
@@ -478,6 +504,20 @@ describe('previewTitleChange', () => {
     })
     expect(preview.promoted?.kills).toBe(12)
     expect(preview.promoted?.playerName).toBe('Maverick')
+  })
+
+  it('previews a kills edit on a retired record as a non-event', async () => {
+    const veh = await vehicleId('m4a1')
+    const current = await currentRecord(veh) // Ace 14
+    await retireRecord(t.db, MOD, current.id, 'debunked')
+    const preview = await previewTitleChange(t.db, {
+      kind: 'update',
+      recordId: current.id,
+      kills: 50,
+    })
+    // recomputeTitle only considers verified rows — the preview must agree.
+    expect(preview.wouldBeCurrent).toBe(false)
+    expect(preview.demoted).toBeNull()
   })
 
   it('flags a below-threshold entry with its bar', async () => {

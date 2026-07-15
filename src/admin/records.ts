@@ -7,11 +7,12 @@ import {
   profiles,
   recordProof,
   records,
+  vehicleBr,
   vehicles,
 } from '#/db/schema'
-import { qualifyingThreshold } from '#/lib/rules'
+import { qualifyingThreshold, rightfulHolder  } from '#/lib/rules'
 import type { ModeThresholds } from '#/lib/rules'
-import { rightfulHolder } from '#/admin/title'
+import { likeContains } from '#/lib/like'
 import { writeAudit } from '#/admin/audit'
 import { createPlayer, recordIgnAlias } from '#/admin/players'
 
@@ -37,34 +38,55 @@ export interface EntryInput {
 
 /* ── Qualifying threshold ────────────────────────────────────── */
 
+async function vehicleModeContext(db: Db, mode: string, vehicleId: number) {
+  const [vehicleRows, modeRows, minKillsRows] = await Promise.all([
+    db
+      .select({
+        class: vehicles.class,
+        isDifficult: vehicles.isDifficult,
+        branch: vehicles.branch,
+      })
+      .from(vehicles)
+      .where(eq(vehicles.id, vehicleId)),
+    db
+      .select({
+        difficultMinKills: modes.difficultMinKills,
+        branch: modes.branch,
+      })
+      .from(modes)
+      .where(eq(modes.mode, mode)),
+    db
+      .select({ class: modeMinKills.class, minKills: modeMinKills.minKills })
+      .from(modeMinKills)
+      .where(eq(modeMinKills.mode, mode)),
+  ])
+  const vehicle = vehicleRows.at(0)
+  if (!vehicle) throw new Error(`Unknown vehicle ${vehicleId}`)
+  const m = modeRows.at(0)
+  if (!m) throw new Error(`Unknown mode ${mode}`)
+  const thresholds: ModeThresholds = {
+    minKillsByClass: Object.fromEntries(
+      minKillsRows.map((r) => [r.class, r.minKills]),
+    ),
+    difficultMinKills: m.difficultMinKills,
+  }
+  return {
+    vehicle,
+    mode: m,
+    threshold: qualifyingThreshold(
+      vehicle.class,
+      vehicle.isDifficult,
+      thresholds,
+    ),
+  }
+}
+
 async function thresholdFor(
   db: Db,
   mode: string,
   vehicleId: number,
 ): Promise<number | null> {
-  const vehicle = (
-    await db
-      .select({ class: vehicles.class, isDifficult: vehicles.isDifficult })
-      .from(vehicles)
-      .where(eq(vehicles.id, vehicleId))
-  ).at(0)
-  if (!vehicle) throw new Error(`Unknown vehicle ${vehicleId}`)
-  const m = (
-    await db
-      .select({ difficultMinKills: modes.difficultMinKills })
-      .from(modes)
-      .where(eq(modes.mode, mode))
-  ).at(0)
-  if (!m) throw new Error(`Unknown mode ${mode}`)
-  const rows = await db
-    .select({ class: modeMinKills.class, minKills: modeMinKills.minKills })
-    .from(modeMinKills)
-    .where(eq(modeMinKills.mode, mode))
-  const thresholds: ModeThresholds = {
-    minKillsByClass: Object.fromEntries(rows.map((r) => [r.class, r.minKills])),
-    difficultMinKills: m.difficultMinKills,
-  }
-  return qualifyingThreshold(vehicle.class, vehicle.isDifficult, thresholds)
+  return (await vehicleModeContext(db, mode, vehicleId)).threshold
 }
 
 /* ── Auto-title recompute ────────────────────────────────────── */
@@ -133,6 +155,16 @@ export async function createRecord(db: Db, actorId: string, input: EntryInput) {
   }
 
   return db.transaction(async (tx) => {
+    // A record only counts publicly when its mode's branch matches the
+    // vehicle's (see modeMatchesBranch in queries) — refuse mismatches here
+    // so a stale entry-form pick can't burn the title slot invisibly.
+    const rules = await vehicleModeContext(tx, input.mode, input.vehicleId)
+    if (rules.vehicle.branch !== rules.mode.branch) {
+      throw new Error(
+        `A ${rules.vehicle.branch} vehicle cannot hold a ${input.mode} record`,
+      )
+    }
+
     const player = input.playerId
       ? (
           await tx
@@ -173,9 +205,13 @@ export async function createRecord(db: Db, actorId: string, input: EntryInput) {
       })),
     )
 
-    const { demotedId } = await recomputeTitle(tx, input.vehicleId, input.mode)
-    const threshold = await thresholdFor(tx, input.mode, input.vehicleId)
-    const belowThreshold = threshold != null && input.kills < threshold
+    const { demotedId, promotedId } = await recomputeTitle(
+      tx,
+      input.vehicleId,
+      input.mode,
+    )
+    const belowThreshold =
+      rules.threshold != null && input.kills < rules.threshold
 
     await writeAudit(tx, {
       actorId,
@@ -201,23 +237,14 @@ export async function createRecord(db: Db, actorId: string, input: EntryInput) {
       },
     })
 
-    const isCurrent = demotedId != null || (await isCurrentNow(tx, created.id))
     return {
       recordId: created.id,
       playerId: player.id,
-      isCurrent,
+      isCurrent: promotedId === created.id,
       demotedRecordId: demotedId,
       belowThreshold,
     }
   })
-}
-
-async function isCurrentNow(tx: Db, recordId: number): Promise<boolean> {
-  const [row] = await tx
-    .select({ isCurrent: records.isCurrent })
-    .from(records)
-    .where(eq(records.id, recordId))
-  return row.isCurrent
 }
 
 export interface RecordUpdateInput {
@@ -245,6 +272,19 @@ export async function updateRecord(
       await tx.select().from(records).where(eq(records.id, recordId))
     ).at(0)
     if (!existing) throw new Error(`Unknown record ${recordId}`)
+
+    if (input.playerId != null && input.playerId !== existing.playerId) {
+      const holder = (
+        await tx
+          .select({ mergedInto: players.mergedInto })
+          .from(players)
+          .where(eq(players.id, input.playerId))
+      ).at(0)
+      if (!holder) throw new Error(`Unknown player ${input.playerId}`)
+      if (holder.mergedInto != null) {
+        throw new Error('Cannot reassign a record to a merged player')
+      }
+    }
 
     const fields = [
       'kills',
@@ -588,26 +628,32 @@ export async function previewTitleChange(
     kills = req.kind === 'update' ? req.kills : existing.kills
   }
 
-  const rows = await db
-    .select({
-      id: records.id,
-      kills: records.kills,
-      verifiedAt: records.verifiedAt,
-      isCurrent: records.isCurrent,
-      status: records.status,
-      playerName: players.displayName,
-    })
-    .from(records)
-    .innerJoin(players, eq(players.id, records.playerId))
-    .where(and(eq(records.vehicleId, vehicleId), eq(records.mode, mode)))
+  const [rows, threshold] = await Promise.all([
+    db
+      .select({
+        id: records.id,
+        kills: records.kills,
+        verifiedAt: records.verifiedAt,
+        isCurrent: records.isCurrent,
+        status: records.status,
+        playerName: players.displayName,
+      })
+      .from(records)
+      .innerJoin(players, eq(players.id, records.playerId))
+      .where(and(eq(records.vehicleId, vehicleId), eq(records.mode, mode))),
+    thresholdFor(db, mode, vehicleId),
+  ])
 
   const currentId = rows.find((r) => r.isCurrent)?.id ?? null
 
-  // Build the hypothetical candidate set after the requested change.
+  // Candidacy mirrors what the write will do: only records that will be
+  // status='verified' AFTER the change can hold the title.
   const candidates = rows
     .filter((r) => {
       if (r.id === subjectId) {
-        return req.kind === 'retire' ? false : true
+        if (req.kind === 'retire') return false
+        if (req.kind === 'reverify') return true
+        return r.status === 'verified'
       }
       return r.status === 'verified'
     })
@@ -645,13 +691,62 @@ export async function previewTitleChange(
       ? strip(byId.get(rightfulId))
       : null
 
-  const threshold = await thresholdFor(db, mode, vehicleId)
   const belowThreshold = threshold != null && kills < threshold
 
   return { wouldBeCurrent, demoted, promoted, threshold, belowThreshold }
 }
 
 /* ── Admin reads ─────────────────────────────────────────────── */
+
+/** Entry-form context after the vehicle typeahead: the current record (for
+    supersede messaging) and the mode BR (runBr prefill). */
+export async function getEntryContext(
+  db: Db,
+  mode: string,
+  vehicleSlug: string,
+) {
+  const vehicle = (
+    await db
+      .select()
+      .from(vehicles)
+      .where(eq(vehicles.slug, vehicleSlug))
+      .limit(1)
+  ).at(0)
+  if (!vehicle) return null
+  const [currentRows, brRows] = await Promise.all([
+    db
+      .select({
+        id: records.id,
+        kills: records.kills,
+        verifiedAt: records.verifiedAt,
+        playerName: players.displayName,
+      })
+      .from(records)
+      .innerJoin(players, eq(players.id, records.playerId))
+      .where(
+        and(
+          eq(records.vehicleId, vehicle.id),
+          eq(records.mode, mode),
+          eq(records.isCurrent, true),
+          eq(records.status, 'verified'),
+        ),
+      ),
+    db
+      .select({ br: vehicleBr.br })
+      .from(vehicleBr)
+      .where(
+        and(eq(vehicleBr.vehicleId, vehicle.id), eq(vehicleBr.mode, mode)),
+      ),
+  ])
+  return {
+    vehicleId: vehicle.id,
+    vehicleName: vehicle.name,
+    isDifficult: vehicle.isDifficult,
+    class: vehicle.class,
+    current: currentRows.at(0) ?? null,
+    br: brRows.at(0)?.br ?? null,
+  }
+}
 
 export type RecordStatusFilter = (typeof records.status.enumValues)[number]
 
@@ -670,7 +765,7 @@ export async function listAdminRecords(db: Db, filters: AdminRecordFilters) {
   if (filters.mode) conds.push(eq(records.mode, filters.mode))
   if (filters.status) conds.push(eq(records.status, filters.status))
   if (filters.q?.trim()) {
-    const like = `%${filters.q.trim().replace(/[\\%_]/g, '\\$&')}%`
+    const like = likeContains(filters.q.trim())
     conds.push(
       or(
         ilike(vehicles.name, like),

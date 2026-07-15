@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { rightfulHolder } from '#/admin/title'
+import { rightfulHolder } from '#/lib/rules'
 
 const at = (iso: string) => new Date(iso)
 

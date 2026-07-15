@@ -30,6 +30,7 @@ import {
   vehicles,
 } from '#/db/schema'
 import { searchKey } from '#/lib/search-terms'
+import { likeContains } from '#/lib/like'
 import { assetUrlIfConfigured, proofUrlIfConfigured } from '#/storage/urls'
 import { BROWSE_PAGE_SIZE, browseFilters } from '#/lib/browse-params'
 import type { Acquisition, BrowseFilters } from '#/lib/browse-params'
@@ -959,8 +960,7 @@ export async function lookupVehicles(db: Db, mode: string, q: string) {
 export async function search(db: Db, q: string) {
   const term = q.trim()
   if (!term) return { players: [], vehicles: [] }
-  // Escape LIKE metacharacters so '_' / '%' in gamertags match literally.
-  const like = `%${term.replace(/[\\%_]/g, '\\$&')}%`
+  const like = likeContains(term)
   const [foundPlayers, foundVehicles, liveRows] = await Promise.all([
     db
       .select({ slug: players.slug, displayName: players.displayName })

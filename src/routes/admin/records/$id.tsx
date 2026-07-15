@@ -25,6 +25,7 @@ import {
 } from '#/components/admin/proof-uploader'
 import type { ProofDraftState } from '#/components/admin/proof-uploader'
 import { StatusChip } from '#/routes/admin/index'
+import { formatDayTime, formatDayYear } from '#/lib/dates'
 import {
   adminAttachProofs,
   adminDemoteRecord,
@@ -106,7 +107,9 @@ function RecordDetail() {
   }
 
   return (
-    <div className="space-y-4">
+    // Keyed so edit-form state and drafts reset when navigating between
+    // records (sibling links) without a remount.
+    <div key={recordId} className="space-y-4">
       <Panel
         title={`${vehicle.name} · ${record.mode.toUpperCase()}`}
         aside={
@@ -124,9 +127,7 @@ function RecordDetail() {
           <Meta label="Patch">{record.patch}</Meta>
           <Meta label="Run BR">{record.runBr ?? '—'}</Meta>
           <Meta label="Verified">
-            {record.verifiedAt
-              ? new Date(record.verifiedAt).toLocaleString()
-              : '—'}
+            {record.verifiedAt ? formatDayTime(record.verifiedAt) : '—'}
           </Meta>
           <Meta label="Verifier">{detail.verifierHandle ?? '—'}</Meta>
           <Meta label="Threshold">
@@ -349,7 +350,7 @@ function RecordDetail() {
                 <StatusChip status={s.status} isCurrent={s.isCurrent} />
                 {s.verifiedAt && (
                   <span className="text-xs text-fg-faint">
-                    {new Date(s.verifiedAt).toLocaleDateString()}
+                    {formatDayYear(s.verifiedAt)}
                   </span>
                 )}
               </li>

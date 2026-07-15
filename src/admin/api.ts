@@ -1,7 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, eq } from 'drizzle-orm'
 import { db } from '#/db'
-import { players, records, vehicleBr, vehicles } from '#/db/schema'
 import { lookupVehicles } from '#/db/queries'
 import { adminGate, requireModerator } from '#/admin/guard'
 import {
@@ -9,6 +7,7 @@ import {
   createRecord,
   demoteRecord,
   getAdminRecord,
+  getEntryContext,
   listAdminRecords,
   makeCurrentRecord,
   previewTitleChange,
@@ -37,8 +36,7 @@ import {
   listPatchOptions,
   listRulesConfig,
   setVehicleDifficult,
-  updateDifficultMinKills,
-  updateModeMinKills,
+  updateModeRules,
 } from '#/admin/catalog'
 import { listAudit } from '#/admin/audit'
 import type { AuditEntity } from '#/admin/audit'
@@ -78,9 +76,9 @@ export const adminRecordDetail = createServerFn({ method: 'GET' })
       ...detail,
       proofs: detail.proofs.map((p) => ({
         ...p,
-        url: p.storagePath
-          ? proofUrlIfConfigured(p.storagePath)
-          : p.originalUrl,
+        url:
+          (p.storagePath && proofUrlIfConfigured(p.storagePath)) ||
+          p.originalUrl,
       })),
     }
   })
@@ -193,14 +191,27 @@ function formNumber(form: FormData, name: string): number | null {
   return n
 }
 
+/** Owns the multipart invariant: parse + validate, upload to R2, run the DB
+    write, and delete the uploaded objects if that write fails. */
+async function withUploadedProofs<T>(
+  form: FormData,
+  write: (proofs: ProofRowInput[]) => Promise<T>,
+): Promise<T> {
+  const proofs = await uploadedProofRows(await parseProofForm(form))
+  try {
+    return await write(proofs)
+  } catch (error) {
+    await rollbackUploads(proofs)
+    throw error
+  }
+}
+
 export const adminSaveRecord = createServerFn({ method: 'POST' })
   .validator((data: FormData) => data)
   .handler(async ({ data: form }) => {
     const { userId } = await requireModerator()
-    const parsed = await parseProofForm(form)
-    const proofs = await uploadedProofRows(parsed)
-    try {
-      return await createRecord(db, userId, {
+    return withUploadedProofs(form, (proofs) =>
+      createRecord(db, userId, {
         mode: formString(form, 'mode'),
         vehicleId: formNumber(form, 'vehicleId') ?? 0,
         playerId: formNumber(form, 'playerId'),
@@ -210,11 +221,8 @@ export const adminSaveRecord = createServerFn({ method: 'POST' })
         patch: formString(form, 'patch'),
         runBr: formNumber(form, 'runBr'),
         proofs,
-      })
-    } catch (error) {
-      await rollbackUploads(proofs)
-      throw error
-    }
+      }),
+    )
   })
 
 export const adminAttachProofs = createServerFn({ method: 'POST' })
@@ -223,14 +231,9 @@ export const adminAttachProofs = createServerFn({ method: 'POST' })
     const { userId } = await requireModerator()
     const recordId = formNumber(form, 'recordId')
     if (recordId == null) throw new Error('recordId is required')
-    const parsed = await parseProofForm(form)
-    const proofs = await uploadedProofRows(parsed)
-    try {
-      return await attachProofs(db, userId, recordId, proofs)
-    } catch (error) {
-      await rollbackUploads(proofs)
-      throw error
-    }
+    return withUploadedProofs(form, (proofs) =>
+      attachProofs(db, userId, recordId, proofs),
+    )
   })
 
 /* ── Entry-form context ──────────────────────────────────────── */
@@ -246,52 +249,7 @@ export const adminEntryContext = createServerFn({ method: 'GET' })
   .validator((data: { mode: string; vehicleSlug: string }) => data)
   .handler(async ({ data }) => {
     await requireModerator()
-    const vehicle = (
-      await db
-        .select()
-        .from(vehicles)
-        .where(eq(vehicles.slug, data.vehicleSlug))
-        .limit(1)
-    ).at(0)
-    if (!vehicle) return null
-    const current = (
-      await db
-        .select({
-          id: records.id,
-          kills: records.kills,
-          verifiedAt: records.verifiedAt,
-          playerName: players.displayName,
-        })
-        .from(records)
-        .innerJoin(players, eq(players.id, records.playerId))
-        .where(
-          and(
-            eq(records.vehicleId, vehicle.id),
-            eq(records.mode, data.mode),
-            eq(records.isCurrent, true),
-            eq(records.status, 'verified'),
-          ),
-        )
-    ).at(0)
-    const br = (
-      await db
-        .select({ br: vehicleBr.br })
-        .from(vehicleBr)
-        .where(
-          and(
-            eq(vehicleBr.vehicleId, vehicle.id),
-            eq(vehicleBr.mode, data.mode),
-          ),
-        )
-    ).at(0)
-    return {
-      vehicleId: vehicle.id,
-      vehicleName: vehicle.name,
-      isDifficult: vehicle.isDifficult,
-      class: vehicle.class,
-      current: current ?? null,
-      br: br?.br ?? null,
-    }
+    return getEntryContext(db, data.mode, data.vehicleSlug)
   })
 
 export const adminPlayerPrefill = createServerFn({ method: 'GET' })
@@ -381,23 +339,20 @@ export const adminRulesConfig = createServerFn({ method: 'GET' }).handler(
   },
 )
 
-export const adminUpdateMinKills = createServerFn({ method: 'POST' })
+export const adminUpdateRules = createServerFn({ method: 'POST' })
   .validator(
     (data: {
       mode: string
       entries: { class: VehicleClass; minKills: number }[]
+      difficultMinKills: number | null
     }) => data,
   )
   .handler(async ({ data }) => {
     const { userId } = await requireModerator()
-    return updateModeMinKills(db, userId, data.mode, data.entries)
-  })
-
-export const adminUpdateDifficultMinKills = createServerFn({ method: 'POST' })
-  .validator((data: { mode: string; value: number | null }) => data)
-  .handler(async ({ data }) => {
-    const { userId } = await requireModerator()
-    return updateDifficultMinKills(db, userId, data.mode, data.value)
+    return updateModeRules(db, userId, data.mode, {
+      entries: data.entries,
+      difficultMinKills: data.difficultMinKills,
+    })
   })
 
 /* ── Patches ─────────────────────────────────────────────────── */

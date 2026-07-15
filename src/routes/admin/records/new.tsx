@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import {
   createFileRoute,
   useLoaderData,
@@ -23,6 +23,7 @@ import {
 } from '#/components/admin/proof-uploader'
 import type { ProofDraftState } from '#/components/admin/proof-uploader'
 import { formatBr } from '#/lib/format'
+import { formatDayYear } from '#/lib/dates'
 import {
   adminAddPatch,
   adminEntryContext,
@@ -77,13 +78,16 @@ function NewRecord() {
     [],
   )
 
+  // A pick resolving after a mode switch (or a newer pick) must not land.
+  const pickSeq = useRef(0)
   const pickVehicle = async (slug: string) => {
+    const requestId = ++pickSeq.current
     const context = await adminEntryContext({
       data: { mode, vehicleSlug: slug },
     })
-    if (!context) return
+    if (pickSeq.current !== requestId || !context) return
     setVehicle(context)
-    if (context.br != null) setRunBr(String(context.br))
+    setRunBr(context.br != null ? String(context.br) : '')
   }
 
   const pickPlayer = async (p: { id: number; displayName: string }) => {
@@ -161,8 +165,10 @@ function NewRecord() {
             <select
               value={mode}
               onChange={(e) => {
+                pickSeq.current++
                 setMode(e.target.value)
                 setVehicle(null)
+                setRunBr('')
               }}
               className={selectClass}
             >
@@ -190,7 +196,10 @@ function NewRecord() {
                 </span>
               )}
               onSelect={(v) => void pickVehicle(v.slug)}
-              onClear={() => setVehicle(null)}
+              onClear={() => {
+                setVehicle(null)
+                setRunBr('')
+              }}
               selectedLabel={vehicle ? vehicle.vehicleName : null}
             />
           </Field>
@@ -205,7 +214,7 @@ function NewRecord() {
                   </strong>{' '}
                   by {vehicle.current.playerName}
                   {vehicle.current.verifiedAt &&
-                    ` (${new Date(vehicle.current.verifiedAt).toLocaleDateString()})`}
+                    ` (${formatDayYear(vehicle.current.verifiedAt)})`}
                   . A new entry needs {vehicle.current.kills + 1}+ to take the
                   title.
                 </>

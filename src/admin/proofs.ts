@@ -1,19 +1,12 @@
-import { RASTER_IMAGE_CONTENT_TYPES } from '#/storage/image-types'
+import {
+  RASTER_EXTENSION_BY_CONTENT_TYPE,
+  RASTER_IMAGE_CONTENT_TYPES,
+} from '#/storage/image-types'
 import type { Storage } from '#/storage/r2'
 
-/* Server-proxied proof upload: validate everything first, then PUT to R2;
-   the caller inserts DB rows afterwards and rolls uploads back on failure,
-   so no orphaned objects and no half-proofed records. */
-
+// Validate everything first, then PUT to R2; the caller inserts DB rows and
+// rolls the uploads back on failure — no orphans, no half-proofed records.
 export const MAX_PROOF_BYTES = 10 * 1024 * 1024
-
-const EXTENSION_BY_CONTENT_TYPE: Record<string, string> = {
-  'image/png': 'png',
-  'image/jpeg': 'jpg',
-  'image/webp': 'webp',
-  'image/gif': 'gif',
-  'image/avif': 'avif',
-}
 
 export function validateProofFile(file: {
   contentType: string
@@ -34,7 +27,7 @@ export function proofObjectKey(
   contentType: string,
   id: string = crypto.randomUUID(),
 ): string {
-  const ext = EXTENSION_BY_CONTENT_TYPE[contentType]
+  const ext = RASTER_EXTENSION_BY_CONTENT_TYPE[contentType]
   if (!ext) throw new Error(`Unsupported proof content type ${contentType}`)
   return `entries/${id}.${ext}`
 }

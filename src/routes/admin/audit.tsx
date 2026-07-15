@@ -1,5 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Panel, selectClass } from '#/components/admin/ui'
+import { Pager, pageParam } from '#/components/admin/pager'
+import { formatDayTime } from '#/lib/dates'
 import { adminAuditList } from '#/admin/api'
 import type { AuditEntity } from '#/admin/audit'
 
@@ -25,8 +27,7 @@ export const Route = createFileRoute('/admin/audit')({
     ) {
       out.entity = s.entity as AuditEntity
     }
-    const page = Number(s.page)
-    if (Number.isInteger(page) && page > 1) out.page = page
+    out.page = pageParam(s.page)
     return out
   },
   loaderDeps: ({ search }) => search,
@@ -91,8 +92,7 @@ function AuditView() {
                 </span>
                 <span className="ml-auto text-xs text-fg-faint">
                   {row.actorHandle ?? row.actorId ?? 'unknown'}
-                  {row.createdAt &&
-                    ` · ${new Date(row.createdAt).toLocaleString()}`}
+                  {row.createdAt && ` · ${formatDayTime(row.createdAt)}`}
                 </span>
               </div>
               {row.diff && (
@@ -110,31 +110,11 @@ function AuditView() {
         </ul>
       )}
 
-      {(page > 1 || result.hasMore) && (
-        <div className="mt-4 flex items-center justify-between text-sm">
-          <button
-            type="button"
-            disabled={page <= 1}
-            className="text-fg-muted hover:text-fg disabled:opacity-40"
-            onClick={() =>
-              navigate({
-                search: { ...search, page: page > 2 ? page - 1 : undefined },
-              })
-            }
-          >
-            ← Newer
-          </button>
-          <span className="text-fg-faint">Page {page}</span>
-          <button
-            type="button"
-            disabled={!result.hasMore}
-            className="text-fg-muted hover:text-fg disabled:opacity-40"
-            onClick={() => navigate({ search: { ...search, page: page + 1 } })}
-          >
-            Older →
-          </button>
-        </div>
-      )}
+      <Pager
+        page={page}
+        hasMore={result.hasMore}
+        onPage={(p) => navigate({ search: { ...search, page: p } })}
+      />
     </Panel>
   )
 }

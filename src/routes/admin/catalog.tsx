@@ -11,8 +11,7 @@ import {
 import {
   adminRulesConfig,
   adminSetDifficult,
-  adminUpdateDifficultMinKills,
-  adminUpdateMinKills,
+  adminUpdateRules,
   adminVehicleList,
 } from '#/admin/api'
 import type { VehicleClass } from '#/lib/vehicle-classes'
@@ -197,11 +196,12 @@ function ModeRulesPanel({
           class: cls as VehicleClass,
           minKills: Number(raw),
         }))
-      await adminUpdateMinKills({ data: { mode: mode.mode, entries } })
-      await adminUpdateDifficultMinKills({
+      // One transaction server-side: matrix + override save or fail together.
+      await adminUpdateRules({
         data: {
           mode: mode.mode,
-          value: difficult.trim() === '' ? null : Number(difficult),
+          entries,
+          difficultMinKills: difficult.trim() === '' ? null : Number(difficult),
         },
       })
       onSaved()

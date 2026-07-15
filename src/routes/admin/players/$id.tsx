@@ -77,7 +77,9 @@ function PlayerDetail() {
   }
 
   return (
-    <div className="space-y-4">
+    // Keyed so form state (rename, alias, merge pick) resets per player when
+    // navigating player-to-player without a remount.
+    <div key={player.id} className="space-y-4">
       <Panel
         title={player.displayName}
         aside={

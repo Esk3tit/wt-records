@@ -29,11 +29,15 @@ export function supabaseServer() {
   })
 }
 
-/** Whether the request carries a Supabase auth cookie at all — lets visitor
-    requests skip the token validation round-trip entirely. */
+/** Whether the request carries a Supabase SESSION cookie — lets visitor
+    requests skip the token validation round-trip entirely. The PKCE
+    code-verifier cookie of an abandoned sign-in must not count. */
 export function hasAuthCookie(): boolean {
   return Object.keys(getCookies()).some(
-    (name) => name.startsWith('sb-') && name.includes('-auth-token'),
+    (name) =>
+      name.startsWith('sb-') &&
+      name.includes('-auth-token') &&
+      !name.includes('code-verifier'),
   )
 }
 
