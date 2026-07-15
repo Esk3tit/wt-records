@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   MAX_PROOF_BYTES,
+  assertProofBytesMatchType,
   proofObjectKey,
   uploadProofFiles,
   deleteProofObjects,
@@ -23,12 +24,25 @@ function fakeStorage(opts?: { failOnKey?: (key: string) => boolean }) {
   return { storage, puts, deletes }
 }
 
+const ascii = (s: string) => [...s].map((c) => c.charCodeAt(0))
+const WEBP_BYTES = new Uint8Array([
+  ...ascii('RIFF'),
+  0,
+  0,
+  0,
+  0,
+  ...ascii('WEBP'),
+])
+const PNG_BYTES = new Uint8Array([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+])
+
 const file = (
   over: Partial<Parameters<typeof uploadProofFiles>[1][number]> = {},
 ) => ({
   kind: 'scoreboard' as const,
   contentType: 'image/webp',
-  bytes: new Uint8Array([1, 2, 3]),
+  bytes: WEBP_BYTES,
   originalUrl: null,
   ...over,
 })
@@ -74,6 +88,37 @@ describe('proofObjectKey', () => {
 
   it('generates unique keys by default', () => {
     expect(proofObjectKey('image/png')).not.toBe(proofObjectKey('image/png'))
+  })
+})
+
+describe('assertProofBytesMatchType', () => {
+  it('accepts bytes carrying the declared signature', () => {
+    expect(() =>
+      assertProofBytesMatchType(WEBP_BYTES, 'image/webp'),
+    ).not.toThrow()
+    expect(() =>
+      assertProofBytesMatchType(PNG_BYTES, 'image/png'),
+    ).not.toThrow()
+  })
+
+  it('rejects bytes that do not match the declared type', () => {
+    // HTML smuggled under an image content type must not reach R2.
+    const html = new Uint8Array(ascii('<script>alert(1)</script>'))
+    expect(() => assertProofBytesMatchType(html, 'image/webp')).toThrow(
+      /match/i,
+    )
+    // A real PNG declared as webp is still a lie about the served type.
+    expect(() => assertProofBytesMatchType(PNG_BYTES, 'image/webp')).toThrow()
+  })
+
+  it('rejects uploads whose bytes fail the sniff before anything uploads', async () => {
+    const { storage, puts } = fakeStorage()
+    await expect(
+      uploadProofFiles(storage, [
+        file({ bytes: new Uint8Array(ascii('not an image')) }),
+      ]),
+    ).rejects.toThrow(/match/i)
+    expect(puts).toHaveLength(0)
   })
 })
 

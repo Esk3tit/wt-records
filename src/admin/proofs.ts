@@ -23,6 +23,43 @@ export function validateProofFile(file: {
   }
 }
 
+const ASCII = (s: string) => [...s].map((c) => c.charCodeAt(0))
+const matchAt = (bytes: Uint8Array, offset: number, sig: number[]) =>
+  sig.every((b, i) => bytes[offset + i] === b)
+
+// The browser-supplied content type is untrusted — the bytes must carry the
+// declared format's signature or the upload is refused (defense in depth).
+const MAGIC_BY_CONTENT_TYPE = new Map<string, (b: Uint8Array) => boolean>([
+  [
+    'image/png',
+    (b) => matchAt(b, 0, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+  ],
+  ['image/jpeg', (b) => matchAt(b, 0, [0xff, 0xd8, 0xff])],
+  ['image/gif', (b) => matchAt(b, 0, ASCII('GIF8'))],
+  [
+    'image/webp',
+    (b) => matchAt(b, 0, ASCII('RIFF')) && matchAt(b, 8, ASCII('WEBP')),
+  ],
+  [
+    'image/avif',
+    (b) =>
+      matchAt(b, 4, ASCII('ftyp')) &&
+      (matchAt(b, 8, ASCII('avif')) || matchAt(b, 8, ASCII('avis'))),
+  ],
+])
+
+export function assertProofBytesMatchType(
+  bytes: Uint8Array,
+  contentType: string,
+): void {
+  const matches = MAGIC_BY_CONTENT_TYPE.get(contentType)
+  if (!matches || !matches(bytes)) {
+    throw new Error(
+      `File contents do not match the declared image type (${contentType})`,
+    )
+  }
+}
+
 export function proofObjectKey(
   contentType: string,
   id: string = crypto.randomUUID(),
@@ -53,6 +90,7 @@ export async function uploadProofFiles(
 ): Promise<UploadedProofRow[]> {
   for (const f of files) {
     validateProofFile({ contentType: f.contentType, size: f.bytes.byteLength })
+    assertProofBytesMatchType(f.bytes, f.contentType)
   }
   const uploaded: UploadedProofRow[] = []
   try {

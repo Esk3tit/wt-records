@@ -10,7 +10,7 @@ import {
   vehicleBr,
   vehicles,
 } from '#/db/schema'
-import { qualifyingThreshold, rightfulHolder  } from '#/lib/rules'
+import { qualifyingThreshold, rightfulHolder } from '#/lib/rules'
 import type { ModeThresholds } from '#/lib/rules'
 import { likeContains } from '#/lib/like'
 import { writeAudit } from '#/admin/audit'
@@ -272,6 +272,11 @@ export async function updateRecord(
       await tx.select().from(records).where(eq(records.id, recordId))
     ).at(0)
     if (!existing) throw new Error(`Unknown record ${recordId}`)
+    // pending/rejected are reserved for the Phase-2 submission flow — only
+    // its accept/decline step may touch them.
+    if (existing.status !== 'verified' && existing.status !== 'retired') {
+      throw new Error('Only verified or retired records can be edited')
+    }
 
     if (input.playerId != null && input.playerId !== existing.playerId) {
       const holder = (

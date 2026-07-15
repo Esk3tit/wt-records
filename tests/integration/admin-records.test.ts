@@ -338,6 +338,15 @@ describe('updateRecord', () => {
     ).rejects.toThrow(/merged/i)
   })
 
+  it('refuses edits on pending/rejected records (Phase-2 states)', async () => {
+    const pending = (
+      await t.db.select().from(records).where(eq(records.status, 'pending'))
+    )[0]
+    await expect(
+      updateRecord(t.db, MOD, pending.id, { kills: 10 }),
+    ).rejects.toThrow(/verified or retired/i)
+  })
+
   it('reassigns the holder without touching snapshots', async () => {
     const veh = await vehicleId('m4a1')
     const current = await currentRecord(veh)
