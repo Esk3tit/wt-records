@@ -1,0 +1,9 @@
+# Moderator writes via service role + app-level guard; no moderator RLS
+
+`/admin` authenticates with Supabase Auth (Discord OAuth) using cookie sessions (`@supabase/ssr`), but moderator **writes do not get RLS policies**. A single server-side guard — validate the JWT via `auth.getUser()`, then read `profiles.role` through the service-role Drizzle connection — runs in the `/admin` layout's `beforeLoad` and at the top of every admin server function. The writes themselves go through the same service-role `postgres-js` connection as SSR reads (ADR 0002).
+
+**Why:** every consequential admin write is multi-table and must be atomic — a record entry that supersedes demotes the incumbent and lands an `audit_log` row in the same transaction; a player merge repoints records, moves aliases, and tombstones the duplicate. That transaction control lives in Drizzle on the direct connection. The guard needs the user's identity anyway (audit `actorId`), so the role check is one indexed read, not a second policy system.
+
+**Considered and rejected:** moderator RLS policies with writes through the Supabase (PostgREST) client as the signed-in user. It reads as defense-in-depth but creates a second data path beside Drizzle, duplicates the gate logic in SQL policy form, and gives up multi-statement transactions — the supersede + audit invariant would no longer be atomic. Also rejected: DB triggers for audit rows (the service-role session has no user identity, and catalog sync would flood the log with non-mod writes).
+
+**Consequence:** the RLS surface stays exactly as ADR 0002 left it (anon SELECT on current verified records only) — moderator capability exists purely in app code, so **every** admin server function must call the guard; nothing at the DB layer catches a forgotten one. `moderator` and `admin` are deliberately equivalent in Phase 1; the gate is written in one place so a future tier split is local.
