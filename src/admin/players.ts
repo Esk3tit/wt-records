@@ -1,6 +1,6 @@
-import { and, eq } from 'drizzle-orm'
+import { and, asc, desc, eq, ilike, isNull, or, sql } from 'drizzle-orm'
 import type { Db } from '#/db'
-import { playerAliases, players } from '#/db/schema'
+import { playerAliases, players, records, vehicles } from '#/db/schema'
 import { slugify } from '#/lib/slug'
 import { writeAudit } from '#/admin/audit'
 
@@ -71,4 +71,327 @@ export async function recordIgnAlias(
     source: 'submission',
   })
   return true
+}
+
+async function aliasExists(
+  db: Db,
+  playerId: number,
+  name: string,
+  kind: string,
+): Promise<boolean> {
+  const rows = await db
+    .select({ id: playerAliases.id })
+    .from(playerAliases)
+    .where(
+      and(
+        eq(playerAliases.playerId, playerId),
+        eq(playerAliases.name, name),
+        eq(playerAliases.kind, kind),
+      ),
+    )
+    .limit(1)
+  return rows.length > 0
+}
+
+export async function renamePlayer(
+  db: Db,
+  actorId: string,
+  playerId: number,
+  newName: string,
+) {
+  const name = newName.trim()
+  if (!name) throw new Error('Player display name is required')
+  return db.transaction(async (tx) => {
+    const [player] = await tx
+      .select()
+      .from(players)
+      .where(eq(players.id, playerId))
+    if (!player) throw new Error(`Unknown player ${playerId}`)
+    if (player.displayName === name) {
+      throw new Error('The player is already named that')
+    }
+    await tx
+      .update(players)
+      .set({ displayName: name })
+      .where(eq(players.id, playerId))
+
+    // The old display name auto-drops to an alias ("previously known as").
+    let aliasAdded = false
+    if (!(await aliasExists(tx, playerId, player.displayName, 'display'))) {
+      await tx.insert(playerAliases).values({
+        playerId,
+        name: player.displayName,
+        kind: 'display',
+        source: 'moderation',
+      })
+      aliasAdded = true
+    }
+    await writeAudit(tx, {
+      actorId,
+      action: 'player.rename',
+      entity: 'player',
+      entityId: playerId,
+      diff: {
+        before: { displayName: player.displayName },
+        after: { displayName: name },
+        context: { ...(aliasAdded && { aliasAdded: player.displayName }) },
+      },
+    })
+    return { displayName: name }
+  })
+}
+
+export async function addAlias(
+  db: Db,
+  actorId: string,
+  playerId: number,
+  name: string,
+  kind: 'ign' | 'display' = 'ign',
+) {
+  const alias = name.trim()
+  if (!alias) throw new Error('An alias name is required')
+  return db.transaction(async (tx) => {
+    const [player] = await tx
+      .select({ id: players.id })
+      .from(players)
+      .where(eq(players.id, playerId))
+    if (!player) throw new Error(`Unknown player ${playerId}`)
+    if (await aliasExists(tx, playerId, alias, kind)) {
+      throw new Error('That alias already exists for this player')
+    }
+    const [row] = await tx
+      .insert(playerAliases)
+      .values({ playerId, name: alias, kind, source: 'moderation' })
+      .returning()
+    await writeAudit(tx, {
+      actorId,
+      action: 'player.add_alias',
+      entity: 'player',
+      entityId: playerId,
+      diff: { after: { name: alias, kind } },
+    })
+    return row
+  })
+}
+
+export async function removeAlias(db: Db, actorId: string, aliasId: number) {
+  return db.transaction(async (tx) => {
+    const [alias] = await tx
+      .select()
+      .from(playerAliases)
+      .where(eq(playerAliases.id, aliasId))
+    if (!alias) throw new Error(`Unknown alias ${aliasId}`)
+    await tx.delete(playerAliases).where(eq(playerAliases.id, aliasId))
+    await writeAudit(tx, {
+      actorId,
+      action: 'player.remove_alias',
+      entity: 'player',
+      entityId: alias.playerId,
+      diff: {
+        before: { name: alias.name, kind: alias.kind, source: alias.source },
+      },
+    })
+  })
+}
+
+/* ── Merge (survivor ← duplicate), one transaction ───────────── */
+
+export async function mergePlayers(
+  db: Db,
+  actorId: string,
+  input: { survivorId: number; duplicateId: number },
+) {
+  if (input.survivorId === input.duplicateId) {
+    throw new Error('A player cannot be merged into itself')
+  }
+  return db.transaction(async (tx) => {
+    const [survivor] = await tx
+      .select()
+      .from(players)
+      .where(eq(players.id, input.survivorId))
+    const [duplicate] = await tx
+      .select()
+      .from(players)
+      .where(eq(players.id, input.duplicateId))
+    if (!survivor || !duplicate) throw new Error('Unknown player')
+    if (survivor.mergedInto != null || duplicate.mergedInto != null) {
+      throw new Error('Already-merged players cannot take part in a merge')
+    }
+    // Two claims by different Users are two people — refuse.
+    if (
+      survivor.userId != null &&
+      duplicate.userId != null &&
+      survivor.userId !== duplicate.userId
+    ) {
+      throw new Error(
+        'Both players are claimed by different users — merging would collapse two people',
+      )
+    }
+
+    const dupAliases = await tx
+      .select()
+      .from(playerAliases)
+      .where(eq(playerAliases.playerId, duplicate.id))
+    const repointed = await tx
+      .update(records)
+      .set({ playerId: survivor.id })
+      .where(eq(records.playerId, duplicate.id))
+      .returning({ id: records.id })
+
+    // Move aliases, skipping any (name, kind) the survivor already has.
+    for (const alias of dupAliases) {
+      if (await aliasExists(tx, survivor.id, alias.name, alias.kind)) {
+        await tx.delete(playerAliases).where(eq(playerAliases.id, alias.id))
+      } else {
+        await tx
+          .update(playerAliases)
+          .set({ playerId: survivor.id })
+          .where(eq(playerAliases.id, alias.id))
+      }
+    }
+    // The duplicate's display name becomes a survivor alias.
+    if (!(await aliasExists(tx, survivor.id, duplicate.displayName, 'display'))) {
+      await tx.insert(playerAliases).values({
+        playerId: survivor.id,
+        name: duplicate.displayName,
+        kind: 'display',
+        source: 'moderation',
+      })
+    }
+
+    // A lone claim carries over to the survivor (same person by mod judgment).
+    if (survivor.userId == null && duplicate.userId != null) {
+      await tx
+        .update(players)
+        .set({ userId: duplicate.userId })
+        .where(eq(players.id, survivor.id))
+    }
+    await tx
+      .update(players)
+      .set({ mergedInto: survivor.id, userId: null })
+      .where(eq(players.id, duplicate.id))
+
+    await writeAudit(tx, {
+      actorId,
+      action: 'player.merge',
+      entity: 'player',
+      entityId: survivor.id,
+      diff: {
+        before: {
+          duplicate: {
+            id: duplicate.id,
+            slug: duplicate.slug,
+            displayName: duplicate.displayName,
+            userId: duplicate.userId,
+          },
+          aliases: dupAliases.map((a) => ({ name: a.name, kind: a.kind })),
+          recordIds: repointed.map((r) => r.id),
+        },
+        context: {
+          survivorId: survivor.id,
+          duplicateId: duplicate.id,
+        },
+      },
+    })
+    return { repointedRecords: repointed.length }
+  })
+}
+
+/* ── Admin reads ─────────────────────────────────────────────── */
+
+export async function searchAdminPlayers(db: Db, q: string, limit = 10) {
+  const term = q.trim()
+  if (!term) return []
+  const like = `%${term.replace(/[\\%_]/g, '\\$&')}%`
+  return db
+    .select({
+      id: players.id,
+      slug: players.slug,
+      displayName: players.displayName,
+    })
+    .from(players)
+    .leftJoin(playerAliases, eq(playerAliases.playerId, players.id))
+    .where(
+      and(
+        isNull(players.mergedInto),
+        or(ilike(players.displayName, like), ilike(playerAliases.name, like)),
+      ),
+    )
+    .groupBy(players.id)
+    .orderBy(asc(players.displayName))
+    .limit(limit)
+}
+
+export async function listAdminPlayers(
+  db: Db,
+  opts: { q?: string; limit?: number; offset?: number },
+) {
+  const limit = opts.limit ?? 50
+  const offset = opts.offset ?? 0
+  const conds = [isNull(players.mergedInto)]
+  if (opts.q?.trim()) {
+    const like = `%${opts.q.trim().replace(/[\\%_]/g, '\\$&')}%`
+    conds.push(ilike(players.displayName, like))
+  }
+  const rows = await db
+    .select({
+      id: players.id,
+      slug: players.slug,
+      displayName: players.displayName,
+      userId: players.userId,
+      recordCount: sql<number>`count(distinct ${records.id})::int`,
+      aliasCount: sql<number>`count(distinct ${playerAliases.id})::int`,
+    })
+    .from(players)
+    .leftJoin(records, eq(records.playerId, players.id))
+    .leftJoin(playerAliases, eq(playerAliases.playerId, players.id))
+    .where(and(...conds))
+    .groupBy(players.id)
+    .orderBy(asc(players.displayName))
+    .limit(limit + 1)
+    .offset(offset)
+  return { rows: rows.slice(0, limit), hasMore: rows.length > limit }
+}
+
+export async function getAdminPlayer(db: Db, playerId: number) {
+  const [player] = await db
+    .select()
+    .from(players)
+    .where(eq(players.id, playerId))
+  if (!player) return null
+
+  const [aliases, recs] = await Promise.all([
+    db
+      .select()
+      .from(playerAliases)
+      .where(eq(playerAliases.playerId, playerId))
+      .orderBy(asc(playerAliases.firstSeen), asc(playerAliases.id)),
+    db
+      .select({
+        id: records.id,
+        mode: records.mode,
+        kills: records.kills,
+        status: records.status,
+        isCurrent: records.isCurrent,
+        ignSnapshot: records.ignSnapshot,
+        verifiedAt: records.verifiedAt,
+        submittedAt: records.submittedAt,
+        vehicleName: vehicles.name,
+        vehicleSlug: vehicles.slug,
+      })
+      .from(records)
+      .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
+      .where(eq(records.playerId, playerId))
+      .orderBy(
+        sql`coalesce(${records.verifiedAt}, ${records.submittedAt}) desc nulls last`,
+        desc(records.id),
+      ),
+  ])
+
+  return {
+    player,
+    aliases,
+    records: recs,
+    lastIgn: recs[0]?.ignSnapshot ?? player.displayName,
+  }
 }

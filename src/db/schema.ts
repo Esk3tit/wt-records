@@ -154,7 +154,7 @@ export const playerAliases = pgTable(
       .notNull(),
     name: text('name').notNull(),
     kind: text('kind').notNull().default('ign'), // "ign" | "display"
-    source: text('source').notNull().default('ingame'), // "migration"|"ingame"|"submission"
+    source: text('source').notNull().default('ingame'), // "migration"|"ingame"|"submission"|"moderation"
     firstSeen: timestamp('first_seen', { withTimezone: true }).defaultNow(),
     lastSeen: timestamp('last_seen', { withTimezone: true }).defaultNow(),
   },
