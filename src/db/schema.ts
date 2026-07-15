@@ -15,6 +15,7 @@ import {
   check,
   pgPolicy,
   doublePrecision,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import { authUsers, anonRole } from 'drizzle-orm/supabase'
@@ -28,6 +29,7 @@ export const recordStatus = pgEnum('record_status', [
   'verified',
   'pending',
   'rejected',
+  'retired',
 ])
 export const role = pgEnum('role', ['viewer', 'moderator', 'admin'])
 export const proofKind = pgEnum('proof_kind', [
@@ -134,6 +136,11 @@ export const players = pgTable(
     userId: uuid('user_id').references(() => authUsers.id, {
       onDelete: 'set null',
     }),
+    // Merge tombstone: set = this row is a duplicate collapsed into the
+    // survivor; its public slug 301s there and it leaves search.
+    mergedInto: integer('merged_into').references(
+      (): AnyPgColumn => players.id,
+    ),
   },
   (t) => [index('ply_user_idx').on(t.userId)],
 ).enableRLS()
