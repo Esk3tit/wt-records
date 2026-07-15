@@ -11,6 +11,17 @@ export interface AuditDiff {
   context?: Record<string, unknown>
 }
 
+/* What comes back OUT of the jsonb column — plain JSON, typed so server-fn
+   results stay serializable. */
+export type JsonValue =
+  string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
+
+export interface AuditDiffView {
+  before?: Record<string, JsonValue>
+  after?: Record<string, JsonValue>
+  context?: Record<string, JsonValue>
+}
+
 export type AuditEntity = 'record' | 'player' | 'vehicle' | 'rules' | 'patch'
 
 export async function writeAudit(
@@ -55,5 +66,10 @@ export async function listAudit(
     .orderBy(desc(auditLog.id))
     .limit(limit + 1)
     .offset(offset)
-  return { rows: rows.slice(0, limit), hasMore: rows.length > limit }
+  return {
+    rows: rows
+      .slice(0, limit)
+      .map((r) => ({ ...r, diff: r.diff as AuditDiffView | null })),
+    hasMore: rows.length > limit,
+  }
 }

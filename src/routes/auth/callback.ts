@@ -18,7 +18,7 @@ export const Route = createFileRoute('/auth/callback')({
         if (!code) return toAdmin()
         const { data, error } =
           await supabaseServer().auth.exchangeCodeForSession(code)
-        if (error || !data.user) return toAdmin()
+        if (error) return toAdmin()
         await upsertProfileFromOAuth(db, profileFromUser(data.user))
         return toAdmin()
       },

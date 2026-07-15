@@ -50,7 +50,9 @@ describe('renamePlayer', () => {
       .select()
       .from(playerAliases)
       .where(eq(playerAliases.playerId, ace.id))
-    const dropped = aliases.find((a) => a.name === 'Ace' && a.kind === 'display')
+    const dropped = aliases.find(
+      (a) => a.name === 'Ace' && a.kind === 'display',
+    )
     expect(dropped).toBeDefined()
 
     const audit = await listAudit(t.db, { entity: 'player' })
@@ -103,11 +105,17 @@ describe('mergePlayers', () => {
       .where(eq(records.playerId, floppa.id))
     expect(floppaRecords.length).toBeGreaterThan(0)
 
-    await mergePlayers(t.db, MOD, { survivorId: ace.id, duplicateId: floppa.id })
+    await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
 
     // records repointed, snapshots untouched:
     for (const r of floppaRecords) {
-      const [row] = await t.db.select().from(records).where(eq(records.id, r.id))
+      const [row] = await t.db
+        .select()
+        .from(records)
+        .where(eq(records.id, r.id))
       expect(row.playerId).toBe(ace.id)
       expect(row.ignSnapshot).toBe(r.ignSnapshot)
     }
@@ -141,7 +149,10 @@ describe('mergePlayers', () => {
   it('refuses when both players are claimed by different users', async () => {
     const ace = await playerBySlug('ace')
     const floppa = await playerBySlug('floppa')
-    await t.db.update(players).set({ userId: USER_A }).where(eq(players.id, ace.id))
+    await t.db
+      .update(players)
+      .set({ userId: USER_A })
+      .where(eq(players.id, ace.id))
     await t.db
       .update(players)
       .set({ userId: USER_B })
@@ -158,7 +169,10 @@ describe('mergePlayers', () => {
       .update(players)
       .set({ userId: USER_A })
       .where(eq(players.id, floppa.id))
-    await mergePlayers(t.db, MOD, { survivorId: ace.id, duplicateId: floppa.id })
+    await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
     expect((await playerBySlug('ace')).userId).toBe(USER_A)
     expect((await playerBySlug('floppa')).userId).toBeNull()
   })
@@ -170,12 +184,21 @@ describe('mergePlayers', () => {
     await expect(
       mergePlayers(t.db, MOD, { survivorId: ace.id, duplicateId: ace.id }),
     ).rejects.toThrow()
-    await mergePlayers(t.db, MOD, { survivorId: ace.id, duplicateId: floppa.id })
+    await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
     await expect(
-      mergePlayers(t.db, MOD, { survivorId: maverick.id, duplicateId: floppa.id }),
+      mergePlayers(t.db, MOD, {
+        survivorId: maverick.id,
+        duplicateId: floppa.id,
+      }),
     ).rejects.toThrow(/merged/i)
     await expect(
-      mergePlayers(t.db, MOD, { survivorId: floppa.id, duplicateId: maverick.id }),
+      mergePlayers(t.db, MOD, {
+        survivorId: floppa.id,
+        duplicateId: maverick.id,
+      }),
     ).rejects.toThrow(/merged/i)
   })
 
@@ -185,7 +208,10 @@ describe('mergePlayers', () => {
     // Give both players the same alias name+kind:
     await addAlias(t.db, MOD, ace.id, 'SharedName')
     await addAlias(t.db, MOD, floppa.id, 'SharedName')
-    await mergePlayers(t.db, MOD, { survivorId: ace.id, duplicateId: floppa.id })
+    await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
     const aceAliases = await t.db
       .select()
       .from(playerAliases)
@@ -204,7 +230,10 @@ describe('admin player reads', () => {
     expect(byAlias.map((p) => p.slug)).toContain('ace')
 
     const floppa = await playerBySlug('floppa')
-    await mergePlayers(t.db, MOD, { survivorId: ace.id, duplicateId: floppa.id })
+    await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
     const gone = await searchAdminPlayers(t.db, 'floppa')
     expect(gone.map((p) => p.slug)).not.toContain('floppa')
   })
@@ -212,7 +241,10 @@ describe('admin player reads', () => {
   it('listAdminPlayers reports counts and claims, excluding tombstones', async () => {
     const ace = await playerBySlug('ace')
     const floppa = await playerBySlug('floppa')
-    await mergePlayers(t.db, MOD, { survivorId: ace.id, duplicateId: floppa.id })
+    await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
 
     const list = await listAdminPlayers(t.db, {})
     const slugs = list.rows.map((p) => p.slug)

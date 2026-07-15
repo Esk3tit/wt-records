@@ -14,10 +14,12 @@ export async function setVehicleDifficult(
   isDifficult: boolean,
 ) {
   return db.transaction(async (tx) => {
-    const [vehicle] = await tx
-      .select({ id: vehicles.id, isDifficult: vehicles.isDifficult })
-      .from(vehicles)
-      .where(eq(vehicles.id, vehicleId))
+    const vehicle = (
+      await tx
+        .select({ id: vehicles.id, isDifficult: vehicles.isDifficult })
+        .from(vehicles)
+        .where(eq(vehicles.id, vehicleId))
+    ).at(0)
     if (!vehicle) throw new Error(`Unknown vehicle ${vehicleId}`)
     if (vehicle.isDifficult === isDifficult) return { changed: false }
     await tx
@@ -98,10 +100,12 @@ export async function updateDifficultMinKills(
     throw new Error('Difficult min kills must be a positive integer or unset')
   }
   return db.transaction(async (tx) => {
-    const [m] = await tx
-      .select({ difficultMinKills: modes.difficultMinKills })
-      .from(modes)
-      .where(eq(modes.mode, mode))
+    const m = (
+      await tx
+        .select({ difficultMinKills: modes.difficultMinKills })
+        .from(modes)
+        .where(eq(modes.mode, mode))
+    ).at(0)
     if (!m) throw new Error(`Unknown mode ${mode}`)
     if (m.difficultMinKills === value) return { changed: false }
     await tx

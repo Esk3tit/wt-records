@@ -1,4 +1,9 @@
-import { Link, createFileRoute, notFound, redirect } from '@tanstack/react-router'
+import {
+  Link,
+  createFileRoute,
+  notFound,
+  redirect,
+} from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { VehicleTags } from '#/components/vehicle-tags'
 import { db } from '#/db'

@@ -823,11 +823,13 @@ export async function playerMergeRedirect(
   )
   let survivorId = start?.mergedInto ?? null
   for (let hops = 0; survivorId != null && hops < 10; hops++) {
-    const [next] = await db
-      .select({ slug: players.slug, mergedInto: players.mergedInto })
-      .from(players)
-      .where(eq(players.id, survivorId))
-      .limit(1)
+    const next = one(
+      await db
+        .select({ slug: players.slug, mergedInto: players.mergedInto })
+        .from(players)
+        .where(eq(players.id, survivorId))
+        .limit(1),
+    )
     if (!next) return null
     if (next.mergedInto == null) return next.slug
     survivorId = next.mergedInto

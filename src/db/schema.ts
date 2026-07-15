@@ -15,8 +15,8 @@ import {
   check,
   pgPolicy,
   doublePrecision,
-  type AnyPgColumn,
 } from 'drizzle-orm/pg-core'
+import type { AnyPgColumn } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import { authUsers, anonRole } from 'drizzle-orm/supabase'
 import { VEHICLE_CLASSES } from '#/lib/vehicle-classes'

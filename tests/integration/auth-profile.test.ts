@@ -24,7 +24,10 @@ describe('upsertProfileFromOAuth', () => {
       handle: 'Khai',
       discordId: '123',
     })
-    const [row] = await t.db.select().from(profiles).where(eq(profiles.id, USER))
+    const [row] = await t.db
+      .select()
+      .from(profiles)
+      .where(eq(profiles.id, USER))
     expect(row.role).toBe('viewer')
     expect(row.handle).toBe('Khai')
     expect(row.discordId).toBe('123')
@@ -47,7 +50,10 @@ describe('upsertProfileFromOAuth', () => {
       handle: 'KhaiRenamed',
       discordId: '123',
     })
-    const [row] = await t.db.select().from(profiles).where(eq(profiles.id, USER))
+    const [row] = await t.db
+      .select()
+      .from(profiles)
+      .where(eq(profiles.id, USER))
     expect(row.role).toBe('moderator')
     expect(row.handle).toBe('KhaiRenamed')
   })
@@ -58,8 +64,15 @@ describe('upsertProfileFromOAuth', () => {
       handle: 'Khai',
       discordId: '123',
     })
-    await upsertProfileFromOAuth(t.db, { id: USER, handle: null, discordId: null })
-    const [row] = await t.db.select().from(profiles).where(eq(profiles.id, USER))
+    await upsertProfileFromOAuth(t.db, {
+      id: USER,
+      handle: null,
+      discordId: null,
+    })
+    const [row] = await t.db
+      .select()
+      .from(profiles)
+      .where(eq(profiles.id, USER))
     expect(row.handle).toBe('Khai')
     expect(row.discordId).toBe('123')
   })

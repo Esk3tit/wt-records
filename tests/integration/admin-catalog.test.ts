@@ -92,7 +92,9 @@ describe('rules updates', () => {
     const [row] = await t.db
       .select()
       .from(modeMinKills)
-      .where(and(eq(modeMinKills.mode, 'gab'), eq(modeMinKills.class, 'medium')))
+      .where(
+        and(eq(modeMinKills.mode, 'gab'), eq(modeMinKills.class, 'medium')),
+      )
     expect(row.minKills).toBe(9)
   })
 
@@ -139,9 +141,9 @@ describe('patches', () => {
   })
 
   it('refuses a duplicate or empty version', async () => {
-    await expect(
-      addPatch(t.db, MOD, { version: '2.53' }),
-    ).rejects.toThrow(/exists/i)
+    await expect(addPatch(t.db, MOD, { version: '2.53' })).rejects.toThrow(
+      /exists/i,
+    )
     await expect(addPatch(t.db, MOD, { version: ' ' })).rejects.toThrow()
   })
 

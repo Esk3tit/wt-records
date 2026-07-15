@@ -23,7 +23,9 @@ function fakeStorage(opts?: { failOnKey?: (key: string) => boolean }) {
   return { storage, puts, deletes }
 }
 
-const file = (over: Partial<Parameters<typeof uploadProofFiles>[1][number]> = {}) => ({
+const file = (
+  over: Partial<Parameters<typeof uploadProofFiles>[1][number]> = {},
+) => ({
   kind: 'scoreboard' as const,
   contentType: 'image/webp',
   bytes: new Uint8Array([1, 2, 3]),
@@ -53,7 +55,10 @@ describe('validateProofFile', () => {
 
   it('rejects files over the cap and empty files', () => {
     expect(() =>
-      validateProofFile({ contentType: 'image/png', size: MAX_PROOF_BYTES + 1 }),
+      validateProofFile({
+        contentType: 'image/png',
+        size: MAX_PROOF_BYTES + 1,
+      }),
     ).toThrow(/10/)
     expect(() =>
       validateProofFile({ contentType: 'image/png', size: 0 }),
@@ -88,10 +93,7 @@ describe('uploadProofFiles', () => {
   it('validates before uploading anything', async () => {
     const { storage, puts } = fakeStorage()
     await expect(
-      uploadProofFiles(storage, [
-        file(),
-        file({ contentType: 'video/mp4' }),
-      ]),
+      uploadProofFiles(storage, [file(), file({ contentType: 'video/mp4' })]),
     ).rejects.toThrow(/image/i)
     expect(puts).toHaveLength(0)
   })
@@ -100,9 +102,9 @@ describe('uploadProofFiles', () => {
     const { storage, puts, deletes } = fakeStorage({
       failOnKey: (key) => puts.length === 1 && key !== puts[0],
     })
-    await expect(
-      uploadProofFiles(storage, [file(), file()]),
-    ).rejects.toThrow(/unavailable/)
+    await expect(uploadProofFiles(storage, [file(), file()])).rejects.toThrow(
+      /unavailable/,
+    )
     expect(puts).toHaveLength(1)
     expect(deletes).toEqual(puts)
   })

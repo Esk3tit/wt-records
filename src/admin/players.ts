@@ -102,10 +102,9 @@ export async function renamePlayer(
   const name = newName.trim()
   if (!name) throw new Error('Player display name is required')
   return db.transaction(async (tx) => {
-    const [player] = await tx
-      .select()
-      .from(players)
-      .where(eq(players.id, playerId))
+    const player = (
+      await tx.select().from(players).where(eq(players.id, playerId))
+    ).at(0)
     if (!player) throw new Error(`Unknown player ${playerId}`)
     if (player.displayName === name) {
       throw new Error('The player is already named that')
@@ -151,10 +150,12 @@ export async function addAlias(
   const alias = name.trim()
   if (!alias) throw new Error('An alias name is required')
   return db.transaction(async (tx) => {
-    const [player] = await tx
-      .select({ id: players.id })
-      .from(players)
-      .where(eq(players.id, playerId))
+    const player = (
+      await tx
+        .select({ id: players.id })
+        .from(players)
+        .where(eq(players.id, playerId))
+    ).at(0)
     if (!player) throw new Error(`Unknown player ${playerId}`)
     if (await aliasExists(tx, playerId, alias, kind)) {
       throw new Error('That alias already exists for this player')
@@ -176,10 +177,9 @@ export async function addAlias(
 
 export async function removeAlias(db: Db, actorId: string, aliasId: number) {
   return db.transaction(async (tx) => {
-    const [alias] = await tx
-      .select()
-      .from(playerAliases)
-      .where(eq(playerAliases.id, aliasId))
+    const alias = (
+      await tx.select().from(playerAliases).where(eq(playerAliases.id, aliasId))
+    ).at(0)
     if (!alias) throw new Error(`Unknown alias ${aliasId}`)
     await tx.delete(playerAliases).where(eq(playerAliases.id, aliasId))
     await writeAudit(tx, {
@@ -205,14 +205,12 @@ export async function mergePlayers(
     throw new Error('A player cannot be merged into itself')
   }
   return db.transaction(async (tx) => {
-    const [survivor] = await tx
-      .select()
-      .from(players)
-      .where(eq(players.id, input.survivorId))
-    const [duplicate] = await tx
-      .select()
-      .from(players)
-      .where(eq(players.id, input.duplicateId))
+    const survivor = (
+      await tx.select().from(players).where(eq(players.id, input.survivorId))
+    ).at(0)
+    const duplicate = (
+      await tx.select().from(players).where(eq(players.id, input.duplicateId))
+    ).at(0)
     if (!survivor || !duplicate) throw new Error('Unknown player')
     if (survivor.mergedInto != null || duplicate.mergedInto != null) {
       throw new Error('Already-merged players cannot take part in a merge')
@@ -250,7 +248,9 @@ export async function mergePlayers(
       }
     }
     // The duplicate's display name becomes a survivor alias.
-    if (!(await aliasExists(tx, survivor.id, duplicate.displayName, 'display'))) {
+    if (
+      !(await aliasExists(tx, survivor.id, duplicate.displayName, 'display'))
+    ) {
       await tx.insert(playerAliases).values({
         playerId: survivor.id,
         name: duplicate.displayName,
@@ -354,10 +354,9 @@ export async function listAdminPlayers(
 }
 
 export async function getAdminPlayer(db: Db, playerId: number) {
-  const [player] = await db
-    .select()
-    .from(players)
-    .where(eq(players.id, playerId))
+  const player = (
+    await db.select().from(players).where(eq(players.id, playerId))
+  ).at(0)
   if (!player) return null
 
   const [aliases, recs] = await Promise.all([

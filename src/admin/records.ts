@@ -10,7 +10,7 @@ import {
   vehicles,
 } from '#/db/schema'
 import { qualifyingThreshold } from '#/lib/rules'
-import type { ModeThresholds, VehicleClass } from '#/lib/rules'
+import type { ModeThresholds } from '#/lib/rules'
 import { rightfulHolder } from '#/admin/title'
 import { writeAudit } from '#/admin/audit'
 import { createPlayer, recordIgnAlias } from '#/admin/players'
@@ -42,24 +42,26 @@ async function thresholdFor(
   mode: string,
   vehicleId: number,
 ): Promise<number | null> {
-  const [vehicle] = await db
-    .select({ class: vehicles.class, isDifficult: vehicles.isDifficult })
-    .from(vehicles)
-    .where(eq(vehicles.id, vehicleId))
+  const vehicle = (
+    await db
+      .select({ class: vehicles.class, isDifficult: vehicles.isDifficult })
+      .from(vehicles)
+      .where(eq(vehicles.id, vehicleId))
+  ).at(0)
   if (!vehicle) throw new Error(`Unknown vehicle ${vehicleId}`)
-  const [m] = await db
-    .select({ difficultMinKills: modes.difficultMinKills })
-    .from(modes)
-    .where(eq(modes.mode, mode))
+  const m = (
+    await db
+      .select({ difficultMinKills: modes.difficultMinKills })
+      .from(modes)
+      .where(eq(modes.mode, mode))
+  ).at(0)
   if (!m) throw new Error(`Unknown mode ${mode}`)
   const rows = await db
     .select({ class: modeMinKills.class, minKills: modeMinKills.minKills })
     .from(modeMinKills)
     .where(eq(modeMinKills.mode, mode))
   const thresholds: ModeThresholds = {
-    minKillsByClass: Object.fromEntries(
-      rows.map((r) => [r.class, r.minKills]),
-    ) as Partial<Record<VehicleClass, number>>,
+    minKillsByClass: Object.fromEntries(rows.map((r) => [r.class, r.minKills])),
     difficultMinKills: m.difficultMinKills,
   }
   return qualifyingThreshold(vehicle.class, vehicle.isDifficult, thresholds)
@@ -137,7 +139,7 @@ export async function createRecord(db: Db, actorId: string, input: EntryInput) {
             .select({ id: players.id, displayName: players.displayName })
             .from(players)
             .where(eq(players.id, input.playerId))
-        )[0]
+        ).at(0)
       : await createPlayer(tx, actorId, newPlayerName!)
     if (!player) throw new Error(`Unknown player ${input.playerId}`)
 
@@ -232,17 +234,25 @@ export async function updateRecord(
   recordId: number,
   input: RecordUpdateInput,
 ) {
-  if (input.kills != null && (!Number.isInteger(input.kills) || input.kills <= 0)) {
+  if (
+    input.kills != null &&
+    (!Number.isInteger(input.kills) || input.kills <= 0)
+  ) {
     throw new Error('Kills must be a positive integer')
   }
   return db.transaction(async (tx) => {
-    const [existing] = await tx
-      .select()
-      .from(records)
-      .where(eq(records.id, recordId))
+    const existing = (
+      await tx.select().from(records).where(eq(records.id, recordId))
+    ).at(0)
     if (!existing) throw new Error(`Unknown record ${recordId}`)
 
-    const fields = ['kills', 'playerId', 'ignSnapshot', 'runBr', 'patch'] as const
+    const fields = [
+      'kills',
+      'playerId',
+      'ignSnapshot',
+      'runBr',
+      'patch',
+    ] as const
     const before: Record<string, unknown> = {}
     const after: Record<string, unknown> = {}
     const patch: Record<string, unknown> = {}
@@ -255,7 +265,11 @@ export async function updateRecord(
       }
     }
     if (Object.keys(patch).length === 0) {
-      return { promotedRecordId: null, demotedRecordId: null, belowThreshold: false }
+      return {
+        promotedRecordId: null,
+        demotedRecordId: null,
+        belowThreshold: false,
+      }
     }
 
     await tx.update(records).set(patch).where(eq(records.id, recordId))
@@ -263,7 +277,11 @@ export async function updateRecord(
     let promotedId: number | null = null
     let demotedId: number | null = null
     if ('kills' in patch) {
-      const outcome = await recomputeTitle(tx, existing.vehicleId, existing.mode)
+      const outcome = await recomputeTitle(
+        tx,
+        existing.vehicleId,
+        existing.mode,
+      )
       promotedId = outcome.promotedId
       demotedId = outcome.demotedId
     }
@@ -286,7 +304,11 @@ export async function updateRecord(
         },
       },
     })
-    return { promotedRecordId: promotedId, demotedRecordId: demotedId, belowThreshold }
+    return {
+      promotedRecordId: promotedId,
+      demotedRecordId: demotedId,
+      belowThreshold,
+    }
   })
 }
 
@@ -299,10 +321,9 @@ export async function retireRecord(
   const why = reason.trim()
   if (!why) throw new Error('A retire reason is required')
   return db.transaction(async (tx) => {
-    const [existing] = await tx
-      .select()
-      .from(records)
-      .where(eq(records.id, recordId))
+    const existing = (
+      await tx.select().from(records).where(eq(records.id, recordId))
+    ).at(0)
     if (!existing) throw new Error(`Unknown record ${recordId}`)
     if (existing.status !== 'verified') {
       throw new Error('Only a verified record can be retired')
@@ -334,12 +355,15 @@ export async function retireRecord(
   })
 }
 
-export async function reverifyRecord(db: Db, actorId: string, recordId: number) {
+export async function reverifyRecord(
+  db: Db,
+  actorId: string,
+  recordId: number,
+) {
   return db.transaction(async (tx) => {
-    const [existing] = await tx
-      .select()
-      .from(records)
-      .where(eq(records.id, recordId))
+    const existing = (
+      await tx.select().from(records).where(eq(records.id, recordId))
+    ).at(0)
     if (!existing) throw new Error(`Unknown record ${recordId}`)
     if (existing.status !== 'retired') {
       throw new Error('Only a retired record can be re-verified')
@@ -377,26 +401,27 @@ export async function makeCurrentRecord(
   recordId: number,
 ) {
   return db.transaction(async (tx) => {
-    const [target] = await tx
-      .select()
-      .from(records)
-      .where(eq(records.id, recordId))
+    const target = (
+      await tx.select().from(records).where(eq(records.id, recordId))
+    ).at(0)
     if (!target) throw new Error(`Unknown record ${recordId}`)
     if (target.status !== 'verified') {
       throw new Error('Only a verified record can be made current')
     }
     if (target.isCurrent) return { demotedRecordId: null }
 
-    const [previous] = await tx
-      .select({ id: records.id })
-      .from(records)
-      .where(
-        and(
-          eq(records.vehicleId, target.vehicleId),
-          eq(records.mode, target.mode),
-          eq(records.isCurrent, true),
-        ),
-      )
+    const previous = (
+      await tx
+        .select({ id: records.id })
+        .from(records)
+        .where(
+          and(
+            eq(records.vehicleId, target.vehicleId),
+            eq(records.mode, target.mode),
+            eq(records.isCurrent, true),
+          ),
+        )
+    ).at(0)
     if (previous) {
       await tx
         .update(records)
@@ -422,10 +447,9 @@ export async function makeCurrentRecord(
 
 export async function demoteRecord(db: Db, actorId: string, recordId: number) {
   return db.transaction(async (tx) => {
-    const [target] = await tx
-      .select()
-      .from(records)
-      .where(eq(records.id, recordId))
+    const target = (
+      await tx.select().from(records).where(eq(records.id, recordId))
+    ).at(0)
     if (!target) throw new Error(`Unknown record ${recordId}`)
     if (!target.isCurrent) throw new Error('Record is not current')
 
@@ -482,10 +506,12 @@ export async function attachProofs(
     }
   }
   return db.transaction(async (tx) => {
-    const [existing] = await tx
-      .select({ id: records.id })
-      .from(records)
-      .where(eq(records.id, recordId))
+    const existing = (
+      await tx
+        .select({ id: records.id })
+        .from(records)
+        .where(eq(records.id, recordId))
+    ).at(0)
     if (!existing) throw new Error(`Unknown record ${recordId}`)
     const [{ maxSort }] = await tx
       .select({ maxSort: sql<number | null>`max(${recordProof.sort})` })
@@ -506,7 +532,9 @@ export async function attachProofs(
       action: 'record.attach_proof',
       entity: 'record',
       entityId: recordId,
-      diff: { context: { added: proofs.length, kinds: proofs.map((p) => p.kind) } },
+      diff: {
+        context: { added: proofs.length, kinds: proofs.map((p) => p.kind) },
+      },
     })
     return { added: proofs.length }
   })
@@ -550,10 +578,9 @@ export async function previewTitleChange(
     mode = req.mode
     kills = req.kills
   } else {
-    const [existing] = await db
-      .select()
-      .from(records)
-      .where(eq(records.id, req.recordId))
+    const existing = (
+      await db.select().from(records).where(eq(records.id, req.recordId))
+    ).at(0)
     if (!existing) throw new Error(`Unknown record ${req.recordId}`)
     vehicleId = existing.vehicleId
     mode = existing.mode
@@ -585,9 +612,7 @@ export async function previewTitleChange(
       return r.status === 'verified'
     })
     .map((r) =>
-      r.id === subjectId && req.kind === 'update'
-        ? { ...r, kills }
-        : r,
+      r.id === subjectId && req.kind === 'update' ? { ...r, kills } : r,
     )
   if (req.kind === 'entry') {
     candidates.push({
@@ -628,8 +653,7 @@ export async function previewTitleChange(
 
 /* ── Admin reads ─────────────────────────────────────────────── */
 
-export type RecordStatusFilter =
-  (typeof records.status.enumValues)[number]
+export type RecordStatusFilter = (typeof records.status.enumValues)[number]
 
 export interface AdminRecordFilters {
   mode?: string
@@ -684,28 +708,30 @@ export async function listAdminRecords(db: Db, filters: AdminRecordFilters) {
 }
 
 export async function getAdminRecord(db: Db, recordId: number) {
-  const [row] = await db
-    .select({
-      record: records,
-      vehicle: {
-        id: vehicles.id,
-        name: vehicles.name,
-        slug: vehicles.slug,
-        class: vehicles.class,
-        isDifficult: vehicles.isDifficult,
-      },
-      player: {
-        id: players.id,
-        displayName: players.displayName,
-        slug: players.slug,
-      },
-      verifierHandle: profiles.handle,
-    })
-    .from(records)
-    .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
-    .innerJoin(players, eq(players.id, records.playerId))
-    .leftJoin(profiles, eq(profiles.id, records.verifiedById))
-    .where(eq(records.id, recordId))
+  const row = (
+    await db
+      .select({
+        record: records,
+        vehicle: {
+          id: vehicles.id,
+          name: vehicles.name,
+          slug: vehicles.slug,
+          class: vehicles.class,
+          isDifficult: vehicles.isDifficult,
+        },
+        player: {
+          id: players.id,
+          displayName: players.displayName,
+          slug: players.slug,
+        },
+        verifierHandle: profiles.handle,
+      })
+      .from(records)
+      .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
+      .innerJoin(players, eq(players.id, records.playerId))
+      .leftJoin(profiles, eq(profiles.id, records.verifiedById))
+      .where(eq(records.id, recordId))
+  ).at(0)
   if (!row) return null
 
   const [proofs, siblings, threshold] = await Promise.all([

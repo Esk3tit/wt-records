@@ -72,7 +72,9 @@ const PROOF = [{ kind: 'scoreboard' as const, storagePath: 'entries/a.webp' }]
 
 type EntryInput = Parameters<typeof createRecord>[2]
 
-function entry(overrides: Partial<EntryInput> & { vehicleId: number }): EntryInput {
+function entry(
+  overrides: Partial<EntryInput> & { vehicleId: number },
+): EntryInput {
   return {
     mode: 'grb',
     playerId: null,
@@ -99,20 +101,20 @@ describe('createRecord', () => {
     )
 
     expect(result.isCurrent).toBe(true)
-    expect(result.demotedRecordId).toBe(before!.id)
+    expect(result.demotedRecordId).toBe(before.id)
 
     const now = await currentRecord(veh)
-    expect(now!.id).toBe(result.recordId)
-    expect(now!.status).toBe('verified')
-    expect(now!.verifiedById).toBe(MOD)
-    expect(now!.verifiedAt).toBeInstanceOf(Date)
+    expect(now.id).toBe(result.recordId)
+    expect(now.status).toBe('verified')
+    expect(now.verifiedById).toBe(MOD)
+    expect(now.verifiedAt).toBeInstanceOf(Date)
     // stamped server-side from the player row, never client input:
-    expect(now!.displayNameSnapshot).toBe('Ace')
+    expect(now.displayNameSnapshot).toBe('Ace')
 
     const [demoted] = await t.db
       .select()
       .from(records)
-      .where(eq(records.id, before!.id))
+      .where(eq(records.id, before.id))
     expect(demoted.isCurrent).toBe(false)
     expect(demoted.status).toBe('verified')
   })
@@ -130,7 +132,7 @@ describe('createRecord', () => {
 
     expect(result.isCurrent).toBe(false)
     expect(result.demotedRecordId).toBeNull()
-    expect((await currentRecord(veh))!.id).toBe(before!.id)
+    expect((await currentRecord(veh)).id).toBe(before.id)
   })
 
   it('takes an open bounty without demoting anyone', async () => {
@@ -180,7 +182,10 @@ describe('createRecord', () => {
       .select()
       .from(playerAliases)
       .where(
-        and(eq(playerAliases.playerId, ace), eq(playerAliases.name, 'xX_Ace_Xx')),
+        and(
+          eq(playerAliases.playerId, ace),
+          eq(playerAliases.name, 'xX_Ace_Xx'),
+        ),
       )
     expect(aliases).toHaveLength(1)
     expect(aliases[0].kind).toBe('ign')
@@ -271,7 +276,7 @@ describe('createRecord', () => {
     expect(creates).toHaveLength(1)
     expect(creates[0].actorId).toBe(MOD)
     expect(creates[0].diff).toMatchObject({
-      context: { demotedRecordId: before!.id },
+      context: { demotedRecordId: before.id },
     })
   })
 })
@@ -280,11 +285,11 @@ describe('updateRecord', () => {
   it('recomputes the title when a kills edit dethrones the holder', async () => {
     const veh = await vehicleId('m4a1')
     const current = await currentRecord(veh) // Ace 14
-    const result = await updateRecord(t.db, MOD, current!.id, { kills: 10 })
+    const result = await updateRecord(t.db, MOD, current.id, { kills: 10 })
 
     const now = await currentRecord(veh)
-    expect(now!.kills).toBe(12) // Maverick's 12 becomes rightful
-    expect(result.promotedRecordId).toBe(now!.id)
+    expect(now.kills).toBe(12) // Maverick's 12 becomes rightful
+    expect(result.promotedRecordId).toBe(now.id)
 
     const audit = await listAudit(t.db, { entity: 'record' })
     const row = audit.rows.find((r) => r.action === 'record.update')!
@@ -297,10 +302,13 @@ describe('updateRecord', () => {
   it('records only changed fields in the diff', async () => {
     const veh = await vehicleId('m4a1')
     const current = await currentRecord(veh)
-    await updateRecord(t.db, MOD, current!.id, { runBr: 4.0, kills: 14 })
+    await updateRecord(t.db, MOD, current.id, { runBr: 4.0, kills: 14 })
     const audit = await listAudit(t.db, { entity: 'record' })
     const row = audit.rows.find((r) => r.action === 'record.update')!
-    expect(row.diff).toMatchObject({ before: { runBr: 3.7 }, after: { runBr: 4 } })
+    expect(row.diff).toMatchObject({
+      before: { runBr: 3.7 },
+      after: { runBr: 4 },
+    })
     expect((row.diff as { before: object }).before).not.toHaveProperty('kills')
   })
 
@@ -308,11 +316,11 @@ describe('updateRecord', () => {
     const veh = await vehicleId('m4a1')
     const current = await currentRecord(veh)
     const floppa = await playerId('floppa')
-    await updateRecord(t.db, MOD, current!.id, { playerId: floppa })
+    await updateRecord(t.db, MOD, current.id, { playerId: floppa })
     const [row] = await t.db
       .select()
       .from(records)
-      .where(eq(records.id, current!.id))
+      .where(eq(records.id, current.id))
     expect(row.playerId).toBe(floppa)
     expect(row.ignSnapshot).toBe('Ace')
     expect(row.displayNameSnapshot).toBe('Ace')
@@ -323,55 +331,55 @@ describe('retireRecord / reverifyRecord', () => {
   it('retires softly: promotes the next-best and keeps row + proofs', async () => {
     const veh = await vehicleId('m4a1')
     const current = await currentRecord(veh) // Ace 14
-    const result = await retireRecord(t.db, MOD, current!.id, 'debunked proof')
+    const result = await retireRecord(t.db, MOD, current.id, 'debunked proof')
 
     const [retired] = await t.db
       .select()
       .from(records)
-      .where(eq(records.id, current!.id))
+      .where(eq(records.id, current.id))
     expect(retired.status).toBe('retired')
     expect(retired.isCurrent).toBe(false)
 
     const now = await currentRecord(veh)
-    expect(now!.kills).toBe(12)
-    expect(result.promotedRecordId).toBe(now!.id)
+    expect(now.kills).toBe(12)
+    expect(result.promotedRecordId).toBe(now.id)
 
     const proofs = await t.db
       .select()
       .from(recordProof)
-      .where(eq(recordProof.recordId, current!.id))
+      .where(eq(recordProof.recordId, current.id))
     expect(proofs.length).toBeGreaterThan(0)
 
     const audit = await listAudit(t.db, { entity: 'record' })
     const row = audit.rows.find((r) => r.action === 'record.retire')!
     expect(row.diff).toMatchObject({
-      context: { reason: 'debunked proof', promotedRecordId: now!.id },
+      context: { reason: 'debunked proof', promotedRecordId: now.id },
     })
   })
 
   it('requires a reason', async () => {
     const veh = await vehicleId('m4a1')
     const current = await currentRecord(veh)
-    await expect(
-      retireRecord(t.db, MOD, current!.id, '  '),
-    ).rejects.toThrow(/reason/i)
+    await expect(retireRecord(t.db, MOD, current.id, '  ')).rejects.toThrow(
+      /reason/i,
+    )
   })
 
   it('re-verify restores the record and recomputes the title back', async () => {
     const veh = await vehicleId('m4a1')
     const original = await currentRecord(veh) // Ace 14
-    await retireRecord(t.db, MOD, original!.id, 'entered by mistake')
-    await reverifyRecord(t.db, MOD, original!.id)
+    await retireRecord(t.db, MOD, original.id, 'entered by mistake')
+    await reverifyRecord(t.db, MOD, original.id)
 
     const now = await currentRecord(veh)
-    expect(now!.id).toBe(original!.id)
+    expect(now.id).toBe(original.id)
     const [row] = await t.db
       .select()
       .from(records)
-      .where(eq(records.id, original!.id))
+      .where(eq(records.id, original.id))
     expect(row.status).toBe('verified')
     // the official record date survives the round trip:
-    expect(row.verifiedAt?.getTime()).toBe(original!.verifiedAt?.getTime())
+    expect(row.verifiedAt?.getTime()).toBe(original.verifiedAt?.getTime())
 
     const audit = await listAudit(t.db, { entity: 'record' })
     expect(audit.rows.map((r) => r.action)).toContain('record.reverify')
@@ -393,17 +401,17 @@ describe('explicit corrective actions', () => {
         ),
       )
     const result = await makeCurrentRecord(t.db, MOD, maverick12.id)
-    expect(result.demotedRecordId).toBe(current!.id)
-    expect((await currentRecord(veh))!.id).toBe(maverick12.id)
+    expect(result.demotedRecordId).toBe(current.id)
+    expect((await currentRecord(veh)).id).toBe(maverick12.id)
   })
 
   it('demoteRecord clears currency and promotes the next-best', async () => {
     const veh = await vehicleId('m4a1')
     const current = await currentRecord(veh) // Ace 14
-    const result = await demoteRecord(t.db, MOD, current!.id)
+    const result = await demoteRecord(t.db, MOD, current.id)
     const now = await currentRecord(veh)
-    expect(now!.kills).toBe(12)
-    expect(result.promotedRecordId).toBe(now!.id)
+    expect(now.kills).toBe(12)
+    expect(result.promotedRecordId).toBe(now.id)
   })
 })
 
@@ -411,13 +419,13 @@ describe('attachProofs', () => {
   it('appends proofs after the existing sort order and audits', async () => {
     const veh = await vehicleId('m4a1')
     const current = await currentRecord(veh) // has 2 proofs (sort 0,1)
-    await attachProofs(t.db, MOD, current!.id, [
+    await attachProofs(t.db, MOD, current.id, [
       { kind: 'end_life', storagePath: 'entries/c.webp' },
     ])
     const proofs = await t.db
       .select()
       .from(recordProof)
-      .where(eq(recordProof.recordId, current!.id))
+      .where(eq(recordProof.recordId, current.id))
       .orderBy(asc(recordProof.sort))
     expect(proofs).toHaveLength(3)
     expect(proofs[2].sort).toBe(2)
@@ -430,7 +438,7 @@ describe('attachProofs', () => {
   it('rejects an empty attach', async () => {
     const veh = await vehicleId('m4a1')
     const current = await currentRecord(veh)
-    await expect(attachProofs(t.db, MOD, current!.id, [])).rejects.toThrow()
+    await expect(attachProofs(t.db, MOD, current.id, [])).rejects.toThrow()
   })
 })
 
@@ -466,7 +474,7 @@ describe('previewTitleChange', () => {
     const current = await currentRecord(veh)
     const preview = await previewTitleChange(t.db, {
       kind: 'retire',
-      recordId: current!.id,
+      recordId: current.id,
     })
     expect(preview.promoted?.kills).toBe(12)
     expect(preview.promoted?.playerName).toBe('Maverick')
@@ -489,21 +497,21 @@ describe('admin reads', () => {
   it('listAdminRecords filters by status including retired', async () => {
     const veh = await vehicleId('m4a1')
     const current = await currentRecord(veh)
-    await retireRecord(t.db, MOD, current!.id, 'cheating')
+    await retireRecord(t.db, MOD, current.id, 'cheating')
 
     const retired = await listAdminRecords(t.db, { status: 'retired' })
     expect(retired.rows).toHaveLength(1)
-    expect(retired.rows[0].id).toBe(current!.id)
+    expect(retired.rows[0].id).toBe(current.id)
 
     const verified = await listAdminRecords(t.db, { status: 'verified' })
-    expect(verified.rows.map((r) => r.id)).not.toContain(current!.id)
+    expect(verified.rows.map((r) => r.id)).not.toContain(current.id)
   })
 
   it('getAdminRecord returns proofs, siblings and lifecycle context', async () => {
     const veh = await vehicleId('m4a1')
     const current = await currentRecord(veh)
-    const detail = await getAdminRecord(t.db, current!.id)
-    expect(detail!.record.id).toBe(current!.id)
+    const detail = await getAdminRecord(t.db, current.id)
+    expect(detail!.record.id).toBe(current.id)
     expect(detail!.vehicle.slug).toBe('m4a1')
     expect(detail!.player.slug).toBe('ace')
     expect(detail!.proofs).toHaveLength(2)

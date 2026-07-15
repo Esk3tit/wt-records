@@ -57,10 +57,15 @@ export async function upsertProfileFromOAuth(
 export async function getProfileRole(
   db: Db,
   userId: string,
-): Promise<{ role: 'viewer' | 'moderator' | 'admin'; handle: string | null } | null> {
-  const [row] = await db
-    .select({ role: profiles.role, handle: profiles.handle })
-    .from(profiles)
-    .where(eq(profiles.id, userId))
+): Promise<{
+  role: 'viewer' | 'moderator' | 'admin'
+  handle: string | null
+} | null> {
+  const row = (
+    await db
+      .select({ role: profiles.role, handle: profiles.handle })
+      .from(profiles)
+      .where(eq(profiles.id, userId))
+  ).at(0)
   return row ?? null
 }
