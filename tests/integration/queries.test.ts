@@ -16,6 +16,7 @@ import {
   getModeStats,
   getNationSheet,
   getPlayer,
+  playerMergeRedirect,
   getRules,
   getVehicle,
   listModes,
@@ -182,6 +183,38 @@ describe('getPlayer', () => {
 
   it('returns null for an unknown player', async () => {
     expect(await getPlayer(t.db, 'nope')).toBeNull()
+  })
+})
+
+describe('merge tombstones', () => {
+  async function tombstone(slug: string, intoSlug: string) {
+    const [into] = await t.db
+      .select({ id: players.id })
+      .from(players)
+      .where(eq(players.slug, intoSlug))
+    await t.db
+      .update(players)
+      .set({ mergedInto: into.id })
+      .where(eq(players.slug, slug))
+  }
+
+  it('getPlayer hides a tombstone; playerMergeRedirect resolves the survivor', async () => {
+    await tombstone('floppa', 'ace')
+    expect(await getPlayer(t.db, 'floppa')).toBeNull()
+    expect(await playerMergeRedirect(t.db, 'floppa')).toBe('ace')
+    expect(await playerMergeRedirect(t.db, 'ace')).toBeNull()
+  })
+
+  it('follows a merge chain to the final survivor', async () => {
+    await tombstone('floppa', 'maverick')
+    await tombstone('maverick', 'ace')
+    expect(await playerMergeRedirect(t.db, 'floppa')).toBe('ace')
+  })
+
+  it('search excludes tombstoned players', async () => {
+    await tombstone('floppa', 'ace')
+    const result = await search(t.db, 'floppa')
+    expect(result.players).toEqual([])
   })
 })
 

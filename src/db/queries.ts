@@ -7,6 +7,7 @@ import {
   ilike,
   inArray,
   isNotNull,
+  isNull,
   or,
   sql,
 } from 'drizzle-orm'
@@ -772,6 +773,10 @@ export async function getPlayer(db: Db, slug: string) {
   )
   if (!player) return null
 
+  // A merge tombstone has no profile of its own — callers check
+  // playerMergeRedirect() to 301 to the survivor.
+  if (player.mergedInto != null) return null
+
   // Aliases and records both depend only on player.id — run together.
   // Records in non-live modes stay hidden (coming-soon gate); removed vehicles
   // still show, flagged with isRemoved.
@@ -801,6 +806,33 @@ export async function getPlayer(db: Db, slug: string) {
   ])
 
   return { player, aliases: aliases.map((a) => a.name), records: recs }
+}
+
+/** Survivor slug for a merged player's slug, following later merges of the
+    survivor itself, or null when the slug isn't a tombstone. */
+export async function playerMergeRedirect(
+  db: Db,
+  slug: string,
+): Promise<string | null> {
+  const start = one(
+    await db
+      .select({ mergedInto: players.mergedInto })
+      .from(players)
+      .where(eq(players.slug, slug))
+      .limit(1),
+  )
+  let survivorId = start?.mergedInto ?? null
+  for (let hops = 0; survivorId != null && hops < 10; hops++) {
+    const [next] = await db
+      .select({ slug: players.slug, mergedInto: players.mergedInto })
+      .from(players)
+      .where(eq(players.id, survivorId))
+      .limit(1)
+    if (!next) return null
+    if (next.mergedInto == null) return next.slug
+    survivorId = next.mergedInto
+  }
+  return null
 }
 
 export async function getRules(db: Db, mode: string) {
@@ -931,7 +963,8 @@ export async function search(db: Db, q: string) {
     db
       .select({ slug: players.slug, displayName: players.displayName })
       .from(players)
-      .where(ilike(players.displayName, like))
+      // Merge tombstones stay out of search; their slugs 301 if visited.
+      .where(and(ilike(players.displayName, like), isNull(players.mergedInto)))
       .orderBy(asc(players.displayName))
       .limit(10),
     searchVehicles(db, term, 10),
