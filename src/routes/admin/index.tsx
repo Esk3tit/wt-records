@@ -1,6 +1,12 @@
-import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
+import {
+  Link,
+  createFileRoute,
+  useLoaderData,
+  useNavigate,
+} from '@tanstack/react-router'
 import {
   Panel,
+  StatusChip,
   buttonClass,
   inputClass,
   selectClass,
@@ -58,6 +64,7 @@ const STATUS_LABELS = {
 function RecordsIndex() {
   const result = Route.useLoaderData()
   const search = Route.useSearch()
+  const { modes } = useLoaderData({ from: '__root__' })
   const navigate = useNavigate({ from: Route.fullPath })
   if (!result) return null
   const page = search.page ?? 1
@@ -75,6 +82,22 @@ function RecordsIndex() {
       }
     >
       <div className="mb-4 flex flex-wrap items-center gap-2">
+        <label className="sr-only" htmlFor="rec-mode">
+          Mode
+        </label>
+        <select
+          id="rec-mode"
+          value={search.mode ?? ''}
+          onChange={(e) => setSearch({ mode: e.target.value || undefined })}
+          className={selectClass + ' w-auto'}
+        >
+          <option value="">All modes</option>
+          {modes.map((m) => (
+            <option key={m.mode} value={m.mode}>
+              {m.mode.toUpperCase()}
+            </option>
+          ))}
+        </select>
         <label className="sr-only" htmlFor="rec-status">
           Status
         </label>
@@ -100,6 +123,7 @@ function RecordsIndex() {
         </label>
         <input
           id="rec-q"
+          key={search.q ?? ''}
           type="search"
           defaultValue={search.q ?? ''}
           placeholder="Vehicle, player or IGN…"
@@ -171,28 +195,5 @@ function RecordsIndex() {
         onPage={(p) => navigate({ search: { ...search, page: p } })}
       />
     </Panel>
-  )
-}
-
-export function StatusChip({
-  status,
-  isCurrent,
-}: {
-  status: string
-  isCurrent: boolean
-}) {
-  const tone =
-    status === 'verified'
-      ? isCurrent
-        ? 'text-emerald-300'
-        : 'text-fg-muted'
-      : status === 'retired'
-        ? 'text-red-300'
-        : 'text-amber-300'
-  return (
-    <span className={`text-xs tracking-wide uppercase ${tone}`}>
-      {status}
-      {isCurrent ? ' · current' : ''}
-    </span>
   )
 }

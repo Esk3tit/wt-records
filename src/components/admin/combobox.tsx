@@ -35,6 +35,13 @@ export function AsyncCombobox<T>({
   const [active, setActive] = useState(-1)
   const seq = useRef(0)
 
+  // Latest fetcher behind a ref: only typing re-triggers the debounce, never
+  // a parent re-render handing down a new callback identity.
+  const fetchRef = useRef(fetchItems)
+  useEffect(() => {
+    fetchRef.current = fetchItems
+  })
+
   useEffect(() => {
     const q = value.trim()
     if (!q) {
@@ -46,7 +53,7 @@ export function AsyncCombobox<T>({
     }
     const requestId = ++seq.current
     const timer = setTimeout(() => {
-      fetchItems(q).then(
+      fetchRef.current(q).then(
         (rows) => {
           if (seq.current !== requestId) return
           setItems(rows)
@@ -59,7 +66,7 @@ export function AsyncCombobox<T>({
       )
     }, 150)
     return () => clearTimeout(timer)
-  }, [value, fetchItems])
+  }, [value])
 
   const close = () => {
     setOpen(false)
@@ -100,6 +107,9 @@ export function AsyncCombobox<T>({
         aria-expanded={open}
         aria-controls={`${id}-list`}
         aria-autocomplete="list"
+        aria-activedescendant={
+          open && active >= 0 ? `${id}-opt-${active}` : undefined
+        }
         autoComplete="off"
         value={value}
         placeholder={placeholder}
@@ -129,7 +139,12 @@ export function AsyncCombobox<T>({
           className="menu-glass absolute z-30 mt-1 max-h-72 w-full overflow-auto rounded-[14px] p-1"
         >
           {items.map((item, i) => (
-            <li key={itemKey(item)} role="option" aria-selected={i === active}>
+            <li
+              key={itemKey(item)}
+              id={`${id}-opt-${i}`}
+              role="option"
+              aria-selected={i === active}
+            >
               <button
                 type="button"
                 className={

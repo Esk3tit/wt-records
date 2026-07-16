@@ -3,13 +3,13 @@ import {
   Link,
   createFileRoute,
   notFound,
-  useNavigate,
   useRouter,
 } from '@tanstack/react-router'
 import {
   ErrorNote,
   Field,
   Panel,
+  StatusChip,
   buttonClass,
   errorMessage,
   inputClass,
@@ -17,7 +17,6 @@ import {
 } from '#/components/admin/ui'
 import { AsyncCombobox } from '#/components/admin/combobox'
 import { ConfirmDialog } from '#/components/admin/confirm-dialog'
-import { StatusChip } from '#/routes/admin/index'
 import {
   adminAddAlias,
   adminMergePlayers,
@@ -42,7 +41,6 @@ export const Route = createFileRoute('/admin/players/$id')({
 function PlayerDetail() {
   const detail = Route.useLoaderData()
   const router = useRouter()
-  const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
   if (!detail) return null
   const { player, aliases, records, lastIgn } = detail
@@ -157,12 +155,8 @@ function PlayerDetail() {
 
       <MergePanel
         survivor={{ id: player.id, displayName: player.displayName }}
-        onMerged={(survivorId) =>
-          navigate({
-            to: '/admin/players/$id',
-            params: { id: String(survivorId) },
-          })
-        }
+        // Already on the survivor's page — reload it to show the merge result.
+        onMerged={refresh}
       />
 
       <ErrorNote error={error} />
@@ -232,7 +226,7 @@ function MergePanel({
   onMerged,
 }: {
   survivor: { id: number; displayName: string }
-  onMerged: (survivorId: number) => void
+  onMerged: () => void
 }) {
   const [duplicate, setDuplicate] = useState<{
     id: number
@@ -258,9 +252,12 @@ function MergePanel({
           itemKey={(p) => p.id}
           renderItem={(p) => p.displayName}
           onSelect={(p) => {
-            if (p.id !== survivor.id) {
-              setDuplicate({ id: p.id, displayName: p.displayName })
+            if (p.id === survivor.id) {
+              setError('That is the survivor — pick the duplicate to fold in')
+              return
             }
+            setError(null)
+            setDuplicate({ id: p.id, displayName: p.displayName })
           }}
           onClear={() => setDuplicate(null)}
           selectedLabel={duplicate ? duplicate.displayName : null}
@@ -292,7 +289,7 @@ function MergePanel({
               data: { survivorId: survivor.id, duplicateId: duplicate.id },
             })
             setConfirming(false)
-            onMerged(survivor.id)
+            onMerged()
           } catch (e) {
             setError(errorMessage(e))
             setConfirming(false)

@@ -331,10 +331,12 @@ function NewRecord() {
               onDone={(added) => {
                 setAddingPatch(false)
                 if (added) {
-                  adminPatchOptions().then((list) => {
-                    setPatchList(list)
-                    setPatch(added)
-                  })
+                  // The patch row exists either way; select it even if the
+                  // dropdown refetch fails.
+                  setPatch(added)
+                  adminPatchOptions().then(setPatchList, (e: unknown) =>
+                    setError(errorMessage(e)),
+                  )
                 }
               }}
             />
@@ -436,6 +438,7 @@ function AddPatchInline({
         <button
           type="button"
           className={subtleButtonClass}
+          disabled={busy}
           onClick={() => onDone(null)}
         >
           Cancel

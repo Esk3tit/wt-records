@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { buttonClass, subtleButtonClass } from '#/components/admin/ui'
 
@@ -22,6 +22,7 @@ export function ConfirmDialog({
   children: ReactNode
 }) {
   const ref = useRef<HTMLDialogElement>(null)
+  const titleId = useId()
 
   useEffect(() => {
     const dialog = ref.current
@@ -33,16 +34,25 @@ export function ConfirmDialog({
   return (
     <dialog
       ref={ref}
+      aria-labelledby={titleId}
       onCancel={(e) => {
         e.preventDefault()
-        onCancel()
+        // No escape hatch mid-request: the write may already be committing.
+        if (!busy) onCancel()
       }}
       className="glass-thick m-auto w-full max-w-md rounded-[20px] p-6 text-fg backdrop:bg-black/50"
     >
-      <h2 className="text-lg font-semibold">{title}</h2>
+      <h2 id={titleId} className="text-lg font-semibold">
+        {title}
+      </h2>
       <div className="mt-3 space-y-2 text-sm text-fg-muted">{children}</div>
       <div className="mt-5 flex justify-end gap-2">
-        <button type="button" className={subtleButtonClass} onClick={onCancel}>
+        <button
+          type="button"
+          className={subtleButtonClass}
+          disabled={busy}
+          onClick={onCancel}
+        >
           Cancel
         </button>
         <button

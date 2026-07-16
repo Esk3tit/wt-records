@@ -22,7 +22,12 @@ export function supabaseServer() {
       },
       setAll(cookies) {
         for (const cookie of cookies) {
-          setCookie(cookie.name, cookie.value, cookie.options)
+          // All auth happens server-side — no browser client ever needs to
+          // read these, so keep the session out of reach of any XSS.
+          setCookie(cookie.name, cookie.value, {
+            ...cookie.options,
+            httpOnly: true,
+          })
         }
       },
     },

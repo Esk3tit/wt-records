@@ -19,7 +19,13 @@ export const Route = createFileRoute('/auth/callback')({
         const { data, error } =
           await supabaseServer().auth.exchangeCodeForSession(code)
         if (error) return toAdmin()
-        await upsertProfileFromOAuth(db, profileFromUser(data.user))
+        try {
+          await upsertProfileFromOAuth(db, profileFromUser(data.user))
+        } catch (upsertError) {
+          // The session cookie is already set; the next login retries the
+          // upsert, and /admin's gate handles a missing profile gracefully.
+          console.warn('profile upsert failed on OAuth callback', upsertError)
+        }
         return toAdmin()
       },
     },

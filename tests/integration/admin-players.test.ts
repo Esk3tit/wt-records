@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { asc, eq } from 'drizzle-orm'
+import { asc, eq, inArray } from 'drizzle-orm'
 import { freshDb } from './pglite'
 import type { TestDb } from './pglite'
 import { seed } from '#/db/seed'
@@ -162,7 +162,22 @@ describe('mergePlayers', () => {
     ).rejects.toThrow(/claim/i)
   })
 
-  it('merges same-user claims and carries a lone claim to the survivor', async () => {
+  it('merges same-user claims, survivor keeps the claim', async () => {
+    const ace = await playerBySlug('ace')
+    const floppa = await playerBySlug('floppa')
+    await t.db
+      .update(players)
+      .set({ userId: USER_A })
+      .where(inArray(players.id, [ace.id, floppa.id]))
+    await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
+    expect((await playerBySlug('ace')).userId).toBe(USER_A)
+    expect((await playerBySlug('floppa')).userId).toBeNull()
+  })
+
+  it('carries a lone claim on the duplicate over to the survivor', async () => {
     const ace = await playerBySlug('ace')
     const floppa = await playerBySlug('floppa')
     await t.db
@@ -268,6 +283,16 @@ describe('admin player reads', () => {
     expect(slugs).not.toContain('floppa')
     const aceRow = list.rows.find((p) => p.slug === 'ace')!
     expect(aceRow.recordCount).toBeGreaterThanOrEqual(3)
+    expect(aceRow.userId).toBeNull()
+
+    await t.db
+      .update(players)
+      .set({ userId: USER_A })
+      .where(eq(players.slug, 'maverick'))
+    const relisted = await listAdminPlayers(t.db, {})
+    expect(relisted.rows.find((p) => p.slug === 'maverick')!.userId).toBe(
+      USER_A,
+    )
   })
 
   it('getAdminPlayer returns aliases, records and the last IGN for prefill', async () => {

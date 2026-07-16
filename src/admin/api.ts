@@ -201,7 +201,12 @@ async function withUploadedProofs<T>(
   try {
     return await write(proofs)
   } catch (error) {
-    await rollbackUploads(proofs)
+    try {
+      await rollbackUploads(proofs)
+    } catch (cleanupError) {
+      // Cleanup must never mask the write error; the stray keys are logged.
+      console.warn('proof rollback failed', cleanupError)
+    }
     throw error
   }
 }

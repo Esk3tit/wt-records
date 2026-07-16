@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 /* Shared control register for the CMS: one look for every admin surface. */
 
 export const inputClass =
-  'w-full rounded-[10px] border border-hairline-soft bg-[var(--pill-track)] px-3 py-1.5 text-sm text-fg outline-none placeholder:text-fg-faint focus:border-[var(--glass-edge)]'
+  'w-full rounded-[10px] border border-hairline-soft bg-[var(--pill-track)] px-3 py-1.5 text-sm text-fg outline-hidden placeholder:text-fg-faint focus:border-[var(--glass-edge)]'
 
 export const selectClass = inputClass + ' appearance-auto'
 
@@ -69,4 +69,27 @@ export function ErrorNote({ error }: { error: string | null }) {
 
 export function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Something went wrong'
+}
+
+export function StatusChip({
+  status,
+  isCurrent,
+}: {
+  status: string
+  isCurrent: boolean
+}) {
+  const tone =
+    status === 'verified'
+      ? isCurrent
+        ? 'text-emerald-300'
+        : 'text-fg-muted'
+      : status === 'retired'
+        ? 'text-red-300'
+        : 'text-amber-300'
+  return (
+    <span className={`text-xs tracking-wide uppercase ${tone}`}>
+      {status}
+      {isCurrent ? ' · current' : ''}
+    </span>
+  )
 }

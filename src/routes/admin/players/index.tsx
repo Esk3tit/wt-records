@@ -40,6 +40,7 @@ function PlayersIndex() {
         </label>
         <input
           id="player-q"
+          key={search.q ?? ''}
           type="search"
           defaultValue={search.q ?? ''}
           placeholder="Display name…"

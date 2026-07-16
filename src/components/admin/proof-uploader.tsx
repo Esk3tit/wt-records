@@ -12,6 +12,7 @@ import { MAX_PROOF_BYTES } from '#/admin/proofs'
    Files stay in the form until save; the server proxies them to R2. */
 
 export interface ProofDraft {
+  id: string
   file: File
   kind: 'scoreboard' | 'end_game' | 'end_life'
   originalUrl: string
@@ -54,11 +55,14 @@ export function ProofUploader({
 }) {
   const fileInput = useRef<HTMLInputElement>(null)
   const [showOriginals, setShowOriginals] = useState(false)
+  const [pickError, setPickError] = useState<string | null>(null)
 
-  const setFile = (index: number, patch: Partial<ProofDraft>) => {
+  const setFile = (draftId: string, patch: Partial<ProofDraft>) => {
     onChange({
       ...value,
-      files: value.files.map((f, i) => (i === index ? { ...f, ...patch } : f)),
+      files: value.files.map((f) =>
+        f.id === draftId ? { ...f, ...patch } : f,
+      ),
     })
   }
 
@@ -82,11 +86,21 @@ export function ProofUploader({
           multiple
           className="hidden"
           onChange={(e) => {
-            const picked = Array.from(e.target.files ?? []).map((file) => ({
-              file,
-              kind: 'scoreboard' as const,
-              originalUrl: '',
-            }))
+            const all = Array.from(e.target.files ?? [])
+            const oversized = all.filter((f) => f.size > MAX_PROOF_BYTES)
+            setPickError(
+              oversized.length > 0
+                ? `Skipped over-limit file(s): ${oversized.map((f) => f.name).join(', ')}`
+                : null,
+            )
+            const picked = all
+              .filter((f) => f.size <= MAX_PROOF_BYTES)
+              .map((file) => ({
+                id: crypto.randomUUID(),
+                file,
+                kind: 'scoreboard' as const,
+                originalUrl: '',
+              }))
             if (picked.length > 0) {
               onChange({ ...value, files: [...value.files, ...picked] })
             }
@@ -95,24 +109,35 @@ export function ProofUploader({
         />
       </div>
 
+      {pickError && (
+        <p role="alert" className="text-xs text-amber-300">
+          {pickError}
+        </p>
+      )}
+
       {value.files.length > 0 && (
         <ul className="space-y-2">
-          {value.files.map((draft, i) => (
+          {value.files.map((draft) => (
             <li
-              key={`${draft.file.name}-${i}`}
+              key={draft.id}
               className="flex flex-wrap items-center gap-2 rounded-[10px] border border-hairline-soft px-3 py-2"
             >
               <span className="min-w-0 flex-1 truncate text-sm">
                 {draft.file.name}
               </span>
-              <label className="sr-only" htmlFor={`${idPrefix}-kind-${i}`}>
+              <label
+                className="sr-only"
+                htmlFor={`${idPrefix}-kind-${draft.id}`}
+              >
                 Proof kind
               </label>
               <select
-                id={`${idPrefix}-kind-${i}`}
+                id={`${idPrefix}-kind-${draft.id}`}
                 value={draft.kind}
                 onChange={(e) =>
-                  setFile(i, { kind: e.target.value as ProofDraft['kind'] })
+                  setFile(draft.id, {
+                    kind: e.target.value as ProofDraft['kind'],
+                  })
                 }
                 className={selectClass + ' w-auto'}
               >
@@ -129,7 +154,7 @@ export function ProofUploader({
                 onClick={() =>
                   onChange({
                     ...value,
-                    files: value.files.filter((_, j) => j !== i),
+                    files: value.files.filter((f) => f.id !== draft.id),
                   })
                 }
               >
@@ -141,7 +166,9 @@ export function ProofUploader({
                   value={draft.originalUrl}
                   placeholder="Original source URL (provenance, optional)"
                   className={inputClass + ' basis-full'}
-                  onChange={(e) => setFile(i, { originalUrl: e.target.value })}
+                  onChange={(e) =>
+                    setFile(draft.id, { originalUrl: e.target.value })
+                  }
                 />
               )}
             </li>

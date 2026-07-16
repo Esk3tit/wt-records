@@ -98,6 +98,8 @@ async function recomputeTitle(
   vehicleId: number,
   mode: string,
 ): Promise<{ demotedId: number | null; promotedId: number | null }> {
+  // FOR UPDATE serializes concurrent writes to the same title, so racing
+  // transactions queue instead of tripping the partial unique index.
   const candidates = await tx
     .select({
       id: records.id,
@@ -113,6 +115,7 @@ async function recomputeTitle(
         eq(records.status, 'verified'),
       ),
     )
+    .for('update')
   const rightfulId = rightfulHolder(candidates)
   const previous = candidates.find((c) => c.isCurrent) ?? null
   if (previous?.id === rightfulId) return { demotedId: null, promotedId: null }
@@ -168,12 +171,19 @@ export async function createRecord(db: Db, actorId: string, input: EntryInput) {
     const player = input.playerId
       ? (
           await tx
-            .select({ id: players.id, displayName: players.displayName })
+            .select({
+              id: players.id,
+              displayName: players.displayName,
+              mergedInto: players.mergedInto,
+            })
             .from(players)
             .where(eq(players.id, input.playerId))
         ).at(0)
       : await createPlayer(tx, actorId, newPlayerName!)
     if (!player) throw new Error(`Unknown player ${input.playerId}`)
+    if ('mergedInto' in player && player.mergedInto != null) {
+      throw new Error('Cannot enter a record for a merged player')
+    }
 
     const addedAlias = await recordIgnAlias(tx, player.id, ign)
 
@@ -518,6 +528,7 @@ export async function demoteRecord(db: Db, actorId: string, recordId: number) {
           sql`${records.id} <> ${recordId}`,
         ),
       )
+      .for('update')
     const promotedId = rightfulHolder(rest)
     if (promotedId != null) {
       await tx

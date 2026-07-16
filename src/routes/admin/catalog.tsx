@@ -64,6 +64,7 @@ function CatalogAndRules() {
           </label>
           <input
             id="veh-q"
+            key={search.q ?? ''}
             type="search"
             defaultValue={search.q ?? ''}
             placeholder="Vehicle name…"

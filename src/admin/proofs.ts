@@ -122,8 +122,9 @@ export async function deleteProofObjects(
   for (const key of keys) {
     try {
       await storage.delete('proofs', key)
-    } catch {
-      // swallowed on purpose; see docstring
+    } catch (error) {
+      // swallowed on purpose (see docstring), but the orphan is findable:
+      console.warn(`failed to delete proof object ${key}`, error)
     }
   }
 }

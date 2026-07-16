@@ -9,6 +9,7 @@ import {
   ErrorNote,
   Field,
   Panel,
+  StatusChip,
   buttonClass,
   dangerButtonClass,
   errorMessage,
@@ -24,7 +25,6 @@ import {
   emptyProofDrafts,
 } from '#/components/admin/proof-uploader'
 import type { ProofDraftState } from '#/components/admin/proof-uploader'
-import { StatusChip } from '#/routes/admin/index'
 import { formatDayTime, formatDayYear } from '#/lib/dates'
 import {
   adminAttachProofs,

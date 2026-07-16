@@ -218,6 +218,19 @@ describe('createRecord', () => {
     expect(result.belowThreshold).toBe(false)
   })
 
+  it('refuses to enter a record for a merge-tombstoned player', async () => {
+    const veh = await vehicleId('m18-gmc')
+    const ace = await playerId('ace')
+    const floppa = await playerId('floppa')
+    await t.db
+      .update(players)
+      .set({ mergedInto: ace })
+      .where(eq(players.id, floppa))
+    await expect(
+      createRecord(t.db, MOD, entry({ vehicleId: veh, playerId: floppa })),
+    ).rejects.toThrow(/merged/i)
+  })
+
   it('refuses a vehicle whose branch does not match the mode', async () => {
     const veh = await vehicleId('m4a1') // ground
     const ace = await playerId('ace')
