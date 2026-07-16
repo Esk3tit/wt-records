@@ -91,6 +91,17 @@ async function thresholdFor(
 
 /* ── Auto-title recompute ────────────────────────────────────── */
 
+/** Serializes every isCurrent write for one (vehicle, mode). Row locks alone
+    can't cover rows a racing transaction is still inserting; this key can. */
+async function lockTitleKey(
+  tx: Db,
+  vehicleId: number,
+  mode: string,
+): Promise<void> {
+  const key = `title:${vehicleId}:${mode}`
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${key}))`)
+}
+
 /** Re-derives isCurrent for a (vehicle, mode) from the rightful-holder rule.
     Returns which record lost and which gained currency (null = no change). */
 async function recomputeTitle(
@@ -98,8 +109,7 @@ async function recomputeTitle(
   vehicleId: number,
   mode: string,
 ): Promise<{ demotedId: number | null; promotedId: number | null }> {
-  // FOR UPDATE serializes concurrent writes to the same title, so racing
-  // transactions queue instead of tripping the partial unique index.
+  await lockTitleKey(tx, vehicleId, mode)
   const candidates = await tx
     .select({
       id: records.id,
@@ -168,6 +178,8 @@ export async function createRecord(db: Db, actorId: string, input: EntryInput) {
       )
     }
 
+    // FOR UPDATE so a concurrent merge can't tombstone the player between
+    // this check and the insert (mergePlayers locks the same row).
     const player = input.playerId
       ? (
           await tx
@@ -178,6 +190,7 @@ export async function createRecord(db: Db, actorId: string, input: EntryInput) {
             })
             .from(players)
             .where(eq(players.id, input.playerId))
+            .for('update')
         ).at(0)
       : await createPlayer(tx, actorId, newPlayerName!)
     if (!player) throw new Error(`Unknown player ${input.playerId}`)
@@ -467,6 +480,7 @@ export async function makeCurrentRecord(
     }
     if (target.isCurrent) return { demotedRecordId: null }
 
+    await lockTitleKey(tx, target.vehicleId, target.mode)
     const previous = (
       await tx
         .select({ id: records.id })
@@ -510,6 +524,7 @@ export async function demoteRecord(db: Db, actorId: string, recordId: number) {
     if (!target) throw new Error(`Unknown record ${recordId}`)
     if (!target.isCurrent) throw new Error('Record is not current')
 
+    await lockTitleKey(tx, target.vehicleId, target.mode)
     await tx
       .update(records)
       .set({ isCurrent: false })

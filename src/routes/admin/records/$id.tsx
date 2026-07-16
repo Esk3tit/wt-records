@@ -63,6 +63,14 @@ type Confirmation = {
 
 function RecordDetail() {
   const loaded = Route.useLoaderData()
+  if (!loaded) return null
+  // Keyed so ALL page state (edit form, drafts, error, retire reason) resets
+  // when navigating between records without a remount.
+  return <RecordDetailInner key={loaded.detail.record.id} />
+}
+
+function RecordDetailInner() {
+  const loaded = Route.useLoaderData()
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
@@ -82,12 +90,14 @@ function RecordDetail() {
     setError(null)
     try {
       await confirmation.run()
-      setConfirmation(null)
       setRetireReason('')
       await refresh()
     } catch (e) {
       setError(errorMessage(e))
     } finally {
+      // Always close: a failure's message lands in the page ErrorNote, which
+      // an open modal would otherwise hide.
+      setConfirmation(null)
       setBusy(false)
     }
   }
@@ -107,9 +117,7 @@ function RecordDetail() {
   }
 
   return (
-    // Keyed so edit-form state and drafts reset when navigating between
-    // records (sibling links) without a remount.
-    <div key={recordId} className="space-y-4">
+    <div className="space-y-4">
       <Panel
         title={`${vehicle.name} · ${record.mode.toUpperCase()}`}
         aside={

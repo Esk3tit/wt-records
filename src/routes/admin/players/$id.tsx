@@ -40,6 +40,14 @@ export const Route = createFileRoute('/admin/players/$id')({
 
 function PlayerDetail() {
   const detail = Route.useLoaderData()
+  if (!detail) return null
+  // Keyed so ALL page state (rename, alias, merge pick, error) resets when
+  // navigating player-to-player without a remount.
+  return <PlayerDetailInner key={detail.player.id} />
+}
+
+function PlayerDetailInner() {
+  const detail = Route.useLoaderData()
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   if (!detail) return null
@@ -75,9 +83,7 @@ function PlayerDetail() {
   }
 
   return (
-    // Keyed so form state (rename, alias, merge pick) resets per player when
-    // navigating player-to-player without a remount.
-    <div key={player.id} className="space-y-4">
+    <div className="space-y-4">
       <Panel
         title={player.displayName}
         aside={

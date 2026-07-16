@@ -139,26 +139,22 @@ export function AsyncCombobox<T>({
           className="menu-glass absolute z-30 mt-1 max-h-72 w-full overflow-auto rounded-[14px] p-1"
         >
           {items.map((item, i) => (
+            // The option itself is the interactive element — a nested button
+            // would put a second control inside role="option".
             <li
               key={itemKey(item)}
               id={`${id}-opt-${i}`}
               role="option"
               aria-selected={i === active}
+              className={
+                'cursor-pointer rounded-[10px] px-3 py-1.5 text-sm ' +
+                (i === active ? 'bg-[var(--pill-active)]' : 'hover:bg-white/5')
+              }
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => pick(item)}
+              onMouseEnter={() => setActive(i)}
             >
-              <button
-                type="button"
-                className={
-                  'w-full rounded-[10px] px-3 py-1.5 text-left text-sm ' +
-                  (i === active
-                    ? 'bg-[var(--pill-active)]'
-                    : 'hover:bg-white/5')
-                }
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => pick(item)}
-                onMouseEnter={() => setActive(i)}
-              >
-                {renderItem(item)}
-              </button>
+              {renderItem(item)}
             </li>
           ))}
           {items.length === 0 && (
