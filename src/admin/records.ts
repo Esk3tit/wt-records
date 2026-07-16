@@ -301,6 +301,8 @@ export async function updateRecord(
       }
     }
 
+    // displayNameSnapshot is deliberately NOT refreshed when playerId is
+    // reassigned — snapshots record who the entry named at verification time.
     const fields = [
       'kills',
       'playerId',
