@@ -156,15 +156,27 @@ async function parseProofForm(form: FormData): Promise<ParsedProofUpload> {
     })
   }
   for (const f of files) {
-    if (f.originalUrl && !/^https?:\/\//.test(f.originalUrl)) {
+    if (f.originalUrl && !isHttpUrl(f.originalUrl)) {
       throw new Error('A provenance link must be an http(s) URL')
     }
   }
   const videoUrl = String(form.get('videoUrl') ?? '').trim() || null
-  if (videoUrl && !/^https?:\/\//.test(videoUrl)) {
+  if (videoUrl && !isHttpUrl(videoUrl)) {
     throw new Error('Video proof must be an http(s) URL')
   }
   return { files, videoUrl }
+}
+
+// A prefix regex admits host-less values like "https://?x"; parse instead.
+function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value)
+    return (
+      (url.protocol === 'http:' || url.protocol === 'https:') && url.host !== ''
+    )
+  } catch {
+    return false
+  }
 }
 
 async function uploadedProofRows(

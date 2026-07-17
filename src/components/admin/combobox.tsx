@@ -16,6 +16,9 @@ export interface ComboboxProps<T> {
   /** Rendered under the list, e.g. an inline-create row. */
   footer?: (q: string, close: () => void) => ReactNode
   selectedLabel?: string | null
+  /** Discards the query, open results and in-flight fetches when it changes —
+      pass the value the fetcher closes over (e.g. the mode). */
+  resetKey?: unknown
 }
 
 export function AsyncCombobox<T>({
@@ -28,6 +31,7 @@ export function AsyncCombobox<T>({
   onClear,
   footer,
   selectedLabel,
+  resetKey,
 }: ComboboxProps<T>) {
   const [value, setValue] = useState('')
   const [items, setItems] = useState<T[]>([])
@@ -41,6 +45,14 @@ export function AsyncCombobox<T>({
   useEffect(() => {
     fetchRef.current = fetchItems
   })
+
+  useEffect(() => {
+    seq.current++
+    setValue('')
+    setItems([])
+    setOpen(false)
+    setActive(-1)
+  }, [resetKey])
 
   useEffect(() => {
     const q = value.trim()

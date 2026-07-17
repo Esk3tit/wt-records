@@ -99,6 +99,15 @@ describe('rules updates', () => {
     expect(row.minKills).toBe(9)
   })
 
+  it('refuses duplicate class entries in one save', async () => {
+    await expect(
+      updateModeMinKills(t.db, MOD, 'grb', [
+        { class: 'medium', minKills: 11 },
+        { class: 'medium', minKills: 12 },
+      ]),
+    ).rejects.toThrow(/duplicate/i)
+  })
+
   it('clearing a cell (null) deletes the threshold row and audits it', async () => {
     await updateModeMinKills(t.db, MOD, 'grb', [
       { class: 'spaa', minKills: null },

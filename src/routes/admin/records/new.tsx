@@ -49,6 +49,19 @@ type PlayerPick =
   | { kind: 'existing'; id: number; displayName: string }
   | { kind: 'new'; displayName: string }
 
+// Snapshot taken when the preview is requested: the confirm modal must
+// describe and commit the SAME values, whatever the form does meanwhile.
+interface SaveSnapshot {
+  mode: string
+  vehicleId: number
+  player: PlayerPick
+  ign: string
+  kills: number
+  patch: string
+  runBr: string
+  proofs: ProofDraftState
+}
+
 function NewRecord() {
   const loaded = Route.useLoaderData()
   const { modes } = useLoaderData({ from: '__root__' })
@@ -65,7 +78,10 @@ function NewRecord() {
   const [runBr, setRunBr] = useState('')
   const [proofs, setProofs] = useState<ProofDraftState>(emptyProofDrafts)
   const [addingPatch, setAddingPatch] = useState(false)
-  const [preview, setPreview] = useState<TitlePreview | null>(null)
+  const [pending, setPending] = useState<{
+    preview: TitlePreview
+    form: SaveSnapshot
+  } | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -120,37 +136,50 @@ function NewRecord() {
         'At least one proof (screenshot or video URL) is required',
       )
     }
+    const snapshot: SaveSnapshot = {
+      mode,
+      vehicleId: vehicle.vehicleId,
+      player,
+      ign: ign.trim(),
+      kills: killCount,
+      patch,
+      runBr: runBr.trim(),
+      proofs,
+    }
     try {
-      setPreview(
-        await adminTitlePreview({
-          data: {
-            kind: 'entry',
-            mode,
-            vehicleId: vehicle.vehicleId,
-            kills: killCount,
-          },
-        }),
-      )
+      const preview = await adminTitlePreview({
+        data: {
+          kind: 'entry',
+          mode: snapshot.mode,
+          vehicleId: snapshot.vehicleId,
+          kills: snapshot.kills,
+        },
+      })
+      setPending({ preview, form: snapshot })
     } catch (e) {
       setError(errorMessage(e))
     }
   }
 
   const confirmSave = async () => {
-    if (!vehicle || !player) return
+    if (!pending) return
+    const snap = pending.form
     setBusy(true)
     setError(null)
     try {
       const form = new FormData()
-      form.set('mode', mode)
-      form.set('vehicleId', String(vehicle.vehicleId))
-      if (player.kind === 'existing') form.set('playerId', String(player.id))
-      else form.set('newPlayerName', player.displayName)
-      form.set('ignSnapshot', ign.trim())
-      form.set('kills', kills)
-      form.set('patch', patch)
-      if (runBr.trim()) form.set('runBr', runBr.trim())
-      appendProofFormData(form, proofs)
+      form.set('mode', snap.mode)
+      form.set('vehicleId', String(snap.vehicleId))
+      if (snap.player.kind === 'existing') {
+        form.set('playerId', String(snap.player.id))
+      } else {
+        form.set('newPlayerName', snap.player.displayName)
+      }
+      form.set('ignSnapshot', snap.ign)
+      form.set('kills', String(snap.kills))
+      form.set('patch', snap.patch)
+      if (snap.runBr) form.set('runBr', snap.runBr)
+      appendProofFormData(form, snap.proofs)
       const result = await adminSaveRecord({ data: form })
       navigate({
         to: '/admin/records/$id',
@@ -158,7 +187,7 @@ function NewRecord() {
       })
     } catch (e) {
       setError(errorMessage(e))
-      setPreview(null)
+      setPending(null)
     } finally {
       setBusy(false)
     }
@@ -194,6 +223,7 @@ function NewRecord() {
               id="entry-vehicle"
               placeholder="Type a vehicle name…"
               fetchItems={lookupVehicles}
+              resetKey={mode}
               itemKey={(v) => v.slug}
               renderItem={(v) => (
                 <span className="flex items-baseline gap-2">
@@ -370,27 +400,27 @@ function NewRecord() {
       </Panel>
 
       <ConfirmDialog
-        open={preview != null}
+        open={pending != null}
         title="Save this record?"
         confirmLabel="Save record"
         busy={busy}
         onConfirm={confirmSave}
-        onCancel={() => setPreview(null)}
+        onCancel={() => setPending(null)}
       >
-        {preview && (
+        {pending && (
           <>
             <p>
-              {preview.wouldBeCurrent
-                ? preview.demoted
-                  ? `Saving this demotes ${preview.demoted.playerName}'s ${preview.demoted.kills}-kill record — this entry becomes the current title.`
+              {pending.preview.wouldBeCurrent
+                ? pending.preview.demoted
+                  ? `Saving this demotes ${pending.preview.demoted.playerName}'s ${pending.preview.demoted.kills}-kill record — this entry becomes the current title.`
                   : 'This entry becomes the current record for the vehicle.'
                 : 'This entry does NOT take the title — it lands in history below the current record.'}
             </p>
-            {preview.belowThreshold && (
+            {pending.preview.belowThreshold && (
               <p className="text-amber-300">
-                {Number(kills)} kills is below the qualifying threshold
-                {preview.threshold != null
-                  ? ` of ${preview.threshold}`
+                {pending.form.kills} kills is below the qualifying threshold
+                {pending.preview.threshold != null
+                  ? ` of ${pending.preview.threshold}`
                   : ''}{' '}
                 for this vehicle — saving anyway will be noted in the audit log.
               </p>

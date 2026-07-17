@@ -63,7 +63,14 @@ async function applyMinKills(
   mode: string,
   entries: MinKillsEntry[],
 ) {
+  const seen = new Set<VehicleClass>()
   for (const e of entries) {
+    // A duplicate class would make the second write hit the (mode, class)
+    // primary key mid-transaction.
+    if (seen.has(e.class)) {
+      throw new Error(`Duplicate rules entry for class ${e.class}`)
+    }
+    seen.add(e.class)
     if (
       e.minKills != null &&
       (!Number.isInteger(e.minKills) || e.minKills <= 0)
