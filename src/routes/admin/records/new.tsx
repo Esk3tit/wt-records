@@ -71,7 +71,8 @@ function NewRecord() {
   const [vehicle, setVehicle] = useState<VehicleContext | null>(null)
   const [player, setPlayer] = useState<PlayerPick | null>(null)
   const [ign, setIgn] = useState('')
-  const [ignTouched, setIgnTouched] = useState(false)
+  // Ref, not state: the post-await checks below must see the CURRENT value.
+  const ignTouched = useRef(false)
   const [kills, setKills] = useState('')
   const [patchList, setPatchList] = useState(loaded?.patches ?? [])
   const [patch, setPatch] = useState(loaded?.patches[0]?.version ?? '')
@@ -110,14 +111,19 @@ function NewRecord() {
     }
   }
 
+  // A prefill resolving after a clear/switch must not overwrite anything.
+  const playerSeq = useRef(0)
   const pickPlayer = async (p: { id: number; displayName: string }) => {
+    const requestId = ++playerSeq.current
     setPlayer({ kind: 'existing', ...p })
     try {
       const prefill = await adminPlayerPrefill({ data: p.id })
-      if (!ignTouched) setIgn(prefill?.lastIgn ?? p.displayName)
+      if (playerSeq.current !== requestId || ignTouched.current) return
+      setIgn(prefill?.lastIgn ?? p.displayName)
     } catch {
       // Prefill is a convenience; never leave the previous player's IGN.
-      if (!ignTouched) setIgn(p.displayName)
+      if (playerSeq.current !== requestId || ignTouched.current) return
+      setIgn(p.displayName)
     }
   }
 
@@ -224,6 +230,7 @@ function NewRecord() {
               placeholder="Type a vehicle name…"
               fetchItems={lookupVehicles}
               resetKey={mode}
+              onError={(e) => setError(errorMessage(e))}
               itemKey={(v) => v.slug}
               renderItem={(v) => (
                 <span className="flex items-baseline gap-2">
@@ -268,10 +275,14 @@ function NewRecord() {
               id="entry-player"
               placeholder="Display name or alias…"
               fetchItems={searchPlayers}
+              onError={(e) => setError(errorMessage(e))}
               itemKey={(p) => p.id}
               renderItem={(p) => p.displayName}
               onSelect={(p) => void pickPlayer(p)}
-              onClear={() => setPlayer(null)}
+              onClear={() => {
+                playerSeq.current++
+                setPlayer(null)
+              }}
               selectedLabel={
                 player
                   ? player.kind === 'new'
@@ -287,8 +298,9 @@ function NewRecord() {
                       className="w-full rounded-[10px] px-3 py-1.5 text-left text-sm text-fg-muted hover:bg-white/5"
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => {
+                        playerSeq.current++
                         setPlayer({ kind: 'new', displayName: q })
-                        if (!ignTouched) setIgn(q)
+                        if (!ignTouched.current) setIgn(q)
                         close()
                       }}
                     >
@@ -309,7 +321,7 @@ function NewRecord() {
               value={ign}
               onChange={(e) => {
                 setIgn(e.target.value)
-                setIgnTouched(true)
+                ignTouched.current = true
               }}
               className={inputClass}
               required

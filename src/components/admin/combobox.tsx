@@ -19,6 +19,8 @@ export interface ComboboxProps<T> {
   /** Discards the query, open results and in-flight fetches when it changes —
       pass the value the fetcher closes over (e.g. the mode). */
   resetKey?: unknown
+  /** Surfaces a failed lookup (the list closes either way). */
+  onError?: (error: unknown) => void
 }
 
 export function AsyncCombobox<T>({
@@ -32,6 +34,7 @@ export function AsyncCombobox<T>({
   footer,
   selectedLabel,
   resetKey,
+  onError,
 }: ComboboxProps<T>) {
   const [value, setValue] = useState('')
   const [items, setItems] = useState<T[]>([])
@@ -42,8 +45,10 @@ export function AsyncCombobox<T>({
   // Latest fetcher behind a ref: only typing re-triggers the debounce, never
   // a parent re-render handing down a new callback identity.
   const fetchRef = useRef(fetchItems)
+  const onErrorRef = useRef(onError)
   useEffect(() => {
     fetchRef.current = fetchItems
+    onErrorRef.current = onError
   })
 
   useEffect(() => {
@@ -72,12 +77,13 @@ export function AsyncCombobox<T>({
           setOpen(true)
           setActive(rows.length > 0 ? 0 : -1)
         },
-        () => {
+        (error: unknown) => {
           // A failed fetch must not read as "No matches" — close the list.
           if (seq.current !== requestId) return
           setItems([])
           setOpen(false)
           setActive(-1)
+          onErrorRef.current?.(error)
         },
       )
     }, 150)

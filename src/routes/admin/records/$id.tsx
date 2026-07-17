@@ -518,6 +518,7 @@ function EditPanel({
             id="edit-holder"
             placeholder="Search players…"
             fetchItems={(q) => adminPlayerSearch({ data: q })}
+            onError={(e) => setError(errorMessage(e))}
             itemKey={(p) => p.id}
             renderItem={(p) => p.displayName}
             onSelect={(p) =>

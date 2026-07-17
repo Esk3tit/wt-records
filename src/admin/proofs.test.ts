@@ -102,14 +102,18 @@ describe('assertProofBytesMatchType', () => {
   })
 
   it('accepts AVIF whose avif brand is compatible, not major (mif1)', () => {
-    // size(16) + 'ftyp' + major 'mif1' + minor + compatible 'avif'
+    // size(20) + 'ftyp' + major 'mif1' + minor version + compatible 'avif'
     const mif1 = new Uint8Array([
       0,
       0,
       0,
-      16,
+      20,
       ...ascii('ftyp'),
       ...ascii('mif1'),
+      0,
+      0,
+      0,
+      0,
       ...ascii('avif'),
     ])
     expect(() => assertProofBytesMatchType(mif1, 'image/avif')).not.toThrow()
@@ -117,12 +121,28 @@ describe('assertProofBytesMatchType', () => {
       0,
       0,
       0,
-      16,
+      20,
       ...ascii('ftyp'),
       ...ascii('mp42'),
+      0,
+      0,
+      0,
+      0,
       ...ascii('isom'),
     ])
     expect(() => assertProofBytesMatchType(noAvif, 'image/avif')).toThrow()
+    // A minor version whose bytes spell 'avif' must not count as a brand.
+    const trickyMinor = new Uint8Array([
+      0,
+      0,
+      0,
+      20,
+      ...ascii('ftyp'),
+      ...ascii('mp42'),
+      ...ascii('avif'),
+      ...ascii('isom'),
+    ])
+    expect(() => assertProofBytesMatchType(trickyMinor, 'image/avif')).toThrow()
   })
 
   it('rejects bytes that do not match the declared type', () => {

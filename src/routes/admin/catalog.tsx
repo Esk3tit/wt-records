@@ -14,6 +14,7 @@ import {
   adminUpdateRules,
   adminVehicleList,
 } from '#/admin/api'
+import { VEHICLE_CLASSES } from '#/lib/vehicle-classes'
 import type { VehicleClass } from '#/lib/vehicle-classes'
 
 interface CatalogSearch {
@@ -117,24 +118,13 @@ function CatalogAndRules() {
                     <td className="py-2 pr-3 text-fg-muted">{v.nation}</td>
                     <td className="py-2 pr-3 text-fg-muted">{v.class}</td>
                     <td className="py-2">
-                      <input
-                        type="checkbox"
-                        aria-label={`Mark ${v.name} difficult`}
-                        checked={v.isDifficult}
-                        onChange={async (e) => {
-                          setError(null)
-                          try {
-                            await adminSetDifficult({
-                              data: {
-                                vehicleId: v.id,
-                                isDifficult: e.target.checked,
-                              },
-                            })
-                            await router.invalidate()
-                          } catch (err) {
-                            setError(errorMessage(err))
-                          }
-                        }}
+                      <DifficultToggle
+                        key={`${v.id}:${v.isDifficult}`}
+                        vehicleId={v.id}
+                        name={v.name}
+                        isDifficult={v.isDifficult}
+                        onError={setError}
+                        onSaved={() => router.invalidate()}
                       />
                     </td>
                   </tr>
@@ -177,11 +167,16 @@ function ModeRulesPanel({
   onError: (message: string | null) => void
   onSaved: () => void
 }) {
-  const [cells, setCells] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
+  // Every class gets a cell — a deleted (or never-set) class must be
+  // configurable again, not vanish from the editor.
+  const [cells, setCells] = useState<Record<string, string>>(() => {
+    const byClass = Object.fromEntries(
       mode.thresholds.map((t) => [t.class, String(t.minKills)]),
-    ),
-  )
+    )
+    return Object.fromEntries(
+      VEHICLE_CLASSES.map((cls) => [cls, byClass[cls] ?? '']),
+    )
+  })
   const [difficult, setDifficult] = useState(
     mode.difficultMinKills != null ? String(mode.difficultMinKills) : '',
   )
@@ -226,14 +221,14 @@ function ModeRulesPanel({
         recomputed.
       </p>
       <div className="flex flex-wrap items-end gap-3">
-        {mode.thresholds.map((t) => (
-          <Field key={t.class} label={t.class}>
+        {VEHICLE_CLASSES.map((cls) => (
+          <Field key={cls} label={cls}>
             <input
               type="number"
               min={1}
-              value={cells[t.class] ?? ''}
+              value={cells[cls] ?? ''}
               onChange={(e) =>
-                setCells((c) => ({ ...c, [t.class]: e.target.value }))
+                setCells((c) => ({ ...c, [cls]: e.target.value }))
               }
               className={inputClass + ' w-24'}
             />
@@ -258,11 +253,49 @@ function ModeRulesPanel({
           {busy ? 'Saving…' : 'Save rules'}
         </button>
       </div>
-      {mode.thresholds.length === 0 && (
-        <p className="mt-2 text-xs text-fg-faint">
-          No per-class minimums configured for this mode yet.
-        </p>
-      )}
     </Panel>
+  )
+}
+
+function DifficultToggle({
+  vehicleId,
+  name,
+  isDifficult,
+  onError,
+  onSaved,
+}: {
+  vehicleId: number
+  name: string
+  isDifficult: boolean
+  onError: (message: string | null) => void
+  onSaved: () => Promise<unknown>
+}) {
+  // Optimistic: the box reflects the click immediately instead of reverting
+  // to the server value while the request is in flight (keyed by the server
+  // value, so an invalidate re-seeds it).
+  const [checked, setChecked] = useState(isDifficult)
+  const [busy, setBusy] = useState(false)
+  return (
+    <input
+      type="checkbox"
+      aria-label={`Mark ${name} difficult`}
+      checked={checked}
+      disabled={busy}
+      onChange={async (e) => {
+        const next = e.target.checked
+        setChecked(next)
+        setBusy(true)
+        onError(null)
+        try {
+          await adminSetDifficult({ data: { vehicleId, isDifficult: next } })
+          await onSaved()
+        } catch (err) {
+          setChecked(!next)
+          onError(errorMessage(err))
+        } finally {
+          setBusy(false)
+        }
+      }}
+    />
   )
 }

@@ -256,6 +256,7 @@ function MergePanel({
           id="merge-duplicate"
           placeholder="Search the duplicate player…"
           fetchItems={(q) => adminPlayerSearch({ data: q })}
+          onError={(e) => setError(errorMessage(e))}
           itemKey={(p) => p.id}
           renderItem={(p) => p.displayName}
           onSelect={(p) => {
