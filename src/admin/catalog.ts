@@ -189,6 +189,10 @@ export async function addPatch(
 ) {
   const version = input.version.trim()
   if (!version) throw new Error('A patch version is required')
+  // Guards the api layer's new Date(string) against unparseable input.
+  if (input.releasedAt && Number.isNaN(input.releasedAt.getTime())) {
+    throw new Error('The release date is not a valid date')
+  }
   return db.transaction(async (tx) => {
     const existing = await tx
       .select({ version: patches.version })

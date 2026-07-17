@@ -165,6 +165,15 @@ describe('patches', () => {
     await expect(addPatch(t.db, MOD, { version: ' ' })).rejects.toThrow()
   })
 
+  it('refuses an unparseable release date', async () => {
+    await expect(
+      addPatch(t.db, MOD, {
+        version: '2.54',
+        releasedAt: new Date('not-a-date'),
+      }),
+    ).rejects.toThrow(/valid date/i)
+  })
+
   it('lists newest-first so the dropdown defaults to latest', async () => {
     await addPatch(t.db, MOD, {
       version: '2.54',
