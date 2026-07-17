@@ -73,8 +73,10 @@ export function rightfulHolder(candidates: TitleCandidate[]): number | null {
 
 function beats(a: TitleCandidate, b: TitleCandidate): boolean {
   if (a.kills !== b.kills) return a.kills > b.kills
-  const aAt = a.verifiedAt?.getTime() ?? Infinity
-  const bAt = b.verifiedAt?.getTime() ?? Infinity
+  // null verifiedAt = oldest, matching the public ranking's "nulls first"
+  // (a migrated record predates anything the site itself verified).
+  const aAt = a.verifiedAt?.getTime() ?? -Infinity
+  const bAt = b.verifiedAt?.getTime() ?? -Infinity
   if (aAt !== bAt) return aAt < bAt
   return a.id < b.id
 }

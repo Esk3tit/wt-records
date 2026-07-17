@@ -82,18 +82,27 @@ function NewRecord() {
   const pickSeq = useRef(0)
   const pickVehicle = async (slug: string) => {
     const requestId = ++pickSeq.current
-    const context = await adminEntryContext({
-      data: { mode, vehicleSlug: slug },
-    })
-    if (pickSeq.current !== requestId || !context) return
-    setVehicle(context)
-    setRunBr(context.br != null ? String(context.br) : '')
+    try {
+      const context = await adminEntryContext({
+        data: { mode, vehicleSlug: slug },
+      })
+      if (pickSeq.current !== requestId || !context) return
+      setVehicle(context)
+      setRunBr(context.br != null ? String(context.br) : '')
+    } catch (e) {
+      if (pickSeq.current === requestId) setError(errorMessage(e))
+    }
   }
 
   const pickPlayer = async (p: { id: number; displayName: string }) => {
     setPlayer({ kind: 'existing', ...p })
-    const prefill = await adminPlayerPrefill({ data: p.id })
-    if (!ignTouched) setIgn(prefill?.lastIgn ?? p.displayName)
+    try {
+      const prefill = await adminPlayerPrefill({ data: p.id })
+      if (!ignTouched) setIgn(prefill?.lastIgn ?? p.displayName)
+    } catch {
+      // Prefill is a convenience; never leave the previous player's IGN.
+      if (!ignTouched) setIgn(p.displayName)
+    }
   }
 
   const requestSave = async () => {

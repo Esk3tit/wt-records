@@ -96,6 +96,7 @@ function PlayerDetailInner() {
         }
       >
         <RenameForm
+          key={player.displayName}
           current={player.displayName}
           onRename={(name) =>
             call(() =>

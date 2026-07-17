@@ -101,6 +101,30 @@ describe('assertProofBytesMatchType', () => {
     ).not.toThrow()
   })
 
+  it('accepts AVIF whose avif brand is compatible, not major (mif1)', () => {
+    // size(16) + 'ftyp' + major 'mif1' + minor + compatible 'avif'
+    const mif1 = new Uint8Array([
+      0,
+      0,
+      0,
+      16,
+      ...ascii('ftyp'),
+      ...ascii('mif1'),
+      ...ascii('avif'),
+    ])
+    expect(() => assertProofBytesMatchType(mif1, 'image/avif')).not.toThrow()
+    const noAvif = new Uint8Array([
+      0,
+      0,
+      0,
+      16,
+      ...ascii('ftyp'),
+      ...ascii('mp42'),
+      ...ascii('isom'),
+    ])
+    expect(() => assertProofBytesMatchType(noAvif, 'image/avif')).toThrow()
+  })
+
   it('rejects bytes that do not match the declared type', () => {
     // HTML smuggled under an image content type must not reach R2.
     const html = new Uint8Array(ascii('<script>alert(1)</script>'))

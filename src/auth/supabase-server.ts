@@ -1,6 +1,10 @@
 import { createServerClient } from '@supabase/ssr'
 import type { User } from '@supabase/supabase-js'
-import { getCookies, setCookie } from '@tanstack/react-start/server'
+import {
+  getCookies,
+  setCookie,
+  setResponseHeader,
+} from '@tanstack/react-start/server'
 
 // Cookie-session Supabase Auth for the current request (ADR 0008). Auth only —
 // all data reads/writes stay on the service-role Drizzle connection.
@@ -20,7 +24,7 @@ export function supabaseServer() {
           value,
         }))
       },
-      setAll(cookies) {
+      setAll(cookies, headers) {
         for (const cookie of cookies) {
           // All auth happens server-side — no browser client ever needs to
           // read these, so keep the session out of reach of any XSS.
@@ -28,6 +32,11 @@ export function supabaseServer() {
             ...cookie.options,
             httpOnly: true,
           })
+        }
+        // The library's no-cache headers: a response that writes auth
+        // cookies must never be CDN/proxy cached.
+        for (const [name, value] of Object.entries(headers)) {
+          setResponseHeader(name, value)
         }
       },
     },

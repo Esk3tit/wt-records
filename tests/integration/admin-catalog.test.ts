@@ -99,6 +99,24 @@ describe('rules updates', () => {
     expect(row.minKills).toBe(9)
   })
 
+  it('clearing a cell (null) deletes the threshold row and audits it', async () => {
+    await updateModeMinKills(t.db, MOD, 'grb', [
+      { class: 'spaa', minKills: null },
+    ])
+    const rows = await t.db
+      .select()
+      .from(modeMinKills)
+      .where(and(eq(modeMinKills.mode, 'grb'), eq(modeMinKills.class, 'spaa')))
+    expect(rows).toHaveLength(0)
+
+    const audit = await listAudit(t.db, { entity: 'rules' })
+    const row = audit.rows.find((r) => r.action === 'rules.update_min_kills')!
+    expect(row.diff).toMatchObject({
+      before: { spaa: 6 },
+      after: { spaa: null },
+    })
+  })
+
   it('skips the audit row when nothing changed', async () => {
     await updateModeMinKills(t.db, MOD, 'grb', [
       { class: 'heavy', minKills: 10 },

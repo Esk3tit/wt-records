@@ -32,13 +32,14 @@ describe('rightfulHolder', () => {
     ).toBe(2)
   })
 
-  it('treats a null verifiedAt as later than any dated verification', () => {
+  it('treats a null verifiedAt as oldest (migrated records predate the site)', () => {
+    // Must match the public ranking's "verifiedAt asc nulls first".
     expect(
       rightfulHolder([
-        { id: 1, kills: 14, verifiedAt: null },
         { id: 2, kills: 14, verifiedAt: at('2026-06-01T00:00:00Z') },
+        { id: 1, kills: 14, verifiedAt: null },
       ]),
-    ).toBe(2)
+    ).toBe(1)
   })
 
   it('breaks a full tie by lowest id for determinism', () => {

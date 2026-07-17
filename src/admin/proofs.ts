@@ -40,11 +40,25 @@ const MAGIC_BY_CONTENT_TYPE = new Map<string, (b: Uint8Array) => boolean>([
     'image/webp',
     (b) => matchAt(b, 0, ASCII('RIFF')) && matchAt(b, 8, ASCII('WEBP')),
   ],
+  // AVIF: the avif/avis brand may sit anywhere in the ftyp box (encoders
+  // often use a mif1 major brand), so scan the whole brand list.
   [
     'image/avif',
-    (b) =>
-      matchAt(b, 4, ASCII('ftyp')) &&
-      (matchAt(b, 8, ASCII('avif')) || matchAt(b, 8, ASCII('avis'))),
+    (b) => {
+      if (!matchAt(b, 4, ASCII('ftyp'))) return false
+      const boxSize =
+        ((b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3]) >>> 0 || b.length
+      const end = Math.min(boxSize, b.length, 64)
+      for (let offset = 8; offset + 4 <= end; offset += 4) {
+        if (
+          matchAt(b, offset, ASCII('avif')) ||
+          matchAt(b, offset, ASCII('avis'))
+        ) {
+          return true
+        }
+      }
+      return false
+    },
   ],
 ])
 

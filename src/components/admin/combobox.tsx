@@ -61,7 +61,11 @@ export function AsyncCombobox<T>({
           setActive(rows.length > 0 ? 0 : -1)
         },
         () => {
-          if (seq.current === requestId) setItems([])
+          // A failed fetch must not read as "No matches" — close the list.
+          if (seq.current !== requestId) return
+          setItems([])
+          setOpen(false)
+          setActive(-1)
         },
       )
     }, 150)

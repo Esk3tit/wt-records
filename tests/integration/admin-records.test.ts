@@ -351,6 +351,14 @@ describe('updateRecord', () => {
     ).rejects.toThrow(/merged/i)
   })
 
+  it('refuses a blank IGN snapshot on edit', async () => {
+    const veh = await vehicleId('m4a1')
+    const current = await currentRecord(veh)
+    await expect(
+      updateRecord(t.db, MOD, current.id, { ignSnapshot: '   ' }),
+    ).rejects.toThrow(/ign/i)
+  })
+
   it('refuses edits on pending/rejected records (Phase-2 states)', async () => {
     const pending = (
       await t.db.select().from(records).where(eq(records.status, 'pending'))

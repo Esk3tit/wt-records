@@ -155,6 +155,11 @@ async function parseProofForm(form: FormData): Promise<ParsedProofUpload> {
       originalUrl: originals[i]?.trim() || null,
     })
   }
+  for (const f of files) {
+    if (f.originalUrl && !/^https?:\/\//.test(f.originalUrl)) {
+      throw new Error('A provenance link must be an http(s) URL')
+    }
+  }
   const videoUrl = String(form.get('videoUrl') ?? '').trim() || null
   if (videoUrl && !/^https?:\/\//.test(videoUrl)) {
     throw new Error('Video proof must be an http(s) URL')
@@ -348,7 +353,7 @@ export const adminUpdateRules = createServerFn({ method: 'POST' })
   .validator(
     (data: {
       mode: string
-      entries: { class: VehicleClass; minKills: number }[]
+      entries: { class: VehicleClass; minKills: number | null }[]
       difficultMinKills: number | null
     }) => data,
   )

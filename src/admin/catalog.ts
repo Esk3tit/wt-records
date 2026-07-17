@@ -41,11 +41,18 @@ export async function setVehicleDifficult(
   })
 }
 
+/** A null minKills clears the class's threshold row — a blank cell in the
+    editor must actually remove the rule, not silently keep the old one. */
+export interface MinKillsEntry {
+  class: VehicleClass
+  minKills: number | null
+}
+
 export async function updateModeMinKills(
   db: Db,
   actorId: string,
   mode: string,
-  entries: { class: VehicleClass; minKills: number }[],
+  entries: MinKillsEntry[],
 ) {
   return db.transaction((tx) => applyMinKills(tx, actorId, mode, entries))
 }
@@ -54,10 +61,13 @@ async function applyMinKills(
   tx: Db,
   actorId: string,
   mode: string,
-  entries: { class: VehicleClass; minKills: number }[],
+  entries: MinKillsEntry[],
 ) {
   for (const e of entries) {
-    if (!Number.isInteger(e.minKills) || e.minKills <= 0) {
+    if (
+      e.minKills != null &&
+      (!Number.isInteger(e.minKills) || e.minKills <= 0)
+    ) {
       throw new Error('Min kills must be a positive integer')
     }
   }
@@ -68,13 +78,19 @@ async function applyMinKills(
   const current = new Map(existing.map((r) => [r.class, r.minKills]))
 
   const before: Record<string, number | null> = {}
-  const after: Record<string, number> = {}
+  const after: Record<string, number | null> = {}
   for (const e of entries) {
-    const prev = current.get(e.class)
+    const prev = current.get(e.class) ?? null
     if (prev === e.minKills) continue
-    before[e.class] = prev ?? null
+    before[e.class] = prev
     after[e.class] = e.minKills
-    if (prev == null) {
+    if (e.minKills == null) {
+      await tx
+        .delete(modeMinKills)
+        .where(
+          and(eq(modeMinKills.mode, mode), eq(modeMinKills.class, e.class)),
+        )
+    } else if (prev == null) {
       await tx
         .insert(modeMinKills)
         .values({ mode, class: e.class, minKills: e.minKills })
@@ -150,7 +166,7 @@ export async function updateModeRules(
   actorId: string,
   mode: string,
   input: {
-    entries: { class: VehicleClass; minKills: number }[]
+    entries: MinKillsEntry[]
     difficultMinKills: number | null
   },
 ) {

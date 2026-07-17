@@ -191,12 +191,11 @@ function ModeRulesPanel({
     setBusy(true)
     onError(null)
     try {
-      const entries = Object.entries(cells)
-        .filter(([, raw]) => raw.trim() !== '')
-        .map(([cls, raw]) => ({
-          class: cls as VehicleClass,
-          minKills: Number(raw),
-        }))
+      // A cleared cell sends null so the server deletes that threshold row.
+      const entries = Object.entries(cells).map(([cls, raw]) => ({
+        class: cls as VehicleClass,
+        minKills: raw.trim() === '' ? null : Number(raw),
+      }))
       // One transaction server-side: matrix + override save or fail together.
       await adminUpdateRules({
         data: {

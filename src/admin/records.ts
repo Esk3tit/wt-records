@@ -290,6 +290,11 @@ export async function updateRecord(
   ) {
     throw new Error('Kills must be a positive integer')
   }
+  if (input.ignSnapshot != null) {
+    const ign = input.ignSnapshot.trim()
+    if (!ign) throw new Error('An IGN snapshot is required')
+    input = { ...input, ignSnapshot: ign }
+  }
   return db.transaction(async (tx) => {
     const existing = (
       await tx.select().from(records).where(eq(records.id, recordId))
@@ -302,11 +307,14 @@ export async function updateRecord(
     }
 
     if (input.playerId != null && input.playerId !== existing.playerId) {
+      // Locked so a concurrent merge can't tombstone the player between
+      // this check and the reassignment.
       const holder = (
         await tx
           .select({ mergedInto: players.mergedInto })
           .from(players)
           .where(eq(players.id, input.playerId))
+          .for('update')
       ).at(0)
       if (!holder) throw new Error(`Unknown player ${input.playerId}`)
       if (holder.mergedInto != null) {
