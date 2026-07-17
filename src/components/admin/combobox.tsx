@@ -149,10 +149,17 @@ export function AsyncCombobox<T>({
             e.preventDefault()
             pick(items[active])
           } else if (e.key === 'Escape') {
+            // Invalidate any in-flight lookup so it can't reopen the list.
+            seq.current++
             setOpen(false)
           }
         }}
-        onBlur={() => setTimeout(() => setOpen(false), 120)}
+        onBlur={() =>
+          setTimeout(() => {
+            seq.current++
+            setOpen(false)
+          }, 120)
+        }
       />
       {open && (
         <ul

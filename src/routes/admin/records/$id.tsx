@@ -438,8 +438,9 @@ function EditPanel({
     const out: Parameters<typeof onPlainSave>[0] = {}
     const killCount = Number(kills)
     if (killCount !== record.kills) out.kills = killCount
-    if (ign.trim() && ign.trim() !== record.ignSnapshot)
-      out.ignSnapshot = ign.trim()
+    // A cleared IGN still goes to the server, whose required-check rejects
+    // it visibly — silently keeping the old value would read as saved.
+    if (ign.trim() !== record.ignSnapshot) out.ignSnapshot = ign.trim()
     const br = runBr.trim() === '' ? null : Number(runBr)
     if (br !== record.runBr) out.runBr = br
     if (patch !== record.patch) out.patch = patch

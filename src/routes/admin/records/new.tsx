@@ -127,7 +127,10 @@ function NewRecord() {
     }
   }
 
+  // A double-click's older preview must not overwrite the newer snapshot.
+  const saveSeq = useRef(0)
   const requestSave = async () => {
+    const requestId = ++saveSeq.current
     setError(null)
     if (!vehicle) return setError('Pick a vehicle')
     if (!player) return setError('Pick a player or create one')
@@ -161,9 +164,10 @@ function NewRecord() {
           kills: snapshot.kills,
         },
       })
+      if (saveSeq.current !== requestId) return
       setPending({ preview, form: snapshot })
     } catch (e) {
-      setError(errorMessage(e))
+      if (saveSeq.current === requestId) setError(errorMessage(e))
     }
   }
 
