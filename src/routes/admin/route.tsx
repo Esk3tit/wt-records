@@ -2,7 +2,7 @@ import { Link, Outlet, createFileRoute } from '@tanstack/react-router'
 import { buttonClass, subtleButtonClass } from '#/components/admin/ui'
 import { getAdminGate } from '#/admin/api'
 
-/* The one gated layout (ADR 0008): the gate resolves server-side, so a
+/* The one gated layout: the gate resolves server-side, so a
    non-moderator's SSR payload carries no admin data. Children re-check the
    gate from context before loading anything. */
 export const Route = createFileRoute('/admin')({

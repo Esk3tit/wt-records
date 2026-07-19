@@ -6,7 +6,7 @@ import {
   setResponseHeader,
 } from '@tanstack/react-start/server'
 
-// Cookie-session Supabase Auth for the current request (ADR 0008). Auth only —
+// Cookie-session Supabase Auth for the current request. Auth only —
 // all data reads/writes stay on the service-role Drizzle connection.
 if (typeof window !== 'undefined') {
   throw new Error('#/auth/supabase-server must not be imported in the browser')

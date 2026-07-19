@@ -300,8 +300,8 @@ export async function updateRecord(
       await tx.select().from(records).where(eq(records.id, recordId))
     ).at(0)
     if (!existing) throw new Error(`Unknown record ${recordId}`)
-    // pending/rejected are reserved for the Phase-2 submission flow — only
-    // its accept/decline step may touch them.
+    // pending/rejected belong to the future submission flow — only its
+    // accept/decline step may touch them.
     if (existing.status !== 'verified' && existing.status !== 'retired') {
       throw new Error('Only verified or retired records can be edited')
     }

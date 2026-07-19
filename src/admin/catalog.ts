@@ -6,7 +6,7 @@ import { writeAudit } from '#/admin/audit'
 import { likeContains } from '#/lib/like'
 
 /* The vehicle editor exposes ONLY isDifficult — catalog sync owns everything
-   else (ADR 0004). Rules edits never recompute existing records. */
+   else. Rules edits never recompute existing records. */
 
 export async function setVehicleDifficult(
   db: Db,

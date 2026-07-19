@@ -2,7 +2,7 @@ import { getSessionUser } from '#/auth/supabase-server'
 import { getProfileRole } from '#/auth/profile'
 import { db } from '#/db'
 
-/* THE moderator gate (ADR 0008): validate the JWT, then read profiles.role
+/* THE moderator gate: validate the JWT, then read profiles.role
    through the service-role connection. There is no RLS backstop — every
    admin server function must call requireModerator() before touching data. */
 

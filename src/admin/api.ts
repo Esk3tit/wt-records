@@ -50,8 +50,8 @@ import { storageFromEnv } from '#/storage/r2'
 import { proofUrlIfConfigured } from '#/storage/urls'
 import type { VehicleClass } from '#/lib/vehicle-classes'
 
-/* Every mutating/reading admin fn calls requireModerator() first — the only
-   gate there is (ADR 0008). */
+/* Every mutating/reading admin fn calls requireModerator() first — there
+   is no RLS backstop behind it. */
 
 export const getAdminGate = createServerFn({ method: 'GET' }).handler(() =>
   adminGate(),

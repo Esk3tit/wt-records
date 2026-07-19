@@ -3,7 +3,7 @@ import type { Db } from '#/db'
 import { auditLog, profiles } from '#/db/schema'
 
 /* One row per logical moderator action, written inside the same transaction
-   as the write it describes (ADR 0008). Only /admin writes are audited. */
+   as the write it describes. Only /admin writes are audited. */
 
 export interface AuditDiff {
   before?: Record<string, unknown>
