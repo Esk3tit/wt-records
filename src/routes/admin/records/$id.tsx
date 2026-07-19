@@ -28,6 +28,7 @@ import {
 } from '#/components/admin/proof-uploader'
 import type { ProofDraftState } from '#/components/admin/proof-uploader'
 import { formatDayTime, formatDayYear } from '#/lib/dates'
+import { displayVehicleName } from '#/lib/vehicle-name'
 import {
   adminAttachProofs,
   adminDemoteRecord,
@@ -42,6 +43,8 @@ import {
 } from '#/admin/api'
 
 export const Route = createFileRoute('/admin/records/$id')({
+  validateSearch: (s: Record<string, unknown>): { saved?: boolean } =>
+    s.saved === true ? { saved: true } : {},
   loader: async ({ context, params }) => {
     if (context.gate.state !== 'moderator') return null
     const id = Number(params.id)
@@ -73,6 +76,7 @@ function RecordDetail() {
 
 function RecordDetailInner() {
   const loaded = Route.useLoaderData()
+  const { saved } = Route.useSearch()
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
@@ -120,8 +124,26 @@ function RecordDetailInner() {
 
   return (
     <div className="space-y-4">
+      <p className="text-sm">
+        <Link to="/admin" className="text-fg-muted no-underline hover:text-fg">
+          ← Records
+        </Link>
+      </p>
+      {saved && (
+        <p
+          role="status"
+          className="rounded border border-hairline-soft px-3 py-2 text-sm"
+        >
+          <span className="font-semibold text-accent-text">Record saved</span>
+          <span className="text-fg-muted">
+            {record.isCurrent
+              ? ' — now the current title.'
+              : ' — landed in history below the current record.'}
+          </span>
+        </p>
+      )}
       <Panel
-        title={`${vehicle.name} · ${record.mode.toUpperCase()}`}
+        title={`${displayVehicleName(vehicle.name)} · ${record.mode.toUpperCase()}`}
         aside={
           <StatusChip status={record.status} isCurrent={record.isCurrent} />
         }
@@ -139,7 +161,14 @@ function RecordDetailInner() {
           <Meta label="Verified">
             {record.verifiedAt ? formatDayTime(record.verifiedAt) : '—'}
           </Meta>
-          <Meta label="Verifier">{detail.verifierHandle ?? '—'}</Meta>
+          <Meta label="Verifier">
+            {detail.verifierHandle ??
+              (record.importedFrom === 'sheet' ? (
+                <span className="text-fg-faint">migrated</span>
+              ) : (
+                '—'
+              ))}
+          </Meta>
           <Meta label="Threshold">
             {threshold != null ? `${threshold} kills` : 'not configured'}
             {vehicle.isDifficult ? ' (difficult)' : ''}
@@ -212,7 +241,7 @@ function RecordDetailInner() {
                     })
                   }
                 >
-                  Make current
+                  Make current…
                 </button>
               )}
               {record.isCurrent && (
@@ -233,7 +262,7 @@ function RecordDetailInner() {
                     })
                   }
                 >
-                  Demote
+                  Demote…
                 </button>
               )}
               <div className="ml-auto flex items-end gap-2">
@@ -242,7 +271,7 @@ function RecordDetailInner() {
                     type="text"
                     value={retireReason}
                     onChange={(e) => setRetireReason(e.target.value)}
-                    placeholder="debunked proof, cheating, bad entry…"
+                    placeholder="e.g. debunked proof"
                     className={inputClass + ' w-72'}
                   />
                 </Field>
@@ -320,17 +349,11 @@ function RecordDetailInner() {
               <li key={p.id} className="max-w-56 text-sm">
                 {p.kind !== 'video' && p.url ? (
                   // The evidence IS the page's content — show it, don't cite it.
-                  <a
-                    href={p.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="proof-thumb"
-                  >
-                    <img
-                      src={p.url}
-                      alt={`${p.kind.replace('_', ' ')} proof`}
-                    />
-                  </a>
+                  <ProofThumb
+                    url={p.url}
+                    kind={p.kind.replace('_', ' ')}
+                    originalUrl={p.originalUrl}
+                  />
                 ) : (
                   <a
                     href={p.url ?? p.originalUrl ?? undefined}
@@ -400,6 +423,39 @@ function RecordDetailInner() {
         {confirmation?.body}
       </ConfirmDialog>
     </div>
+  )
+}
+
+function ProofThumb({
+  url,
+  kind,
+  originalUrl,
+}: {
+  url: string
+  kind: string
+  originalUrl: string | null
+}) {
+  const [broken, setBroken] = useState(false)
+  if (broken) {
+    // A blank slab is indistinguishable from "no proof" — say what happened.
+    return (
+      <span className="proof-thumb flex items-center justify-center px-3 text-center text-xs text-fg-faint">
+        Couldn't load —{' '}
+        <a
+          href={originalUrl ?? url}
+          target="_blank"
+          rel="noreferrer"
+          className="ml-1 text-fg-muted"
+        >
+          open original
+        </a>
+      </span>
+    )
+  }
+  return (
+    <a href={url} target="_blank" rel="noreferrer" className="proof-thumb">
+      <img src={url} alt={`${kind} proof`} onError={() => setBroken(true)} />
+    </a>
   )
 }
 
@@ -498,7 +554,7 @@ function EditPanel({
             value={kills}
             onWheel={blurOnWheel}
             onChange={(e) => setKills(e.target.value)}
-            className={inputClass}
+            className={inputClass + ' max-w-32'}
           />
         </Field>
         <Field label="IGN snapshot">
@@ -516,7 +572,7 @@ function EditPanel({
             value={runBr}
             onWheel={blurOnWheel}
             onChange={(e) => setRunBr(e.target.value)}
-            className={inputClass}
+            className={inputClass + ' max-w-32'}
           />
         </Field>
         <Field label="Patch">

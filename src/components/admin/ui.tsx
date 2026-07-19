@@ -3,7 +3,7 @@ import type { ReactNode, WheelEvent } from 'react'
 /* Shared control register for the CMS: one look for every admin surface. */
 
 const fieldBase =
-  'rounded-[10px] border border-hairline-soft bg-[var(--pill-track)] px-3 py-1.5 text-sm text-fg placeholder:text-fg-faint focus:border-[var(--glass-edge)]'
+  'rounded border border-hairline-soft bg-[var(--pill-track)] px-3 py-1.5 text-sm text-fg placeholder:text-fg-faint focus:border-[var(--glass-edge)]'
 
 export const inputClass = fieldBase + ' w-full'
 
@@ -11,18 +11,18 @@ export const inputClass = fieldBase + ' w-full'
 export const selectClass = fieldBase + ' appearance-auto'
 
 export const buttonClass =
-  'rounded-[10px] bg-[var(--pill-active)] px-3.5 py-1.5 text-[0.8125rem] font-semibold text-fg no-underline transition-colors duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50'
+  'rounded bg-[var(--pill-active)] px-3.5 py-1.5 text-[0.8125rem] font-semibold text-fg no-underline transition-colors duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50'
 
 /** The ONE amber action per view — form submit / dialog confirm. Amber fills
     carry black text in both modes; everything else stays in the grey register. */
 export const commitButtonClass =
-  'rounded-[10px] bg-accent px-3.5 py-1.5 text-[0.8125rem] font-semibold text-black no-underline transition-[filter] duration-200 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50'
+  'rounded bg-accent px-3.5 py-1.5 text-[0.8125rem] font-semibold text-black no-underline transition-[filter] duration-200 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50'
 
 export const subtleButtonClass =
-  'rounded-[10px] border border-hairline-soft px-3.5 py-1.5 text-[0.8125rem] font-semibold text-fg-muted no-underline transition-colors duration-200 hover:text-fg disabled:cursor-not-allowed disabled:opacity-50'
+  'rounded border border-hairline-soft px-3.5 py-1.5 text-[0.8125rem] font-semibold text-fg-muted no-underline transition-colors duration-200 hover:text-fg disabled:cursor-not-allowed disabled:opacity-50'
 
 export const dangerButtonClass =
-  'rounded-[10px] border border-[var(--status-danger-border)] px-3.5 py-1.5 text-[0.8125rem] font-semibold text-status-danger transition-colors duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50'
+  'rounded border border-[var(--status-danger-border)] px-3.5 py-1.5 text-[0.8125rem] font-semibold text-status-danger transition-colors duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50'
 
 /** A scrolling moderator must never edit a kill count by accident. */
 export const blurOnWheel = (e: WheelEvent<HTMLInputElement>) =>
@@ -38,7 +38,7 @@ export function Panel({
   children: ReactNode
 }) {
   return (
-    <section className="glass-thin rounded-[20px] p-5">
+    <section className="glass-thin rounded-[22px] p-5">
       {(title || aside) && (
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
           {title && <h2 className="section-label">{title}</h2>}
@@ -90,18 +90,20 @@ export function StatusChip({
   status: string
   isCurrent: boolean
 }) {
-  const tone =
+  // Exception-first ledger: the norm (verified · current) stays quiet so the
+  // rows that need eyes — pending, retired, superseded — are the ones that
+  // carry color.
+  const [label, tone] =
     status === 'verified'
       ? isCurrent
-        ? 'text-status-verified'
-        : 'text-fg-muted'
+        ? ['current', 'text-fg-muted']
+        : ['superseded', 'text-fg-faint']
       : status === 'retired'
-        ? 'text-status-danger'
-        : 'text-status-warn'
+        ? ['retired', 'text-status-danger']
+        : status === 'pending'
+          ? ['pending', 'text-status-warn']
+          : [status, 'text-status-warn']
   return (
-    <span className={`text-xs tracking-wide uppercase ${tone}`}>
-      {status}
-      {isCurrent ? ' · current' : ''}
-    </span>
+    <span className={`text-xs tracking-wide uppercase ${tone}`}>{label}</span>
   )
 }

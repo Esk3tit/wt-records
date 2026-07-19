@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm'
+import { desc, eq, sql } from 'drizzle-orm'
 import type { Db } from '#/db'
 import { auditLog, profiles } from '#/db/schema'
 
@@ -49,27 +49,35 @@ export async function listAudit(
 ) {
   const limit = opts.limit ?? 50
   const offset = opts.offset ?? 0
-  const rows = await db
-    .select({
-      id: auditLog.id,
-      actorId: auditLog.actorId,
-      actorHandle: profiles.handle,
-      action: auditLog.action,
-      entity: auditLog.entity,
-      entityId: auditLog.entityId,
-      diff: auditLog.diff,
-      createdAt: auditLog.createdAt,
-    })
-    .from(auditLog)
-    .leftJoin(profiles, eq(profiles.id, auditLog.actorId))
-    .where(opts.entity ? eq(auditLog.entity, opts.entity) : undefined)
-    .orderBy(desc(auditLog.id))
-    .limit(limit + 1)
-    .offset(offset)
+  const where = opts.entity ? eq(auditLog.entity, opts.entity) : undefined
+  const [rows, [{ total }]] = await Promise.all([
+    db
+      .select({
+        id: auditLog.id,
+        actorId: auditLog.actorId,
+        actorHandle: profiles.handle,
+        action: auditLog.action,
+        entity: auditLog.entity,
+        entityId: auditLog.entityId,
+        diff: auditLog.diff,
+        createdAt: auditLog.createdAt,
+      })
+      .from(auditLog)
+      .leftJoin(profiles, eq(profiles.id, auditLog.actorId))
+      .where(where)
+      .orderBy(desc(auditLog.id))
+      .limit(limit + 1)
+      .offset(offset),
+    db
+      .select({ total: sql<number>`count(*)::int` })
+      .from(auditLog)
+      .where(where),
+  ])
   return {
     rows: rows
       .slice(0, limit)
       .map((r) => ({ ...r, diff: r.diff as AuditDiffView | null })),
     hasMore: rows.length > limit,
+    total,
   }
 }

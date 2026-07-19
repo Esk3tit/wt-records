@@ -17,6 +17,7 @@ import {
 } from '#/admin/api'
 import { VEHICLE_CLASSES } from '#/lib/vehicle-classes'
 import type { VehicleClass } from '#/lib/vehicle-classes'
+import { displayVehicleName } from '#/lib/vehicle-name'
 
 interface CatalogSearch {
   q?: string
@@ -115,7 +116,9 @@ function CatalogAndRules() {
               <tbody>
                 {loaded.vehicles.rows.map((v) => (
                   <tr key={v.id} className="border-t border-hairline-soft">
-                    <td className="py-2 pr-3 font-medium">{v.name}</td>
+                    <td className="py-2 pr-3 font-medium">
+                      {displayVehicleName(v.name)}
+                    </td>
                     <td className="py-2 pr-3 text-fg-muted">{v.nation}</td>
                     <td className="py-2 pr-3 text-fg-muted">{v.class}</td>
                     <td className="py-2">
@@ -141,14 +144,36 @@ function CatalogAndRules() {
         )}
       </Panel>
 
-      {loaded.rules.map((mode) => (
-        <ModeRulesPanel
-          key={mode.mode}
-          mode={mode}
-          onError={setError}
-          onSaved={() => router.invalidate()}
-        />
-      ))}
+      {loaded.rules.map((mode) =>
+        mode.isLive ? (
+          <ModeRulesPanel
+            key={mode.mode}
+            mode={mode}
+            onError={setError}
+            onSaved={() => router.invalidate()}
+          />
+        ) : (
+          // Not-live modes stay one click away instead of stacking empty chrome.
+          <details key={mode.mode} className="group">
+            <summary className="glass-thin cursor-pointer list-none rounded-[22px] p-5 group-open:rounded-b-none">
+              <span className="section-label">
+                Rules · {mode.mode.toUpperCase()}
+              </span>
+              <span className="ml-3 text-xs text-fg-faint">
+                not live yet — click to configure
+              </span>
+            </summary>
+            <div className="glass-thin rounded-b-[22px] px-5 pb-5">
+              <ModeRulesPanel
+                mode={mode}
+                onError={setError}
+                onSaved={() => router.invalidate()}
+                bare
+              />
+            </div>
+          </details>
+        ),
+      )}
 
       <ErrorNote error={error} />
     </div>
@@ -163,10 +188,12 @@ function ModeRulesPanel({
   mode,
   onError,
   onSaved,
+  bare = false,
 }: {
   mode: ModeRules
   onError: (message: string | null) => void
   onSaved: () => void
+  bare?: boolean
 }) {
   // Every class gets a cell — a deleted (or never-set) class must be
   // configurable again, not vanish from the editor.
@@ -208,15 +235,8 @@ function ModeRulesPanel({
     }
   }
 
-  return (
-    <Panel
-      title={`Rules · ${mode.mode.toUpperCase()}`}
-      aside={
-        !mode.isLive && (
-          <span className="text-xs text-fg-faint">not live yet</span>
-        )
-      }
-    >
+  const body = (
+    <>
       <p className="mb-3 text-xs text-fg-faint">
         Thresholds apply at verification time — existing records are never
         recomputed.
@@ -256,8 +276,10 @@ function ModeRulesPanel({
           {busy ? 'Saving…' : 'Save rules'}
         </button>
       </div>
-    </Panel>
+    </>
   )
+  if (bare) return <div className="pt-2">{body}</div>
+  return <Panel title={`Rules · ${mode.mode.toUpperCase()}`}>{body}</Panel>
 }
 
 function DifficultToggle({

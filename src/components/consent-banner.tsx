@@ -32,7 +32,7 @@ export function ConsentBanner() {
       className="fixed inset-x-0 bottom-0 z-50 border-t border-hairline bg-base/80 backdrop-blur-md"
     >
       <div className="mx-auto flex max-w-4xl flex-col gap-3 px-6 py-4 text-sm text-fg-muted sm:flex-row sm:items-center">
-        <p className="flex-1">
+        <p className="flex-1 max-w-[70ch]">
           We use cookies to understand how WT Records gets used so we can keep
           making it better. To respect your privacy — and the rules — we ask
           before setting them. Accepting helps us improve the site for everyone.

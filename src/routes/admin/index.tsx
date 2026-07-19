@@ -13,12 +13,15 @@ import {
 } from '#/components/admin/ui'
 import { Pager, pageParam } from '#/components/admin/pager'
 import { formatDayYear } from '#/lib/dates'
+import { displayVehicleName } from '#/lib/vehicle-name'
 import { adminRecordList } from '#/admin/api'
 
 interface RecordsSearch {
   status?: 'verified' | 'retired' | 'pending' | 'rejected'
   mode?: string
   q?: string
+  sort?: 'kills'
+  dir?: 'asc'
   page?: number
 }
 
@@ -33,6 +36,8 @@ export const Route = createFileRoute('/admin/')({
     }
     if (typeof s.mode === 'string' && s.mode) out.mode = s.mode
     if (typeof s.q === 'string' && s.q.trim()) out.q = s.q.trim()
+    if (s.sort === 'kills') out.sort = 'kills'
+    if (s.dir === 'asc') out.dir = 'asc'
     out.page = pageParam(s.page)
     return out
   },
@@ -44,6 +49,8 @@ export const Route = createFileRoute('/admin/')({
         status: deps.status,
         mode: deps.mode,
         q: deps.q,
+        sort: deps.sort ?? 'verified',
+        dir: deps.dir ?? 'desc',
         limit: PAGE,
         offset: ((deps.page ?? 1) - 1) * PAGE,
       },
@@ -71,6 +78,18 @@ function RecordsIndex() {
 
   const setSearch = (patch: Partial<RecordsSearch>) =>
     navigate({ search: { ...search, page: undefined, ...patch } })
+
+  const sortCol = search.sort ?? 'verified'
+  const sortDir = search.dir ?? 'desc'
+  const toggleSort = (col: 'kills' | 'verified') => {
+    const nextAsc = sortCol === col && sortDir === 'desc'
+    setSearch({
+      sort: col === 'kills' ? 'kills' : undefined,
+      dir: nextAsc ? 'asc' : undefined,
+    })
+  }
+  const sortMark = (col: 'kills' | 'verified') =>
+    sortCol === col ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''
 
   return (
     <Panel
@@ -142,7 +161,16 @@ function RecordsIndex() {
         {page > 1 ? ` · page ${page}` : ''}
       </p>
       {result.rows.length === 0 ? (
-        <p className="text-sm text-fg-faint">No records match.</p>
+        <p className="text-sm text-fg-faint">
+          No records match.{' '}
+          <button
+            type="button"
+            className="text-fg-muted underline hover:text-fg"
+            onClick={() => navigate({ search: {} })}
+          >
+            Clear filters
+          </button>
+        </p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -151,10 +179,26 @@ function RecordsIndex() {
                 <th className="py-1.5 pr-3 font-normal">Vehicle</th>
                 <th className="py-1.5 pr-3 font-normal">Mode</th>
                 <th className="py-1.5 pr-3 font-normal">Player</th>
-                <th className="py-1.5 pr-3 text-right font-normal">Kills</th>
+                <th className="py-1.5 pr-3 text-right font-normal">
+                  <button
+                    type="button"
+                    className="hover:text-fg"
+                    onClick={() => toggleSort('kills')}
+                  >
+                    Kills{sortMark('kills')}
+                  </button>
+                </th>
                 <th className="py-1.5 pr-3 font-normal">Patch</th>
                 <th className="py-1.5 pr-3 font-normal">Status</th>
-                <th className="py-1.5 pr-3 font-normal">Verified</th>
+                <th className="py-1.5 pr-3 font-normal">
+                  <button
+                    type="button"
+                    className="hover:text-fg"
+                    onClick={() => toggleSort('verified')}
+                  >
+                    Verified{sortMark('verified')}
+                  </button>
+                </th>
                 <th className="py-1.5 font-normal">Verifier</th>
               </tr>
             </thead>
@@ -167,7 +211,7 @@ function RecordsIndex() {
                       params={{ id: String(r.id) }}
                       className="font-medium"
                     >
-                      {r.vehicleName}
+                      {displayVehicleName(r.vehicleName)}
                     </Link>
                   </td>
                   <td className="py-2 pr-3 text-fg-muted">
@@ -185,7 +229,12 @@ function RecordsIndex() {
                     {r.verifiedAt ? formatDayYear(r.verifiedAt) : '—'}
                   </td>
                   <td className="py-2 text-fg-muted">
-                    {r.verifierHandle ?? '—'}
+                    {r.verifierHandle ??
+                      (r.importedFrom === 'sheet' ? (
+                        <span className="text-fg-faint">migrated</span>
+                      ) : (
+                        '—'
+                      ))}
                   </td>
                 </tr>
               ))}
@@ -197,6 +246,8 @@ function RecordsIndex() {
       <Pager
         page={page}
         hasMore={result.hasMore}
+        total={result.total}
+        pageSize={PAGE}
         onPage={(p) => navigate({ search: { ...search, page: p } })}
       />
     </Panel>

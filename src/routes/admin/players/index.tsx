@@ -56,7 +56,16 @@ function PlayersIndex() {
       </div>
 
       {result.rows.length === 0 ? (
-        <p className="text-sm text-fg-faint">No players match.</p>
+        <p className="text-sm text-fg-faint">
+          No players match.{' '}
+          <button
+            type="button"
+            className="text-fg-muted underline hover:text-fg"
+            onClick={() => navigate({ search: {} })}
+          >
+            Clear search
+          </button>
+        </p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -64,8 +73,7 @@ function PlayersIndex() {
               <tr className="text-left text-xs tracking-wide text-fg-faint uppercase">
                 <th className="py-1.5 pr-3 font-normal">Player</th>
                 <th className="py-1.5 pr-3 text-right font-normal">Records</th>
-                <th className="py-1.5 pr-3 text-right font-normal">Aliases</th>
-                <th className="py-1.5 font-normal">Claimed</th>
+                <th className="py-1.5 text-right font-normal">Aliases</th>
               </tr>
             </thead>
             <tbody>
@@ -79,12 +87,14 @@ function PlayersIndex() {
                     >
                       {p.displayName}
                     </Link>
+                    {p.userId && (
+                      <span className="ml-2 rounded bg-tint-strong px-1.5 py-0.5 text-xs tracking-wide text-fg-faint uppercase">
+                        claimed
+                      </span>
+                    )}
                   </td>
                   <td className="py-2 pr-3 text-right">{p.recordCount}</td>
-                  <td className="py-2 pr-3 text-right">{p.aliasCount}</td>
-                  <td className="py-2 text-fg-muted">
-                    {p.userId ? 'yes' : '—'}
-                  </td>
+                  <td className="py-2 text-right">{p.aliasCount}</td>
                 </tr>
               ))}
             </tbody>
@@ -95,6 +105,7 @@ function PlayersIndex() {
       <Pager
         page={page}
         hasMore={result.hasMore}
+        total={result.total}
         prevLabel="← Previous"
         nextLabel="Next →"
         onPage={(p) => navigate({ search: { ...search, page: p } })}

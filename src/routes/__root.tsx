@@ -94,7 +94,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body>
         <NationFlagSprite />
         {children}
-        <ConsentBanner />
+        {!pathname.startsWith('/admin') && <ConsentBanner />}
         {import.meta.env.DEV && (
           <TanStackDevtools
             config={{

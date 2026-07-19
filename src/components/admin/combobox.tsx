@@ -44,6 +44,10 @@ export function AsyncCombobox<T>({
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(-1)
   const seq = useRef(0)
+  // After a pick the input unmounts; land focus on the Change button so a
+  // keyboard flow never drops to <body> mid-entry.
+  const justPicked = useRef(false)
+  const changeRef = useRef<HTMLButtonElement>(null)
 
   // Latest fetcher behind a ref: only typing re-triggers the debounce, never
   // a parent re-render handing down a new callback identity.
@@ -113,17 +117,26 @@ export function AsyncCombobox<T>({
     } else if (hasAction) {
       action!.onAction(q)
     }
+    justPicked.current = true
     close()
   }
+
+  useEffect(() => {
+    if (selectedLabel != null && justPicked.current) {
+      justPicked.current = false
+      changeRef.current?.focus()
+    }
+  }, [selectedLabel])
 
   if (selectedLabel != null) {
     return (
       <div className="flex items-center gap-2">
-        <span className="min-w-0 flex-1 truncate rounded-[10px] border border-hairline-soft bg-[var(--pill-track)] px-3 py-1.5 text-sm">
+        <span className="min-w-0 flex-1 truncate rounded border border-hairline-soft bg-[var(--pill-track)] px-3 py-1.5 text-sm">
           {selectedLabel}
         </span>
         {onClear && (
           <button
+            ref={changeRef}
             type="button"
             onClick={onClear}
             className="text-xs text-fg-muted hover:text-fg"
@@ -211,6 +224,11 @@ export function AsyncCombobox<T>({
           ))}
           {items.length === 0 && !hasAction && (
             <li className="px-3 py-1.5 text-sm text-fg-faint">No matches</li>
+          )}
+          {items.length >= 8 && (
+            <li aria-hidden="true" className="px-3 py-1 text-xs text-fg-faint">
+              Keep typing to narrow the list
+            </li>
           )}
           {hasAction && (
             <li

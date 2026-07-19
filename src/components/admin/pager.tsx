@@ -8,16 +8,22 @@ export function Pager({
   page,
   hasMore,
   onPage,
+  total,
+  pageSize = 50,
   prevLabel = '← Newer',
   nextLabel = 'Older →',
 }: {
   page: number
   hasMore: boolean
   onPage: (page: number | undefined) => void
+  total?: number
+  pageSize?: number
   prevLabel?: string
   nextLabel?: string
 }) {
   if (page <= 1 && !hasMore) return null
+  const totalPages =
+    total != null ? Math.max(1, Math.ceil(total / pageSize)) : null
   return (
     <div className="mt-4 flex items-center justify-between text-sm">
       <button
@@ -28,7 +34,10 @@ export function Pager({
       >
         {prevLabel}
       </button>
-      <span className="text-fg-faint">Page {page}</span>
+      <span className="text-fg-faint tabular-nums">
+        Page {page}
+        {totalPages != null ? ` of ${totalPages}` : ''}
+      </span>
       <button
         type="button"
         disabled={!hasMore}

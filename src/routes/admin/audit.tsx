@@ -113,6 +113,7 @@ function AuditView() {
       <Pager
         page={page}
         hasMore={result.hasMore}
+        total={result.total}
         onPage={(p) => navigate({ search: { ...search, page: p } })}
       />
     </Panel>

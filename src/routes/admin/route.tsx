@@ -62,6 +62,12 @@ function AdminShell() {
 
   return (
     <div className="mt-6">
+      <a
+        href="#admin-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:rounded focus:bg-[var(--pill-active)] focus:px-3 focus:py-1.5 focus:text-sm"
+      >
+        Skip to content
+      </a>
       <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2">
         <h1 className="text-xl font-semibold">Moderator CMS</h1>
         <nav
@@ -95,7 +101,9 @@ function AdminShell() {
           </form>
         </div>
       </div>
-      <Outlet />
+      <div id="admin-content">
+        <Outlet />
+      </div>
     </div>
   )
 }

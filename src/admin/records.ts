@@ -795,6 +795,8 @@ export interface AdminRecordFilters {
   mode?: string
   status?: RecordStatusFilter
   q?: string
+  sort?: 'verified' | 'kills'
+  dir?: 'asc' | 'desc'
   limit?: number
   offset?: number
 }
@@ -816,6 +818,19 @@ export async function listAdminRecords(db: Db, filters: AdminRecordFilters) {
     )
   }
   const where = conds.length ? and(...conds) : undefined
+  const dir = filters.dir ?? 'desc'
+  const order =
+    filters.sort === 'kills'
+      ? [
+          dir === 'asc' ? asc(records.kills) : desc(records.kills),
+          desc(records.id),
+        ]
+      : [
+          dir === 'asc'
+            ? sql`${records.verifiedAt} asc nulls first`
+            : sql`${records.verifiedAt} desc nulls last`,
+          desc(records.id),
+        ]
   const [rows, [{ total }]] = await Promise.all([
     db
       .select({
@@ -827,6 +842,7 @@ export async function listAdminRecords(db: Db, filters: AdminRecordFilters) {
         patch: records.patch,
         runBr: records.runBr,
         verifiedAt: records.verifiedAt,
+        importedFrom: records.importedFrom,
         vehicleName: vehicles.name,
         vehicleSlug: vehicles.slug,
         playerName: players.displayName,
@@ -839,7 +855,7 @@ export async function listAdminRecords(db: Db, filters: AdminRecordFilters) {
       .innerJoin(players, eq(players.id, records.playerId))
       .leftJoin(profiles, eq(profiles.id, records.verifiedById))
       .where(where)
-      .orderBy(sql`${records.verifiedAt} desc nulls last`, desc(records.id))
+      .orderBy(...order)
       .limit(limit + 1)
       .offset(offset),
     db

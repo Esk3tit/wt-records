@@ -27,6 +27,7 @@ import {
 import type { ProofDraftState } from '#/components/admin/proof-uploader'
 import { formatBr } from '#/lib/format'
 import { formatDayYear } from '#/lib/dates'
+import { displayVehicleName } from '#/lib/vehicle-name'
 import {
   adminAddPatch,
   adminEntryContext,
@@ -57,6 +58,7 @@ type PlayerPick =
 interface SaveSnapshot {
   mode: string
   vehicleId: number
+  vehicleName: string
   player: PlayerPick
   ign: string
   kills: number
@@ -169,6 +171,7 @@ function NewRecord() {
     const snapshot: SaveSnapshot = {
       mode,
       vehicleId: vehicle.vehicleId,
+      vehicleName: vehicle.vehicleName,
       player,
       ign: ign.trim(),
       kills: killCount,
@@ -216,6 +219,7 @@ function NewRecord() {
       navigate({
         to: '/admin/records/$id',
         params: { id: String(result.recordId) },
+        search: { saved: true },
       })
     } catch (e) {
       setError(errorMessage(e))
@@ -261,7 +265,7 @@ function NewRecord() {
               itemKey={(v) => v.slug}
               renderItem={(v) => (
                 <span className="flex items-baseline gap-2">
-                  <span>{v.name}</span>
+                  <span>{displayVehicleName(v.name)}</span>
                   <span className="text-xs text-fg-faint">
                     {v.nation}
                     {v.br != null ? ` · BR ${formatBr(v.br)}` : ''}
@@ -273,7 +277,9 @@ function NewRecord() {
                 setVehicle(null)
                 setRunBr('')
               }}
-              selectedLabel={vehicle ? vehicle.vehicleName : null}
+              selectedLabel={
+                vehicle ? displayVehicleName(vehicle.vehicleName) : null
+              }
             />
           </Field>
 
@@ -443,6 +449,13 @@ function NewRecord() {
       >
         {pending && (
           <>
+            <p className="font-semibold text-fg">
+              {pending.form.kills} kills ·{' '}
+              {displayVehicleName(pending.form.vehicleName)} ·{' '}
+              {pending.form.player.displayName}
+              {pending.form.player.kind === 'new' ? ' (new player)' : ''} ·{' '}
+              {pending.form.patch}
+            </p>
             <p>
               {pending.preview.wouldBeCurrent
                 ? pending.preview.demoted
