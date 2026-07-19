@@ -115,8 +115,10 @@ function NewRecord() {
     )
   // In-app navigation goes through the designed dialog; only the hard
   // unload keeps the native prompt (that one can't be styled).
+  // The post-save navigate fires before the blocker re-registers, so the
+  // saved check must read the ref at block time, not at render time.
   const blocker = useBlocker({
-    shouldBlockFn: () => true,
+    shouldBlockFn: () => !savedRef.current,
     disabled: !isDirty,
     enableBeforeUnload: () => isDirty,
     withResolver: true,
@@ -328,6 +330,10 @@ function NewRecord() {
               onClear={() => {
                 playerSeq.current++
                 setPlayer(null)
+                // The IGN belonged to the cleared player; a manual edit must
+                // not survive onto whoever gets picked next.
+                setIgn('')
+                ignTouched.current = false
               }}
               selectedLabel={
                 player
