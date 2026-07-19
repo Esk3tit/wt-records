@@ -159,8 +159,11 @@ function CatalogAndRules() {
               <span className="section-label">
                 Rules · {mode.mode.toUpperCase()}
               </span>
-              <span className="ml-3 text-xs text-fg-faint">
+              <span className="ml-3 text-xs text-fg-faint group-open:hidden">
                 not live yet — click to configure
+              </span>
+              <span className="ml-3 hidden text-xs text-fg-faint group-open:inline">
+                not live yet
               </span>
             </summary>
             <div className="glass-thin rounded-b-[22px] px-5 pb-5">

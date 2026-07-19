@@ -40,7 +40,7 @@ export function ConfirmDialog({
         // No escape hatch mid-request: the write may already be committing.
         if (!busy) onCancel()
       }}
-      className="glass-thick m-auto w-full max-w-md rounded-[20px] p-6 text-fg backdrop:bg-black/50"
+      className="glass-thick m-auto w-full max-w-md rounded-[22px] p-6 text-fg backdrop:bg-black/70"
     >
       <h2 id={titleId} className="text-lg font-semibold">
         {title}

@@ -81,11 +81,11 @@ function AdminShell() {
               activeOptions={{ exact: tab.exact, includeSearch: false }}
               activeProps={{
                 className:
-                  'rounded-[10px] px-3.5 py-1.5 text-[0.8125rem] font-semibold bg-[var(--pill-active)] text-fg no-underline',
+                  'rounded-[10px] px-3.5 py-1.5 text-[0.8125rem] font-semibold whitespace-nowrap bg-[var(--pill-active)] text-fg no-underline',
               }}
               inactiveProps={{
                 className:
-                  'rounded-[10px] px-3.5 py-1.5 text-[0.8125rem] font-semibold text-fg-muted hover:text-fg no-underline',
+                  'rounded-[10px] px-3.5 py-1.5 text-[0.8125rem] font-semibold whitespace-nowrap text-fg-muted hover:text-fg no-underline',
               }}
             >
               {tab.label}

@@ -3,6 +3,7 @@ import {
   createFileRoute,
   useLoaderData,
   useNavigate,
+  useRouterState,
 } from '@tanstack/react-router'
 import {
   Panel,
@@ -73,6 +74,7 @@ function RecordsIndex() {
   const search = Route.useSearch()
   const { modes } = useLoaderData({ from: '__root__' })
   const navigate = useNavigate({ from: Route.fullPath })
+  const pending = useRouterState({ select: (st) => st.status === 'pending' })
   if (!result) return null
   const page = search.page ?? 1
 
@@ -89,7 +91,13 @@ function RecordsIndex() {
     })
   }
   const sortMark = (col: 'kills' | 'verified') =>
-    sortCol === col ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''
+    sortCol === col ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ' ↕'
+  const ariaSort = (col: 'kills' | 'verified') =>
+    sortCol === col
+      ? sortDir === 'desc'
+        ? ('descending' as const)
+        : ('ascending' as const)
+      : undefined
 
   return (
     <Panel
@@ -145,7 +153,8 @@ function RecordsIndex() {
           key={search.q ?? ''}
           type="search"
           defaultValue={search.q ?? ''}
-          placeholder="Vehicle, player or IGN — press Enter"
+          placeholder="Vehicle, player, IGN…"
+          title="Press Enter to search"
           className={inputClass + ' max-w-64'}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
@@ -172,14 +181,29 @@ function RecordsIndex() {
           </button>
         </p>
       ) : (
-        <div className="overflow-x-auto">
+        <div
+          className={
+            'overflow-x-auto transition-opacity' +
+            (pending ? ' opacity-50' : '')
+          }
+        >
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs tracking-wide text-fg-faint uppercase">
-                <th className="py-1.5 pr-3 font-normal">Vehicle</th>
-                <th className="py-1.5 pr-3 font-normal">Mode</th>
-                <th className="py-1.5 pr-3 font-normal">Player</th>
-                <th className="py-1.5 pr-3 text-right font-normal">
+                <th scope="col" className="py-1.5 pr-3 font-normal">
+                  Vehicle
+                </th>
+                <th scope="col" className="py-1.5 pr-3 font-normal">
+                  Mode
+                </th>
+                <th scope="col" className="py-1.5 pr-3 font-normal">
+                  Player
+                </th>
+                <th
+                  scope="col"
+                  aria-sort={ariaSort('kills')}
+                  className="py-1.5 pr-3 text-right font-normal"
+                >
                   <button
                     type="button"
                     className="hover:text-fg"
@@ -188,9 +212,20 @@ function RecordsIndex() {
                     Kills{sortMark('kills')}
                   </button>
                 </th>
-                <th className="py-1.5 pr-3 font-normal">Patch</th>
-                <th className="py-1.5 pr-3 font-normal">Status</th>
-                <th className="py-1.5 pr-3 font-normal">
+                <th
+                  scope="col"
+                  className="hidden py-1.5 pr-3 font-normal md:table-cell"
+                >
+                  Patch
+                </th>
+                <th scope="col" className="py-1.5 pr-3 font-normal">
+                  Status
+                </th>
+                <th
+                  scope="col"
+                  aria-sort={ariaSort('verified')}
+                  className="py-1.5 pr-3 font-normal"
+                >
                   <button
                     type="button"
                     className="hover:text-fg"
@@ -199,7 +234,12 @@ function RecordsIndex() {
                     Verified{sortMark('verified')}
                   </button>
                 </th>
-                <th className="py-1.5 font-normal">Verifier</th>
+                <th
+                  scope="col"
+                  className="hidden py-1.5 font-normal md:table-cell"
+                >
+                  Verifier
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -221,14 +261,16 @@ function RecordsIndex() {
                   <td className="py-2 pr-3 text-right font-semibold">
                     {r.kills}
                   </td>
-                  <td className="py-2 pr-3 text-fg-muted">{r.patch}</td>
+                  <td className="hidden py-2 pr-3 text-fg-muted md:table-cell">
+                    {r.patch}
+                  </td>
                   <td className="py-2 pr-3">
                     <StatusChip status={r.status} isCurrent={r.isCurrent} />
                   </td>
                   <td className="py-2 pr-3 text-fg-muted">
                     {r.verifiedAt ? formatDayYear(r.verifiedAt) : '—'}
                   </td>
-                  <td className="py-2 text-fg-muted">
+                  <td className="hidden py-2 text-fg-muted md:table-cell">
                     {r.verifierHandle ??
                       (r.importedFrom === 'sheet' ? (
                         <span className="text-fg-faint">migrated</span>

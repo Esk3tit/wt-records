@@ -40,6 +40,13 @@ import {
 } from '#/admin/api'
 
 export const Route = createFileRoute('/admin/records/new')({
+  // "Add another" seeds the batch-stable fields from the previous save.
+  validateSearch: (s: Record<string, unknown>): { m?: string; p?: string } => {
+    const out: { m?: string; p?: string } = {}
+    if (typeof s.m === 'string' && s.m) out.m = s.m
+    if (typeof s.p === 'string' && s.p) out.p = s.p
+    return out
+  },
   loader: async ({ context }) => {
     if (context.gate.state !== 'moderator') return null
     return { patches: await adminPatchOptions() }
@@ -69,10 +76,11 @@ interface SaveSnapshot {
 
 function NewRecord() {
   const loaded = Route.useLoaderData()
+  const seed = Route.useSearch()
   const { modes } = useLoaderData({ from: '__root__' })
   const navigate = useNavigate()
 
-  const [mode, setMode] = useState('grb')
+  const [mode, setMode] = useState(seed.m ?? 'grb')
   const [vehicle, setVehicle] = useState<VehicleContext | null>(null)
   const [player, setPlayer] = useState<PlayerPick | null>(null)
   const [ign, setIgn] = useState('')
@@ -80,7 +88,9 @@ function NewRecord() {
   const ignTouched = useRef(false)
   const [kills, setKills] = useState('')
   const [patchList, setPatchList] = useState(loaded?.patches ?? [])
-  const [patch, setPatch] = useState(loaded?.patches[0]?.version ?? '')
+  const [patch, setPatch] = useState(
+    seed.p ?? loaded?.patches[0]?.version ?? '',
+  )
   const [runBr, setRunBr] = useState('')
   const [proofs, setProofs] = useState<ProofDraftState>(emptyProofDrafts)
   const [addingPatch, setAddingPatch] = useState(false)
@@ -103,10 +113,13 @@ function NewRecord() {
       proofs.files.length > 0 ||
       proofs.videoUrl.trim(),
     )
-  useBlocker({
-    shouldBlockFn: () => !window.confirm('Discard this unsaved record entry?'),
+  // In-app navigation goes through the designed dialog; only the hard
+  // unload keeps the native prompt (that one can't be styled).
+  const blocker = useBlocker({
+    shouldBlockFn: () => true,
     disabled: !isDirty,
     enableBeforeUnload: () => isDirty,
+    withResolver: true,
   })
 
   const lookupVehicles = useCallback(
@@ -474,6 +487,16 @@ function NewRecord() {
             )}
           </>
         )}
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={blocker.status === 'blocked'}
+        title="Discard this entry?"
+        confirmLabel="Discard"
+        onConfirm={() => blocker.proceed?.()}
+        onCancel={() => blocker.reset?.()}
+      >
+        <p>The record you're entering hasn't been saved.</p>
       </ConfirmDialog>
     </div>
   )

@@ -1,4 +1,8 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  useNavigate,
+  useRouterState,
+} from '@tanstack/react-router'
 import { Panel, selectClass } from '#/components/admin/ui'
 import { Pager, pageParam } from '#/components/admin/pager'
 import { formatDayTime } from '#/lib/dates'
@@ -44,6 +48,7 @@ function AuditView() {
   const result = Route.useLoaderData()
   const search = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
+  const pending = useRouterState({ select: (st) => st.status === 'pending' })
   if (!result) return null
   const page = search.page ?? 1
 
@@ -78,7 +83,11 @@ function AuditView() {
       {result.rows.length === 0 ? (
         <p className="text-sm text-fg-faint">Nothing audited yet.</p>
       ) : (
-        <ul className="space-y-2">
+        <ul
+          className={
+            'space-y-2 transition-opacity' + (pending ? ' opacity-50' : '')
+          }
+        >
           {result.rows.map((row) => (
             <li
               key={row.id}

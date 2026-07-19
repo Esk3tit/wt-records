@@ -212,7 +212,7 @@ export function AsyncCombobox<T>({
               role="option"
               aria-selected={i === active}
               className={
-                'cursor-pointer rounded-[10px] px-3 py-1.5 text-sm ' +
+                'cursor-pointer rounded px-3 py-1.5 text-sm ' +
                 (i === active ? 'bg-[var(--pill-active)]' : 'hover:bg-white/5')
               }
               onMouseDown={(e) => e.preventDefault()}
@@ -237,7 +237,7 @@ export function AsyncCombobox<T>({
               role="option"
               aria-selected={active === items.length}
               className={
-                'cursor-pointer rounded-[10px] px-3 py-1.5 text-sm text-fg-muted ' +
+                'cursor-pointer rounded px-3 py-1.5 text-sm text-fg-muted ' +
                 (items.length > 0 ? 'border-t border-hairline-soft ' : '') +
                 (active === items.length
                   ? 'bg-[var(--pill-active)] text-fg'

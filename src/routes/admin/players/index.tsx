@@ -1,4 +1,9 @@
-import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
+import {
+  Link,
+  createFileRoute,
+  useNavigate,
+  useRouterState,
+} from '@tanstack/react-router'
 import { Panel, inputClass } from '#/components/admin/ui'
 import { Pager, pageParam } from '#/components/admin/pager'
 import { adminPlayerList } from '#/admin/api'
@@ -29,6 +34,7 @@ function PlayersIndex() {
   const result = Route.useLoaderData()
   const search = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
+  const pending = useRouterState({ select: (st) => st.status === 'pending' })
   if (!result) return null
   const page = search.page ?? 1
 
@@ -43,7 +49,8 @@ function PlayersIndex() {
           key={search.q ?? ''}
           type="search"
           defaultValue={search.q ?? ''}
-          placeholder="Display name — press Enter"
+          placeholder="Display name…"
+          title="Press Enter to search"
           className={inputClass + ' max-w-64'}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
@@ -67,7 +74,12 @@ function PlayersIndex() {
           </button>
         </p>
       ) : (
-        <div className="overflow-x-auto">
+        <div
+          className={
+            'overflow-x-auto transition-opacity' +
+            (pending ? ' opacity-50' : '')
+          }
+        >
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs tracking-wide text-fg-faint uppercase">

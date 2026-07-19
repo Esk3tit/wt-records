@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Link,
   createFileRoute,
   notFound,
+  useNavigate,
   useRouter,
 } from '@tanstack/react-router'
 import {
@@ -77,7 +78,13 @@ function RecordDetail() {
 function RecordDetailInner() {
   const loaded = Route.useLoaderData()
   const { saved } = Route.useSearch()
+  const navigate = useNavigate({ from: Route.fullPath })
   const router = useRouter()
+  // Show the banner once, then strip ?saved so refresh/bookmark stays honest.
+  const [showSaved] = useState(saved ?? false)
+  useEffect(() => {
+    if (saved) void navigate({ search: {}, replace: true })
+  }, [])
   const [error, setError] = useState<string | null>(null)
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
   const [busy, setBusy] = useState(false)
@@ -129,17 +136,24 @@ function RecordDetailInner() {
           ← Records
         </Link>
       </p>
-      {saved && (
+      {showSaved && (
         <p
           role="status"
-          className="rounded border border-hairline-soft px-3 py-2 text-sm"
+          className="flex flex-wrap items-center gap-x-2 rounded border border-hairline-soft px-3 py-2 text-sm"
         >
           <span className="font-semibold text-accent-text">Record saved</span>
           <span className="text-fg-muted">
             {record.isCurrent
-              ? ' — now the current title.'
-              : ' — landed in history below the current record.'}
+              ? '— now the current title.'
+              : '— landed in history below the current record.'}
           </span>
+          <Link
+            to="/admin/records/new"
+            search={{ m: record.mode, p: record.patch }}
+            className="ml-auto text-fg-muted underline hover:text-fg"
+          >
+            Add another →
+          </Link>
         </p>
       )}
       <Panel
