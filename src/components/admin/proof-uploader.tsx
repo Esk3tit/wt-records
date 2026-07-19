@@ -110,7 +110,7 @@ export function ProofUploader({
       </div>
 
       {pickError && (
-        <p role="alert" className="text-xs text-amber-300">
+        <p role="alert" className="text-xs text-status-warn">
           {pickError}
         </p>
       )}

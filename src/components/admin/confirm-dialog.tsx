@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef } from 'react'
 import type { ReactNode } from 'react'
-import { buttonClass, subtleButtonClass } from '#/components/admin/ui'
+import { commitButtonClass, subtleButtonClass } from '#/components/admin/ui'
 
 /* The auto-title confirm modal: every consequential write states its outcome
    ("saving this demotes X's 14-kill record") before anything is committed. */
@@ -57,12 +57,15 @@ export function ConfirmDialog({
         </button>
         <button
           type="button"
-          className={buttonClass}
+          className={commitButtonClass}
           disabled={busy}
           onClick={onConfirm}
         >
           {busy ? 'Saving…' : confirmLabel}
         </button>
+        <span role="status" aria-live="polite" className="sr-only">
+          {busy ? 'Saving' : ''}
+        </span>
       </div>
     </dialog>
   )

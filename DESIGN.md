@@ -207,6 +207,7 @@ The identity layer. A small, curated, fixed set of battle scenes, each processed
 - **Shape:** small radius (4px) — controls stay compact instruments; the 22–26px radii belong to glass panels.
 - **Primary:** Medal Amber fill, black text in both modes (6px 12px padding). Hover dims slightly; focus ring visible in the mode's accent form.
 - **Ghost:** transparent with the mode's hairline border; muted ink brightening to full ink on hover.
+- **Back of house (/admin):** the amber primary marks only the single commit action per view (form submit, dialog confirm); every other admin control stays in the ghost/grey register. Status ink uses the semantic tokens (verified/warn/danger) with day-safe forms, mirroring the accent's Deep pattern.
 - **Glass pill** (live-accepted at frost .12 / float .2): section-nav capsule that is a small liquid-glass pane in its own right — 999px radius, full ink at weight 550, 12% white-alpha fill with blur 36/saturate 180%, specular edges, a subtle 3px anchor shadow rising 2px on hover. Important navigation is never muted into the background.
 
 ### Chips

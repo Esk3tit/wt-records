@@ -13,14 +13,16 @@ export interface ComboboxProps<T> {
   renderItem: (item: T) => ReactNode
   onSelect: (item: T) => void
   onClear?: () => void
-  /** Rendered under the list, e.g. an inline-create row. */
-  footer?: (q: string, close: () => void) => ReactNode
+  /** An always-available final option (e.g. inline create) — part of the
+      keyboard cycle, unlike decoration. */
+  action?: { label: (q: string) => ReactNode; onAction: (q: string) => void }
   selectedLabel?: string | null
   /** Discards the query, open results and in-flight fetches when it changes —
       pass the value the fetcher closes over (e.g. the mode). */
   resetKey?: unknown
   /** Surfaces a failed lookup (the list closes either way). */
   onError?: (error: unknown) => void
+  autoFocus?: boolean
 }
 
 export function AsyncCombobox<T>({
@@ -31,10 +33,11 @@ export function AsyncCombobox<T>({
   renderItem,
   onSelect,
   onClear,
-  footer,
+  action,
   selectedLabel,
   resetKey,
   onError,
+  autoFocus,
 }: ComboboxProps<T>) {
   const [value, setValue] = useState('')
   const [items, setItems] = useState<T[]>([])
@@ -75,7 +78,7 @@ export function AsyncCombobox<T>({
           if (seq.current !== requestId) return
           setItems(rows)
           setOpen(true)
-          setActive(rows.length > 0 ? 0 : -1)
+          setActive(rows.length > 0 ? 0 : action ? 0 : -1)
         },
         (error: unknown) => {
           // A failed fetch must not read as "No matches" — close the list.
@@ -90,14 +93,26 @@ export function AsyncCombobox<T>({
     return () => clearTimeout(timer)
   }, [value])
 
+  const q = value.trim()
+  const hasAction = Boolean(action && q)
+  // The action row sits at index items.length in one keyboard cycle.
+  const optionCount = items.length + (hasAction ? 1 : 0)
+
   const close = () => {
     setOpen(false)
     setValue('')
     setItems([])
+    setActive(-1)
   }
 
-  const pick = (item: T) => {
-    onSelect(item)
+  const pick = (index: number) => {
+    if (index < items.length) {
+      const item = items[index]
+      if (!item) return
+      onSelect(item)
+    } else if (hasAction) {
+      action!.onAction(q)
+    }
     close()
   }
 
@@ -133,6 +148,7 @@ export function AsyncCombobox<T>({
           open && active >= 0 ? `${id}-opt-${active}` : undefined
         }
         autoComplete="off"
+        autoFocus={autoFocus}
         value={value}
         placeholder={placeholder}
         className={inputClass}
@@ -141,13 +157,13 @@ export function AsyncCombobox<T>({
           if (!open) return
           if (e.key === 'ArrowDown') {
             e.preventDefault()
-            setActive((a) => Math.min(a + 1, items.length - 1))
+            setActive((a) => Math.min(a + 1, optionCount - 1))
           } else if (e.key === 'ArrowUp') {
             e.preventDefault()
             setActive((a) => Math.max(a - 1, 0))
-          } else if (e.key === 'Enter' && active >= 0 && items[active]) {
+          } else if (e.key === 'Enter' && active >= 0) {
             e.preventDefault()
-            pick(items[active])
+            pick(active)
           } else if (e.key === 'Escape') {
             // Invalidate any in-flight lookup so it can't reopen the list.
             seq.current++
@@ -157,10 +173,17 @@ export function AsyncCombobox<T>({
         onBlur={() =>
           setTimeout(() => {
             seq.current++
-            setOpen(false)
+            // Unpicked text is stale the moment focus leaves.
+            close()
           }, 120)
         }
       />
+      {/* Result count for screen readers — visual users see the list. */}
+      <span role="status" aria-live="polite" className="sr-only">
+        {open
+          ? `${items.length} result${items.length === 1 ? '' : 's'}${hasAction ? ', plus create option' : ''}`
+          : ''}
+      </span>
       {open && (
         <ul
           id={`${id}-list`}
@@ -180,16 +203,35 @@ export function AsyncCombobox<T>({
                 (i === active ? 'bg-[var(--pill-active)]' : 'hover:bg-white/5')
               }
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => pick(item)}
+              onClick={() => pick(i)}
               onMouseEnter={() => setActive(i)}
             >
               {renderItem(item)}
             </li>
           ))}
-          {items.length === 0 && (
+          {items.length === 0 && !hasAction && (
             <li className="px-3 py-1.5 text-sm text-fg-faint">No matches</li>
           )}
-          {footer?.(value.trim(), close)}
+          {hasAction && (
+            <li
+              key="__action"
+              id={`${id}-opt-${items.length}`}
+              role="option"
+              aria-selected={active === items.length}
+              className={
+                'cursor-pointer rounded-[10px] px-3 py-1.5 text-sm text-fg-muted ' +
+                (items.length > 0 ? 'border-t border-hairline-soft ' : '') +
+                (active === items.length
+                  ? 'bg-[var(--pill-active)] text-fg'
+                  : 'hover:bg-white/5')
+              }
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => pick(items.length)}
+              onMouseEnter={() => setActive(items.length)}
+            >
+              {action!.label(q)}
+            </li>
+          )}
         </ul>
       )}
     </div>

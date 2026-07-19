@@ -10,7 +10,9 @@ import {
   Field,
   Panel,
   StatusChip,
+  blurOnWheel,
   buttonClass,
+  commitButtonClass,
   dangerButtonClass,
   errorMessage,
   inputClass,
@@ -164,7 +166,7 @@ function RecordDetailInner() {
                         : 'The title does not change.'}
                 </p>
                 {preview.belowThreshold && (
-                  <p className="text-amber-300">
+                  <p className="text-status-warn">
                     The new kill count is below the qualifying threshold
                     {preview.threshold != null
                       ? ` of ${preview.threshold}`
@@ -282,7 +284,7 @@ function RecordDetailInner() {
           {record.status === 'retired' && (
             <button
               type="button"
-              className={buttonClass}
+              className={commitButtonClass}
               onClick={() =>
                 previewThen({ kind: 'reverify', recordId }, (preview) => ({
                   title: 'Re-verify this record?',
@@ -309,35 +311,53 @@ function RecordDetailInner() {
 
       <Panel title="Proof">
         {proofs.length === 0 ? (
-          <p className="text-sm text-amber-300">
+          <p className="text-sm text-status-warn">
             No proof attached — this record needs at least one.
           </p>
         ) : (
-          <ul className="space-y-1 text-sm">
+          <ul className="flex flex-wrap items-start gap-4">
             {proofs.map((p) => (
-              <li key={p.id} className="flex items-center gap-3">
-                <span className="text-xs tracking-wide text-fg-faint uppercase">
-                  {p.kind.replace('_', ' ')}
-                </span>
-                {p.url ? (
-                  <a href={p.url} target="_blank" rel="noreferrer">
-                    {p.storagePath ?? p.url}
-                  </a>
-                ) : (
-                  <span className="text-fg-muted">
-                    {p.storagePath ?? p.originalUrl}
-                  </span>
-                )}
-                {p.storagePath && p.originalUrl && (
+              <li key={p.id} className="max-w-56 text-sm">
+                {p.kind !== 'video' && p.url ? (
+                  // The evidence IS the page's content — show it, don't cite it.
                   <a
-                    href={p.originalUrl}
+                    href={p.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-xs text-fg-faint"
+                    className="proof-thumb"
                   >
-                    original
+                    <img
+                      src={p.url}
+                      alt={`${p.kind.replace('_', ' ')} proof`}
+                    />
+                  </a>
+                ) : (
+                  <a
+                    href={p.url ?? p.originalUrl ?? undefined}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="break-all"
+                  >
+                    {p.kind === 'video'
+                      ? p.originalUrl
+                      : (p.storagePath ?? p.url)}
                   </a>
                 )}
+                <span className="mt-1 flex items-center gap-2">
+                  <span className="text-xs tracking-wide text-fg-faint uppercase">
+                    {p.kind.replace('_', ' ')}
+                  </span>
+                  {p.storagePath && p.originalUrl && (
+                    <a
+                      href={p.originalUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-fg-faint"
+                    >
+                      original
+                    </a>
+                  )}
+                </span>
               </li>
             ))}
           </ul>
@@ -476,6 +496,7 @@ function EditPanel({
             type="number"
             min={1}
             value={kills}
+            onWheel={blurOnWheel}
             onChange={(e) => setKills(e.target.value)}
             className={inputClass}
           />
@@ -493,6 +514,7 @@ function EditPanel({
             type="number"
             step="0.1"
             value={runBr}
+            onWheel={blurOnWheel}
             onChange={(e) => setRunBr(e.target.value)}
             className={inputClass}
           />
@@ -501,7 +523,7 @@ function EditPanel({
           <select
             value={patch}
             onChange={(e) => setPatch(e.target.value)}
-            className={selectClass}
+            className={selectClass + ' w-full'}
           >
             {patches.map((p) => (
               <option key={p.version} value={p.version}>
@@ -532,7 +554,7 @@ function EditPanel({
       </div>
       <ErrorNote error={error} />
       <div className="mt-4 flex justify-end">
-        <button type="button" className={buttonClass} onClick={save}>
+        <button type="button" className={commitButtonClass} onClick={save}>
           Save changes
         </button>
       </div>

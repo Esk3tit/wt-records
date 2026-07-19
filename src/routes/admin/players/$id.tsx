@@ -180,23 +180,28 @@ function RenameForm({
 }) {
   const [name, setName] = useState(current)
   return (
-    <div className="flex items-end gap-2">
-      <Field label="Display name" hint="The old name auto-drops to an alias.">
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className={inputClass + ' w-72'}
-        />
-      </Field>
-      <button
-        type="button"
-        className={buttonClass}
-        disabled={!name.trim() || name.trim() === current}
-        onClick={() => onRename(name.trim())}
-      >
-        Rename
-      </button>
+    <div>
+      <div className="flex items-end gap-2">
+        <Field label="Display name">
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className={inputClass + ' w-72'}
+          />
+        </Field>
+        <button
+          type="button"
+          className={buttonClass}
+          disabled={!name.trim() || name.trim() === current}
+          onClick={() => onRename(name.trim())}
+        >
+          Rename
+        </button>
+      </div>
+      <p className="mt-1 text-xs text-fg-faint">
+        The old name auto-drops to an alias.
+      </p>
     </div>
   )
 }

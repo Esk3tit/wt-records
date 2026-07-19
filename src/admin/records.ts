@@ -815,32 +815,41 @@ export async function listAdminRecords(db: Db, filters: AdminRecordFilters) {
       ),
     )
   }
-  const rows = await db
-    .select({
-      id: records.id,
-      mode: records.mode,
-      kills: records.kills,
-      status: records.status,
-      isCurrent: records.isCurrent,
-      patch: records.patch,
-      runBr: records.runBr,
-      verifiedAt: records.verifiedAt,
-      vehicleName: vehicles.name,
-      vehicleSlug: vehicles.slug,
-      playerName: players.displayName,
-      playerSlug: players.slug,
-      ignSnapshot: records.ignSnapshot,
-      verifierHandle: profiles.handle,
-    })
-    .from(records)
-    .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
-    .innerJoin(players, eq(players.id, records.playerId))
-    .leftJoin(profiles, eq(profiles.id, records.verifiedById))
-    .where(conds.length ? and(...conds) : undefined)
-    .orderBy(sql`${records.verifiedAt} desc nulls last`, desc(records.id))
-    .limit(limit + 1)
-    .offset(offset)
-  return { rows: rows.slice(0, limit), hasMore: rows.length > limit }
+  const where = conds.length ? and(...conds) : undefined
+  const [rows, [{ total }]] = await Promise.all([
+    db
+      .select({
+        id: records.id,
+        mode: records.mode,
+        kills: records.kills,
+        status: records.status,
+        isCurrent: records.isCurrent,
+        patch: records.patch,
+        runBr: records.runBr,
+        verifiedAt: records.verifiedAt,
+        vehicleName: vehicles.name,
+        vehicleSlug: vehicles.slug,
+        playerName: players.displayName,
+        playerSlug: players.slug,
+        ignSnapshot: records.ignSnapshot,
+        verifierHandle: profiles.handle,
+      })
+      .from(records)
+      .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
+      .innerJoin(players, eq(players.id, records.playerId))
+      .leftJoin(profiles, eq(profiles.id, records.verifiedById))
+      .where(where)
+      .orderBy(sql`${records.verifiedAt} desc nulls last`, desc(records.id))
+      .limit(limit + 1)
+      .offset(offset),
+    db
+      .select({ total: sql<number>`count(*)::int` })
+      .from(records)
+      .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
+      .innerJoin(players, eq(players.id, records.playerId))
+      .where(where),
+  ])
+  return { rows: rows.slice(0, limit), hasMore: rows.length > limit, total }
 }
 
 export async function getAdminRecord(db: Db, recordId: number) {

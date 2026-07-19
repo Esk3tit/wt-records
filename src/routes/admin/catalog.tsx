@@ -4,6 +4,7 @@ import {
   ErrorNote,
   Field,
   Panel,
+  blurOnWheel,
   buttonClass,
   errorMessage,
   inputClass,
@@ -227,6 +228,7 @@ function ModeRulesPanel({
               type="number"
               min={1}
               value={cells[cls] ?? ''}
+              onWheel={blurOnWheel}
               onChange={(e) =>
                 setCells((c) => ({ ...c, [cls]: e.target.value }))
               }
@@ -240,6 +242,7 @@ function ModeRulesPanel({
             min={1}
             value={difficult}
             placeholder="unset"
+            onWheel={blurOnWheel}
             onChange={(e) => setDifficult(e.target.value)}
             className={inputClass + ' w-24'}
           />

@@ -72,14 +72,14 @@ function AdminShell() {
             <Link
               key={tab.to}
               to={tab.to}
-              activeOptions={{ exact: tab.exact }}
+              activeOptions={{ exact: tab.exact, includeSearch: false }}
               activeProps={{
                 className:
-                  'rounded-[10px] px-3.5 py-1.5 text-[0.8125rem] font-semibold bg-[var(--pill-active)] text-fg',
+                  'rounded-[10px] px-3.5 py-1.5 text-[0.8125rem] font-semibold bg-[var(--pill-active)] text-fg no-underline',
               }}
               inactiveProps={{
                 className:
-                  'rounded-[10px] px-3.5 py-1.5 text-[0.8125rem] font-semibold text-fg-muted hover:text-fg',
+                  'rounded-[10px] px-3.5 py-1.5 text-[0.8125rem] font-semibold text-fg-muted hover:text-fg no-underline',
               }}
             >
               {tab.label}

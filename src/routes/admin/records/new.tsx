@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import {
   createFileRoute,
+  useBlocker,
   useLoaderData,
   useNavigate,
 } from '@tanstack/react-router'
@@ -8,7 +9,9 @@ import {
   ErrorNote,
   Field,
   Panel,
+  blurOnWheel,
   buttonClass,
+  commitButtonClass,
   errorMessage,
   inputClass,
   selectClass,
@@ -86,6 +89,24 @@ function NewRecord() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // A mis-click on a nav tab must not silently destroy a half-entered record.
+  const savedRef = useRef(false)
+  const isDirty =
+    !savedRef.current &&
+    Boolean(
+      vehicle ||
+      player ||
+      ign.trim() ||
+      kills ||
+      proofs.files.length > 0 ||
+      proofs.videoUrl.trim(),
+    )
+  useBlocker({
+    shouldBlockFn: () => !window.confirm('Discard this unsaved record entry?'),
+    disabled: !isDirty,
+    enableBeforeUnload: () => isDirty,
+  })
+
   const lookupVehicles = useCallback(
     (q: string) => adminVehicleLookup({ data: { mode, q } }),
     [mode],
@@ -105,7 +126,7 @@ function NewRecord() {
       })
       if (pickSeq.current !== requestId || !context) return
       setVehicle(context)
-      setRunBr(context.br != null ? String(context.br) : '')
+      setRunBr(context.br != null ? formatBr(context.br) : '')
     } catch (e) {
       if (pickSeq.current === requestId) setError(errorMessage(e))
     }
@@ -191,6 +212,7 @@ function NewRecord() {
       if (snap.runBr) form.set('runBr', snap.runBr)
       appendProofFormData(form, snap.proofs)
       const result = await adminSaveRecord({ data: form })
+      savedRef.current = true
       navigate({
         to: '/admin/records/$id',
         params: { id: String(result.recordId) },
@@ -218,7 +240,7 @@ function NewRecord() {
                 setVehicle(null)
                 setRunBr('')
               }}
-              className={selectClass}
+              className={selectClass + ' w-full'}
             >
               {modes.map((m) => (
                 <option key={m.mode} value={m.mode}>
@@ -233,6 +255,7 @@ function NewRecord() {
               id="entry-vehicle"
               placeholder="Type a vehicle name…"
               fetchItems={lookupVehicles}
+              autoFocus
               resetKey={mode}
               onError={(e) => setError(errorMessage(e))}
               itemKey={(v) => v.slug}
@@ -294,25 +317,14 @@ function NewRecord() {
                     : player.displayName
                   : null
               }
-              footer={(q, close) =>
-                q ? (
-                  <li className="border-t border-hairline-soft">
-                    <button
-                      type="button"
-                      className="w-full rounded-[10px] px-3 py-1.5 text-left text-sm text-fg-muted hover:bg-white/5"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => {
-                        playerSeq.current++
-                        setPlayer({ kind: 'new', displayName: q })
-                        if (!ignTouched.current) setIgn(q)
-                        close()
-                      }}
-                    >
-                      Create player “{q}”
-                    </button>
-                  </li>
-                ) : null
-              }
+              action={{
+                label: (q) => <>Create player “{q}”</>,
+                onAction: (q) => {
+                  playerSeq.current++
+                  setPlayer({ kind: 'new', displayName: q })
+                  if (!ignTouched.current) setIgn(q)
+                },
+              }}
             />
           </Field>
 
@@ -338,6 +350,7 @@ function NewRecord() {
                 type="number"
                 min={1}
                 value={kills}
+                onWheel={blurOnWheel}
                 onChange={(e) => setKills(e.target.value)}
                 className={inputClass}
                 required
@@ -351,6 +364,7 @@ function NewRecord() {
                 type="number"
                 step="0.1"
                 value={runBr}
+                onWheel={blurOnWheel}
                 onChange={(e) => setRunBr(e.target.value)}
                 className={inputClass}
               />
@@ -362,7 +376,7 @@ function NewRecord() {
               <select
                 value={patch}
                 onChange={(e) => setPatch(e.target.value)}
-                className={selectClass}
+                className={selectClass + ' w-full'}
               >
                 {patchList.map((p) => (
                   <option key={p.version} value={p.version}>
@@ -408,7 +422,11 @@ function NewRecord() {
           <ErrorNote error={error} />
 
           <div className="flex justify-end">
-            <button type="button" className={buttonClass} onClick={requestSave}>
+            <button
+              type="button"
+              className={commitButtonClass}
+              onClick={requestSave}
+            >
               Save record…
             </button>
           </div>
@@ -433,7 +451,7 @@ function NewRecord() {
                 : 'This entry does NOT take the title — it lands in history below the current record.'}
             </p>
             {pending.preview.belowThreshold && (
-              <p className="text-amber-300">
+              <p className="text-status-warn">
                 {pending.form.kills} kills is below the qualifying threshold
                 {pending.preview.threshold != null
                   ? ` of ${pending.preview.threshold}`

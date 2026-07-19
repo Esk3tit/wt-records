@@ -43,7 +43,7 @@ function PlayersIndex() {
           key={search.q ?? ''}
           type="search"
           defaultValue={search.q ?? ''}
-          placeholder="Display name…"
+          placeholder="Display name — press Enter"
           className={inputClass + ' max-w-64'}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {

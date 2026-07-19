@@ -50,7 +50,7 @@ export function SiteNav({
         {isModerator && (
           <Link
             to="/admin"
-            className="rounded bg-tint-strong px-1.5 py-0.5 text-xs tracking-wide text-fg-faint uppercase transition-colors duration-200 hover:text-fg"
+            className="rounded bg-tint-strong px-1.5 py-0.5 text-xs tracking-wide text-fg-muted uppercase transition-colors duration-200 hover:text-fg"
           >
             Admin
           </Link>

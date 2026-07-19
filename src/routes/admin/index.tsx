@@ -89,7 +89,7 @@ function RecordsIndex() {
           id="rec-mode"
           value={search.mode ?? ''}
           onChange={(e) => setSearch({ mode: e.target.value || undefined })}
-          className={selectClass + ' w-auto'}
+          className={selectClass}
         >
           <option value="">All modes</option>
           {modes.map((m) => (
@@ -109,7 +109,7 @@ function RecordsIndex() {
               status: (e.target.value || undefined) as RecordsSearch['status'],
             })
           }
-          className={selectClass + ' w-auto'}
+          className={selectClass}
         >
           <option value="">All statuses</option>
           {Object.entries(STATUS_LABELS).map(([value, label]) => (
@@ -126,7 +126,7 @@ function RecordsIndex() {
           key={search.q ?? ''}
           type="search"
           defaultValue={search.q ?? ''}
-          placeholder="Vehicle, player or IGN…"
+          placeholder="Vehicle, player or IGN — press Enter"
           className={inputClass + ' max-w-64'}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
@@ -136,6 +136,11 @@ function RecordsIndex() {
         />
       </div>
 
+      <p className="mb-2 text-xs text-fg-faint tabular-nums">
+        {result.total.toLocaleString('en-GB')} record
+        {result.total === 1 ? '' : 's'}
+        {page > 1 ? ` · page ${page}` : ''}
+      </p>
       {result.rows.length === 0 ? (
         <p className="text-sm text-fg-faint">No records match.</p>
       ) : (

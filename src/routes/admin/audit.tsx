@@ -64,7 +64,7 @@ function AuditView() {
               },
             })
           }
-          className={selectClass + ' w-auto'}
+          className={selectClass}
         >
           <option value="">All entities</option>
           {ENTITIES.map((entity) => (
