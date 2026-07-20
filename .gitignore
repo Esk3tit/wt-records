@@ -26,7 +26,11 @@ data/migration/*/cache/
 coverage
 /test-results
 /playwright-report
+/blob-report
 /playwright/.cache
+
+# Playwright storage states — a session, never a committed secret
+/e2e/.auth
 
 # Supabase local stack (if `supabase init` is run)
 supabase/.branches
