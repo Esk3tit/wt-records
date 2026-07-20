@@ -496,6 +496,18 @@ describe('attachProofs', () => {
     const current = await currentRecord(veh)
     await expect(attachProofs(t.db, MOD, current.id, [])).rejects.toThrow()
   })
+
+  it('refuses proof on a pending record', async () => {
+    const veh = await vehicleId('m4a1')
+    const current = await currentRecord(veh)
+    await t.db
+      .update(records)
+      .set({ status: 'pending', isCurrent: false })
+      .where(eq(records.id, current.id))
+    await expect(attachProofs(t.db, MOD, current.id, PROOF)).rejects.toThrow(
+      /verified or retired/,
+    )
+  })
 })
 
 describe('previewTitleChange', () => {
