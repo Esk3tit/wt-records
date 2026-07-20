@@ -1,6 +1,8 @@
-/** Offset pager shared by the admin list views. */
-export const ADMIN_PAGE_SIZE = 50
+import { ADMIN_PAGE_SIZE } from '#/lib/paging'
 
+export { ADMIN_PAGE_SIZE }
+
+/** Offset pager shared by the admin list views. */
 export function pageParam(value: unknown): number | undefined {
   const page = Number(value)
   return Number.isInteger(page) && page > 1 ? page : undefined

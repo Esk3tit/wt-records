@@ -1,7 +1,7 @@
 import { desc, eq, sql } from 'drizzle-orm'
 import type { Db } from '#/db'
 import { auditLog, profiles } from '#/db/schema'
-import { ADMIN_PAGE_SIZE } from '#/components/admin/pager'
+import { ADMIN_PAGE_SIZE } from '#/lib/paging'
 
 /* One row per logical moderator action, written inside the same transaction
    as the write it describes. Only /admin writes are audited. */

@@ -14,7 +14,7 @@ import { playerAliases, players, records, vehicles } from '#/db/schema'
 import { slugify } from '#/lib/slug'
 import { likeContains } from '#/lib/like'
 import { writeAudit } from '#/admin/audit'
-import { ADMIN_PAGE_SIZE } from '#/components/admin/pager'
+import { ADMIN_PAGE_SIZE } from '#/lib/paging'
 
 export async function uniquePlayerSlug(db: Db, name: string): Promise<string> {
   const base = slugify(name) || 'player'
@@ -122,8 +122,14 @@ export async function renamePlayer(
   const name = newName.trim()
   if (!name) throw new Error('Player display name is required')
   return db.transaction(async (tx) => {
+    // Locked read: a concurrent merge holds this row FOR UPDATE, so the
+    // tombstone check runs against the merge's committed state, not before it.
     const player = (
-      await tx.select().from(players).where(eq(players.id, playerId))
+      await tx
+        .select()
+        .from(players)
+        .where(eq(players.id, playerId))
+        .for('update')
     ).at(0)
     if (!player) throw new Error(`Unknown player ${playerId}`)
     if (player.mergedInto != null) {
@@ -178,6 +184,7 @@ export async function addAlias(
         .select({ id: players.id, mergedInto: players.mergedInto })
         .from(players)
         .where(eq(players.id, playerId))
+        .for('update')
     ).at(0)
     if (!player) throw new Error(`Unknown player ${playerId}`)
     if (player.mergedInto != null) {

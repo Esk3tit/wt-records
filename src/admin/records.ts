@@ -15,7 +15,7 @@ import type { ModeThresholds } from '#/lib/rules'
 import { likeContains } from '#/lib/like'
 import { writeAudit } from '#/admin/audit'
 import { createPlayer, recordIgnAlias } from '#/admin/players'
-import { ADMIN_PAGE_SIZE } from '#/components/admin/pager'
+import { ADMIN_PAGE_SIZE } from '#/lib/paging'
 
 export type ProofKind = (typeof recordProof.kind.enumValues)[number]
 

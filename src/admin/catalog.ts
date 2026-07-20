@@ -4,7 +4,7 @@ import { modeMinKills, modes, nations, patches, vehicles } from '#/db/schema'
 import type { VehicleClass } from '#/lib/vehicle-classes'
 import { writeAudit } from '#/admin/audit'
 import { likeContains } from '#/lib/like'
-import { ADMIN_PAGE_SIZE } from '#/components/admin/pager'
+import { ADMIN_PAGE_SIZE } from '#/lib/paging'
 
 /* The vehicle editor exposes ONLY isDifficult — catalog sync owns everything
    else. Rules edits never recompute existing records. */
