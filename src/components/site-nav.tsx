@@ -9,7 +9,13 @@ export interface ModeNavItem {
   isLive: boolean
 }
 
-export function SiteNav({ modes }: { modes: ModeNavItem[] }) {
+export function SiteNav({
+  modes,
+  isModerator = false,
+}: {
+  modes: ModeNavItem[]
+  isModerator?: boolean
+}) {
   const { mode: activeMode } = useParams({ strict: false })
 
   return (
@@ -41,6 +47,14 @@ export function SiteNav({ modes }: { modes: ModeNavItem[] }) {
         ))}
       </nav>
       <div className="ml-auto flex items-center gap-1 sm:ml-0">
+        {isModerator && (
+          <Link
+            to="/admin"
+            className="rounded bg-tint-strong px-1.5 py-0.5 text-xs tracking-wide text-fg-muted uppercase transition-colors duration-200 hover:text-fg"
+          >
+            Admin
+          </Link>
+        )}
         <Link
           to="/search"
           aria-label="Search"

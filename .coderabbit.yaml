@@ -1,0 +1,7 @@
+# Comments in this codebase are sparse by policy: well-named identifiers carry
+# the WHAT, comments exist only for non-obvious WHY. A docstring-coverage bar
+# would force boilerplate that policy forbids, so the check is off.
+reviews:
+  pre_merge_checks:
+    docstrings:
+      mode: 'off'

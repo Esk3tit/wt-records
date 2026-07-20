@@ -23,8 +23,18 @@ const monthYear = new Intl.DateTimeFormat('en-GB', {
   timeZone: 'UTC',
 })
 
+const dayTime = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: 'UTC',
+})
+
 export const formatDay = (d: DateLike) => day.format(asDate(d))
 export const formatDayYear = (d: DateLike) => dayYear.format(asDate(d))
+export const formatDayTime = (d: DateLike) => dayTime.format(asDate(d))
 
 // Feed stamps: same-year dates stay terse; older ones must carry their year.
 export function formatFeedDay(d: DateLike): string {

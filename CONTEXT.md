@@ -24,6 +24,9 @@ The Player who holds a given Record. A relational role, not a separate entity.
 **Claim**:
 The act of a logged-in User linking a Player to themselves (sets the account link), which also ties that Player's existing Records to the User. Required only to submit.
 
+**Merge** (Players):
+Collapsing duplicate Player rows for the same person into one survivor: Records repoint, the duplicate's names become survivor Aliases, and the duplicate leaves a tombstone redirecting its old page. Records' Snapshots never change. Players claimed by **different** Users are never mergeable — two claims are two people (the User is the identity source of truth); same-User claims are.
+
 **Alias**:
 A name a Player has gone by — an in-game name or a former display name. Powers "previously known as".
 
@@ -60,12 +63,20 @@ A Record with `status = pending` (Phase 2). Not a separate entity — a submissi
 **Proof**:
 An artifact attached to a Record — a scoreboard / end-game / end-life screenshot, or a video. All proof is modeled uniformly (no separate scalar video field).
 
+**Retire**:
+Soft-invalidating a once-verified Record (debunked proof, cheating, bad entry). The Record and its Proof are kept for history and audit but leave every public surface and aggregate; the title recomputes (next-best Record becomes Current, else Open bounty). Reversible.
+_Avoid_: delete; reject (a Submission that was never accepted).
+
 **Migrated record**:
 A Record imported from the community's original spreadsheet rather than submitted through the site. Verified by definition (the sheet was moderated), holdable by an accountless Player, and backdated when its proof's upload time is known — shown simply as "migrated" when it isn't.
 
 **Record date**:
 The official date of a Record — the moment it was **verified** (approved), not when the run happened or was submitted. Migrated records are backdated to their historical approval (approximated by proof upload time).
 _Avoid_: achieved date, submission date (as the record's date).
+
+**Verifier**:
+The moderator who verified a Record (`verifiedById`) — shown only in /admin, never publicly. While intake stays on Discord (Phase 1), the mod who enters a record *is* its Verifier; a distinct approve step arrives with Submissions (Phase 2).
+_Avoid_: approver, reviewer.
 
 **Patch**:
 A canonical War Thunder game version (its own entity, with release date) — the community's primary temporal axis. Every Record references exactly one Patch: the version it was achieved on.

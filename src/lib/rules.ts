@@ -51,3 +51,32 @@ export function takesTitle(
   if (incumbentKills == null) return true
   return challengerKills > incumbentKills
 }
+
+export interface TitleCandidate {
+  id: number
+  kills: number
+  verifiedAt: Date | null
+}
+
+/**
+ * The rightful CURRENT record among a (vehicle, mode)'s verified records:
+ * highest kills wins; a kills tie goes to the earliest verifiedAt
+ * (first-to-achieve, matching takesTitle); id is the deterministic tiebreak.
+ */
+export function rightfulHolder(candidates: TitleCandidate[]): number | null {
+  let best: TitleCandidate | null = null
+  for (const c of candidates) {
+    if (!best || beats(c, best)) best = c
+  }
+  return best?.id ?? null
+}
+
+function beats(a: TitleCandidate, b: TitleCandidate): boolean {
+  if (a.kills !== b.kills) return a.kills > b.kills
+  // null verifiedAt = oldest, matching the public ranking's "nulls first"
+  // (a migrated record predates anything the site itself verified).
+  const aAt = a.verifiedAt?.getTime() ?? -Infinity
+  const bAt = b.verifiedAt?.getTime() ?? -Infinity
+  if (aAt !== bAt) return aAt < bAt
+  return a.id < b.id
+}

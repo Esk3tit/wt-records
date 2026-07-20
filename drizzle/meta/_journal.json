@@ -50,6 +50,13 @@
       "when": 1783625091819,
       "tag": "0006_records_anon_select_grant",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784141164678,
+      "tag": "0007_retired_status_player_merge",
+      "breakpoints": true
     }
   ]
 }

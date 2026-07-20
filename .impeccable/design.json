@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-07-04T03:45:00Z",
+  "generatedAt": "2026-07-19T17:54:01.519Z",
   "title": "Design System: WT Records",
   "extensions": {
     "colorMeta": {
@@ -319,9 +319,9 @@
       "name": "Glass Panel",
       "kind": "card",
       "refersTo": "glass-panel",
-      "description": "The core surface: ultra-clear liquid glass (live-accepted) lit by the scene behind it. Night form shown; day form uses rgba(255,255,255,.1) with Day Hairline.",
+      "description": "Ultra-clear liquid glass card (live-accepted frost 0.10 / blur 50): the scene reads through the pane; hairline border, specular top edge, deep ambient float.",
       "html": "<div class=\"ds-glass-panel\"><h3 class=\"ds-glass-title\">Ground Realistic</h3><p class=\"ds-glass-body\">4 records · 3 holders · 57% complete</p></div>",
-      "css": ".ds-glass-panel { background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(50px) saturate(2); -webkit-backdrop-filter: blur(50px) saturate(2); border: 1px solid rgba(255,255,255,0.16); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 30px 60px -30px rgba(0,0,0,0.8); border-radius: 26px; padding: 24px; color: rgba(255,255,255,0.96); transition: transform 220ms cubic-bezier(0.34, 1.3, 0.64, 1), box-shadow 220ms cubic-bezier(0.25, 1, 0.5, 1); } .ds-glass-panel:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 34px 60px -30px rgba(0,0,0,0.95); } .ds-glass-title { margin: 0 0 8px; font-size: 1.125rem; font-weight: 600; line-height: 1.3; } .ds-glass-body { margin: 0; font-size: 1rem; color: rgba(255,255,255,0.6); font-variant-numeric: tabular-nums; } @media (prefers-reduced-motion: reduce) { .ds-glass-panel { transition: border-color 180ms; } .ds-glass-panel:hover { transform: none; border-color: rgba(255,255,255,0.3); } }"
+      "css": ".ds-glass-panel { background: rgba(255, 255, 255, 0.10); backdrop-filter: blur(50px) saturate(190%); -webkit-backdrop-filter: blur(50px) saturate(190%); border: 1px solid rgba(255,255,255,0.16); border-radius: 22px; padding: 24px; color: rgba(255,255,255,0.96); box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.2), inset 0 -0.5px 0 rgba(255,255,255,0.1), 0 30px 60px -30px rgba(0,0,0,0.8); transition: box-shadow 220ms cubic-bezier(0.34, 1.3, 0.64, 1), transform 220ms cubic-bezier(0.34, 1.3, 0.64, 1); } .ds-glass-panel:hover { transform: translateY(-2px); box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.2), inset 0 -0.5px 0 rgba(255,255,255,0.1), 0 34px 64px -30px rgba(0,0,0,0.95); }"
     },
     {
       "name": "Leaderboard Row",
@@ -354,18 +354,26 @@
       "description": "Text field for player/vehicle search; hairline border, amber focus (Deep form by day).",
       "html": "<input class=\"ds-input\" type=\"search\" placeholder=\"Search players or vehicles\" aria-label=\"Search\" />",
       "css": ".ds-input { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.96); border: 1px solid rgba(255,255,255,0.16); border-radius: 4px; padding: 8px 12px; font-size: 1rem; width: 100%; max-width: 28rem; transition: border-color 180ms cubic-bezier(0.25, 1, 0.5, 1); } .ds-input::placeholder { color: rgba(255,255,255,0.6); } .ds-input:focus-visible { outline: none; border-color: #F0B94A; box-shadow: 0 0 0 1px #F0B94A; }"
+    },
+    {
+      "name": "Glass Pill",
+      "kind": "nav",
+      "refersTo": "glass-pill",
+      "description": "Section-nav capsule as a small liquid-glass pane (live-accepted frost .12 / float .2): important navigation never mutes into the background.",
+      "html": "<a href=\"#\" class=\"ds-glass-pill\">Leaderboard</a>",
+      "css": ".ds-glass-pill { display: inline-block; background: rgba(255,255,255,0.12); backdrop-filter: blur(36px) saturate(180%); -webkit-backdrop-filter: blur(36px) saturate(180%); border: 1px solid rgba(255,255,255,0.16); border-radius: 999px; padding: 8px 18px; color: rgba(255,255,255,0.96); font-weight: 550; font-size: 0.9375rem; text-decoration: none; box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.3), inset 0 -0.5px 0 rgba(255,255,255,0.1), 0 3px 10px -4px rgba(0,0,0,0.6); transition: transform 220ms cubic-bezier(0.34, 1.3, 0.64, 1), box-shadow 220ms cubic-bezier(0.34, 1.3, 0.64, 1); } .ds-glass-pill:hover { transform: translateY(-2px); box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.3), inset 0 -0.5px 0 rgba(255,255,255,0.1), 0 5px 14px -4px rgba(0,0,0,0.7); } .ds-glass-pill:focus-visible { outline: 2px solid #F0B94A; outline-offset: 2px; }"
     }
   ],
   "narrative": {
     "northStar": "The Trophy Hall",
-    "overview": "WT Records is a hall where verified feats hang under lit glass — and the hall has windows. Behind everything sits the system's signature element: the Spatial Scene, a curated War Thunder battle scene processed offline with depth AI so the subject separates from its background and parallaxes on pointer and gyro. The scene is the visual identity, swapping per nation and per branch. In front: frosted-glass surfaces with hairline borders, tabular numerals, and instrument-panel restraint. The hall has two lighting states, never two identities — by night the Night Hangar base with dark scrim and white frost; by day the Daylight Hall base with light veil and milky frost. Structure, spacing, radii, type, and every named rule are identical in both; only the light changes.",
+    "overview": "WT Records is a hall where verified feats hang under lit glass — and the hall has windows. Behind everything sits the system's signature element: the **Spatial Scene**, a curated War Thunder battle scene processed offline with depth AI so the subject — a tank, a plane — separates from its background and parallaxes on pointer and gyro, iOS-spatial-scene style. The scene is the visual identity. It swaps per nation and per branch, so every mode and every nation feels like its own room in the hall. In front of it: frosted-glass surfaces with hairline borders, tabular numerals, and instrument-panel restraint. Celebration is rationed — gold, silver, and bronze exist solely because rank is earned; Medal Amber marks what is active or actionable, never what is merely decorated.\n\nThe hall has two lighting states, never two identities. **By night** (dark mode): the Night Hangar base, scenes dimmed behind a dark scrim, white-frost glass, white ink. **By day** (light mode): the Daylight Hall base — cool, chroma-neutral off-white, no cream — scenes brighter under a light veil, milky frost with dark hairlines, dark ink. Structure, spacing, radii, type, and every named rule are identical in both; only the light changes. The theme follows the system preference with a persisted manual toggle.\n\nThis is a product surface in register (leaderboards, nation sheets, vehicle pages, admin) with one brand moment (the landing hero). It explicitly rejects the templated look: Inter-everywhere generic SaaS styling, purple→blue gradients, card-in-card layouts, gray-on-color text. Frosted glass is the deliberate, locked brand material — never allowed to cost legibility: the scrim (night) or veil (day), not hope, enforces contrast.",
     "keyCharacteristics": [
       "The Spatial Scene: depth-parallax battle imagery (subject-separated, offline-processed) as the identity layer in both modes",
       "Two lighting states, one hall: Night Hangar / Daylight Hall bases with mirrored ink, hairline, and scrim/veil tokens",
-      "Frosted-glass surfaces: backdrop blur + saturate, 1px hairline borders, inset top highlight, 22–26px radii",
+      "Luminous frost: white-alpha glass lit by the scene behind it (the scene bleeds through every pane), backdrop blur + saturate, 1px hairline borders, inset top highlight, 22–26px radii",
       "One warm accent (Medal Amber; Medal Amber Deep as its text-safe day form) at ≤10% of any screen; metals only where rank is real",
       "Tabular numerals everywhere; the number is the hero",
-      "Floating panes: every glass surface carries a soft ambient shadow at rest, deepening on lift"
+      "Floating panes: every glass surface carries a soft ambient shadow at rest — it hovers over the scene — deepening on lift"
     ],
     "rules": [
       {
@@ -385,7 +393,7 @@
       },
       {
         "name": "The Tabular Rule",
-        "body": "font-variant-numeric: tabular-nums applies globally, no exceptions. A kill count that shifts width when it changes is a bug.",
+        "body": "`font-variant-numeric: tabular-nums` applies globally, no exceptions. A kill count that shifts width when it changes is a bug.",
         "section": "typography"
       },
       {
@@ -395,29 +403,29 @@
       },
       {
         "name": "The Sandwich Rule",
-        "body": "Text never sits directly on the Spatial Scene. Between any scene and any text there is always the mode's scrim/veil, a glass surface, or both. Contrast is enforced by the layer stack, not hoped for.",
+        "body": "Text never sits directly on the Spatial Scene. Between any scene and any text there is always the mode's scrim/veil, a glass surface, or both. Contrast (≥4.5:1 body text) is enforced by the layer stack, not hoped for from whatever the screenshot happens to be.",
         "section": "elevation"
       }
     ],
     "dos": [
-      "Do treat the Spatial Scene as first-class: every background ships as image.jpg + image-depth.png with a static fallback and a reduced-motion path; scenes swap per nation/branch.",
+      "Do treat the Spatial Scene as first-class: every background ships as `image.jpg` + `image-depth.png` with a static fallback and a reduced-motion path; scenes swap per nation/branch.",
       "Do keep the sandwich intact (The Sandwich Rule): scene → scrim/veil → glass → text, in both modes.",
-      "Do flip tokens between modes and nothing else (The Same Hall Rule).",
+      "Do flip tokens between modes and nothing else (The Same Hall Rule) — same layout, same spacing, same radii, same rules.",
       "Do keep all numerals tabular (The Tabular Rule) — kills, counts, BRs, percentages.",
-      "Do give every glass surface the full material: backdrop blur + saturate, the mode's 1px hairline, Glass Highlight inset top edge, 22–26px radius.",
-      "Do keep amber ≤10% of any screen, using Medal Amber Deep for text/active states by day; reserve metals for ranks 1/2/3 with their day forms.",
+      "Do give every glass surface the full material: backdrop blur + saturate, the mode's 1px hairline, Glass Highlight inset top edge, and a band radius (22px card / 26px panel).",
+      "Do keep amber ≤10% of any screen (The One Amber Rule), using Medal Amber Deep for text/active states by day; reserve metals for ranks 1/2/3 (The Earned Metal Rule) with Day Gold/Silver/Bronze as their text-safe day forms.",
       "Do ship every interactive component state-complete: default, hover, focus-visible, active, disabled.",
-      "Do respect prefers-reduced-motion with a real alternative for every animation — parallax, count-ups, lifts."
+      "Do respect `prefers-reduced-motion` with a real alternative for every animation — parallax, count-ups, lifts."
     ],
     "donts": [
-      "Don't use \"Inter-everywhere generic SaaS styling; the templated dashboard look\" (PRODUCT.md anti-reference).",
+      "Don't use \"Inter-everywhere generic SaaS styling; the templated dashboard look\" (PRODUCT.md anti-reference) — the system font stack, glass materials, and the Spatial Scene are the identity.",
       "Don't use \"purple→blue gradients anywhere\" (PRODUCT.md anti-reference).",
-      "Don't build \"generic SaaS card-in-card layouts; nested cards\" (PRODUCT.md anti-reference).",
-      "Don't set \"gray-on-color text\" (PRODUCT.md anti-reference): on amber fills use black; on glass use the mode's ink ramp.",
+      "Don't build \"generic SaaS card-in-card layouts; nested cards\" (PRODUCT.md anti-reference) — one glass layer, then content.",
+      "Don't set \"gray-on-color text\" (PRODUCT.md anti-reference): on amber fills use black; on glass use the mode's ink ramp, never gray hexes.",
       "Don't put text directly on scene imagery — no exceptions (The Sandwich Rule).",
       "Don't use raw Medal Amber or the night metals as text on Daylight Hall — their Deep/Day forms exist precisely for that.",
       "Don't warm the light base toward cream/sand/beige; Daylight Hall stays cool and chroma-neutral.",
-      "Don't use side-stripe borders, gradient text, or the hero-metric template.",
+      "Don't use side-stripe borders (`border-left` > 1px as accent), gradient text, or the hero-metric template.",
       "Don't put shadows on anything that isn't a glass pane (The Floating Pane Rule) or metal colors on anything that isn't a rank."
     ]
   }

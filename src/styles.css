@@ -34,6 +34,12 @@
   --pill-track: rgba(0, 0, 0, 0.2);
   --pill-active: rgba(255, 255, 255, 0.14);
 
+  /* Semantic status ink (verification is the brand): night forms. */
+  --status-verified: #6ee7b7;
+  --status-warn: #fcd34d;
+  --status-danger: #fca5a5;
+  --status-danger-border: rgba(248, 113, 113, 0.4);
+
   /* floating-pane ambient shadows */
   --ambient-thin: 0 8px 30px -12px rgba(0, 0, 0, 0.6);
   --ambient-mid: 0 20px 40px -24px rgba(0, 0, 0, 0.7);
@@ -106,6 +112,12 @@
   --pill-track: rgba(10, 12, 16, 0.06);
   --pill-active: rgba(255, 255, 255, 0.9);
 
+  /* Status ink, day forms — dark enough for 4.5:1 on Daylight Hall. */
+  --status-verified: #1d6b47;
+  --status-warn: #8a6410;
+  --status-danger: #9f3428;
+  --status-danger-border: rgba(159, 52, 40, 0.5);
+
   --ambient-thin: 0 8px 30px -12px rgba(10, 12, 16, 0.25);
   --ambient-mid: 0 20px 40px -24px rgba(10, 12, 16, 0.3);
   --ambient-thick: 0 30px 60px -30px rgba(10, 12, 16, 0.35);
@@ -154,6 +166,9 @@
   --color-hairline-soft: var(--hairline-soft);
   --color-tint: var(--tint);
   --color-tint-strong: var(--tint-strong);
+  --color-status-verified: var(--status-verified);
+  --color-status-warn: var(--status-warn);
+  --color-status-danger: var(--status-danger);
   --color-accent-text: var(--accent-text);
   --color-gold: var(--gold);
   --color-silver: var(--silver);

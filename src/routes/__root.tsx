@@ -19,12 +19,28 @@ import { SceneBackdrop } from '#/components/scene-backdrop'
 import { SiteNav } from '#/components/site-nav'
 import { db } from '#/db'
 import { listModes } from '#/db/queries'
+import { hasAuthCookie } from '#/auth/supabase-server'
+import { adminGate } from '#/admin/guard'
 
 const CANONICAL_ORIGIN = 'https://wtrecords.gg'
 
-const loadModes = createServerFn({ method: 'GET' }).handler(async () => {
-  const modes = await listModes(db)
-  return modes.map((m) => ({ mode: m.mode, name: m.name, isLive: m.isLive }))
+const loadShell = createServerFn({ method: 'GET' }).handler(async () => {
+  // The mod check short-circuits on the cookie so plain visitors never pay
+  // an auth round-trip; an auth outage must never take the public site down,
+  // so any gate failure just hides the chip.
+  const [modes, isModerator] = await Promise.all([
+    listModes(db),
+    hasAuthCookie()
+      ? adminGate().then(
+          (gate) => gate.state === 'moderator',
+          () => false,
+        )
+      : false,
+  ])
+  return {
+    modes: modes.map((m) => ({ mode: m.mode, name: m.name, isLive: m.isLive })),
+    isModerator,
+  }
 })
 
 export const Route = createRootRoute({
@@ -36,18 +52,18 @@ export const Route = createRootRoute({
     ],
     links: [{ rel: 'stylesheet', href: appCss }],
   }),
-  loader: () => loadModes(),
+  loader: () => loadShell(),
   shellComponent: RootDocument,
   component: RootComponent,
 })
 
 function RootComponent() {
-  const modes = Route.useLoaderData()
+  const { modes, isModerator } = Route.useLoaderData()
   return (
     <>
       <SceneBackdrop />
       <div className="relative z-[2] px-5 pb-24">
-        <SiteNav modes={modes} />
+        <SiteNav modes={modes} isModerator={isModerator} />
         <main className="mx-auto w-full max-w-[67.5rem]">
           <Outlet />
         </main>
@@ -78,7 +94,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body>
         <NationFlagSprite />
         {children}
-        <ConsentBanner />
+        {!pathname.startsWith('/admin') && <ConsentBanner />}
         {import.meta.env.DEV && (
           <TanStackDevtools
             config={{

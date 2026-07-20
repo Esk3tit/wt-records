@@ -1,19 +1,38 @@
-import { Link, createFileRoute, notFound } from '@tanstack/react-router'
+import {
+  Link,
+  createFileRoute,
+  notFound,
+  redirect,
+} from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { VehicleTags } from '#/components/vehicle-tags'
 import { db } from '#/db'
-import { getPlayer } from '#/db/queries'
+import { getPlayer, playerMergeRedirect } from '#/db/queries'
 
 const loadPlayer = createServerFn({ method: 'GET' })
   .validator((slug: string) => slug)
   .handler(async ({ data }) => {
     const player = await getPlayer(db, data)
-    if (!player) throw notFound()
-    return player
+    if (player) return { profile: player, redirectTo: null }
+    const redirectTo = await playerMergeRedirect(db, data)
+    if (redirectTo) return { profile: null, redirectTo }
+    throw notFound()
   })
 
 export const Route = createFileRoute('/player/$slug')({
-  loader: ({ params }) => loadPlayer({ data: params.slug }),
+  loader: async ({ params }) => {
+    const result = await loadPlayer({ data: params.slug })
+    if (result.redirectTo) {
+      // Merged player: permanent redirect straight to the survivor.
+      throw redirect({
+        to: '/player/$slug',
+        params: { slug: result.redirectTo },
+        statusCode: 301,
+      })
+    }
+    if (!result.profile) throw notFound()
+    return result.profile
+  },
   component: PlayerProfile,
 })
 
