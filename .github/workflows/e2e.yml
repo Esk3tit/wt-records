@@ -118,8 +118,8 @@ jobs:
 
       # The vendor action rather than the `bunx supabase` humans use locally:
       # it caches the binary and pins it independently of the npm wrapper.
-      # Pinned, not `latest` — the key export below parses `status -o env`,
-      # so a CLI release that changes that format would break with no diff.
+      # Pinned, not `latest` — the key export below depends on `status -o env`
+      # and its flags, so a CLI release could break this with no diff.
       - name: Start Supabase
         uses: supabase/setup-cli@v1
         with:
@@ -131,7 +131,9 @@ jobs:
       # be silently invalidated by a signing-key rotation.
       - name: Export local Supabase keys
         run: |
-          supabase status -o env | sed 's/^ANON_KEY=/SUPABASE_ANON_KEY=/;s/^SERVICE_ROLE_KEY=/SUPABASE_SERVICE_ROLE_KEY=/' \
+          supabase status -o env \
+            --override-name auth.anon_key=SUPABASE_ANON_KEY \
+            --override-name auth.service_role_key=SUPABASE_SERVICE_ROLE_KEY \
             | grep -E '^SUPABASE_(ANON|SERVICE_ROLE)_KEY=' | tr -d '"' >> "$GITHUB_ENV"
 
       - name: Migrate and seed

@@ -16,10 +16,10 @@ const ADMIN_PAGES = [
 test.describe('signed out', () => {
   test.use({ storageState: STATE.anon })
 
-  test('every admin page offers sign-in instead of the CMS', async ({
-    page,
-  }) => {
-    for (const path of ADMIN_PAGES) {
+  // One case per page: a loop would stop at the first refusal that broke and
+  // leave the rest of the surface unchecked on exactly the run that matters.
+  for (const path of ADMIN_PAGES) {
+    test(`${path} offers sign-in instead of the CMS`, async ({ page }) => {
       await page.goto(path)
       await expect(
         page.getByRole('heading', { level: 1, name: 'Moderator sign-in' }),
@@ -30,8 +30,8 @@ test.describe('signed out', () => {
       await expect(
         page.getByRole('heading', { name: 'Moderator CMS' }),
       ).toHaveCount(0)
-    }
-  })
+    })
+  }
 
   test('the site nav hides the admin entry point', async ({ page }) => {
     await page.goto('/grb')
