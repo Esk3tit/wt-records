@@ -61,4 +61,4 @@ where application_name = 'postgres.js' and state = 'idle';
 
 [`.github/workflows/e2e.yml`](../.github/workflows/e2e.yml) builds once, fans the bundle out to a **sharded matrix**, and each shard stands up its own `supabase start` + migrate + seed. Shards emit **blob** reports that `merge-reports` combines into one HTML artifact; failures also upload screenshots, traces and video.
 
-**This workflow is non-blocking by design** — `continue-on-error`, and it must stay out of branch protection's required checks. `quick-checks` remains the gate.
+**Advisory on a PR, enforced on `main`** — `continue-on-error` is set only for `pull_request` events, so a failing shard annotates the PR without blocking it, while the same failure on a push to `main` fails the run. Keep it out of branch protection's required checks either way; `quick-checks` is the gate.

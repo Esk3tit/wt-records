@@ -32,24 +32,28 @@ test('a moderator edit persists and is written to the audit log', async ({
   const wasDifficult = await toggle.isChecked()
 
   await toggle.setChecked(!wasDifficult)
-  await expect(toggle).toBeChecked({ checked: !wasDifficult })
+  // Restore in `finally`: a failed assertion below would otherwise leave the
+  // flag flipped, and the next local run starts from mutated data.
+  try {
+    await expect(toggle).toBeChecked({ checked: !wasDifficult })
 
-  // The checkbox is optimistic, so only a reload proves the write reached the
-  // database rather than just the React state.
-  await page.reload()
-  const reloaded = page.getByRole('checkbox', { name: label! })
-  await expect(reloaded).toBeChecked({ checked: !wasDifficult })
+    // The checkbox is optimistic, so only a reload proves the write reached the
+    // database rather than just the React state.
+    await page.reload()
+    const reloaded = page.getByRole('checkbox', { name: label! })
+    await expect(reloaded).toBeChecked({ checked: !wasDifficult })
 
-  await page.goto('/admin/audit')
-  await page.getByLabel('Filter by entity').selectOption('vehicle')
-  const entry = page
-    .getByRole('listitem')
-    .filter({ hasText: 'vehicle.set_difficult' })
-    .first()
-  await expect(entry).toContainText(TEST_USERS.moderator.handle)
-
-  await page.goto('/admin/catalog')
-  await page.getByRole('checkbox', { name: label! }).setChecked(wasDifficult)
+    await page.goto('/admin/audit')
+    await page.getByLabel('Filter by entity').selectOption('vehicle')
+    const entry = page
+      .getByRole('listitem')
+      .filter({ hasText: 'vehicle.set_difficult' })
+      .first()
+    await expect(entry).toContainText(TEST_USERS.moderator.handle)
+  } finally {
+    await page.goto('/admin/catalog')
+    await page.getByRole('checkbox', { name: label! }).setChecked(wasDifficult)
+  }
 })
 
 test('the records list filters without losing the moderator session', async ({

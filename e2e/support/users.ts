@@ -35,11 +35,7 @@ export async function provisionTestUsers(): Promise<void> {
 
   try {
     for (const user of Object.values(TEST_USERS)) {
-      const id = await upsertAuthUser(
-        admin.auth.admin,
-        user.email,
-        user.password,
-      )
+      const id = await upsertAuthUser(admin.auth.admin, sql, user)
       // profiles.id IS the auth user id, and the OAuth upsert deliberately
       // never sets role — so the fixture pins it the same way a real
       // promotion does.
@@ -56,11 +52,12 @@ export async function provisionTestUsers(): Promise<void> {
 }
 
 type AuthAdmin = ReturnType<typeof createClient>['auth']['admin']
+type Sql = ReturnType<typeof postgres>
 
 async function upsertAuthUser(
   admin: AuthAdmin,
-  email: string,
-  password: string,
+  sql: Sql,
+  { email, password }: { email: string; password: string },
 ): Promise<string> {
   const created = await admin.createUser({
     email,
@@ -69,7 +66,13 @@ async function upsertAuthUser(
   })
   if (created.data.user) return created.data.user.id
 
-  const existing = await findUserByEmail(admin, email)
+  // Created on an earlier run. Resolve the id straight from auth.users rather
+  // than paging listUsers — a stack with enough users would page right past it.
+  const existing = (
+    await sql<
+      { id: string }[]
+    >`select id from auth.users where email = ${email}`
+  ).at(0)?.id
   if (!existing) {
     throw new Error(
       `could not create or find the test user ${email}: ${created.error?.message}`,
@@ -83,13 +86,4 @@ async function upsertAuthUser(
     throw new Error(`could not reset ${email}: ${updated.error.message}`)
   }
   return existing
-}
-
-async function findUserByEmail(
-  admin: AuthAdmin,
-  email: string,
-): Promise<string | null> {
-  const { data, error } = await admin.listUsers({ perPage: 200 })
-  if (error) throw new Error(`could not list auth users: ${error.message}`)
-  return data.users.find((u) => u.email === email)?.id ?? null
 }

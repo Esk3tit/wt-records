@@ -55,7 +55,7 @@ Set up from the first commit, not retrofitted. Two Vitest projects in one repo (
 - **`unit`** (jsdom) — React components + pure logic (`src/**/*.test.{ts,tsx}`, plus the E2E suite's pure helpers in `e2e/support/**/*.test.ts`).
 - **`integration`** (node) — server/DB tests against in-process PGlite (`tests/integration/**`). PR2 fills this with tests that replay the committed Drizzle migrations.
 
-On top of those, **Playwright** covers a handful of critical end-to-end flows (`e2e/`) against the real SSR server — see the **[E2E runbook](./docs/e2e.md)**. It is deliberately **non-blocking** in CI.
+On top of those, **Playwright** covers a handful of critical end-to-end flows (`e2e/`) against the real SSR server — see the **[E2E runbook](./docs/e2e.md)**. In CI it is **advisory on a PR and enforced on `main`**, and never a required status check.
 
 ## CI
 

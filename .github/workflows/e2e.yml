@@ -90,9 +90,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Generate route tree
-        run: bun run generate-routes
-
       - uses: actions/download-artifact@v4
         with:
           name: app-build
@@ -121,10 +118,12 @@ jobs:
 
       # The vendor action rather than the `bunx supabase` humans use locally:
       # it caches the binary and pins it independently of the npm wrapper.
+      # Pinned, not `latest` — the key export below parses `status -o env`,
+      # so a CLI release that changes that format would break with no diff.
       - name: Start Supabase
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.109.1
 
       - run: supabase start
 
