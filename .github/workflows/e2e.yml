@@ -54,6 +54,11 @@ jobs:
           name: app-build
           path: .output
           retention-days: 1
+          # `.output` is dot-prefixed, and the action skips hidden paths by
+          # default — without this it uploads nothing and still says success.
+          include-hidden-files: true
+          # An empty upload must fail here, not two jobs later in the shards.
+          if-no-files-found: error
 
   # Advisory on a PR, enforced on main. Keep it out of branch protection's
   # required checks — quick-checks is the gate.
