@@ -1,5 +1,7 @@
-export const BASE_URL =
-  process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
+// Read late, not at import time: the config loads .env after this module.
+export function baseUrl(): string {
+  return process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
+}
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
 
@@ -14,10 +16,8 @@ export function requireEnv(name: string): string {
   return value
 }
 
-/** The setup project mints auth users and PROMOTES one to moderator. Pointed
-    at the hosted project — the default in a working .env — that would write
-    real users and a real moderator into production, so make it deliberate.
-    Same shape as the seed/import runners' `*_REMOTE` guards. */
+/** Setup mints users and PROMOTES one to moderator, and a working .env points
+    at the hosted project — so require a local target, like `SEED_REMOTE` does. */
 export function assertDisposableTarget(): void {
   if (process.env.E2E_REMOTE === '1') return
   for (const name of ['SUPABASE_URL', 'DATABASE_URL']) {

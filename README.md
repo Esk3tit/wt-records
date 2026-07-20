@@ -52,7 +52,7 @@ bunx @tanstack/cli@latest create wt-records \
 
 Set up from the first commit, not retrofitted. Two Vitest projects in one repo ([`vitest.config.ts`](./vitest.config.ts)):
 
-- **`unit`** (jsdom) — React components + pure logic (`src/**/*.test.{ts,tsx}`).
+- **`unit`** (jsdom) — React components + pure logic (`src/**/*.test.{ts,tsx}`, plus the E2E suite's pure helpers in `e2e/support/**/*.test.ts`).
 - **`integration`** (node) — server/DB tests against in-process PGlite (`tests/integration/**`). PR2 fills this with tests that replay the committed Drizzle migrations.
 
 On top of those, **Playwright** covers a handful of critical end-to-end flows (`e2e/`) against the real SSR server — see the **[E2E runbook](./docs/e2e.md)**. It is deliberately **non-blocking** in CI.
@@ -74,6 +74,8 @@ src/
 tests/
   setup.unit.ts
   integration/  # PGlite integration tests (PR2)
+e2e/            # Playwright specs
+  support/      # setup helpers (session minting, storage state) — not specs
 docs/adr/       # architecture decision records
 ```
 

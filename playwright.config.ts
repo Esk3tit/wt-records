@@ -1,17 +1,17 @@
 import { existsSync } from 'node:fs'
 import { defineConfig, devices } from '@playwright/test'
+import { baseUrl } from './e2e/support/env'
 
-// The suite needs the server-side Supabase/DB vars the app itself reads. CI
-// exports them on the job; locally they live in .env like every other script.
-// loadEnvFile overwrites, so restore anything the caller set explicitly —
-// `SUPABASE_URL=… playwright test` must beat the committed .env.
+// The suite reads the same server-side Supabase/DB vars the app does. CI sets
+// them on the job; locally they're in .env — which loadEnvFile would overwrite,
+// so an explicitly exported var is restored and wins.
 if (!process.env.CI && existsSync('.env')) {
   const explicit = { ...process.env }
   process.loadEnvFile('.env')
   Object.assign(process.env, explicit)
 }
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
+const BASE_URL = baseUrl()
 
 export default defineConfig({
   testDir: './e2e',
@@ -41,9 +41,8 @@ export default defineConfig({
       dependencies: ['setup'],
     },
   ],
-  // Against an already-running target (PLAYWRIGHT_BASE_URL — a deployed
-  // preview, or a server the CI job started once for all shards) Playwright
-  // manages nothing. Otherwise it boots the built SSR server itself.
+  // PLAYWRIGHT_BASE_URL targets a server someone else is running (a deployed
+  // preview); without it Playwright boots the built SSR server itself.
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
     : {

@@ -5,21 +5,19 @@ import { assertDisposableTarget, requireEnv } from './env'
 /** The suite's two identities. Passwords are fixtures for a throwaway local
     stack — the real sessions are minted fresh per run, never committed. */
 export const TEST_USERS = {
-  admin: {
+  moderator: {
     email: 'e2e-moderator@wt-records.test',
     password: 'e2e-moderator-password',
     handle: 'E2E Moderator',
     role: 'moderator',
   },
-  user: {
+  viewer: {
     email: 'e2e-viewer@wt-records.test',
     password: 'e2e-viewer-password',
     handle: 'E2E Viewer',
     role: 'viewer',
   },
 } as const
-
-export type TestUserKey = keyof typeof TEST_USERS
 
 /** Creates (or resets) each auth user and pins its profile role. Idempotent so
     a repeated local run doesn't trip over users the previous run left behind. */

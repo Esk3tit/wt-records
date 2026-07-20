@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { firstCatalogueVehicle } from './support/catalogue'
 import { STATE } from './support/states'
 
 test.use({ storageState: STATE.anon })
@@ -13,19 +14,15 @@ test('a visitor lands on the live mode and reaches a vehicle from the catalogue'
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Sections' })).toBeVisible()
 
-  await page.goto('/grb/vehicles')
+  const vehicleName = await firstCatalogueVehicle(page)
   await expect(
     page.getByRole('heading', { level: 1, name: /^vehicles/i }),
   ).toBeVisible()
 
-  const firstVehicle = page.getByRole('table').getByRole('link').first()
-  const vehicleName = (await firstVehicle.textContent())?.trim()
-  expect(vehicleName, 'the catalogue rendered no vehicles').toBeTruthy()
-
-  await firstVehicle.click()
+  await page.getByRole('table').getByRole('link').first().click()
   await expect(page).toHaveURL(/\/grb\/vehicle\//)
   await expect(
-    page.getByRole('heading', { level: 1, name: vehicleName! }),
+    page.getByRole('heading', { level: 1, name: vehicleName }),
   ).toBeVisible()
 })
 

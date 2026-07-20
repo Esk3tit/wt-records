@@ -55,15 +55,14 @@ jobs:
           path: .output
           retention-days: 1
 
-  # NON-BLOCKING by design: E2E is too slow and too broad to gate a PR on, so
-  # keep this job out of branch protection's required checks — quick-checks is
-  # the gate. A red shard is a signal to read, not a merge block.
+  # Advisory on a PR, enforced on main. Keep it out of branch protection's
+  # required checks — quick-checks is the gate.
   e2e:
     name: e2e (shard ${{ matrix.shard }}/${{ strategy.job-total }})
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    continue-on-error: true
+    continue-on-error: ${{ github.event_name == 'pull_request' }}
     strategy:
       fail-fast: false
       matrix:
@@ -115,6 +114,8 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: ./node_modules/.bin/playwright install-deps chromium
 
+      # The vendor action rather than the `bunx supabase` humans use locally:
+      # it caches the binary and pins it independently of the npm wrapper.
       - name: Start Supabase
         uses: supabase/setup-cli@v1
         with:
@@ -158,6 +159,10 @@ jobs:
     needs: e2e
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Reporting must never be the thing that fails the run: shards that die
+    # before writing a blob leave nothing to download, and that is not a defect
+    # worth a red check on top of the shard failure that caused it.
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
         with:

@@ -10,8 +10,8 @@ setup('mint signed-in states', async () => {
   await mkdir(AUTH_DIR, { recursive: true })
 
   const [admin, user] = await Promise.all([
-    mintStorageState(TEST_USERS.admin.email, TEST_USERS.admin.password),
-    mintStorageState(TEST_USERS.user.email, TEST_USERS.user.password),
+    mintStorageState(TEST_USERS.moderator.email, TEST_USERS.moderator.password),
+    mintStorageState(TEST_USERS.viewer.email, TEST_USERS.viewer.password),
   ])
 
   await Promise.all([

@@ -47,7 +47,7 @@ test.describe('signed in without the moderator role', () => {
     await expect(
       page.getByRole('heading', {
         level: 1,
-        name: `Hi ${TEST_USERS.user.handle} — not a moderator`,
+        name: `Hi ${TEST_USERS.viewer.handle} — not a moderator`,
       }),
     ).toBeVisible()
     await expect(

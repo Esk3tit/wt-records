@@ -9,7 +9,7 @@ test('a moderator sees the CMS shell and every section', async ({ page }) => {
   await expect(
     page.getByRole('heading', { level: 1, name: 'Moderator CMS' }),
   ).toBeVisible()
-  await expect(page.getByText(TEST_USERS.admin.handle)).toBeVisible()
+  await expect(page.getByText(TEST_USERS.moderator.handle)).toBeVisible()
 
   const sections = page.getByRole('navigation', { name: 'Admin sections' })
   for (const tab of ['Records', 'Players', 'Catalog & rules', 'Audit']) {
@@ -46,7 +46,7 @@ test('a moderator edit persists and is written to the audit log', async ({
     .getByRole('listitem')
     .filter({ hasText: 'vehicle.set_difficult' })
     .first()
-  await expect(entry).toContainText(TEST_USERS.admin.handle)
+  await expect(entry).toContainText(TEST_USERS.moderator.handle)
 
   await page.goto('/admin/catalog')
   await page.getByRole('checkbox', { name: label! }).setChecked(wasDifficult)
