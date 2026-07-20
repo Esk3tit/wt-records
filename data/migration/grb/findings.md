@@ -1,32 +1,32 @@
 # GRB extraction findings
 
-Extracted 2026-07-11T09:36:09.891Z from spreadsheet `1MJEjscVDZ1hgU7fHp6dB0levgh6rnpXwOlI7fTBXly0`.
+Extracted 2026-07-20T05:42:50.892Z from spreadsheet `1MJEjscVDZ1hgU7fHp6dB0levgh6rnpXwOlI7fTBXly0`.
 
-- Rows: **1108** (Leaderboard declares 1108); unclaimed vehicle rows skipped: 89
-- Distinct players: **263** (DataSheet declares 263)
-- Proof links: 1658; imgur posts resolved: 1590 (4 dead)
+- Rows: **1131** (Leaderboard declares 1131); unclaimed vehicle rows skipped: 65
+- Distinct players: **269** (DataSheet declares 269)
+- Proof links: 1699; imgur posts resolved: 1628 (0 dead)
 - Rows with no proof link: 0
 - Rows with video-only proof: 2
-- Rows touching a dead imgur post: 2
+- Rows touching a dead imgur post: 0
 
 ## Rows per tab
 
-- USSR: 179
-- Germany: 168
+- USSR: 180
+- Germany: 169
 - USA: 150
-- Britain: 120
-- Italy: 100
-- France: 95
+- Britain: 125
+- Italy: 104
+- France: 100
+- Sweden: 90
 - China: 87
-- Sweden: 85
-- Japan: 76
+- Japan: 78
 - Israel: 48
 
 ## Proof hosts
 
-- imgur.com: 1590
-- youtu.be: 38
-- youtube.com: 22
+- imgur.com: 1629
+- youtu.be: 39
+- youtube.com: 23
 - twitch.tv: 6
 - tiktok.com: 1
 - bilibili.com: 1
@@ -49,7 +49,7 @@ Extracted 2026-07-11T09:36:09.891Z from spreadsheet `1MJEjscVDZ1hgU7fHp6dB0levgh
 - 2.9: 1
 - 2.11: 1
 - 2.13: 2
-- 2.15: 4
+- 2.15: 5
 - 2.17: 8
 - 2.19: 3
 - 2.21: 4
@@ -58,26 +58,19 @@ Extracted 2026-07-11T09:36:09.891Z from spreadsheet `1MJEjscVDZ1hgU7fHp6dB0levgh
 - 2.27: 40
 - 2.29: 16
 - 2.31: 20
-- 2.33: 49
-- 2.35: 33
-- 2.37: 43
+- 2.33: 48
+- 2.35: 32
+- 2.37: 41
 - 2.39: 65
-- 2.41: 31
-- 2.43: 81
+- 2.41: 30
+- 2.43: 80
 - 2.45: 55
 - 2.47: 44
-- 2.49: 41
-- 2.51: 42
-- 2.53: 193
-- 2.55: 202
-- 2.57: 49
-
-## Dead imgur posts
-
-- TK4xynq (HTTP 404)
-- pURApZS (HTTP 404)
-- tOHl399 (HTTP 404)
-- 9ufSO5V (HTTP 404)
+- 2.49: 40
+- 2.51: 41
+- 2.53: 191
+- 2.55: 200
+- 2.57: 83
 
 ## Proof gaps
 

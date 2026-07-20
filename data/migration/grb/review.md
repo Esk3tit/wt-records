@@ -1,9 +1,9 @@
 # GRB resolution review
 
-Resolved 2026-07-11T10:05:42.528Z from the 2026-07-11T09:36:09.891Z snapshot.
+Resolved 2026-07-20T05:42:57.403Z from the 2026-07-20T05:42:50.892Z snapshot.
 
-- Rows: 1108, blocked: **0**
-- Players: 263
+- Rows: 1131, blocked: **0**
+- Players: 269
 - Difficult vehicles: 17 resolved, 0 unresolved
 
 Everything is resolved — Load will accept this resolution.
@@ -13,6 +13,7 @@ Everything is resolved — Load will accept this resolution.
 - `"britain:Strv 81 (RB 52) (GB)"` → ▄Strv 81 (RB 52) (uk_centurion_mk_3_ss11, score 0.9)
 - `"china:T-62 №545"` → T-62 N545 (cn_t_62, score 0.769)
 - `"china:Type 63-I"` → Type 63 (cn_type_63_I, score 0.909)
+- `"italy:ZSU-23-4"` → ◔ZSU-23-4V (it_zsu_23_4, score 0.941)
 - `"france:TPK 6.41 VPC"` → TPK 6.41 (fr_tpk_641_vpc, score 0.8)
 - `"sweden:CV 90120"` → CV90120-T (sw_cv_90120, score 0.923)
 - `"sweden:Leopard 1A5NO"` → Leopard 1A5NO2 (sw_leopard_1a5no, score 0.957)
@@ -59,10 +60,6 @@ Everything is resolved — Load will accept this resolution.
 - france:FSAF SAMP/T (Mamba) → fr_samp_t_launcher
 - sweden:NASAMS 3 → sw_nasams_launcher
 
-## Duplicate rows for one vehicle
-
-- uk_sherman_II: Britain:102 (22 kills, current) vs Britain:105 (17 kills)
-
 ## Difficult-list matches
 
 - LOSAT → LOSAT (us_losat_ccv, exact)
@@ -77,10 +74,4 @@ Everything is resolved — Load will accept this resolution.
 - Mark V → uk_mark_v, uk_mark_v_event [override]
 - Garford → ussr_garford_putilov, uk_garford_putilov_event [override]
 - Garford-Beute → germ_garford_putilov, germ_garford_putilov_event [override]
-
-## Proof gaps (mod follow-up after import)
-
-- Britain:132 (Staghound AA, Bvo): no usable image behind the proof links
-- Israel:37 (Magach 6, K_run): all proof links dead
-- Israel:42 (Magach 1, K_run): all proof links dead
 
