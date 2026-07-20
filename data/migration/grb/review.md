@@ -1,6 +1,6 @@
 # GRB resolution review
 
-Resolved 2026-07-20T05:42:57.403Z from the 2026-07-20T05:42:50.892Z snapshot.
+Resolved 2026-07-20T06:01:59.472Z from the 2026-07-20T05:42:50.892Z snapshot.
 
 - Rows: 1131, blocked: **0**
 - Players: 269
@@ -74,4 +74,8 @@ Everything is resolved — Load will accept this resolution.
 - Mark V → uk_mark_v, uk_mark_v_event [override]
 - Garford → ussr_garford_putilov, uk_garford_putilov_event [override]
 - Garford-Beute → germ_garford_putilov, germ_garford_putilov_event [override]
+
+## Shared proofs across different players (likely sheet copy-paste — verify)
+
+- imgur bkKEY2H cited by Japan:32 (Type 87 RCV (P), Bvo) and Japan:51 (Chi-Ri, _LOPE_)
 

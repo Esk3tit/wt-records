@@ -109,6 +109,39 @@ interface ReviewNotes {
   playerNotes: Array<string>
   difficultLines: Array<string>
   proofGaps: Array<string>
+  sharedProofs: Array<string>
+}
+
+/* One imgur post cited by rows of different players is almost always a
+   copy-paste slip on the sheet — but one scoreboard CAN legitimately show
+   two record runs from the same match, so this warns instead of blocking. */
+function noteSharedProofs(rows: Array<ResolvedRow>, notes: ReviewNotes): void {
+  const byPost = new Map<
+    string,
+    Array<{ rowKey: string; vehicleName: string; playerName: string }>
+  >()
+  for (const row of rows) {
+    for (const proof of row.proofs) {
+      if (!proof.mirror) continue
+      const cited = byPost.get(proof.mirror.imgurId) ?? []
+      if (!cited.some((c) => c.rowKey === row.rowKey)) {
+        cited.push({
+          rowKey: row.rowKey,
+          vehicleName: row.vehicleName,
+          playerName: row.playerName,
+        })
+      }
+      byPost.set(proof.mirror.imgurId, cited)
+    }
+  }
+  for (const [imgurId, cited] of byPost) {
+    if (new Set(cited.map((c) => c.playerName)).size < 2) continue
+    notes.sharedProofs.push(
+      `imgur ${imgurId} cited by ${cited
+        .map((c) => `${c.rowKey} (${c.vehicleName}, ${c.playerName})`)
+        .join(' and ')}`,
+    )
+  }
 }
 
 export function resolve(input: ResolveInput): ResolveResult {
@@ -124,6 +157,7 @@ export function resolve(input: ResolveInput): ResolveResult {
     playerNotes: [],
     difficultLines: [],
     proofGaps: [],
+    sharedProofs: [],
   }
 
   const byExternalId = new Map(vehicles.map((v) => [v.externalId, v]))
@@ -142,6 +176,7 @@ export function resolve(input: ResolveInput): ResolveResult {
   )
 
   adjudicateDuplicates(rows, overrides, notes)
+  noteSharedProofs(rows, notes)
 
   const players = planPlayers(snapshot.rows, overrides, notes)
   const difficultVehicles = resolveDifficultList(
@@ -549,6 +584,11 @@ function buildReview(
   section(lines, 'Player slug notes', notes.playerNotes)
   section(lines, 'Difficult-list matches', notes.difficultLines)
   section(lines, 'Proof gaps (mod follow-up after import)', notes.proofGaps)
+  section(
+    lines,
+    'Shared proofs across different players (likely sheet copy-paste — verify)',
+    notes.sharedProofs,
+  )
 
   return `${lines.join('\n')}\n`
 }

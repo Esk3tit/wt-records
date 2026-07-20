@@ -313,6 +313,21 @@ describe('resolve', () => {
     expect(bad.resolution.rows[0].problems[0]).toContain('vehicle override')
   })
 
+  it('flags one imgur post cited by rows of different players, not same-player reuse', () => {
+    const { review } = run([
+      row({ rowNumber: 1, kills: 21 }),
+      row({ rowNumber: 2, playerName: 'Bvo', kills: 12 }),
+    ])
+    expect(review).toContain('Shared proofs across different players')
+    expect(review).toContain('imgur alive01')
+
+    const samePlayer = run([
+      row({ rowNumber: 1, kills: 21 }),
+      row({ rowNumber: 2, kills: 12 }),
+    ])
+    expect(samePlayer.review).not.toContain('Shared proofs')
+  })
+
   it('blocks unresolved difficult-list vehicles', () => {
     const result = resolve({
       snapshot: snapshot([row({ rowNumber: 2 })]),
