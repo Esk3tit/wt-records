@@ -13,7 +13,9 @@ export default defineConfig({
         test: {
           name: 'unit',
           environment: 'jsdom',
-          include: ['src/**/*.test.{ts,tsx}'],
+          // e2e/ is Playwright's, but its pure support helpers are plain logic
+          // and belong in the fast suite rather than behind a browser run.
+          include: ['src/**/*.test.{ts,tsx}', 'e2e/support/**/*.test.ts'],
           // Don't double-run integration tests colocated in src/ (they belong to
           // the node `integration` project); keep Vitest's default excludes.
           exclude: [

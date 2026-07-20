@@ -1,0 +1,203 @@
+name: e2e
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # A disposable stack the job stands up itself — `supabase start` publishes
+  # these fixed ports, and the CLI's local keys are well-known, not secrets.
+  SUPABASE_URL: http://127.0.0.1:54321
+  DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+jobs:
+  # Built once and fanned out to every shard: the SSR bundle is identical
+  # across them, and rebuilding per shard is the slowest thing in the job.
+  build:
+    name: build the app under test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Generate route tree
+        run: bun run generate-routes
+
+      - name: Build
+        run: bun run build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-build
+          path: .output
+          retention-days: 1
+          # `.output` is dot-prefixed, and the action skips hidden paths by
+          # default — without this it uploads nothing and still says success.
+          include-hidden-files: true
+          # An empty upload must fail here, not two jobs later in the shards.
+          if-no-files-found: error
+
+  # Advisory on a PR, enforced on main. Keep it out of branch protection's
+  # required checks — quick-checks is the gate.
+  e2e:
+    name: e2e (shard ${{ matrix.shard }}/${{ strategy.job-total }})
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: ${{ github.event_name == 'pull_request' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-build
+          path: .output
+
+      # Keyed on the Playwright version so a bump re-downloads the matching
+      # browser build instead of running against a stale one.
+      - name: Resolve Playwright version
+        run: echo "PLAYWRIGHT_VERSION=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_ENV"
+
+      - uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ env.PLAYWRIGHT_VERSION }}
+
+      # Always via the pinned local binary: `bunx playwright` can resolve a
+      # newer registry version whose browser build the tests then can't find.
+      - name: Install Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: bun run e2e:install
+
+      - name: Install Chromium system deps
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: ./node_modules/.bin/playwright install-deps chromium
+
+      # The vendor action rather than the `bunx supabase` humans use locally:
+      # it caches the binary and pins it independently of the npm wrapper.
+      # Pinned, not `latest` — the key export below depends on `status -o env`
+      # and its flags, so a CLI release could break this with no diff.
+      - name: Start Supabase
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.1
+
+      - run: supabase start
+
+      # Sessions are minted fresh here, never committed: a stored token would
+      # be silently invalidated by a signing-key rotation.
+      - name: Export local Supabase keys
+        run: |
+          supabase status -o env \
+            --override-name auth.anon_key=SUPABASE_ANON_KEY \
+            --override-name auth.service_role_key=SUPABASE_SERVICE_ROLE_KEY \
+            | grep -E '^SUPABASE_(ANON|SERVICE_ROLE)_KEY=' | tr -d '"' >> "$GITHUB_ENV"
+
+      - name: Migrate and seed
+        run: |
+          bun run db:migrate
+          bun run db:seed
+
+      - name: Run E2E shard
+        run: bun run e2e --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: blob-report-${{ matrix.shard }}
+          path: blob-report
+          retention-days: 3
+
+      # Failure screenshots, traces and video — the reason a shard failed.
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-failures-${{ matrix.shard }}
+          path: test-results
+          retention-days: 7
+
+  merge-reports:
+    name: merged e2e report
+    if: ${{ !cancelled() }}
+    needs: e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Reporting must never be the thing that fails the run: shards that die
+    # before writing a blob leave nothing to download, and that is not a defect
+    # worth a red check on top of the shard failure that caused it.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: all-blob-reports
+          pattern: blob-report-*
+          merge-multiple: true
+
+      - name: Merge into one HTML report
+        run: bun run e2e:merge-reports ./all-blob-reports
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: playwright-report
+          retention-days: 7

@@ -29,6 +29,10 @@
     "test": "vitest run",
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
+    "test:e2e": "bun run build && playwright test",
+    "e2e": "playwright test",
+    "e2e:install": "playwright install --with-deps chromium",
+    "e2e:merge-reports": "playwright merge-reports --reporter html",
     "lint": "eslint",
     "format": "prettier --write . && eslint --fix",
     "check": "prettier --check ."
@@ -56,6 +60,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.3",
+    "@playwright/test": "1.61.1",
     "@tailwindcss/typography": "0.5.20",
     "@tanstack/devtools-vite": "0.8.1",
     "@tanstack/eslint-config": "0.4.0",

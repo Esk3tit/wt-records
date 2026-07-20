@@ -42,6 +42,7 @@ bunx @tanstack/cli@latest create wt-records \
 | `bun run test`                    | Vitest (on Node) — both projects                     |
 | `bun run test:unit`               | Vitest `unit` project only (jsdom)                   |
 | `bun run test:integration`        | Vitest `integration` project only (node)             |
+| `bun run test:e2e`                | Build, then run the Playwright E2E suite             |
 | `bun run generate-routes`         | Regenerate `src/routeTree.gen.ts`                    |
 | `bun run check`                   | Prettier formatting check (CI-enforced)              |
 | `bun run db:migrate`              | Apply committed Drizzle migrations to `DATABASE_URL` |
@@ -51,10 +52,10 @@ bunx @tanstack/cli@latest create wt-records \
 
 Set up from the first commit, not retrofitted. Two Vitest projects in one repo ([`vitest.config.ts`](./vitest.config.ts)):
 
-- **`unit`** (jsdom) — React components + pure logic (`src/**/*.test.{ts,tsx}`).
+- **`unit`** (jsdom) — React components + pure logic (`src/**/*.test.{ts,tsx}`, plus the E2E suite's pure helpers in `e2e/support/**/*.test.ts`).
 - **`integration`** (node) — server/DB tests against in-process PGlite (`tests/integration/**`). PR2 fills this with tests that replay the committed Drizzle migrations.
 
-Slower checks (Playwright E2E, visual, LLM evals) run non-blocking on previews/nightly per PRD §16.
+On top of those, **Playwright** covers a handful of critical end-to-end flows (`e2e/`) against the real SSR server — see the **[E2E runbook](./docs/e2e.md)**. In CI it is **advisory on a PR and enforced on `main`**, and never a required status check.
 
 ## CI
 
@@ -73,6 +74,8 @@ src/
 tests/
   setup.unit.ts
   integration/  # PGlite integration tests (PR2)
+e2e/            # Playwright specs
+  support/      # setup helpers (session minting, storage state) — not specs
 docs/adr/       # architecture decision records
 ```
 
