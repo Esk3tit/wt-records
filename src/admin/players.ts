@@ -272,11 +272,11 @@ export async function mergePlayers(
       .select({ name: playerAliases.name, kind: playerAliases.kind })
       .from(playerAliases)
       .where(eq(playerAliases.playerId, survivor.id))
-    const taken = new Set(survivorAliases.map((a) => `${a.kind} ${a.name}`))
+    const taken = new Set(survivorAliases.map((a) => `${a.kind}\0${a.name}`))
     const dropIds: number[] = []
     const moveIds: number[] = []
     for (const alias of dupAliases) {
-      ;(taken.has(`${alias.kind} ${alias.name}`) ? dropIds : moveIds).push(
+      ;(taken.has(`${alias.kind}\0${alias.name}`) ? dropIds : moveIds).push(
         alias.id,
       )
     }
