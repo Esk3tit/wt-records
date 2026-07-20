@@ -326,6 +326,22 @@ describe('resolve', () => {
       row({ rowNumber: 2, kills: 12 }),
     ])
     expect(samePlayer.review).not.toContain('Shared proofs')
+
+    // A shared citation of a DEAD album (no mirror) is still a sheet slip.
+    const dead = run([
+      row({
+        rowNumber: 1,
+        kills: 21,
+        proofs: [{ column: 'screenshot', url: 'https://imgur.com/a/dead01' }],
+      }),
+      row({
+        rowNumber: 2,
+        playerName: 'Bvo',
+        kills: 12,
+        proofs: [{ column: 'screenshot', url: 'https://imgur.com/a/dead01' }],
+      }),
+    ])
+    expect(dead.review).toContain('imgur dead01')
   })
 
   it('blocks unresolved difficult-list vehicles', () => {

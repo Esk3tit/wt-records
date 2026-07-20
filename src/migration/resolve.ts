@@ -122,8 +122,11 @@ function noteSharedProofs(rows: Array<ResolvedRow>, notes: ReviewNotes): void {
   >()
   for (const row of rows) {
     for (const proof of row.proofs) {
-      if (!proof.mirror) continue
-      const cited = byPost.get(proof.mirror.imgurId) ?? []
+      // Classify the original URL so dead and non-raster citations count too.
+      const imgurId =
+        proof.mirror?.imgurId ?? classifyProofUrl(proof.originalUrl).imgurId
+      if (!imgurId) continue
+      const cited = byPost.get(imgurId) ?? []
       if (!cited.some((c) => c.rowKey === row.rowKey)) {
         cited.push({
           rowKey: row.rowKey,
@@ -131,7 +134,7 @@ function noteSharedProofs(rows: Array<ResolvedRow>, notes: ReviewNotes): void {
           playerName: row.playerName,
         })
       }
-      byPost.set(proof.mirror.imgurId, cited)
+      byPost.set(imgurId, cited)
     }
   }
   for (const [imgurId, cited] of byPost) {
