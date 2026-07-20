@@ -221,7 +221,8 @@ export async function removeAlias(db: Db, actorId: string, aliasId: number) {
         .where(eq(players.id, alias.playerId))
         .for('update')
     ).at(0)
-    if (owner?.mergedInto != null) {
+    if (!owner) throw new Error(`Unknown player ${alias.playerId}`)
+    if (owner.mergedInto != null) {
       throw new Error('This player was merged — edit the surviving player')
     }
     await tx.delete(playerAliases).where(eq(playerAliases.id, aliasId))

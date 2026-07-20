@@ -313,10 +313,9 @@ export async function updateRecord(
     input = { ...input, ignSnapshot: ign }
   }
   return db.transaction(async (tx) => {
-    const existing = (
-      await tx.select().from(records).where(eq(records.id, recordId))
-    ).at(0)
-    if (!existing) throw new Error(`Unknown record ${recordId}`)
+    // Advisory lock BEFORE the row write: updating the row first inverts the
+    // lock order against the lockedRecord callers and deadlocks.
+    const existing = await lockedRecord(tx, recordId)
     // pending/rejected belong to the future submission flow — only its
     // accept/decline step may touch them.
     if (existing.status !== 'verified' && existing.status !== 'retired') {
