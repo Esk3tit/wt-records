@@ -32,7 +32,9 @@ bun run e2e:install           # Chromium, pinned to the installed Playwright
 bun run test:e2e              # builds, boots the SSR server, runs the suite
 ```
 
-**`.env` must point at the local stack.** A working `.env` normally has the *hosted* `SUPABASE_URL`, which the guard will reject — export the local values for the run:
+Playwright boots its own server on **port 3100**, deliberately not the dev server's 3000 — otherwise it would silently reuse a `bun run dev` pointed at different config, and you'd debug phantom failures.
+
+**`.env` must point at the local stack** — `SUPABASE_URL=http://127.0.0.1:54321`, not the hosted project, or the guard rejects the run. To override for a single run without editing `.env`:
 
 ```bash
 eval "$(bunx supabase status -o env |
@@ -46,6 +48,14 @@ Explicitly exported vars beat `.env` — the config restores them after loading 
 `PLAYWRIGHT_BASE_URL` points the suite at an already-running target (a server you started yourself, or a deployed preview) instead of letting Playwright boot one. The **app server must use the same Supabase project** the sessions were minted against, or every signed-in test falls through to the signed-out page.
 
 Proof uploads need Cloudflare R2, so no test creates a record with an image proof; read paths degrade to no imagery when the `R2_*` vars are absent, which is how CI runs.
+
+**If pages start returning 500s across the board**, check Postgres connections before suspecting the code — the local stack allows 100, each app server holds a pool, and killed servers do not always release theirs:
+
+```sql
+select count(*) from pg_stat_activity;
+select pg_terminate_backend(pid) from pg_stat_activity
+where application_name = 'postgres.js' and state = 'idle';
+```
 
 ## CI
 

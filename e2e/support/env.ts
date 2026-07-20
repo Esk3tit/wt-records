@@ -1,6 +1,8 @@
 // Read late, not at import time: the config loads .env after this module.
+// Port 3100, not the dev server's 3000 — otherwise Playwright silently reuses
+// a `bun run dev` that may be pointed at entirely different config.
 export function baseUrl(): string {
-  return process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
+  return process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3100'
 }
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
