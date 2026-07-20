@@ -1,7 +1,7 @@
 {
   "mode": "grb",
-  "snapshotExtractedAt": "2026-07-11T09:36:09.891Z",
-  "resolvedAt": "2026-07-11T10:05:42.528Z",
+  "snapshotExtractedAt": "2026-07-20T05:42:50.892Z",
+  "resolvedAt": "2026-07-20T06:10:33.632Z",
   "players": [
     {
       "name": "_LOPE_",
@@ -128,8 +128,8 @@
       "slug": "snixren"
     },
     {
-      "name": "jK",
-      "slug": "jk"
+      "name": "Novaカキ",
+      "slug": "nova"
     },
     {
       "name": "Volatile",
@@ -154,6 +154,10 @@
     {
       "name": "Renamed94071",
       "slug": "renamed94071"
+    },
+    {
+      "name": "BPA_Jon",
+      "slug": "bpa-jon"
     },
     {
       "name": "TeaThunderGuy",
@@ -224,8 +228,8 @@
       "slug": "xkite"
     },
     {
-      "name": "gdnt",
-      "slug": "gdnt"
+      "name": "SenuaSenuna",
+      "slug": "senuasenuna"
     },
     {
       "name": "airplanejoe",
@@ -244,8 +248,8 @@
       "slug": "epicboozer"
     },
     {
-      "name": "AimIssue_",
-      "slug": "aimissue"
+      "name": "DetranBrツ",
+      "slug": "detranbr"
     },
     {
       "name": "Jan_Direction",
@@ -468,10 +472,6 @@
       "slug": "mood"
     },
     {
-      "name": "Eazy",
-      "slug": "eazy"
-    },
-    {
       "name": "AceSkippy317",
       "slug": "aceskippy317"
     },
@@ -568,10 +568,6 @@
       "slug": "dougie99"
     },
     {
-      "name": "BPA_Jon",
-      "slug": "bpa-jon"
-    },
-    {
       "name": "Salt 5",
       "slug": "salt-5"
     },
@@ -636,6 +632,10 @@
       "slug": "lintu"
     },
     {
+      "name": "jK",
+      "slug": "jk"
+    },
+    {
       "name": "Z754",
       "slug": "z754"
     },
@@ -658,6 +658,10 @@
     {
       "name": "colonel_cookies_",
       "slug": "colonel-cookies"
+    },
+    {
+      "name": "Vladik52",
+      "slug": "vladik52"
     },
     {
       "name": "_Most",
@@ -686,6 +690,10 @@
     {
       "name": "SLIMTRASH21",
       "slug": "slimtrash21"
+    },
+    {
+      "name": "iliail_",
+      "slug": "iliail"
     },
     {
       "name": "Dylizans",
@@ -732,12 +740,24 @@
       "slug": "nemoetnihil"
     },
     {
+      "name": "VINCENTVANSHOT",
+      "slug": "vincentvanshot"
+    },
+    {
       "name": "Tanderkyn",
       "slug": "tanderkyn"
     },
     {
+      "name": "overseeer",
+      "slug": "overseeer"
+    },
+    {
       "name": "pietrekke",
       "slug": "pietrekke"
+    },
+    {
+      "name": "Mafaツ",
+      "slug": "mafa"
     },
     {
       "name": "SatanicBonecrusher",
@@ -814,6 +834,10 @@
     {
       "name": "CASSACOツ",
       "slug": "cassaco"
+    },
+    {
+      "name": "BigNici10",
+      "slug": "bignici10"
     },
     {
       "name": "ThicTurtle_",
@@ -980,6 +1004,10 @@
       "slug": "angryroofkorean"
     },
     {
+      "name": "Odd-Cod",
+      "slug": "odd-cod"
+    },
+    {
       "name": "Mienyam",
       "slug": "mienyam"
     },
@@ -1006,10 +1034,6 @@
     {
       "name": "JohnDoe1411",
       "slug": "johndoe1411"
-    },
-    {
-      "name": "K2 Krabiwe",
-      "slug": "k2-krabiwe"
     },
     {
       "name": "Cav爱狐狸",
@@ -2507,23 +2531,32 @@
       "rowNumber": 44,
       "nation": "usa",
       "vehicleName": "XM-1 (Chrysler)",
-      "playerName": "jK",
-      "kills": 22,
+      "playerName": "Novaカキ",
+      "kills": 24,
       "br": 9,
       "vehicleExternalId": "us_xm1_chrysler",
       "vehicleMatch": "exact",
       "patch": "2.57",
       "isCurrent": true,
-      "submittedAt": "2026-07-04T17:28:30Z",
-      "verifiedAt": "2026-07-04T17:28:30Z",
+      "submittedAt": "2026-07-13T18:00:42Z",
+      "verifiedAt": "2026-07-13T18:00:42Z",
       "proofs": [
         {
           "kind": "scoreboard",
-          "originalUrl": "https://i.imgur.com/bEP1avU.png",
+          "originalUrl": "https://i.imgur.com/yfCZkhT.jpeg",
           "mirror": {
-            "imgurId": "zPElaTy",
-            "mediaId": "bEP1avU",
-            "ext": "png"
+            "imgurId": "jGXC3r7",
+            "mediaId": "yfCZkhT",
+            "ext": "jpeg"
+          }
+        },
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/K60fHTC.jpeg",
+          "mirror": {
+            "imgurId": "jGXC3r7",
+            "mediaId": "K60fHTC",
+            "ext": "jpeg"
           }
         }
       ],
@@ -3138,32 +3171,32 @@
       "rowNumber": 64,
       "nation": "usa",
       "vehicleName": "T54E2",
-      "playerName": "Cavenub",
-      "kills": 16,
+      "playerName": "BPA_Jon",
+      "kills": 17,
       "br": 7.7,
       "vehicleExternalId": "us_t54e2",
       "vehicleMatch": "exact",
-      "patch": "2.37",
+      "patch": "2.57",
       "isCurrent": true,
-      "submittedAt": "2024-08-20T19:23:25Z",
-      "verifiedAt": "2024-08-20T19:23:25Z",
+      "submittedAt": "2026-07-16T17:28:04Z",
+      "verifiedAt": "2026-07-16T17:28:04Z",
       "proofs": [
         {
           "kind": "scoreboard",
-          "originalUrl": "https://i.imgur.com/2eRUTVR.png",
+          "originalUrl": "https://i.imgur.com/KHUX8Wf.png",
           "mirror": {
-            "imgurId": "mvC4sQK",
-            "mediaId": "2eRUTVR",
+            "imgurId": "ndEROVN",
+            "mediaId": "KHUX8Wf",
             "ext": "png"
           }
         },
         {
           "kind": "end_game",
-          "originalUrl": "https://i.imgur.com/jQot0kU.png",
+          "originalUrl": "https://i.imgur.com/PjabFxz.jpeg",
           "mirror": {
-            "imgurId": "JbugJn9",
-            "mediaId": "jQot0kU",
-            "ext": "png"
+            "imgurId": "IMCD9NQ",
+            "mediaId": "PjabFxz",
+            "ext": "jpeg"
           }
         }
       ],
@@ -4161,31 +4194,22 @@
       "rowNumber": 94,
       "nation": "usa",
       "vehicleName": "T86",
-      "playerName": "gdnt",
-      "kills": 18,
+      "playerName": "SenuaSenuna",
+      "kills": 20,
       "br": 6,
       "vehicleExternalId": "us_t86",
       "vehicleMatch": "exact",
-      "patch": "2.55",
+      "patch": "2.57",
       "isCurrent": true,
-      "submittedAt": "2026-03-31T20:07:43Z",
-      "verifiedAt": "2026-03-31T20:07:43Z",
+      "submittedAt": "2026-07-15T11:31:37Z",
+      "verifiedAt": "2026-07-15T11:31:37Z",
       "proofs": [
         {
           "kind": "scoreboard",
-          "originalUrl": "https://i.imgur.com/RPzsJxc.png",
+          "originalUrl": "https://i.imgur.com/4rXFZuM.png",
           "mirror": {
-            "imgurId": "P9t0rEr",
-            "mediaId": "RPzsJxc",
-            "ext": "png"
-          }
-        },
-        {
-          "kind": "end_game",
-          "originalUrl": "https://i.imgur.com/K2oTUtH.png",
-          "mirror": {
-            "imgurId": "FYMjN3s",
-            "mediaId": "K2oTUtH",
+            "imgurId": "N95buq3",
+            "mediaId": "4rXFZuM",
             "ext": "png"
           }
         }
@@ -4337,22 +4361,22 @@
       "rowNumber": 99,
       "nation": "usa",
       "vehicleName": "M36B2",
-      "playerName": "AimIssue_",
-      "kills": 16,
+      "playerName": "DetranBrツ",
+      "kills": 17,
       "br": 5.7,
       "vehicleExternalId": "us_m36b2",
       "vehicleMatch": "exact",
-      "patch": "2.43",
+      "patch": "2.57",
       "isCurrent": true,
-      "submittedAt": "2024-12-18T17:53:20Z",
-      "verifiedAt": "2024-12-18T17:53:20Z",
+      "submittedAt": "2026-07-15T11:26:52Z",
+      "verifiedAt": "2026-07-15T11:26:52Z",
       "proofs": [
         {
           "kind": "scoreboard",
-          "originalUrl": "https://i.imgur.com/QWAdyKi.png",
+          "originalUrl": "https://i.imgur.com/qlguUsj.png",
           "mirror": {
-            "imgurId": "3O3dlh0",
-            "mediaId": "QWAdyKi",
+            "imgurId": "8PW5mVl",
+            "mediaId": "qlguUsj",
             "ext": "png"
           }
         }
@@ -6400,6 +6424,43 @@
       "problems": []
     },
     {
+      "rowKey": "Germany:13",
+      "tab": "Germany",
+      "rowNumber": 13,
+      "nation": "germany",
+      "vehicleName": "Puma VJTF",
+      "playerName": "docxurty2017",
+      "kills": 15,
+      "br": 11,
+      "vehicleExternalId": "germ_schutzenpanzer_puma_vjtf",
+      "vehicleMatch": "exact",
+      "patch": "2.57",
+      "isCurrent": true,
+      "submittedAt": "2026-07-19T13:19:28Z",
+      "verifiedAt": "2026-07-19T13:19:28Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/r26cpDG.png",
+          "mirror": {
+            "imgurId": "XNbLdKJ",
+            "mediaId": "r26cpDG",
+            "ext": "png"
+          }
+        },
+        {
+          "kind": "end_game",
+          "originalUrl": "https://i.imgur.com/6eCOGdu.png",
+          "mirror": {
+            "imgurId": "2w9eXjY",
+            "mediaId": "6eCOGdu",
+            "ext": "png"
+          }
+        }
+      ],
+      "problems": []
+    },
+    {
       "rowKey": "Germany:14",
       "tab": "Germany",
       "rowNumber": 14,
@@ -7408,22 +7469,22 @@
       "nation": "germany",
       "vehicleName": "VT1-2",
       "playerName": "МОРИАРТИ",
-      "kills": 20,
+      "kills": 21,
       "br": 8.7,
       "vehicleExternalId": "germ_vt_1_2",
       "vehicleMatch": "exact",
-      "patch": "2.55",
+      "patch": "2.57",
       "isCurrent": true,
-      "submittedAt": "2026-06-01T18:43:03Z",
-      "verifiedAt": "2026-06-01T18:43:03Z",
+      "submittedAt": "2026-07-17T14:22:11Z",
+      "verifiedAt": "2026-07-17T14:22:11Z",
       "proofs": [
         {
           "kind": "scoreboard",
-          "originalUrl": "https://i.imgur.com/u00v2AD.png",
+          "originalUrl": "https://i.imgur.com/lNUtugQ.jpeg",
           "mirror": {
-            "imgurId": "ckXDAjq",
-            "mediaId": "u00v2AD",
-            "ext": "png"
+            "imgurId": "jETgVG0",
+            "mediaId": "lNUtugQ",
+            "ext": "jpeg"
           }
         }
       ],
@@ -9684,32 +9745,41 @@
       "rowNumber": 116,
       "nation": "germany",
       "vehicleName": "Pz.Kpfw. Churchill",
-      "playerName": "Eazy",
-      "kills": 12,
+      "playerName": "Guiriguiri",
+      "kills": 21,
       "br": 4,
       "vehicleExternalId": "germ_infanterie_kampfpanzer_churchill",
       "vehicleMatch": "exact",
-      "patch": "2.53",
+      "patch": "2.57",
       "isCurrent": true,
-      "submittedAt": "2025-12-16T21:20:24Z",
-      "verifiedAt": "2025-12-16T21:20:24Z",
+      "submittedAt": "2026-07-15T11:34:40Z",
+      "verifiedAt": "2026-07-15T11:34:40Z",
       "proofs": [
         {
           "kind": "scoreboard",
-          "originalUrl": "https://i.imgur.com/Fhjntub.png",
+          "originalUrl": "https://i.imgur.com/4dXL1Ug.png",
           "mirror": {
-            "imgurId": "0o46M8U",
-            "mediaId": "Fhjntub",
+            "imgurId": "H7fGVMG",
+            "mediaId": "4dXL1Ug",
+            "ext": "png"
+          }
+        },
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/vS49kzV.png",
+          "mirror": {
+            "imgurId": "H7fGVMG",
+            "mediaId": "vS49kzV",
             "ext": "png"
           }
         },
         {
           "kind": "end_game",
-          "originalUrl": "https://i.imgur.com/Gb2lObd.png",
+          "originalUrl": "https://i.imgur.com/Ct9vt3Q.jpeg",
           "mirror": {
-            "imgurId": "59CmOnI",
-            "mediaId": "Gb2lObd",
-            "ext": "png"
+            "imgurId": "BqdbwJm",
+            "mediaId": "Ct9vt3Q",
+            "ext": "jpeg"
           }
         }
       ],
@@ -9814,23 +9884,32 @@
       "rowNumber": 120,
       "nation": "germany",
       "vehicleName": "Pz.Bef.Wg.IV J",
-      "playerName": "Aongus_Brostin",
-      "kills": 20,
+      "playerName": "Guiriguiri",
+      "kills": 21,
       "br": 4,
       "vehicleExternalId": "germ_panzerbefelhswagen_IV_ausf_J",
       "vehicleMatch": "exact",
-      "patch": "2.37",
+      "patch": "2.57",
       "isCurrent": true,
-      "submittedAt": "2024-08-16T22:30:27Z",
-      "verifiedAt": "2024-08-16T22:30:27Z",
+      "submittedAt": "2026-07-16T15:47:05Z",
+      "verifiedAt": "2026-07-16T15:47:05Z",
       "proofs": [
         {
           "kind": "scoreboard",
-          "originalUrl": "https://i.imgur.com/DQdevHI.png",
+          "originalUrl": "https://i.imgur.com/UjdXq2M.jpeg",
           "mirror": {
-            "imgurId": "OXnWMdu",
-            "mediaId": "DQdevHI",
-            "ext": "png"
+            "imgurId": "pGjYxf8",
+            "mediaId": "UjdXq2M",
+            "ext": "jpeg"
+          }
+        },
+        {
+          "kind": "end_game",
+          "originalUrl": "https://i.imgur.com/lSE0DLS.jpeg",
+          "mirror": {
+            "imgurId": "7BXYVu8",
+            "mediaId": "lSE0DLS",
+            "ext": "jpeg"
           }
         }
       ],
@@ -16662,6 +16741,43 @@
       "problems": []
     },
     {
+      "rowKey": "USSR:158",
+      "tab": "USSR",
+      "rowNumber": 158,
+      "nation": "ussr",
+      "vehicleName": "SU-57B",
+      "playerName": "Vladik52",
+      "kills": 15,
+      "br": 2.7,
+      "vehicleExternalId": "ussr_su_57b",
+      "vehicleMatch": "exact",
+      "patch": "2.57",
+      "isCurrent": true,
+      "submittedAt": "2026-07-19T13:16:45Z",
+      "verifiedAt": "2026-07-19T13:16:45Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/x6qvAvq.png",
+          "mirror": {
+            "imgurId": "5PJYVlL",
+            "mediaId": "x6qvAvq",
+            "ext": "png"
+          }
+        },
+        {
+          "kind": "end_game",
+          "originalUrl": "https://i.imgur.com/9jCuEFP.png",
+          "mirror": {
+            "imgurId": "sAPk1Rl",
+            "mediaId": "9jCuEFP",
+            "ext": "png"
+          }
+        }
+      ],
+      "problems": []
+    },
+    {
       "rowKey": "USSR:159",
       "tab": "USSR",
       "rowNumber": 159,
@@ -17541,22 +17657,31 @@
       "nation": "britain",
       "vehicleName": "M1A2",
       "playerName": "Cavenub",
-      "kills": 14,
+      "kills": 22,
       "br": 12.7,
       "vehicleExternalId": "uk_m1a2_sep3_abrams",
       "vehicleMatch": "exact",
       "patch": "2.57",
       "isCurrent": true,
-      "submittedAt": "2026-06-27T01:23:32Z",
-      "verifiedAt": "2026-06-27T01:23:32Z",
+      "submittedAt": "2026-07-19T13:12:39Z",
+      "verifiedAt": "2026-07-19T13:12:39Z",
       "proofs": [
         {
           "kind": "scoreboard",
-          "originalUrl": "https://i.imgur.com/QV0LspL.png",
+          "originalUrl": "https://i.imgur.com/CunAKUA.png",
           "mirror": {
-            "imgurId": "FjX9Ys0",
-            "mediaId": "QV0LspL",
+            "imgurId": "rBkgNJx",
+            "mediaId": "CunAKUA",
             "ext": "png"
+          }
+        },
+        {
+          "kind": "end_game",
+          "originalUrl": "https://i.imgur.com/pVaiWvV.jpeg",
+          "mirror": {
+            "imgurId": "NEeOJtV",
+            "mediaId": "pVaiWvV",
+            "ext": "jpeg"
           }
         }
       ],
@@ -17807,6 +17932,34 @@
           "mirror": {
             "imgurId": "5mOeTv4",
             "mediaId": "DF6tQNF",
+            "ext": "png"
+          }
+        }
+      ],
+      "problems": []
+    },
+    {
+      "rowKey": "Britain:15",
+      "tab": "Britain",
+      "rowNumber": 15,
+      "nation": "britain",
+      "vehicleName": "CRV Block 2",
+      "playerName": "Salti",
+      "kills": 12,
+      "br": 10.7,
+      "vehicleExternalId": "uk_boxer_crv_block2",
+      "vehicleMatch": "exact",
+      "patch": "2.57",
+      "isCurrent": true,
+      "submittedAt": "2026-07-17T10:49:09Z",
+      "verifiedAt": "2026-07-17T10:49:09Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/WBBuSmS.png",
+          "mirror": {
+            "imgurId": "T4zzbvz",
+            "mediaId": "WBBuSmS",
             "ext": "png"
           }
         }
@@ -18171,22 +18324,31 @@
       "rowNumber": 30,
       "nation": "britain",
       "vehicleName": "Rooikat 105",
-      "playerName": "Dylizans",
-      "kills": 17,
+      "playerName": "iliail_",
+      "kills": 20,
       "br": 9.7,
       "vehicleExternalId": "uk_rooikat_105_td",
       "vehicleMatch": "exact",
-      "patch": "2.33",
+      "patch": "2.57",
       "isCurrent": true,
-      "submittedAt": "2025-07-01T16:04:39Z",
-      "verifiedAt": "2025-07-01T16:04:39Z",
+      "submittedAt": "2026-07-18T13:58:57Z",
+      "verifiedAt": "2026-07-18T13:58:57Z",
       "proofs": [
         {
           "kind": "scoreboard",
-          "originalUrl": "https://i.imgur.com/EEODCTe.png",
+          "originalUrl": "https://i.imgur.com/V1gpGJ3.jpeg",
           "mirror": {
-            "imgurId": "D1B7Zs6",
-            "mediaId": "EEODCTe",
+            "imgurId": "8jHUzYN",
+            "mediaId": "V1gpGJ3",
+            "ext": "jpeg"
+          }
+        },
+        {
+          "kind": "end_game",
+          "originalUrl": "https://i.imgur.com/iXBeiai.png",
+          "mirror": {
+            "imgurId": "GWve8zq",
+            "mediaId": "iXBeiai",
             "ext": "png"
           }
         }
@@ -18998,7 +19160,7 @@
       "vehicleMatch": "exact",
       "patch": "2.47",
       "isCurrent": true,
-      "submittedAt": "2026-07-11T09:36:09.891Z",
+      "submittedAt": "2026-07-20T05:42:50.892Z",
       "verifiedAt": null,
       "proofs": [
         {
@@ -19067,6 +19229,34 @@
           "mirror": {
             "imgurId": "f1iG4sn",
             "mediaId": "oAebTjj",
+            "ext": "png"
+          }
+        }
+      ],
+      "problems": []
+    },
+    {
+      "rowKey": "Britain:58",
+      "tab": "Britain",
+      "rowNumber": 58,
+      "nation": "britain",
+      "vehicleName": "Centurion Action X",
+      "playerName": "docxurty2017",
+      "kills": 13,
+      "br": 7.7,
+      "vehicleExternalId": "uk_centurion_action_x",
+      "vehicleMatch": "exact",
+      "patch": "2.57",
+      "isCurrent": true,
+      "submittedAt": "2026-07-17T10:46:34Z",
+      "verifiedAt": "2026-07-17T10:46:34Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/DRQsSzk.png",
+          "mirror": {
+            "imgurId": "Rtm5nj0",
+            "mediaId": "DRQsSzk",
             "ext": "png"
           }
         }
@@ -20117,6 +20307,71 @@
       "problems": []
     },
     {
+      "rowKey": "Britain:92",
+      "tab": "Britain",
+      "rowNumber": 92,
+      "nation": "britain",
+      "vehicleName": "Firefly (Overlord)",
+      "playerName": "NemoetNihil",
+      "kills": 13,
+      "br": 4.7,
+      "vehicleExternalId": "uk_sherman_vc_firefly_kit_3rank",
+      "vehicleMatch": "exact",
+      "patch": "2.57",
+      "isCurrent": true,
+      "submittedAt": "2026-07-19T13:27:11Z",
+      "verifiedAt": "2026-07-19T13:27:11Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/mj5nG31.png",
+          "mirror": {
+            "imgurId": "f0obg9W",
+            "mediaId": "mj5nG31",
+            "ext": "png"
+          }
+        },
+        {
+          "kind": "end_game",
+          "originalUrl": "https://i.imgur.com/aSwozSM.png",
+          "mirror": {
+            "imgurId": "mLVTt00",
+            "mediaId": "aSwozSM",
+            "ext": "png"
+          }
+        }
+      ],
+      "problems": []
+    },
+    {
+      "rowKey": "Britain:93",
+      "tab": "Britain",
+      "rowNumber": 93,
+      "nation": "britain",
+      "vehicleName": "Avenger (Overlord)",
+      "playerName": "VINCENTVANSHOT",
+      "kills": 12,
+      "br": 4.7,
+      "vehicleExternalId": "uk_a30_sp_avenger_kit_3rank",
+      "vehicleMatch": "exact",
+      "patch": "2.57",
+      "isCurrent": true,
+      "submittedAt": "2026-07-11T14:27:49Z",
+      "verifiedAt": "2026-07-11T14:27:49Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/lit2zo8.png",
+          "mirror": {
+            "imgurId": "aDfTgL2",
+            "mediaId": "lit2zo8",
+            "ext": "png"
+          }
+        }
+      ],
+      "problems": []
+    },
+    {
       "rowKey": "Britain:94",
       "tab": "Britain",
       "rowNumber": 94,
@@ -20284,6 +20539,43 @@
       "problems": []
     },
     {
+      "rowKey": "Britain:100",
+      "tab": "Britain",
+      "rowNumber": 100,
+      "nation": "britain",
+      "vehicleName": "Crusader AA (Overlord)",
+      "playerName": "NemoetNihil",
+      "kills": 6,
+      "br": 4,
+      "vehicleExternalId": "uk_crusader_aa_mk_2_kit_3rank",
+      "vehicleMatch": "exact",
+      "patch": "2.57",
+      "isCurrent": true,
+      "submittedAt": "2026-07-19T13:24:46Z",
+      "verifiedAt": "2026-07-19T13:24:46Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/f6mP2Q3.jpeg",
+          "mirror": {
+            "imgurId": "U4vAGgy",
+            "mediaId": "f6mP2Q3",
+            "ext": "jpeg"
+          }
+        },
+        {
+          "kind": "end_game",
+          "originalUrl": "https://i.imgur.com/OAYiqBV.png",
+          "mirror": {
+            "imgurId": "yJebPY5",
+            "mediaId": "OAYiqBV",
+            "ext": "png"
+          }
+        }
+      ],
+      "problems": []
+    },
+    {
       "rowKey": "Britain:102",
       "tab": "Britain",
       "rowNumber": 102,
@@ -20381,43 +20673,6 @@
       "tab": "Britain",
       "rowNumber": 105,
       "nation": "britain",
-      "vehicleName": "Sherman II",
-      "playerName": "VeloxNimbus",
-      "kills": 17,
-      "br": 3.7,
-      "vehicleExternalId": "uk_sherman_II",
-      "vehicleMatch": "exact",
-      "patch": "2.51",
-      "isCurrent": false,
-      "submittedAt": "2025-11-13T20:11:50Z",
-      "verifiedAt": "2025-11-13T20:11:50Z",
-      "proofs": [
-        {
-          "kind": "scoreboard",
-          "originalUrl": "https://i.imgur.com/BbPrsHu.jpeg",
-          "mirror": {
-            "imgurId": "OlJ1MnE",
-            "mediaId": "BbPrsHu",
-            "ext": "jpeg"
-          }
-        },
-        {
-          "kind": "end_game",
-          "originalUrl": "https://i.imgur.com/KIYu7Kd.png",
-          "mirror": {
-            "imgurId": "JsFpk3O",
-            "mediaId": "KIYu7Kd",
-            "ext": "png"
-          }
-        }
-      ],
-      "problems": []
-    },
-    {
-      "rowKey": "Britain:106",
-      "tab": "Britain",
-      "rowNumber": 106,
-      "nation": "britain",
       "vehicleName": "Ram II",
       "playerName": "MAPuHA",
       "kills": 23,
@@ -20451,9 +20706,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:108",
+      "rowKey": "Britain:107",
       "tab": "Britain",
-      "rowNumber": 108,
+      "rowNumber": 107,
       "nation": "britain",
       "vehicleName": "Cromwell V",
       "playerName": "CertifiedMonke",
@@ -20479,9 +20734,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:109",
+      "rowKey": "Britain:108",
       "tab": "Britain",
-      "rowNumber": 109,
+      "rowNumber": 108,
       "nation": "britain",
       "vehicleName": "Cromwell V (RP-3)",
       "playerName": "TeaThunderGuy",
@@ -20507,9 +20762,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:110",
+      "rowKey": "Britain:109",
       "tab": "Britain",
-      "rowNumber": 110,
+      "rowNumber": 109,
       "nation": "britain",
       "vehicleName": "AEC Mk II",
       "playerName": "_crescentmoon_",
@@ -20535,9 +20790,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:111",
+      "rowKey": "Britain:110",
       "tab": "Britain",
-      "rowNumber": 111,
+      "rowNumber": 110,
       "nation": "britain",
       "vehicleName": "Achilles",
       "playerName": "Gaster_Sans_",
@@ -20563,9 +20818,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:112",
+      "rowKey": "Britain:111",
       "tab": "Britain",
-      "rowNumber": 112,
+      "rowNumber": 111,
       "nation": "britain",
       "vehicleName": "Achilles (65 Rg.)",
       "playerName": "TeaThunderGuy",
@@ -20600,9 +20855,46 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:114",
+      "rowKey": "Britain:112",
       "tab": "Britain",
-      "rowNumber": 114,
+      "rowNumber": 112,
+      "nation": "britain",
+      "vehicleName": "Churchill I",
+      "playerName": "overseeer",
+      "kills": 20,
+      "br": 3.3,
+      "vehicleExternalId": "uk_a_22_mk_1_churchill_1941",
+      "vehicleMatch": "exact",
+      "patch": "2.57",
+      "isCurrent": true,
+      "submittedAt": "2026-07-18T14:14:55Z",
+      "verifiedAt": "2026-07-18T14:14:55Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/ccu7oyr.png",
+          "mirror": {
+            "imgurId": "4LCCqhE",
+            "mediaId": "ccu7oyr",
+            "ext": "png"
+          }
+        },
+        {
+          "kind": "end_game",
+          "originalUrl": "https://i.imgur.com/g8dtVyI.png",
+          "mirror": {
+            "imgurId": "durNDY3",
+            "mediaId": "g8dtVyI",
+            "ext": "png"
+          }
+        }
+      ],
+      "problems": []
+    },
+    {
+      "rowKey": "Britain:113",
+      "tab": "Britain",
+      "rowNumber": 113,
       "nation": "britain",
       "vehicleName": "Ram I",
       "playerName": "-Prince-",
@@ -20646,9 +20938,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:115",
+      "rowKey": "Britain:114",
       "tab": "Britain",
-      "rowNumber": 115,
+      "rowNumber": 114,
       "nation": "britain",
       "vehicleName": "A.C.I",
       "playerName": "pietrekke",
@@ -20683,9 +20975,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:116",
+      "rowKey": "Britain:115",
       "tab": "Britain",
-      "rowNumber": 116,
+      "rowNumber": 115,
       "nation": "britain",
       "vehicleName": "Crusader AA Mk I",
       "playerName": "CostcoShopper",
@@ -20711,9 +21003,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:117",
+      "rowKey": "Britain:116",
       "tab": "Britain",
-      "rowNumber": 117,
+      "rowNumber": 116,
       "nation": "britain",
       "vehicleName": "Crusader III",
       "playerName": "Quack_Yourself",
@@ -20748,9 +21040,37 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:119",
+      "rowKey": "Britain:117",
       "tab": "Britain",
-      "rowNumber": 119,
+      "rowNumber": 117,
+      "nation": "britain",
+      "vehicleName": "Valentine IX",
+      "playerName": "Mafaツ",
+      "kills": 16,
+      "br": 3,
+      "vehicleExternalId": "uk_valentine_mk_9",
+      "vehicleMatch": "exact",
+      "patch": "2.57",
+      "isCurrent": true,
+      "submittedAt": "2026-07-11T21:56:32Z",
+      "verifiedAt": "2026-07-11T21:56:32Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/JPxtE9N.png",
+          "mirror": {
+            "imgurId": "ZVFOF2O",
+            "mediaId": "JPxtE9N",
+            "ext": "png"
+          }
+        }
+      ],
+      "problems": []
+    },
+    {
+      "rowKey": "Britain:118",
+      "tab": "Britain",
+      "rowNumber": 118,
       "nation": "britain",
       "vehicleName": "Gun Carrier (3-in)",
       "playerName": "SatanicBonecrusher",
@@ -20776,9 +21096,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:120",
+      "rowKey": "Britain:119",
       "tab": "Britain",
-      "rowNumber": 120,
+      "rowNumber": 119,
       "nation": "britain",
       "vehicleName": "Valentine XI",
       "playerName": "Guiriguiri",
@@ -20804,9 +21124,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:121",
+      "rowKey": "Britain:120",
       "tab": "Britain",
-      "rowNumber": 121,
+      "rowNumber": 120,
       "nation": "britain",
       "vehicleName": "Archer",
       "playerName": "VaKiMe_1945",
@@ -20832,9 +21152,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:122",
+      "rowKey": "Britain:121",
       "tab": "Britain",
-      "rowNumber": 122,
+      "rowNumber": 121,
       "nation": "britain",
       "vehicleName": "Crusader \"The Saint\"",
       "playerName": "CostcoShopper",
@@ -20869,9 +21189,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:123",
+      "rowKey": "Britain:122",
       "tab": "Britain",
-      "rowNumber": 123,
+      "rowNumber": 122,
       "nation": "britain",
       "vehicleName": "Grant I",
       "playerName": "Guiriguiri",
@@ -20897,9 +21217,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:124",
+      "rowKey": "Britain:123",
       "tab": "Britain",
-      "rowNumber": 124,
+      "rowNumber": 123,
       "nation": "britain",
       "vehicleName": "Churchill AVRE Petard",
       "playerName": "LostAffinity",
@@ -20934,9 +21254,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:125",
+      "rowKey": "Britain:124",
       "tab": "Britain",
-      "rowNumber": 125,
+      "rowNumber": 124,
       "nation": "britain",
       "vehicleName": "Matilda Hedgehog",
       "playerName": "Germany_Meta",
@@ -20962,9 +21282,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:126",
+      "rowKey": "Britain:125",
       "tab": "Britain",
-      "rowNumber": 126,
+      "rowNumber": 125,
       "nation": "britain",
       "vehicleName": "Matilda III",
       "playerName": "craig1134566",
@@ -20990,9 +21310,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:127",
+      "rowKey": "Britain:126",
       "tab": "Britain",
-      "rowNumber": 127,
+      "rowNumber": 126,
       "nation": "britain",
       "vehicleName": "Crusader II",
       "playerName": "AKA-Howitzer",
@@ -21031,9 +21351,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:128",
+      "rowKey": "Britain:127",
       "tab": "Britain",
-      "rowNumber": 128,
+      "rowNumber": 127,
       "nation": "britain",
       "vehicleName": "Valentine I",
       "playerName": "katehox",
@@ -21059,9 +21379,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:129",
+      "rowKey": "Britain:128",
       "tab": "Britain",
-      "rowNumber": 129,
+      "rowNumber": 128,
       "nation": "britain",
       "vehicleName": "Harry Hopkins 1",
       "playerName": "katehox",
@@ -21096,9 +21416,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:130",
+      "rowKey": "Britain:129",
       "tab": "Britain",
-      "rowNumber": 130,
+      "rowNumber": 129,
       "nation": "britain",
       "vehicleName": "Stuart III",
       "playerName": "Ga3uK",
@@ -21124,9 +21444,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:131",
+      "rowKey": "Britain:130",
       "tab": "Britain",
-      "rowNumber": 131,
+      "rowNumber": 130,
       "nation": "britain",
       "vehicleName": "SARC MkVI (2pdr)",
       "playerName": "LostAffinity",
@@ -21165,29 +21485,6 @@
       "tab": "Britain",
       "rowNumber": 132,
       "nation": "britain",
-      "vehicleName": "Staghound AA",
-      "playerName": "Bvo",
-      "kills": 8,
-      "br": 2,
-      "vehicleExternalId": "uk_t17e2",
-      "vehicleMatch": "exact",
-      "patch": "2.35",
-      "isCurrent": true,
-      "submittedAt": "2024-04-01T13:44:58Z",
-      "verifiedAt": "2024-04-01T13:44:58Z",
-      "proofs": [
-        {
-          "kind": "scoreboard",
-          "originalUrl": "https://imgur.com/a/Tmousc4"
-        }
-      ],
-      "problems": []
-    },
-    {
-      "rowKey": "Britain:133",
-      "tab": "Britain",
-      "rowNumber": 133,
-      "nation": "britain",
       "vehicleName": "Stuart I",
       "playerName": "Guiriguiri",
       "kills": 20,
@@ -21212,9 +21509,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:134",
+      "rowKey": "Britain:133",
       "tab": "Britain",
-      "rowNumber": 134,
+      "rowNumber": 133,
       "nation": "britain",
       "vehicleName": "Alecto I",
       "playerName": "TeaThunderGuy",
@@ -21249,9 +21546,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:135",
+      "rowKey": "Britain:134",
       "tab": "Britain",
-      "rowNumber": 135,
+      "rowNumber": 134,
       "nation": "britain",
       "vehicleName": "A13 Mk II",
       "playerName": "Guiriguiri",
@@ -21286,9 +21583,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:136",
+      "rowKey": "Britain:135",
       "tab": "Britain",
-      "rowNumber": 136,
+      "rowNumber": 135,
       "nation": "britain",
       "vehicleName": "A13 Mk II 1939",
       "playerName": "Guiriguiri",
@@ -21314,9 +21611,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:137",
+      "rowKey": "Britain:136",
       "tab": "Britain",
-      "rowNumber": 137,
+      "rowNumber": 136,
       "nation": "britain",
       "vehicleName": "Daimler Mk II",
       "playerName": "Guiriguiri",
@@ -21342,9 +21639,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:139",
+      "rowKey": "Britain:138",
       "tab": "Britain",
-      "rowNumber": 139,
+      "rowNumber": 138,
       "nation": "britain",
       "vehicleName": "SARC MkIVa",
       "playerName": "katehox",
@@ -21370,9 +21667,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:140",
+      "rowKey": "Britain:139",
       "tab": "Britain",
-      "rowNumber": 140,
+      "rowNumber": 139,
       "nation": "britain",
       "vehicleName": "A13 Mk I",
       "playerName": "K_run",
@@ -21398,9 +21695,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:141",
+      "rowKey": "Britain:140",
       "tab": "Britain",
-      "rowNumber": 141,
+      "rowNumber": 140,
       "nation": "britain",
       "vehicleName": "A13 Mk I (3rd R.T.R.)",
       "playerName": "KISS ДЫРЯВЫЙ ТУЗ",
@@ -21426,9 +21723,9 @@
       "problems": []
     },
     {
-      "rowKey": "Britain:144",
+      "rowKey": "Britain:143",
       "tab": "Britain",
-      "rowNumber": 144,
+      "rowNumber": 143,
       "nation": "britain",
       "vehicleName": "Tetrarch I",
       "playerName": "Guiriguiri",
@@ -22411,15 +22708,15 @@
       "vehicleMatch": "exact",
       "patch": "2.55",
       "isCurrent": true,
-      "submittedAt": "2026-06-19T20:47:54Z",
-      "verifiedAt": "2026-06-19T20:47:54Z",
+      "submittedAt": "2026-07-15T16:53:48Z",
+      "verifiedAt": "2026-07-15T16:53:48Z",
       "proofs": [
         {
           "kind": "scoreboard",
-          "originalUrl": "https://i.imgur.com/bHwdMEv.png",
+          "originalUrl": "https://i.imgur.com/eoe3nvH.png",
           "mirror": {
-            "imgurId": "7VkMMTR",
-            "mediaId": "bHwdMEv",
+            "imgurId": "bkKEY2H",
+            "mediaId": "eoe3nvH",
             "ext": "png"
           }
         }
@@ -22975,28 +23272,24 @@
       "rowNumber": 51,
       "nation": "japan",
       "vehicleName": "Chi-Ri",
-      "playerName": "BPA_Jon",
-      "kills": 20,
+      "playerName": "_LOPE_",
+      "kills": 21,
       "br": 5.7,
       "vehicleExternalId": "jp_type_5_chi_ri",
       "vehicleMatch": "exact",
-      "patch": "2.45",
+      "patch": "2.57",
       "isCurrent": true,
-      "submittedAt": "2025-07-01T18:03:51Z",
-      "verifiedAt": "2025-07-01T18:03:51Z",
+      "submittedAt": "2026-07-15T16:53:48Z",
+      "verifiedAt": "2026-07-15T16:53:48Z",
       "proofs": [
         {
           "kind": "scoreboard",
-          "originalUrl": "https://i.imgur.com/cr9C7nh.png",
+          "originalUrl": "https://i.imgur.com/eoe3nvH.png",
           "mirror": {
-            "imgurId": "ZTixzPA",
-            "mediaId": "cr9C7nh",
+            "imgurId": "bkKEY2H",
+            "mediaId": "eoe3nvH",
             "ext": "png"
           }
-        },
-        {
-          "kind": "video",
-          "originalUrl": "https://www.youtube.com/watch?v=McGlTL9XZWA"
         }
       ],
       "problems": []
@@ -23786,6 +24079,34 @@
       "problems": []
     },
     {
+      "rowKey": "Japan:76",
+      "tab": "Japan",
+      "rowNumber": 76,
+      "nation": "japan",
+      "vehicleName": "Ro-Go Exp.",
+      "playerName": "BigNici10",
+      "kills": 13,
+      "br": 1.7,
+      "vehicleExternalId": "jp_hiro_sha",
+      "vehicleMatch": "exact",
+      "patch": "2.57",
+      "isCurrent": true,
+      "submittedAt": "2026-07-11T21:58:04Z",
+      "verifiedAt": "2026-07-11T21:58:04Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/3qDTsnl.jpeg",
+          "mirror": {
+            "imgurId": "V1OMlhe",
+            "mediaId": "3qDTsnl",
+            "ext": "jpeg"
+          }
+        }
+      ],
+      "problems": []
+    },
+    {
       "rowKey": "Japan:77",
       "tab": "Japan",
       "rowNumber": 77,
@@ -23866,30 +24187,30 @@
       "nation": "japan",
       "vehicleName": "Chi-Ha",
       "playerName": "人SυρεrSγmmετrγ人",
-      "kills": 14,
+      "kills": 22,
       "br": 1.3,
       "vehicleExternalId": "jp_type_97_chi_ha",
       "vehicleMatch": "exact",
-      "patch": "2.55",
+      "patch": "2.57",
       "isCurrent": true,
-      "submittedAt": "2026-06-21T13:36:41Z",
-      "verifiedAt": "2026-06-21T13:36:41Z",
+      "submittedAt": "2026-07-17T10:54:40Z",
+      "verifiedAt": "2026-07-17T10:54:40Z",
       "proofs": [
         {
           "kind": "scoreboard",
-          "originalUrl": "https://i.imgur.com/dQvvcBm.png",
+          "originalUrl": "https://i.imgur.com/NNSY6oW.png",
           "mirror": {
-            "imgurId": "KTYxPGF",
-            "mediaId": "dQvvcBm",
+            "imgurId": "0kwTxjB",
+            "mediaId": "NNSY6oW",
             "ext": "png"
           }
         },
         {
           "kind": "end_game",
-          "originalUrl": "https://i.imgur.com/FMlfY3M.jpeg",
+          "originalUrl": "https://i.imgur.com/d0EV1IE.jpeg",
           "mirror": {
-            "imgurId": "sRLnW8E",
-            "mediaId": "FMlfY3M",
+            "imgurId": "eUIZSxB",
+            "mediaId": "d0EV1IE",
             "ext": "jpeg"
           }
         }
@@ -23955,6 +24276,43 @@
           "mirror": {
             "imgurId": "AR9Q1lz",
             "mediaId": "scjJ5bQ",
+            "ext": "png"
+          }
+        }
+      ],
+      "problems": []
+    },
+    {
+      "rowKey": "Japan:85",
+      "tab": "Japan",
+      "rowNumber": 85,
+      "nation": "japan",
+      "vehicleName": "Ke-Ni",
+      "playerName": "人SυρεrSγmmετrγ人",
+      "kills": 14,
+      "br": 1,
+      "vehicleExternalId": "jp_type_98_ke_ni",
+      "vehicleMatch": "exact",
+      "patch": "2.57",
+      "isCurrent": true,
+      "submittedAt": "2026-07-17T10:57:05Z",
+      "verifiedAt": "2026-07-17T10:57:05Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/lkK2uTJ.png",
+          "mirror": {
+            "imgurId": "20HeqYk",
+            "mediaId": "lkK2uTJ",
+            "ext": "png"
+          }
+        },
+        {
+          "kind": "end_game",
+          "originalUrl": "https://i.imgur.com/v2Aggkb.png",
+          "mirror": {
+            "imgurId": "YBPkL0V",
+            "mediaId": "v2Aggkb",
             "ext": "png"
           }
         }
@@ -24787,24 +25145,37 @@
       "rowNumber": 31,
       "nation": "china",
       "vehicleName": "AFT09",
-      "playerName": "Bidifou",
-      "kills": 16,
+      "playerName": "BPA_Jon",
+      "kills": 18,
       "br": 9,
       "vehicleExternalId": "cn_hj_9",
       "vehicleMatch": "exact",
-      "patch": "2.49",
+      "patch": "2.45",
       "isCurrent": true,
-      "submittedAt": "2025-11-04T00:16:10Z",
-      "verifiedAt": "2025-11-04T00:16:10Z",
+      "submittedAt": "2026-07-17T11:01:20Z",
+      "verifiedAt": "2026-07-17T11:01:20Z",
       "proofs": [
         {
           "kind": "scoreboard",
-          "originalUrl": "https://i.imgur.com/guMFL2P.png",
+          "originalUrl": "https://i.imgur.com/xIOzsJi.png",
           "mirror": {
-            "imgurId": "cAOtGti",
-            "mediaId": "guMFL2P",
+            "imgurId": "6iv2Y6m",
+            "mediaId": "xIOzsJi",
             "ext": "png"
           }
+        },
+        {
+          "kind": "end_game",
+          "originalUrl": "https://i.imgur.com/tz11ESE.png",
+          "mirror": {
+            "imgurId": "zzae0jC",
+            "mediaId": "tz11ESE",
+            "ext": "png"
+          }
+        },
+        {
+          "kind": "video",
+          "originalUrl": "https://www.youtube.com/watch?v=tmFcNcZigMQ"
         }
       ],
       "problems": []
@@ -27960,6 +28331,34 @@
       "problems": []
     },
     {
+      "rowKey": "Italy:38",
+      "tab": "Italy",
+      "rowNumber": 38,
+      "nation": "italy",
+      "vehicleName": "ZSU-23-4",
+      "playerName": "SeriouslyEpic",
+      "kills": 6,
+      "br": 8,
+      "vehicleExternalId": "it_zsu_23_4",
+      "vehicleMatch": "fuzzy",
+      "patch": "2.57",
+      "isCurrent": true,
+      "submittedAt": "2026-07-17T22:10:08Z",
+      "verifiedAt": "2026-07-17T22:10:08Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/RGYeWtN.jpeg",
+          "mirror": {
+            "imgurId": "Yzmz80c",
+            "mediaId": "RGYeWtN",
+            "ext": "jpeg"
+          }
+        }
+      ],
+      "problems": []
+    },
+    {
       "rowKey": "Italy:39",
       "tab": "Italy",
       "rowNumber": 39,
@@ -29681,6 +30080,43 @@
       "problems": []
     },
     {
+      "rowKey": "Italy:93",
+      "tab": "Italy",
+      "rowNumber": 93,
+      "nation": "italy",
+      "vehicleName": "M13/40 (II)",
+      "playerName": "Vladik52",
+      "kills": 21,
+      "br": 2,
+      "vehicleExternalId": "it_m13_40_serie_2",
+      "vehicleMatch": "exact",
+      "patch": "2.57",
+      "isCurrent": true,
+      "submittedAt": "2026-07-17T15:39:56Z",
+      "verifiedAt": "2026-07-17T15:39:56Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/8CzjpHA.png",
+          "mirror": {
+            "imgurId": "abFuBYb",
+            "mediaId": "8CzjpHA",
+            "ext": "png"
+          }
+        },
+        {
+          "kind": "end_game",
+          "originalUrl": "https://i.imgur.com/mxTJr9T.png",
+          "mirror": {
+            "imgurId": "3MBREox",
+            "mediaId": "mxTJr9T",
+            "ext": "png"
+          }
+        }
+      ],
+      "problems": []
+    },
+    {
       "rowKey": "Italy:94",
       "tab": "Italy",
       "rowNumber": 94,
@@ -29913,6 +30349,43 @@
       "problems": []
     },
     {
+      "rowKey": "Italy:101",
+      "tab": "Italy",
+      "rowNumber": 101,
+      "nation": "italy",
+      "vehicleName": "Csaba",
+      "playerName": "人SυρεrSγmmετrγ人",
+      "kills": 15,
+      "br": 1,
+      "vehicleExternalId": "it_39m_csaba",
+      "vehicleMatch": "exact",
+      "patch": "2.57",
+      "isCurrent": true,
+      "submittedAt": "2026-07-19T21:54:44Z",
+      "verifiedAt": "2026-07-19T21:54:44Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/I6xn6Od.jpeg",
+          "mirror": {
+            "imgurId": "pq2RhrH",
+            "mediaId": "I6xn6Od",
+            "ext": "jpeg"
+          }
+        },
+        {
+          "kind": "end_game",
+          "originalUrl": "https://i.imgur.com/iuDOdi4.png",
+          "mirror": {
+            "imgurId": "4MYbcS9",
+            "mediaId": "iuDOdi4",
+            "ext": "png"
+          }
+        }
+      ],
+      "problems": []
+    },
+    {
       "rowKey": "Italy:102",
       "tab": "Italy",
       "rowNumber": 102,
@@ -29999,6 +30472,43 @@
           "mirror": {
             "imgurId": "ZHSaV18",
             "mediaId": "RsFHX8y",
+            "ext": "png"
+          }
+        }
+      ],
+      "problems": []
+    },
+    {
+      "rowKey": "Italy:105",
+      "tab": "Italy",
+      "rowNumber": 105,
+      "nation": "italy",
+      "vehicleName": "L6/40 (31 Rgt.)",
+      "playerName": "NicoJIo",
+      "kills": 12,
+      "br": 1,
+      "vehicleExternalId": "it_l6_leone",
+      "vehicleMatch": "exact",
+      "patch": "2.57",
+      "isCurrent": true,
+      "submittedAt": "2026-07-17T14:24:54Z",
+      "verifiedAt": "2026-07-17T14:24:54Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/FvoccHA.png",
+          "mirror": {
+            "imgurId": "qrBgUUs",
+            "mediaId": "FvoccHA",
+            "ext": "png"
+          }
+        },
+        {
+          "kind": "end_game",
+          "originalUrl": "https://i.imgur.com/xrXqtNu.png",
+          "mirror": {
+            "imgurId": "LGfZhna",
+            "mediaId": "xrXqtNu",
             "ext": "png"
           }
         }
@@ -32295,6 +32805,52 @@
       "problems": []
     },
     {
+      "rowKey": "France:70",
+      "tab": "France",
+      "rowNumber": 70,
+      "nation": "france",
+      "vehicleName": "Lorraine 155 Mle.50",
+      "playerName": "Odd-Cod",
+      "kills": 10,
+      "br": 4.3,
+      "vehicleExternalId": "fr_lorraine_155",
+      "vehicleMatch": "exact",
+      "patch": "2.57",
+      "isCurrent": true,
+      "submittedAt": "2026-07-15T11:29:28Z",
+      "verifiedAt": "2026-07-15T11:29:28Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/jg2ksoJ.jpeg",
+          "mirror": {
+            "imgurId": "jWkx3Ie",
+            "mediaId": "jg2ksoJ",
+            "ext": "jpeg"
+          }
+        },
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/8mRXssD.png",
+          "mirror": {
+            "imgurId": "jWkx3Ie",
+            "mediaId": "8mRXssD",
+            "ext": "png"
+          }
+        },
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/6CZFDzw.png",
+          "mirror": {
+            "imgurId": "jWkx3Ie",
+            "mediaId": "6CZFDzw",
+            "ext": "png"
+          }
+        }
+      ],
+      "problems": []
+    },
+    {
       "rowKey": "France:71",
       "tab": "France",
       "rowNumber": 71,
@@ -32866,6 +33422,43 @@
       "problems": []
     },
     {
+      "rowKey": "France:90",
+      "tab": "France",
+      "rowNumber": 90,
+      "nation": "france",
+      "vehicleName": "AMD.35 (SA35)",
+      "playerName": "人SυρεrSγmmετrγ人",
+      "kills": 13,
+      "br": 1.7,
+      "vehicleExternalId": "fr_amd_35_sa35",
+      "vehicleMatch": "exact",
+      "patch": "2.57",
+      "isCurrent": true,
+      "submittedAt": "2026-07-19T23:49:37Z",
+      "verifiedAt": "2026-07-19T23:49:37Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/YzRqfZn.png",
+          "mirror": {
+            "imgurId": "wK4uZh8",
+            "mediaId": "YzRqfZn",
+            "ext": "png"
+          }
+        },
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/1P9zdNT.png",
+          "mirror": {
+            "imgurId": "wK4uZh8",
+            "mediaId": "1P9zdNT",
+            "ext": "png"
+          }
+        }
+      ],
+      "problems": []
+    },
+    {
       "rowKey": "France:91",
       "tab": "France",
       "rowNumber": 91,
@@ -32897,6 +33490,34 @@
             "imgurId": "oOOBfAz",
             "mediaId": "GxwtmIJ",
             "ext": "jpeg"
+          }
+        }
+      ],
+      "problems": []
+    },
+    {
+      "rowKey": "France:92",
+      "tab": "France",
+      "rowNumber": 92,
+      "nation": "france",
+      "vehicleName": "AMC.35 (ACG.1)",
+      "playerName": "docxurty2017",
+      "kills": 14,
+      "br": 1.3,
+      "vehicleExternalId": "fr_amc_35",
+      "vehicleMatch": "exact",
+      "patch": "2.57",
+      "isCurrent": true,
+      "submittedAt": "2026-07-19T13:09:53Z",
+      "verifiedAt": "2026-07-19T13:09:53Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/xRN1aRw.png",
+          "mirror": {
+            "imgurId": "aQbdQZn",
+            "mediaId": "xRN1aRw",
+            "ext": "png"
           }
         }
       ],
@@ -32943,7 +33564,7 @@
       "vehicleMatch": "exact",
       "patch": "2.17",
       "isCurrent": true,
-      "submittedAt": "2026-07-11T09:36:09.891Z",
+      "submittedAt": "2026-07-20T05:42:50.892Z",
       "verifiedAt": null,
       "proofs": [
         {
@@ -33139,6 +33760,34 @@
       "problems": []
     },
     {
+      "rowKey": "France:103",
+      "tab": "France",
+      "rowNumber": 103,
+      "nation": "france",
+      "vehicleName": "H.39 \"Cambronne\"",
+      "playerName": "docxurty2017",
+      "kills": 16,
+      "br": 1,
+      "vehicleExternalId": "fr_hotchkiss_h39_cambronne",
+      "vehicleMatch": "exact",
+      "patch": "2.57",
+      "isCurrent": true,
+      "submittedAt": "2026-07-17T18:50:41Z",
+      "verifiedAt": "2026-07-17T18:50:41Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/yy6nSHt.png",
+          "mirror": {
+            "imgurId": "VrURlEQ",
+            "mediaId": "yy6nSHt",
+            "ext": "png"
+          }
+        }
+      ],
+      "problems": []
+    },
+    {
       "rowKey": "France:104",
       "tab": "France",
       "rowNumber": 104,
@@ -33169,6 +33818,34 @@
           "mirror": {
             "imgurId": "x0HGEPY",
             "mediaId": "PR3YZRX",
+            "ext": "png"
+          }
+        }
+      ],
+      "problems": []
+    },
+    {
+      "rowKey": "France:105",
+      "tab": "France",
+      "rowNumber": 105,
+      "nation": "france",
+      "vehicleName": "R.35 (SA38)",
+      "playerName": "docxurty2017",
+      "kills": 14,
+      "br": 1,
+      "vehicleExternalId": "fr_renault_r39",
+      "vehicleMatch": "exact",
+      "patch": "2.57",
+      "isCurrent": true,
+      "submittedAt": "2026-07-16T16:01:10Z",
+      "verifiedAt": "2026-07-16T16:01:10Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/Mv5eCUG.png",
+          "mirror": {
+            "imgurId": "zaXEkJh",
+            "mediaId": "Mv5eCUG",
             "ext": "png"
           }
         }
@@ -33309,6 +33986,43 @@
           "mirror": {
             "imgurId": "m0REUB3",
             "mediaId": "kP59IXw",
+            "ext": "png"
+          }
+        }
+      ],
+      "problems": []
+    },
+    {
+      "rowKey": "Sweden:7",
+      "tab": "Sweden",
+      "rowNumber": 7,
+      "nation": "sweden",
+      "vehicleName": "NOMADS",
+      "playerName": "Fex",
+      "kills": 7,
+      "br": 12,
+      "vehicleExternalId": "sw_nomads",
+      "vehicleMatch": "exact",
+      "patch": "2.57",
+      "isCurrent": true,
+      "submittedAt": "2026-07-19T13:14:33Z",
+      "verifiedAt": "2026-07-19T13:14:33Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/5bQj21S.png",
+          "mirror": {
+            "imgurId": "PAGio57",
+            "mediaId": "5bQj21S",
+            "ext": "png"
+          }
+        },
+        {
+          "kind": "end_game",
+          "originalUrl": "https://i.imgur.com/RoJsRmk.png",
+          "mirror": {
+            "imgurId": "hMAENXU",
+            "mediaId": "RoJsRmk",
             "ext": "png"
           }
         }
@@ -34106,22 +34820,40 @@
       "rowNumber": 33,
       "nation": "sweden",
       "vehicleName": "ItPsV Leopard",
-      "playerName": "K2 Krabiwe",
-      "kills": 19,
+      "playerName": "C2DeHTKA_Polina",
+      "kills": 21,
       "br": 8.7,
       "vehicleExternalId": "sw_itpsv_90",
       "vehicleMatch": "exact",
-      "patch": "2.53",
+      "patch": "2.57",
       "isCurrent": true,
-      "submittedAt": "2026-03-17T22:25:28Z",
-      "verifiedAt": "2026-03-17T22:25:28Z",
+      "submittedAt": "2026-07-13T18:46:24Z",
+      "verifiedAt": "2026-07-13T18:46:24Z",
       "proofs": [
         {
           "kind": "scoreboard",
-          "originalUrl": "https://i.imgur.com/Yo7ozXH.jpeg",
+          "originalUrl": "https://i.imgur.com/vNsyrNL.png",
           "mirror": {
-            "imgurId": "y6cAPZQ",
-            "mediaId": "Yo7ozXH",
+            "imgurId": "dkv1F24",
+            "mediaId": "vNsyrNL",
+            "ext": "png"
+          }
+        },
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/zoQ1ycT.jpeg",
+          "mirror": {
+            "imgurId": "dkv1F24",
+            "mediaId": "zoQ1ycT",
+            "ext": "jpeg"
+          }
+        },
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/uUIJ4Gf.jpeg",
+          "mirror": {
+            "imgurId": "dkv1F24",
+            "mediaId": "uUIJ4Gf",
             "ext": "jpeg"
           }
         }
@@ -35084,6 +35816,47 @@
       "problems": []
     },
     {
+      "rowKey": "Sweden:65",
+      "tab": "Sweden",
+      "rowNumber": 65,
+      "nation": "sweden",
+      "vehicleName": "Ikv 103",
+      "playerName": "BPA_Jon",
+      "kills": 10,
+      "br": 4,
+      "vehicleExternalId": "sw_ikv_103",
+      "vehicleMatch": "exact",
+      "patch": "2.55",
+      "isCurrent": true,
+      "submittedAt": "2026-07-17T11:04:25Z",
+      "verifiedAt": "2026-07-17T11:04:25Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/Vk0Xe3G.png",
+          "mirror": {
+            "imgurId": "mY1AjIk",
+            "mediaId": "Vk0Xe3G",
+            "ext": "png"
+          }
+        },
+        {
+          "kind": "end_game",
+          "originalUrl": "https://i.imgur.com/9Wa5xpl.png",
+          "mirror": {
+            "imgurId": "dZqfJ92",
+            "mediaId": "9Wa5xpl",
+            "ext": "png"
+          }
+        },
+        {
+          "kind": "video",
+          "originalUrl": "https://youtu.be/G4MdaYKu6fg?si=kYuxUVckJ49pQ5kU"
+        }
+      ],
+      "problems": []
+    },
+    {
       "rowKey": "Sweden:66",
       "tab": "Sweden",
       "rowNumber": 66,
@@ -35363,6 +36136,43 @@
       "problems": []
     },
     {
+      "rowKey": "Sweden:75",
+      "tab": "Sweden",
+      "rowNumber": 75,
+      "nation": "sweden",
+      "vehicleName": "Sav m/43 (1946)",
+      "playerName": "Vladik52",
+      "kills": 13,
+      "br": 3,
+      "vehicleExternalId": "sw_sav_m43_1946",
+      "vehicleMatch": "exact",
+      "patch": "2.57",
+      "isCurrent": true,
+      "submittedAt": "2026-07-17T22:00:13Z",
+      "verifiedAt": "2026-07-17T22:00:13Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/kofIo2e.png",
+          "mirror": {
+            "imgurId": "VVFSfzT",
+            "mediaId": "kofIo2e",
+            "ext": "png"
+          }
+        },
+        {
+          "kind": "end_game",
+          "originalUrl": "https://i.imgur.com/hphrtL0.png",
+          "mirror": {
+            "imgurId": "pe282CT",
+            "mediaId": "hphrtL0",
+            "ext": "png"
+          }
+        }
+      ],
+      "problems": []
+    },
+    {
       "rowKey": "Sweden:76",
       "tab": "Sweden",
       "rowNumber": 76,
@@ -35396,24 +36206,28 @@
       "rowNumber": 77,
       "nation": "sweden",
       "vehicleName": "Lvtdgb m/40",
-      "playerName": "tSuMi",
-      "kills": 20,
+      "playerName": "BPA_Jon",
+      "kills": 22,
       "br": 2.7,
       "vehicleExternalId": "sw_tgdgb_m40_lv",
       "vehicleMatch": "exact",
-      "patch": "2.41",
+      "patch": "2.15",
       "isCurrent": true,
-      "submittedAt": "2024-11-21T22:30:12Z",
-      "verifiedAt": "2024-11-21T22:30:12Z",
+      "submittedAt": "2026-07-16T15:51:56Z",
+      "verifiedAt": "2026-07-16T15:51:56Z",
       "proofs": [
         {
           "kind": "scoreboard",
-          "originalUrl": "https://i.imgur.com/tPmpd4D.png",
+          "originalUrl": "https://i.imgur.com/av0VfoC.png",
           "mirror": {
-            "imgurId": "Vsl5Gb5",
-            "mediaId": "tPmpd4D",
+            "imgurId": "MD5ncuP",
+            "mediaId": "av0VfoC",
             "ext": "png"
           }
+        },
+        {
+          "kind": "video",
+          "originalUrl": "https://www.youtube.com/watch?v=En8jIfJvAzg"
         }
       ],
       "problems": []
@@ -35568,6 +36382,43 @@
       "problems": []
     },
     {
+      "rowKey": "Sweden:85",
+      "tab": "Sweden",
+      "rowNumber": 85,
+      "nation": "sweden",
+      "vehicleName": "BT-42",
+      "playerName": "Vladik52",
+      "kills": 16,
+      "br": 1.7,
+      "vehicleExternalId": "sw_bt_42",
+      "vehicleMatch": "exact",
+      "patch": "2.57",
+      "isCurrent": true,
+      "submittedAt": "2026-07-19T14:10:31Z",
+      "verifiedAt": "2026-07-19T14:10:31Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/XjCDt2G.png",
+          "mirror": {
+            "imgurId": "bHFwp3P",
+            "mediaId": "XjCDt2G",
+            "ext": "png"
+          }
+        },
+        {
+          "kind": "end_game",
+          "originalUrl": "https://i.imgur.com/pfWhd9u.png",
+          "mirror": {
+            "imgurId": "7frTfEa",
+            "mediaId": "pfWhd9u",
+            "ext": "png"
+          }
+        }
+      ],
+      "problems": []
+    },
+    {
       "rowKey": "Sweden:86",
       "tab": "Sweden",
       "rowNumber": 86,
@@ -35647,31 +36498,31 @@
       "rowNumber": 88,
       "nation": "sweden",
       "vehicleName": "Sav m/43 (1944)",
-      "playerName": "NemoetNihil",
-      "kills": 12,
+      "playerName": "Vladik52",
+      "kills": 13,
       "br": 1.7,
       "vehicleExternalId": "sw_sav_m43_1944",
       "vehicleMatch": "exact",
       "patch": "2.57",
       "isCurrent": true,
-      "submittedAt": "2026-07-03T02:03:56Z",
-      "verifiedAt": "2026-07-03T02:03:56Z",
+      "submittedAt": "2026-07-19T13:22:09Z",
+      "verifiedAt": "2026-07-19T13:22:09Z",
       "proofs": [
         {
           "kind": "scoreboard",
-          "originalUrl": "https://i.imgur.com/vOoexkb.png",
+          "originalUrl": "https://i.imgur.com/WusoZAn.png",
           "mirror": {
-            "imgurId": "cgR4rbg",
-            "mediaId": "vOoexkb",
+            "imgurId": "smEjSYP",
+            "mediaId": "WusoZAn",
             "ext": "png"
           }
         },
         {
           "kind": "end_game",
-          "originalUrl": "https://i.imgur.com/hURJFvl.png",
+          "originalUrl": "https://i.imgur.com/IVeIUfy.png",
           "mirror": {
-            "imgurId": "yOjCnyu",
-            "mediaId": "hURJFvl",
+            "imgurId": "9HzEU7L",
+            "mediaId": "IVeIUfy",
             "ext": "png"
           }
         }
@@ -35811,6 +36662,43 @@
           "mirror": {
             "imgurId": "btnmKQq",
             "mediaId": "4clroJ2",
+            "ext": "png"
+          }
+        }
+      ],
+      "problems": []
+    },
+    {
+      "rowKey": "Sweden:93",
+      "tab": "Sweden",
+      "rowNumber": 93,
+      "nation": "sweden",
+      "vehicleName": "Strv m/39",
+      "playerName": "Vladik52",
+      "kills": 14,
+      "br": 1,
+      "vehicleExternalId": "sw_strv_m39",
+      "vehicleMatch": "exact",
+      "patch": "2.57",
+      "isCurrent": true,
+      "submittedAt": "2026-07-17T10:51:55Z",
+      "verifiedAt": "2026-07-17T10:51:55Z",
+      "proofs": [
+        {
+          "kind": "scoreboard",
+          "originalUrl": "https://i.imgur.com/TXq1aZ5.png",
+          "mirror": {
+            "imgurId": "bcRPFPz",
+            "mediaId": "TXq1aZ5",
+            "ext": "png"
+          }
+        },
+        {
+          "kind": "end_game",
+          "originalUrl": "https://i.imgur.com/VlHph6j.png",
+          "mirror": {
+            "imgurId": "TA855yW",
+            "mediaId": "VlHph6j",
             "ext": "png"
           }
         }
@@ -36925,18 +37813,26 @@
       "vehicleMatch": "exact",
       "patch": "2.33",
       "isCurrent": true,
-      "submittedAt": "2026-07-11T09:36:09.891Z",
-      "verifiedAt": null,
+      "submittedAt": "2026-07-12T15:59:28Z",
+      "verifiedAt": "2026-07-12T15:59:28Z",
       "proofs": [
         {
           "kind": "scoreboard",
-          "originalUrl": "https://imgur.com/TK4xynq",
-          "dead": true
+          "originalUrl": "https://i.imgur.com/131rl3k.png",
+          "mirror": {
+            "imgurId": "m8Cfeg9",
+            "mediaId": "131rl3k",
+            "ext": "png"
+          }
         },
         {
           "kind": "end_game",
-          "originalUrl": "https://imgur.com/pURApZS",
-          "dead": true
+          "originalUrl": "https://i.imgur.com/xxc6guJ.png",
+          "mirror": {
+            "imgurId": "uvjVFR4",
+            "mediaId": "xxc6guJ",
+            "ext": "png"
+          }
         }
       ],
       "problems": []
@@ -37056,18 +37952,26 @@
       "vehicleMatch": "exact",
       "patch": "2.33",
       "isCurrent": true,
-      "submittedAt": "2026-07-11T09:36:09.891Z",
-      "verifiedAt": null,
+      "submittedAt": "2026-07-12T15:58:00Z",
+      "verifiedAt": "2026-07-12T15:58:00Z",
       "proofs": [
         {
           "kind": "scoreboard",
-          "originalUrl": "https://imgur.com/tOHl399",
-          "dead": true
+          "originalUrl": "https://i.imgur.com/w1IzMm5.png",
+          "mirror": {
+            "imgurId": "KQbIN5z",
+            "mediaId": "w1IzMm5",
+            "ext": "png"
+          }
         },
         {
           "kind": "end_game",
-          "originalUrl": "https://imgur.com/9ufSO5V",
-          "dead": true
+          "originalUrl": "https://i.imgur.com/FuOwATP.png",
+          "mirror": {
+            "imgurId": "5uawjZf",
+            "mediaId": "FuOwATP",
+            "ext": "png"
+          }
         }
       ],
       "problems": []

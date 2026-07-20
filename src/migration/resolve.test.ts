@@ -313,6 +313,37 @@ describe('resolve', () => {
     expect(bad.resolution.rows[0].problems[0]).toContain('vehicle override')
   })
 
+  it('flags one imgur post cited by rows of different players, not same-player reuse', () => {
+    const { review } = run([
+      row({ rowNumber: 1, kills: 21 }),
+      row({ rowNumber: 2, playerName: 'Bvo', kills: 12 }),
+    ])
+    expect(review).toContain('Shared proofs across different players')
+    expect(review).toContain('imgur alive01')
+
+    const samePlayer = run([
+      row({ rowNumber: 1, kills: 21 }),
+      row({ rowNumber: 2, kills: 12 }),
+    ])
+    expect(samePlayer.review).not.toContain('Shared proofs')
+
+    // A shared citation of a DEAD album (no mirror) is still a sheet slip.
+    const dead = run([
+      row({
+        rowNumber: 1,
+        kills: 21,
+        proofs: [{ column: 'screenshot', url: 'https://imgur.com/a/dead01' }],
+      }),
+      row({
+        rowNumber: 2,
+        playerName: 'Bvo',
+        kills: 12,
+        proofs: [{ column: 'screenshot', url: 'https://imgur.com/a/dead01' }],
+      }),
+    ])
+    expect(dead.review).toContain('imgur dead01')
+  })
+
   it('blocks unresolved difficult-list vehicles', () => {
     const result = resolve({
       snapshot: snapshot([row({ rowNumber: 2 })]),
