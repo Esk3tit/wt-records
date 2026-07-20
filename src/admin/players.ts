@@ -214,6 +214,16 @@ export async function removeAlias(db: Db, actorId: string, aliasId: number) {
       await tx.select().from(playerAliases).where(eq(playerAliases.id, aliasId))
     ).at(0)
     if (!alias) throw new Error(`Unknown alias ${aliasId}`)
+    const owner = (
+      await tx
+        .select({ mergedInto: players.mergedInto })
+        .from(players)
+        .where(eq(players.id, alias.playerId))
+        .for('update')
+    ).at(0)
+    if (owner?.mergedInto != null) {
+      throw new Error('This player was merged — edit the surviving player')
+    }
     await tx.delete(playerAliases).where(eq(playerAliases.id, aliasId))
     await writeAudit(tx, {
       actorId,

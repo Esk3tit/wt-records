@@ -103,6 +103,22 @@ async function lockTitleKey(
   await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${key}))`)
 }
 
+/** Fetch a record for a lifecycle write: existence-check, take the title
+    lock, then RE-READ so guards validate the state a concurrent lifecycle
+    write just committed — not a pre-lock snapshot (double audits otherwise). */
+async function lockedRecord(tx: Db, recordId: number) {
+  const found = (
+    await tx.select().from(records).where(eq(records.id, recordId))
+  ).at(0)
+  if (!found) throw new Error(`Unknown record ${recordId}`)
+  await lockTitleKey(tx, found.vehicleId, found.mode)
+  const locked = (
+    await tx.select().from(records).where(eq(records.id, recordId))
+  ).at(0)
+  if (!locked) throw new Error(`Unknown record ${recordId}`)
+  return locked
+}
+
 /** Re-derives isCurrent for a (vehicle, mode) from the rightful-holder rule.
     Returns which record lost and which gained currency (null = no change). */
 async function recomputeTitle(
@@ -400,10 +416,7 @@ export async function retireRecord(
   const why = reason.trim()
   if (!why) throw new Error('A retire reason is required')
   return db.transaction(async (tx) => {
-    const existing = (
-      await tx.select().from(records).where(eq(records.id, recordId))
-    ).at(0)
-    if (!existing) throw new Error(`Unknown record ${recordId}`)
+    const existing = await lockedRecord(tx, recordId)
     if (existing.status !== 'verified') {
       throw new Error('Only a verified record can be retired')
     }
@@ -440,10 +453,7 @@ export async function reverifyRecord(
   recordId: number,
 ) {
   return db.transaction(async (tx) => {
-    const existing = (
-      await tx.select().from(records).where(eq(records.id, recordId))
-    ).at(0)
-    if (!existing) throw new Error(`Unknown record ${recordId}`)
+    const existing = await lockedRecord(tx, recordId)
     if (existing.status !== 'retired') {
       throw new Error('Only a retired record can be re-verified')
     }
@@ -480,16 +490,12 @@ export async function makeCurrentRecord(
   recordId: number,
 ) {
   return db.transaction(async (tx) => {
-    const target = (
-      await tx.select().from(records).where(eq(records.id, recordId))
-    ).at(0)
-    if (!target) throw new Error(`Unknown record ${recordId}`)
+    const target = await lockedRecord(tx, recordId)
     if (target.status !== 'verified') {
       throw new Error('Only a verified record can be made current')
     }
     if (target.isCurrent) return { demotedRecordId: null }
 
-    await lockTitleKey(tx, target.vehicleId, target.mode)
     const previous = (
       await tx
         .select({ id: records.id })
@@ -527,13 +533,9 @@ export async function makeCurrentRecord(
 
 export async function demoteRecord(db: Db, actorId: string, recordId: number) {
   return db.transaction(async (tx) => {
-    const target = (
-      await tx.select().from(records).where(eq(records.id, recordId))
-    ).at(0)
-    if (!target) throw new Error(`Unknown record ${recordId}`)
+    const target = await lockedRecord(tx, recordId)
     if (!target.isCurrent) throw new Error('Record is not current')
 
-    await lockTitleKey(tx, target.vehicleId, target.mode)
     await tx
       .update(records)
       .set({ isCurrent: false })
@@ -590,11 +592,14 @@ export async function attachProofs(
   return db.transaction(async (tx) => {
     const existing = (
       await tx
-        .select({ id: records.id })
+        .select({ id: records.id, status: records.status })
         .from(records)
         .where(eq(records.id, recordId))
     ).at(0)
     if (!existing) throw new Error(`Unknown record ${recordId}`)
+    if (existing.status !== 'verified' && existing.status !== 'retired') {
+      throw new Error('Only verified or retired records can take new proof')
+    }
     const [{ maxSort }] = await tx
       .select({ maxSort: sql<number | null>`max(${recordProof.sort})` })
       .from(recordProof)

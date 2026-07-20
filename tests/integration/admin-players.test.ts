@@ -232,6 +232,26 @@ describe('mergePlayers', () => {
     )
   })
 
+  it('refuses alias removal on a tombstone', async () => {
+    const ace = await playerBySlug('ace')
+    const floppa = await playerBySlug('floppa')
+    await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
+    // A merge strips every alias, so construct the guarded state directly.
+    const [alias] = await t.db
+      .insert(playerAliases)
+      .values({
+        playerId: floppa.id,
+        name: 'Ghost',
+        kind: 'ign',
+        source: 'moderation',
+      })
+      .returning()
+    await expect(removeAlias(t.db, MOD, alias.id)).rejects.toThrow(/merged/i)
+  })
+
   it('keeps tombstones one hop deep across successive merges', async () => {
     const ace = await playerBySlug('ace')
     const maverick = await playerBySlug('maverick')
