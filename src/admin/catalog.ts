@@ -4,6 +4,7 @@ import { modeMinKills, modes, nations, patches, vehicles } from '#/db/schema'
 import type { VehicleClass } from '#/lib/vehicle-classes'
 import { writeAudit } from '#/admin/audit'
 import { likeContains } from '#/lib/like'
+import { ADMIN_PAGE_SIZE } from '#/components/admin/pager'
 
 /* The vehicle editor exposes ONLY isDifficult — catalog sync owns everything
    else. Rules edits never recompute existing records. */
@@ -264,7 +265,7 @@ export async function listAdminVehicles(
     offset?: number
   },
 ) {
-  const limit = opts.limit ?? 50
+  const limit = opts.limit ?? ADMIN_PAGE_SIZE
   const offset = opts.offset ?? 0
   const conds = []
   if (opts.q?.trim()) {

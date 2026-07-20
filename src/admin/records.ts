@@ -15,6 +15,7 @@ import type { ModeThresholds } from '#/lib/rules'
 import { likeContains } from '#/lib/like'
 import { writeAudit } from '#/admin/audit'
 import { createPlayer, recordIgnAlias } from '#/admin/players'
+import { ADMIN_PAGE_SIZE } from '#/components/admin/pager'
 
 export type ProofKind = (typeof recordProof.kind.enumValues)[number]
 
@@ -802,7 +803,7 @@ export interface AdminRecordFilters {
 }
 
 export async function listAdminRecords(db: Db, filters: AdminRecordFilters) {
-  const limit = filters.limit ?? 50
+  const limit = filters.limit ?? ADMIN_PAGE_SIZE
   const offset = filters.offset ?? 0
   const conds = []
   if (filters.mode) conds.push(eq(records.mode, filters.mode))

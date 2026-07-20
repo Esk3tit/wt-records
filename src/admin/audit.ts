@@ -1,6 +1,7 @@
 import { desc, eq, sql } from 'drizzle-orm'
 import type { Db } from '#/db'
 import { auditLog, profiles } from '#/db/schema'
+import { ADMIN_PAGE_SIZE } from '#/components/admin/pager'
 
 /* One row per logical moderator action, written inside the same transaction
    as the write it describes. Only /admin writes are audited. */
@@ -47,7 +48,7 @@ export async function listAudit(
   db: Db,
   opts: { entity?: AuditEntity; limit?: number; offset?: number },
 ) {
-  const limit = opts.limit ?? 50
+  const limit = opts.limit ?? ADMIN_PAGE_SIZE
   const offset = opts.offset ?? 0
   const where = opts.entity ? eq(auditLog.entity, opts.entity) : undefined
   const [rows, [{ total }]] = await Promise.all([

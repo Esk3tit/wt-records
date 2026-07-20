@@ -4,7 +4,7 @@ import {
   useRouterState,
 } from '@tanstack/react-router'
 import { Panel, selectClass } from '#/components/admin/ui'
-import { Pager, pageParam } from '#/components/admin/pager'
+import { ADMIN_PAGE_SIZE, Pager, pageParam } from '#/components/admin/pager'
 import { formatDayTime } from '#/lib/dates'
 import { adminAuditList } from '#/admin/api'
 import type { AuditEntity } from '#/admin/audit'
@@ -38,7 +38,10 @@ export const Route = createFileRoute('/admin/audit')({
   loader: async ({ context, deps }) => {
     if (context.gate.state !== 'moderator') return null
     return adminAuditList({
-      data: { entity: deps.entity, offset: ((deps.page ?? 1) - 1) * 50 },
+      data: {
+        entity: deps.entity,
+        offset: ((deps.page ?? 1) - 1) * ADMIN_PAGE_SIZE,
+      },
     })
   },
   component: AuditView,

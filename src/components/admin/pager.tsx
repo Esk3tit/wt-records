@@ -1,4 +1,6 @@
 /** Offset pager shared by the admin list views. */
+export const ADMIN_PAGE_SIZE = 50
+
 export function pageParam(value: unknown): number | undefined {
   const page = Number(value)
   return Number.isInteger(page) && page > 1 ? page : undefined
@@ -9,7 +11,7 @@ export function Pager({
   hasMore,
   onPage,
   total,
-  pageSize = 50,
+  pageSize = ADMIN_PAGE_SIZE,
   prevLabel = '← Newer',
   nextLabel = 'Older →',
 }: {

@@ -8,6 +8,8 @@ slug: src-routes-admin
 ---
 Method: dual-agent (A: a7794b3c3baaeb151 · B: a36722d61b8c849bc)
 
+> **Resolution note (post-snapshot):** this is the point-in-time record that drove the polish arc on the #15 branch. Both P0s (day-safe status tokens, restored input focus rings) and all three P1s (create-player row in the combobox keyboard cycle + result-count live region, proof thumbnails, filter-select width) were addressed in `476a252`; the re-critique backlogs followed in `b78814a` and `96f93fe` (trend 26 → 31 → 33; see the `2026-07-19T19-28-23Z` and `2026-07-19T19-47-35Z` snapshots). Findings below describe the pre-fix state by design — do not "fix" this file; run a fresh critique to update the trend.
+
 # Critique — WT Records moderator CMS (src/routes/admin)
 
 Inspected live at localhost:3100 (authenticated moderator, 1,108-record dataset), 1440×900 + 390×844, all seven admin surfaces + full source read.

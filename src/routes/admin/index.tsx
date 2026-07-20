@@ -12,7 +12,7 @@ import {
   inputClass,
   selectClass,
 } from '#/components/admin/ui'
-import { Pager, pageParam } from '#/components/admin/pager'
+import { ADMIN_PAGE_SIZE, Pager, pageParam } from '#/components/admin/pager'
 import { formatDayYear } from '#/lib/dates'
 import { displayVehicleName } from '#/lib/vehicle-name'
 import { adminRecordList } from '#/admin/api'
@@ -52,15 +52,13 @@ export const Route = createFileRoute('/admin/')({
         q: deps.q,
         sort: deps.sort ?? 'verified',
         dir: deps.dir ?? 'desc',
-        limit: PAGE,
-        offset: ((deps.page ?? 1) - 1) * PAGE,
+        limit: ADMIN_PAGE_SIZE,
+        offset: ((deps.page ?? 1) - 1) * ADMIN_PAGE_SIZE,
       },
     })
   },
   component: RecordsIndex,
 })
-
-const PAGE = 50
 
 const STATUS_LABELS = {
   verified: 'Verified',
@@ -289,7 +287,6 @@ function RecordsIndex() {
         page={page}
         hasMore={result.hasMore}
         total={result.total}
-        pageSize={PAGE}
         onPage={(p) => navigate({ search: { ...search, page: p } })}
       />
     </Panel>

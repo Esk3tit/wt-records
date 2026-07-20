@@ -301,6 +301,7 @@ function MergePanel({
             await adminMergePlayers({
               data: { survivorId: survivor.id, duplicateId: duplicate.id },
             })
+            setDuplicate(null)
             setConfirming(false)
             onMerged()
           } catch (e) {

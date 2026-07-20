@@ -164,6 +164,7 @@ export function ProofUploader({
                 <input
                   type="url"
                   value={draft.originalUrl}
+                  aria-label={`Original source URL for ${draft.file.name}`}
                   placeholder="Original source URL (provenance, optional)"
                   className={inputClass + ' basis-full'}
                   onChange={(e) =>

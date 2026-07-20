@@ -217,6 +217,21 @@ describe('mergePlayers', () => {
     ).rejects.toThrow(/merged/i)
   })
 
+  it('refuses rename and alias edits on a tombstone', async () => {
+    const ace = await playerBySlug('ace')
+    const floppa = await playerBySlug('floppa')
+    await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
+    await expect(
+      renamePlayer(t.db, MOD, floppa.id, 'Floppa Reborn'),
+    ).rejects.toThrow(/merged/i)
+    await expect(addAlias(t.db, MOD, floppa.id, 'FloppaAlt')).rejects.toThrow(
+      /merged/i,
+    )
+  })
+
   it('keeps tombstones one hop deep across successive merges', async () => {
     const ace = await playerBySlug('ace')
     const maverick = await playerBySlug('maverick')

@@ -5,7 +5,7 @@ import {
   useRouterState,
 } from '@tanstack/react-router'
 import { Panel, inputClass } from '#/components/admin/ui'
-import { Pager, pageParam } from '#/components/admin/pager'
+import { ADMIN_PAGE_SIZE, Pager, pageParam } from '#/components/admin/pager'
 import { adminPlayerList } from '#/admin/api'
 
 interface PlayersSearch {
@@ -24,7 +24,7 @@ export const Route = createFileRoute('/admin/players/')({
   loader: async ({ context, deps }) => {
     if (context.gate.state !== 'moderator') return null
     return adminPlayerList({
-      data: { q: deps.q, offset: ((deps.page ?? 1) - 1) * 50 },
+      data: { q: deps.q, offset: ((deps.page ?? 1) - 1) * ADMIN_PAGE_SIZE },
     })
   },
   component: PlayersIndex,
