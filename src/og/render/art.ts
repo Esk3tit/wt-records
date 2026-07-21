@@ -41,7 +41,12 @@ export async function resolveArt(url: string | null): Promise<string | null> {
   try {
     const res = await fetch(url, { signal: ctrl.signal })
     if (!res.ok) return null
-    const type = res.headers.get('content-type') ?? 'image/png'
+    // Media types are case-insensitive and may carry params ("Image/PNG; …").
+    const type =
+      (res.headers.get('content-type') ?? 'image/png')
+        .split(';')[0]
+        .trim()
+        .toLowerCase() || 'image/png'
     if (!type.startsWith('image/')) return null
     const buf = await readCapped(res)
     if (!buf || buf.byteLength === 0) return null
