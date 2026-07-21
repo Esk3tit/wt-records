@@ -4,9 +4,10 @@ import type { ReactNode } from 'react'
    SVGs; NationFlagSprite paints each once, instances are <use> references. */
 
 // the wiki art's canvas — new flags must keep the same y=16..84 field
-const VIEWBOX = '0 16 100 68'
+export const FLAG_VIEWBOX = '0 16 100 68'
+const VIEWBOX = FLAG_VIEWBOX
 
-const FLAGS: Record<string, ReactNode> = {
+export const FLAGS: Record<string, ReactNode> = {
   usa: (
     <>
       <rect y="16" width="100" height="68" fill="#e1e1e1" />

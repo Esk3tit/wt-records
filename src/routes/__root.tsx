@@ -21,8 +21,8 @@ import { db } from '#/db'
 import { listModes } from '#/db/queries'
 import { hasAuthCookie } from '#/auth/supabase-server'
 import { adminGate } from '#/admin/guard'
-
-const CANONICAL_ORIGIN = 'https://wtrecords.gg'
+import { CANONICAL_ORIGIN } from '#/lib/canonical'
+import { siteMeta } from '#/og/meta'
 
 const loadShell = createServerFn({ method: 'GET' }).handler(async () => {
   // The mod check short-circuits on the cookie so plain visitors never pay
@@ -48,7 +48,9 @@ export const Route = createRootRoute({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'WT Records' },
+      // Site-wide share-card defaults; dynamic pages override these per the
+      // leaf-wins meta merge. Includes the default <title>.
+      ...siteMeta(),
     ],
     links: [{ rel: 'stylesheet', href: appCss }],
   }),
