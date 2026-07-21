@@ -1,8 +1,5 @@
-/* The card model: the pure, serializable projection every share card renders
-   from. One mapper per card type produces it; the card component and the unfurl
-   copy both consume it, so the image and the text can never disagree about the
-   holder, the score, or the chips. `artUrl` is the remote (R2) art the route
-   pre-fetches — the mapper stays sync and pure, so it only names the source. */
+// The pure card model the image AND the unfurl copy both consume, so picture
+// and text can't disagree. `artUrl` is remote art the route pre-fetches.
 
 export type ChipTone = 'neutral' | 'removed'
 

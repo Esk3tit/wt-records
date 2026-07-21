@@ -9,7 +9,7 @@ function Kicker({ children }: { children: string }) {
         display: 'flex',
         fontFamily: GOLOS,
         fontWeight: 500,
-        fontSize: 25,
+        fontSize: 26,
         letterSpacing: 4,
         textTransform: 'uppercase',
         color: COLOR.inkSoft,

@@ -1,9 +1,7 @@
 import { absoluteUrl } from '#/lib/canonical'
 
-/* Share-card image URLs. The `?v=` version bust is what makes a Supersede show
-   a fresh unfurl: Discord caches by URL, so a changed content version → new URL
-   → re-scrape on next paste, while old messages keep their historical card. The
-   OG route itself ignores `v`; only the value's change matters. */
+// Share-card image URLs. The `?v=` bust makes a Supersede re-unfurl (Discord
+// caches by URL); the OG route ignores the value, only its change matters.
 
 function withParams(
   path: string,
@@ -48,4 +46,9 @@ export function playerCardUrl(
   opts: { version?: string; from?: string } = {},
 ): string {
   return withParams(playerCardPath(slug), { v: opts.version, from: opts.from })
+}
+
+/** Relative Location for the tombstone → survivor 301, with `from` encoded. */
+export function playerCardRedirect(survivorSlug: string, from: string): string {
+  return `${playerCardPath(survivorSlug)}?${new URLSearchParams({ from })}`
 }

@@ -1,12 +1,8 @@
 import { absoluteUrl } from '#/lib/canonical'
 import { SITE_DESCRIPTION, SITE_TITLE } from './copy'
 
-/* The <head> meta contract for a share-card page. TanStack dedupes meta by
-   name/property with the leaf route winning, so a page emitting these overrides
-   the root's site defaults; a page that emits nothing (or a coming-soon Mode
-   whose loader returned null) keeps the site card. Absolute image URLs are built
-   from the canonical origin, never the request host. */
-
+// The <head> meta contract for a share-card page. TanStack dedupes by
+// name/property with the leaf winning, so a page's tags override the root's.
 const THEME_COLOR = '#F0B94A' // Medal Amber — the Discord embed accent stripe.
 
 export interface CardMetaInput {
@@ -31,9 +27,8 @@ export function cardMeta({ title, description, image }: CardMetaInput) {
   ]
 }
 
-/** The site-wide default card — every page unfurls with this unless it overrides
-    it. One committed PNG served from public/, so a render outage never affects a
-    static page's unfurl. */
+// The site-wide default card — a committed PNG served from public/, so a render
+// outage never affects a static page's unfurl.
 export const DEFAULT_CARD_URL = absoluteUrl('/og-default.png')
 
 export function siteMeta() {

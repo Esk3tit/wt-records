@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { db } from '#/db'
 import { getPlayer, mergedFromName, playerMergeRedirect } from '#/db/queries'
 import { toPlayerCardModel } from '#/og/props/player'
-import { playerCardPath } from '#/og/urls'
+import { playerCardRedirect } from '#/og/urls'
 import { cardElement } from '#/og/render/card-element'
 import {
   cardResponse,
@@ -43,7 +43,7 @@ export const Route = createFileRoute('/og/player/$slug')({
             // carrying the old slug so the survivor card can name it.
             const survivor = await playerMergeRedirect(db, slug)
             if (survivor) {
-              return movedResponse(`${playerCardPath(survivor)}?from=${slug}`)
+              return movedResponse(playerCardRedirect(survivor, slug))
             }
             return notFoundResponse()
           }

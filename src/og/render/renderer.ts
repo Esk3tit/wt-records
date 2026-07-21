@@ -1,6 +1,6 @@
 import { ImageResponse } from '@takumi-rs/image-response'
 import type { ReactElement } from 'react'
-import fallbackUri from '../assets/fallback.png?inline'
+import { FALLBACK_PNG } from '../assets/embedded'
 import { OG_FONTS } from './fonts'
 
 export const CARD_WIDTH = 1200
@@ -38,18 +38,13 @@ export function cardResponse(bytes: Uint8Array): Response {
 let fallbackBytes: Uint8Array | null = null
 function loadFallback(): Uint8Array {
   if (!fallbackBytes) {
-    fallbackBytes = new Uint8Array(
-      Buffer.from(fallbackUri.slice(fallbackUri.indexOf(',') + 1), 'base64'),
-    )
+    fallbackBytes = new Uint8Array(Buffer.from(FALLBACK_PNG, 'base64'))
   }
   return fallbackBytes
 }
 
-/* Any render-time failure (DB brownout, corrupt data, renderer throw) serves the
-   committed static card at 200 + no-store. Embed scrapers don't honor
-   Retry-After and may cache a failure, so no-store keeps the fallback out of the
-   edge cache and recovery is instant — the 200 no longer signals health, logs
-   do. */
+// Any render failure serves the committed static card at 200 + no-store: scrapers
+// may cache a failure, so no-store keeps the fallback out of the edge cache.
 export function fallbackResponse(): Response {
   return new Response(loadFallback() as unknown as BodyInit, {
     status: 200,
@@ -57,9 +52,8 @@ export function fallbackResponse(): Response {
   })
 }
 
-/* Unknown slug / non-live mode → 404: junk URLs can't fill the edge cache or
-   fake a legitimate card. Distinct from a render failure (→ fallback): a 404 is
-   an explicit return, never a throw, so it never routes into the catch. */
+// Unknown slug / non-live mode → 404 so junk URLs can't fill the edge cache.
+// Returned explicitly (never thrown), so it never routes into the render catch.
 export function notFoundResponse(): Response {
   return new Response('Not found', {
     status: 404,
@@ -75,6 +69,9 @@ export function movedResponse(location: string): Response {
   })
 }
 
+// Since the HTTP status no longer signals failure (a broken render still 200s
+// the fallback), monitoring must. Server-side Sentry is a separate follow-up —
+// for now this reaches Railway's captured stderr.
 export function reportCardError(context: string, err: unknown): void {
   console.error(`[og-card] render failed (${context}):`, err)
 }

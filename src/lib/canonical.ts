@@ -1,7 +1,5 @@
-// The public origin every absolute URL (canonical links, share-card images) is
-// built from — never the request host. The wtrecords.gg DNS cutover is pending,
-// so cards must not bake in the Railway host; override with VITE_CANONICAL_ORIGIN
-// before then. Trailing slash trimmed so `${origin}${path}` never doubles it.
+// The origin every absolute URL is built from — never the request host, since
+// the wtrecords.gg DNS cutover is pending. Override with VITE_CANONICAL_ORIGIN.
 const DEFAULT_ORIGIN = 'https://wtrecords.gg'
 
 export const CANONICAL_ORIGIN: string =

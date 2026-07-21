@@ -124,7 +124,7 @@ export function PlayerCard(m: PlayerCardModel) {
                     display: 'flex',
                     fontFamily: GOLOS,
                     fontWeight: 500,
-                    fontSize: 25,
+                    fontSize: 26,
                     letterSpacing: 2,
                     textTransform: 'uppercase',
                     color: COLOR.inkSoft,

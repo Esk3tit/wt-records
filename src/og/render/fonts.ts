@@ -1,19 +1,15 @@
-import sairaUri from '../assets/fonts/Saira.ttf?inline'
-import golosUri from '../assets/fonts/GolosText.ttf?inline'
+import { GOLOS_TTF, SAIRA_TTF } from '../assets/embedded'
 
-/* Self-hosted OFL faces for the renderer. Imported with Vite's `?inline`, which
-   bakes the bytes into the bundle as a base64 data-URI — a plain `readFileSync`
-   of the .ttf survives dev but the server bundler drops the file, so the read
-   throws in production. Pinned variable TTFs registered at fixed weights: the
-   renderer instances each weight from the one file, so output is deterministic
-   without a file per weight. Server-only. */
+// Self-hosted OFL faces, embedded as base64 (see scripts/og-embed-assets.ts) so
+// they load in the server bundle, vitest, and bun scripts alike. Variable TTFs
+// registered at fixed weights: deterministic output, no file per weight.
 
-function decodeDataUri(uri: string): Uint8Array {
-  return new Uint8Array(Buffer.from(uri.slice(uri.indexOf(',') + 1), 'base64'))
+function decodeBase64(b64: string): Uint8Array {
+  return new Uint8Array(Buffer.from(b64, 'base64'))
 }
 
-const saira = decodeDataUri(sairaUri)
-const golos = decodeDataUri(golosUri)
+const saira = decodeBase64(SAIRA_TTF)
+const golos = decodeBase64(GOLOS_TTF)
 
 // Saira: square HUD character — hero numerals, vehicle names, wordmark.
 export const SAIRA = 'Saira'

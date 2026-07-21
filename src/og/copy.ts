@@ -4,9 +4,8 @@ import type {
   VehicleCardModel,
 } from './props/types'
 
-/* The unfurl title/description text — what a text-only embed or a screen reader
-   reads. Exact strings approved on the prototypes (issue #17). Derived from the
-   same card model the image renders from, so text and picture always agree. */
+// Unfurl title/description — what a text-only embed or screen reader reads.
+// Built from the same model the image renders from, so text and picture agree.
 
 export const SITE_TITLE = 'WT Records'
 export const SITE_DESCRIPTION =

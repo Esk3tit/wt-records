@@ -1,8 +1,5 @@
-/* Vehicle art lives on a remote host (the R2 mirror). The renderer fetches
-   images itself, but a fetch FAILURE there throws and takes the whole render
-   down — which would wrongly serve the static fallback instead of the spec's
-   clean art-less card. So art is resolved HERE, out of band: fetch with a
-   timeout, and on any problem return null → the card renders art-less. */
+// A failed image fetch INSIDE the renderer crashes the whole render, so resolve
+// remote art here, out of band: any miss → null → the card renders art-less.
 const TIMEOUT_MS = 3500
 const MAX_BYTES = 4_000_000
 

@@ -1,14 +1,20 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { CARD_HEIGHT, CARD_WIDTH } from '#/og/render/renderer'
 import { flagDataUri } from './flag-image'
-import { COLOR, GOLOS, RADIUS, SAIRA, glassChip, glassPanel } from './tokens'
+import {
+  AMBER_GLOW,
+  COLOR,
+  GOLOS,
+  RADIUS,
+  SAIRA,
+  SCENE_GRADIENT,
+  glassChip,
+  glassPanel,
+} from './tokens'
 
-/* ── Scene: the atmosphere behind the glass ──────────────────────────────────
-   The site's WebGL Spatial Scene can't ride along in a static card, so the card
-   carries its spirit: a Night Hangar depth gradient, a soft Medal-Amber glow
-   that bleeds up through the frosted pane behind the hero (DESIGN.md's Record
-   Monument glow), and — when a nation is in play — a large faint flag washing
-   off one edge so the room still swaps per nation. */
+// Static stand-in for the site's WebGL Spatial Scene: a Night Hangar depth
+// gradient, the amber Record-Monument glow behind the hero, and a faint nation
+// flag washing off one edge so the room still swaps per nation.
 function Scene({ nationSlug }: { nationSlug?: string }) {
   const flag = nationSlug ? flagDataUri(nationSlug) : null
   return (
@@ -17,8 +23,7 @@ function Scene({ nationSlug }: { nationSlug?: string }) {
         position: 'absolute',
         inset: 0,
         display: 'flex',
-        background:
-          'linear-gradient(150deg, #151b24 0%, #0A0C10 55%, #06080b 100%)',
+        background: SCENE_GRADIENT,
       }}
     >
       {flag && (
@@ -50,7 +55,7 @@ function Scene({ nationSlug }: { nationSlug?: string }) {
           width: 760,
           height: 620,
           display: 'flex',
-          background: `radial-gradient(circle at 40% 60%, ${COLOR.amberGlow}, rgba(240,185,74,0) 68%)`,
+          background: AMBER_GLOW,
         }}
       />
     </div>
@@ -91,7 +96,7 @@ export function ModeBadge({ label }: { label: string }) {
         borderRadius: RADIUS.pill,
         fontFamily: SAIRA,
         fontWeight: 600,
-        fontSize: 22,
+        fontSize: 24,
         letterSpacing: 2,
         color: COLOR.inkSoft,
       }}
@@ -155,9 +160,8 @@ export function FlagChip({ slug, size = 60 }: { slug: string; size?: number }) {
   )
 }
 
-/** Completion ring — the nation card's single amber anchor. Amber fill sweeps
-    the held share, a neutral track holds the remainder; the percentage sits in
-    the well. Rendered as stacked conic + inner disc (no SVG arc math). */
+// The nation card's single amber anchor: an amber conic sweep over a neutral
+// track (no SVG arc math), with the percentage in the recessed well.
 export function CompletionRing({ pct }: { pct: number }) {
   const deg = Math.round((Math.min(100, Math.max(0, pct)) / 100) * 360)
   const size = 300
@@ -171,7 +175,7 @@ export function CompletionRing({ pct }: { pct: number }) {
         width: size,
         height: size,
         borderRadius: RADIUS.pill,
-        background: `conic-gradient(${COLOR.amber} 0deg ${deg}deg, rgba(255,255,255,0.12) ${deg}deg 360deg)`,
+        background: `conic-gradient(${COLOR.amber} 0deg ${deg}deg, ${COLOR.ringTrack} ${deg}deg 360deg)`,
       }}
     >
       <div
@@ -183,7 +187,7 @@ export function CompletionRing({ pct }: { pct: number }) {
           width: well,
           height: well,
           borderRadius: RADIUS.pill,
-          background: 'rgba(12,15,20,0.86)',
+          background: COLOR.well,
           boxShadow: `inset 0 0 0 1px ${COLOR.hairline}`,
         }}
       >
@@ -217,7 +221,7 @@ export function CompletionRing({ pct }: { pct: number }) {
             marginTop: 6,
             fontFamily: GOLOS,
             fontWeight: 500,
-            fontSize: 24,
+            fontSize: 26,
             letterSpacing: 1,
             color: COLOR.inkSoft,
           }}
@@ -229,9 +233,8 @@ export function CompletionRing({ pct }: { pct: number }) {
   )
 }
 
-/** A neutral-framed number — the player card's framed record count (the critique
-    asked for a frame around this number so it never floats). Amber number, ring
-    frame stays neutral. */
+// The player card's framed record count — a neutral ring frame so the amber
+// number never floats unanchored (the critique's fix). Number amber, frame not.
 export function Medallion({
   value,
   caption,
@@ -251,8 +254,8 @@ export function Medallion({
         width: size,
         height: size,
         borderRadius: RADIUS.pill,
-        background: 'rgba(255,255,255,0.04)',
-        boxShadow: `inset 0 0 0 2px ${COLOR.hairline}, inset 0 0 0 12px rgba(255,255,255,0.03)`,
+        background: COLOR.frostFaint,
+        boxShadow: `inset 0 0 0 2px ${COLOR.hairline}, inset 0 0 0 12px ${COLOR.frostFainter}`,
       }}
     >
       <div
@@ -273,7 +276,7 @@ export function Medallion({
           marginTop: 8,
           fontFamily: GOLOS,
           fontWeight: 500,
-          fontSize: 24,
+          fontSize: 26,
           letterSpacing: 1,
           color: COLOR.inkSoft,
         }}
@@ -299,7 +302,7 @@ export function StatLine({
           display: 'flex',
           fontFamily: GOLOS,
           fontWeight: 500,
-          fontSize: 25,
+          fontSize: 26,
           letterSpacing: 2,
           textTransform: 'uppercase',
           color: COLOR.inkSoft,
