@@ -1,4 +1,5 @@
 import type { PlayerCardModel, PlayerModeCount } from './types'
+import { contentVersion } from './version'
 
 export interface PlayerCardData {
   player: { displayName: string }
@@ -29,8 +30,8 @@ export function toPlayerCardModel(
 
   const nationsSpanned = new Set(records.map((r) => r.nationSlug)).size
 
-  return {
-    kind: 'player',
+  const base = {
+    kind: 'player' as const,
     displayName: data.player.displayName,
     totalRecords: records.length,
     perMode,
@@ -38,6 +39,6 @@ export function toPlayerCardModel(
     bestKills: best ? best.kills : null,
     nationsSpanned,
     previouslyKnownAs: opts.previouslyKnownAs ?? null,
-    version: `p${records.length}-${best?.kills ?? 0}${opts.previouslyKnownAs ? '-pka' : ''}`,
   }
+  return { ...base, version: contentVersion(base) }
 }

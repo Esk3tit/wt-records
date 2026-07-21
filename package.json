@@ -23,7 +23,7 @@
     "import:reset": "bun run src/migration/reset-run.ts",
     "r2:verify": "bun run src/storage/r2-verify.ts",
     "og:embed": "bun run scripts/og-embed-assets.ts",
-    "og:fallback": "bun run scripts/og-generate-fallback.tsx && bun run og:embed",
+    "og:fallback": "bun run og:embed && bun run scripts/og-generate-fallback.tsx && bun run og:embed",
     "og:preview": "bun run scripts/og-preview.tsx",
     "build": "vite build",
     "preview": "vite preview",

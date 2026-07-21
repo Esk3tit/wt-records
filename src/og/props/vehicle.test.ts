@@ -57,7 +57,6 @@ describe('toVehicleCardModel', () => {
       'premium',
       'removed',
     ])
-    expect(m.chips.at(-1)).toEqual({ label: 'removed', tone: 'removed' })
   })
 
   it('represents an Open bounty as null kills with the qualifying threshold', () => {
@@ -65,7 +64,26 @@ describe('toVehicleCardModel', () => {
     expect(m.kills).toBeNull()
     expect(m.holder).toBeNull()
     expect(m.minKills).toBe(15)
-    expect(m.version).toBe('open-15')
+    expect(m.version).toBeTruthy()
+  })
+
+  it('upper-cases SPG/SPAA class acronyms in the chip', () => {
+    const spaa = toVehicleCardModel(
+      'grb',
+      data({ vehicle: { ...data().vehicle, class: 'spaa' } }),
+    )
+    expect(spaa.chips[0].label).toBe('SPAA')
+  })
+
+  it('busts the version when any rendered field changes, not just the record', () => {
+    const base = toVehicleCardModel('grb', data())
+    const renamedHolder = toVehicleCardModel(
+      'grb',
+      data({ current: { ...data().current!, displayName: 'Renamed' } }),
+    )
+    const changedBr = toVehicleCardModel('grb', data({ br: 6.7 }))
+    expect(renamedHolder.version).not.toBe(base.version)
+    expect(changedBr.version).not.toBe(base.version)
   })
 
   it('keeps the card art-less when no image is mirrored', () => {

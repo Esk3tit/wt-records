@@ -1,4 +1,5 @@
 import type { NationCardModel } from './types'
+import { contentVersion } from './version'
 
 export interface NationCardData {
   name: string
@@ -15,8 +16,8 @@ export function toNationCardModel(
   data: NationCardData,
 ): NationCardModel {
   const avg = data.avgKills != null ? Math.round(data.avgKills * 10) / 10 : null
-  return {
-    kind: 'nation',
+  const base = {
+    kind: 'nation' as const,
     modeLabel: mode.toUpperCase(),
     nationName: data.name,
     nationSlug: data.nationSlug,
@@ -25,6 +26,6 @@ export function toNationCardModel(
     completionPct: data.completionPct,
     avgKills: avg,
     mostHeldPlayer: data.mostHeldPlayer,
-    version: `n${data.held}-${data.completionPct}-${avg ?? 0}`,
   }
+  return { ...base, version: contentVersion(base) }
 }

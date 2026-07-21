@@ -96,7 +96,7 @@ export function ModeBadge({ label }: { label: string }) {
         borderRadius: RADIUS.pill,
         fontFamily: SAIRA,
         fontWeight: 600,
-        fontSize: 24,
+        fontSize: 26,
         letterSpacing: 2,
         color: COLOR.inkSoft,
       }}
@@ -106,13 +106,9 @@ export function ModeBadge({ label }: { label: string }) {
   )
 }
 
-export function Chip({
-  label,
-  removed = false,
-}: {
-  label: string
-  removed?: boolean
-}) {
+// Chip labels are informational, so all — including "removed" — stay ≥0.7 alpha
+// ink; the word itself flags a Removed vehicle (no low-alpha ink needed).
+export function Chip({ label }: { label: string }) {
   return (
     <div
       style={{
@@ -124,7 +120,7 @@ export function Chip({
         fontFamily: GOLOS,
         fontWeight: 500,
         fontSize: 27,
-        color: removed ? COLOR.inkFaint : COLOR.inkSoft,
+        color: COLOR.inkSoft,
       }}
     >
       {label}

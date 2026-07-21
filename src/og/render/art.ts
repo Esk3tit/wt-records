@@ -5,12 +5,12 @@ const MAX_BYTES = 4_000_000
 
 export async function resolveArt(url: string | null): Promise<string | null> {
   if (!url) return null
+  const ctrl = new AbortController()
+  // Kept armed until the body is fully read: a server can send headers promptly
+  // then stall the body, so clearing on fetch() alone wouldn't bound the read.
+  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS)
   try {
-    const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS)
-    const res = await fetch(url, { signal: ctrl.signal }).finally(() =>
-      clearTimeout(timer),
-    )
+    const res = await fetch(url, { signal: ctrl.signal })
     if (!res.ok) return null
     const type = res.headers.get('content-type') ?? 'image/png'
     if (!type.startsWith('image/')) return null
@@ -19,5 +19,7 @@ export async function resolveArt(url: string | null): Promise<string | null> {
     return `data:${type};base64,${buf.toString('base64')}`
   } catch {
     return null
+  } finally {
+    clearTimeout(timer)
   }
 }

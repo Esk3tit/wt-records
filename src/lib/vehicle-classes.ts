@@ -16,3 +16,16 @@ export const VEHICLE_CLASSES = [
 ] as const
 
 export type VehicleClass = (typeof VEHICLE_CLASSES)[number]
+
+// Display label for a class: acronyms stay upper-case (SPG/SPAA), the rest are
+// title-cased. Plain CSS `capitalize` gets the acronyms wrong ("Spg").
+const CLASS_ACRONYMS: Partial<Record<VehicleClass, string>> = {
+  spg: 'SPG',
+  spaa: 'SPAA',
+}
+
+export function classLabel(c: string): string {
+  return (
+    CLASS_ACRONYMS[c as VehicleClass] ?? c.charAt(0).toUpperCase() + c.slice(1)
+  )
+}

@@ -40,7 +40,7 @@ export function PlayerCard(m: PlayerCardModel) {
               fontFamily: GOLOS,
               fontWeight: 500,
               fontSize: 26,
-              color: COLOR.inkFaint,
+              color: COLOR.inkSoft,
               maxWidth: 720,
             }}
           >

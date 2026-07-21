@@ -77,7 +77,7 @@ export function VehicleCard(props: VehicleCardModel & { art?: string | null }) {
           style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 20 }}
         >
           {m.chips.map((c, i) => (
-            <Chip key={i} label={c.label} removed={c.tone === 'removed'} />
+            <Chip key={i} label={c.label} />
           ))}
         </div>
       </div>

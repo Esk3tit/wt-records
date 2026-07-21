@@ -1,11 +1,8 @@
 // The pure card model the image AND the unfurl copy both consume, so picture
 // and text can't disagree. `artUrl` is remote art the route pre-fetches.
 
-export type ChipTone = 'neutral' | 'removed'
-
 export interface CardChip {
   label: string
-  tone: ChipTone
 }
 
 export interface VehicleCardModel {

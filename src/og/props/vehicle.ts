@@ -1,5 +1,7 @@
 import { formatBr } from '#/lib/format'
+import { classLabel } from '#/lib/vehicle-classes'
 import type { CardChip, VehicleCardModel } from './types'
+import { contentVersion } from './version'
 
 export interface VehicleCardData {
   vehicle: {
@@ -24,39 +26,23 @@ export interface VehicleCardData {
   minKills: number | null
 }
 
-function classLabel(c: string): string {
-  return c.charAt(0).toUpperCase() + c.slice(1)
-}
-
-function versionToken(v: Date | string | null): string {
-  if (v == null) return 'mig'
-  const t = new Date(v).getTime()
-  return Number.isFinite(t) ? t.toString(36) : 'mig'
-}
-
 export function toVehicleCardModel(
   mode: string,
   data: VehicleCardData,
 ): VehicleCardModel {
   const { vehicle, br, current, minKills } = data
 
-  // Chip order mirrors the site's vehicle surfaces exactly: class, BR, then the
-  // acquisition stack, Removed last.
-  const chips: CardChip[] = [
-    { label: classLabel(vehicle.class), tone: 'neutral' },
-  ]
-  if (br != null) chips.push({ label: `BR ${formatBr(br)}`, tone: 'neutral' })
-  if (vehicle.isEvent) chips.push({ label: 'event', tone: 'neutral' })
-  if (vehicle.isPremium) chips.push({ label: 'premium', tone: 'neutral' })
-  if (vehicle.isSquadron) chips.push({ label: 'squadron', tone: 'neutral' })
-  if (vehicle.isRemoved) chips.push({ label: 'removed', tone: 'removed' })
+  // Same chip set as the site's vehicle surfaces: class, BR, the acquisition
+  // stack, Removed last.
+  const chips: CardChip[] = [{ label: classLabel(vehicle.class) }]
+  if (br != null) chips.push({ label: `BR ${formatBr(br)}` })
+  if (vehicle.isEvent) chips.push({ label: 'event' })
+  if (vehicle.isPremium) chips.push({ label: 'premium' })
+  if (vehicle.isSquadron) chips.push({ label: 'squadron' })
+  if (vehicle.isRemoved) chips.push({ label: 'removed' })
 
-  const version = current
-    ? `r${versionToken(current.verifiedAt)}-${current.kills}`
-    : `open-${minKills ?? 0}`
-
-  return {
-    kind: 'vehicle',
+  const base = {
+    kind: 'vehicle' as const,
     modeLabel: mode.toUpperCase(),
     vehicleName: vehicle.name,
     nationSlug: vehicle.nationSlug,
@@ -68,6 +54,6 @@ export function toVehicleCardModel(
     patchName: current ? current.patchName : null,
     minKills,
     artUrl: vehicle.image,
-    version,
   }
+  return { ...base, version: contentVersion(base) }
 }

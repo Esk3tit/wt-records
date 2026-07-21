@@ -29,7 +29,17 @@ describe('toPlayerCardModel', () => {
   it('adds the previously-known-as name on a tombstone card', () => {
     const m = toPlayerCardModel(data(), { previouslyKnownAs: 'OldName' })
     expect(m.previouslyKnownAs).toBe('OldName')
-    expect(m.version).toContain('pka')
+    // The tombstone name is rendered, so it must bust the cache.
+    expect(m.version).not.toBe(toPlayerCardModel(data()).version)
+  })
+
+  it('busts the version on a rename or best-record swap at the same count', () => {
+    const base = toPlayerCardModel(data())
+    const renamed = toPlayerCardModel({
+      ...data(),
+      player: { displayName: 'Renamed' },
+    })
+    expect(renamed.version).not.toBe(base.version)
   })
 
   it('handles a records-less player without throwing', () => {

@@ -48,7 +48,14 @@ export function playerCardUrl(
   return withParams(playerCardPath(slug), { v: opts.version, from: opts.from })
 }
 
-/** Relative Location for the tombstone → survivor 301, with `from` encoded. */
-export function playerCardRedirect(survivorSlug: string, from: string): string {
-  return `${playerCardPath(survivorSlug)}?${new URLSearchParams({ from })}`
+/** Relative Location for the tombstone → survivor 301, carrying the survivor's
+    version so the redirect target is cache-busted like a direct visit. */
+export function playerCardRedirect(
+  survivorSlug: string,
+  from: string,
+  version?: string,
+): string {
+  const params = new URLSearchParams({ from })
+  if (version) params.set('v', version)
+  return `${playerCardPath(survivorSlug)}?${params}`
 }

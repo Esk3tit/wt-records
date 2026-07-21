@@ -4,6 +4,12 @@ import { STATE } from './support/states'
 
 test.use({ storageState: STATE.anon })
 
+// Cards must be served from the canonical origin, never the request host — the
+// build bakes the default unless VITE_CANONICAL_ORIGIN overrides it.
+const CANONICAL_ORIGIN =
+  process.env.VITE_CANONICAL_ORIGIN?.replace(/\/+$/, '') ||
+  'https://wtrecords.gg'
+
 /* The primary share-card seam: the HTTP surface a scraper actually sees. Each
    dynamic page must emit the full meta contract with a versioned ABSOLUTE image
    URL (built from the canonical origin, not the request host), and that image
@@ -40,7 +46,7 @@ async function expectCardImage(res: APIResponse) {
 async function assertPageCard(page: Page) {
   const image = await meta(page, 'og:image')
   expect(image, 'og:image is present').toBeTruthy()
-  expect(image!).toMatch(/^https?:\/\//)
+  expect(new URL(image!).origin).toBe(CANONICAL_ORIGIN)
 
   expect(await meta(page, 'og:title')).toBeTruthy()
   expect(await meta(page, 'og:description')).toBeTruthy()

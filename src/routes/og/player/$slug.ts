@@ -40,10 +40,16 @@ export const Route = createFileRoute('/og/player/$slug')({
           const player = await getPlayer(db, slug)
           if (!player) {
             // Merge tombstone → permanent redirect to the survivor's card,
-            // carrying the old slug so the survivor card can name it.
+            // carrying the old slug (for the name) and the survivor's version so
+            // the redirect target is cache-busted like a direct visit.
             const survivor = await playerMergeRedirect(db, slug)
             if (survivor) {
-              return movedResponse(playerCardRedirect(survivor, slug))
+              const s = await getPlayer(db, survivor)
+              const version = s
+                ? toPlayerCardModel({ player: s.player, records: s.records })
+                    .version
+                : undefined
+              return movedResponse(playerCardRedirect(survivor, slug, version))
             }
             return notFoundResponse()
           }
