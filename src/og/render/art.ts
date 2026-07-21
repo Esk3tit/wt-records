@@ -3,6 +3,35 @@
 const TIMEOUT_MS = 3500
 const MAX_BYTES = 4_000_000
 
+// Read the body with a hard byte cap so an oversized (or lying) response is
+// aborted mid-stream, never fully buffered — the content-length header is only a
+// fast-path reject, the streamed tally is the real bound.
+async function readCapped(res: Response): Promise<Uint8Array | null> {
+  const declared = Number(res.headers.get('content-length'))
+  if (Number.isFinite(declared) && declared > MAX_BYTES) return null
+  const reader = res.body?.getReader()
+  if (!reader) return null
+  const chunks: Uint8Array[] = []
+  let total = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    total += value.byteLength
+    if (total > MAX_BYTES) {
+      await reader.cancel().catch(() => {})
+      return null
+    }
+    chunks.push(value)
+  }
+  const out = new Uint8Array(total)
+  let offset = 0
+  for (const chunk of chunks) {
+    out.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  return out
+}
+
 export async function resolveArt(url: string | null): Promise<string | null> {
   if (!url) return null
   const ctrl = new AbortController()
@@ -14,9 +43,9 @@ export async function resolveArt(url: string | null): Promise<string | null> {
     if (!res.ok) return null
     const type = res.headers.get('content-type') ?? 'image/png'
     if (!type.startsWith('image/')) return null
-    const buf = Buffer.from(await res.arrayBuffer())
-    if (buf.byteLength === 0 || buf.byteLength > MAX_BYTES) return null
-    return `data:${type};base64,${buf.toString('base64')}`
+    const buf = await readCapped(res)
+    if (!buf || buf.byteLength === 0) return null
+    return `data:${type};base64,${Buffer.from(buf).toString('base64')}`
   } catch {
     return null
   } finally {
