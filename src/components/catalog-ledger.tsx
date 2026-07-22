@@ -22,7 +22,7 @@ export interface LedgerVehicleRow extends VehicleTagFlags {
 export const LEDGER_TH =
   'py-3 pr-4 text-left text-xs font-semibold tracking-wide text-fg-muted uppercase'
 export const LEDGER_ROW =
-  'border-t border-hairline-soft transition-colors duration-150 hover:bg-[var(--row-hover)]'
+  'border-t border-hairline-soft transition-colors duration-200 hover:bg-[var(--row-hover)]'
 
 export function LedgerPane({ children }: { children: React.ReactNode }) {
   return (
@@ -120,22 +120,30 @@ export function HolderCell({ row }: { row: LedgerVehicleRow }) {
 
 export function LedgerEmptyRow({
   colSpan,
+  hasFilters,
   onReset,
 }: {
   colSpan: number
+  hasFilters: boolean
   onReset: () => void
 }) {
   return (
     <tr className="border-t border-hairline-soft">
       <td colSpan={colSpan} className="px-5 py-12 text-center">
-        <p className="text-fg-muted">No vehicles match these filters.</p>
-        <button
-          type="button"
-          onClick={onReset}
-          className="mt-4 rounded-[10px] border border-hairline px-3.5 py-1.5 text-[0.8125rem] font-medium text-fg-muted transition-colors duration-150 hover:border-[var(--hairline-hover)] hover:text-fg"
-        >
-          Reset filters
-        </button>
+        <p className="text-fg-muted">
+          {hasFilters
+            ? 'No vehicles match these filters.'
+            : 'No vehicles here yet.'}
+        </p>
+        {hasFilters && (
+          <button
+            type="button"
+            onClick={onReset}
+            className="mt-4 rounded-[10px] border border-hairline px-3.5 py-1.5 text-[0.8125rem] font-medium text-fg-muted transition-colors duration-200 hover:border-[var(--hairline-hover)] hover:text-fg"
+          >
+            Reset filters
+          </button>
+        )}
       </td>
     </tr>
   )

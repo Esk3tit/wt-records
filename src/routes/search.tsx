@@ -56,10 +56,22 @@ function SearchPage() {
             autoFocus={q === ''}
             enterKeyHint="search"
             placeholder="Vehicle or player…"
-            className="w-full rounded-[14px] border border-hairline bg-[var(--tint)] py-3 pr-4 pl-11 text-[1.0625rem] placeholder:text-fg-muted"
+            className="w-full rounded-[12px] border border-hairline bg-[var(--tint)] py-3 pr-4 pl-11 text-[1.0625rem] placeholder:text-fg-muted"
           />
         </div>
       </form>
+
+      {/* One polite summary instead of live-regioning the whole result list —
+          a full list re-announce on every keystrokey navigation is noise. */}
+      <p className="sr-only" aria-live="polite">
+        {q === ''
+          ? ''
+          : empty
+            ? `Nothing matches ${q}`
+            : `${matchCount(results.players.length)} in players, ${matchCount(
+                results.vehicles.length,
+              )} in vehicles`}
+      </p>
 
       {q === '' && (
         <div className="glass-thin mt-8 rounded-[22px] px-6 py-12 text-center">
@@ -72,10 +84,7 @@ function SearchPage() {
       )}
 
       {empty && (
-        <div
-          className="glass-thin mt-8 rounded-[22px] px-6 py-12 text-center"
-          aria-live="polite"
-        >
+        <div className="glass-thin mt-8 rounded-[22px] px-6 py-12 text-center">
           <p className="font-medium text-fg">Nothing matches “{q}”</p>
           <p className="mx-auto mt-1.5 max-w-[26rem] text-[0.9375rem] text-fg-muted">
             Search covers vehicle and player names. Try a shorter fragment —
@@ -85,7 +94,7 @@ function SearchPage() {
       )}
 
       {q !== '' && !empty && (
-        <div className="mt-8 space-y-10" aria-live="polite">
+        <div className="mt-8 space-y-10">
           {results.players.length > 0 && (
             <section>
               <SectionHead
@@ -102,7 +111,7 @@ function SearchPage() {
                       <Link
                         to="/player/$slug"
                         params={{ slug: p.slug }}
-                        className="flex items-center gap-4 px-5 py-3 no-underline transition-colors duration-150 hover:bg-[var(--row-hover)]"
+                        className="flex items-center gap-4 px-5 py-3 no-underline transition-colors duration-200 hover:bg-[var(--row-hover)]"
                       >
                         <span className="min-w-0 truncate font-medium">
                           {p.displayName}
@@ -127,7 +136,7 @@ function SearchPage() {
                     <li
                       key={v.slug}
                       className={
-                        'relative border-t border-hairline-soft transition-colors duration-150 first:border-t-0 ' +
+                        'relative border-t border-hairline-soft transition-colors duration-200 first:border-t-0 ' +
                         (v.linkMode ? 'hover:bg-[var(--row-hover)]' : '')
                       }
                       title={

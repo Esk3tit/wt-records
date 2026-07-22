@@ -121,11 +121,11 @@ function NationSheet() {
             <Link
               to="/$mode/nations"
               params={{ mode }}
-              className="text-[0.8125rem] text-fg-muted no-underline transition-colors duration-150 hover:text-fg"
+              className="text-[0.8125rem] text-fg-muted no-underline transition-colors duration-200 hover:text-fg"
             >
               ‹ Nations
             </Link>
-            <p className="text-[0.6875rem] font-semibold tracking-[0.18em] text-fg-muted uppercase">
+            <p className="text-[0.6875rem] font-semibold tracking-[0.2em] text-fg-muted uppercase">
               {mode.toUpperCase()} · {modeCtx.name}
             </p>
           </div>
@@ -199,7 +199,7 @@ function NationSheet() {
               <button
                 type="button"
                 onClick={resetFilters}
-                className="underline decoration-1 underline-offset-2 transition-colors duration-150 hover:text-fg"
+                className="underline decoration-1 underline-offset-2 transition-colors duration-200 hover:text-fg"
               >
                 Reset filters
               </button>
@@ -236,7 +236,7 @@ function NationSheet() {
                     }
                   >
                     <span className="flex items-center gap-3">
-                      <span className="text-xs font-semibold tracking-[0.18em] text-fg-muted uppercase">
+                      <span className="text-xs font-semibold tracking-[0.2em] text-fg-muted uppercase">
                         {g.rank != null
                           ? `Rank ${formatRank(g.rank)}`
                           : 'Unranked'}
@@ -263,7 +263,11 @@ function NationSheet() {
               </Fragment>
             ))}
             {rows.length === 0 && (
-              <LedgerEmptyRow colSpan={4} onReset={resetFilters} />
+              <LedgerEmptyRow
+                colSpan={4}
+                hasFilters={activeFilters > 0}
+                onReset={resetFilters}
+              />
             )}
           </tbody>
         </LedgerPane>

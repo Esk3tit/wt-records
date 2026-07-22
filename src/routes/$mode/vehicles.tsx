@@ -76,7 +76,7 @@ function SortHeader({
     <button
       type="button"
       className={
-        'inline-flex items-center gap-1 text-xs font-semibold tracking-wide uppercase transition-colors duration-150 ' +
+        'inline-flex items-center gap-1 text-xs font-semibold tracking-wide uppercase transition-colors duration-200 ' +
         (active ? 'text-fg' : 'text-fg-muted hover:text-fg')
       }
       onClick={() => {
@@ -116,7 +116,7 @@ function pageWindow(page: number, pageCount: number): Array<number | null> {
 }
 
 const PAGER_ARROW =
-  'rounded-[10px] border px-3 py-1.5 text-[0.8125rem] font-medium no-underline transition-colors duration-150 '
+  'rounded-[10px] border px-3 py-1.5 text-[0.8125rem] font-medium no-underline transition-colors duration-200 '
 
 function BrowsePage() {
   const { mode } = Route.useParams()
@@ -138,7 +138,7 @@ function BrowsePage() {
     <section className="py-6">
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
         <div>
-          <p className="text-[0.6875rem] font-semibold tracking-[0.18em] text-fg-muted uppercase">
+          <p className="text-[0.6875rem] font-semibold tracking-[0.2em] text-fg-muted uppercase">
             {mode.toUpperCase()} · {modeCtx.name}
           </p>
           <h1 className="mt-1.5 text-2xl font-semibold">Vehicles</h1>
@@ -152,7 +152,7 @@ function BrowsePage() {
               <button
                 type="button"
                 onClick={resetFilters}
-                className="underline decoration-1 underline-offset-2 transition-colors duration-150 hover:text-fg"
+                className="underline decoration-1 underline-offset-2 transition-colors duration-200 hover:text-fg"
               >
                 Reset filters
               </button>
@@ -246,7 +246,11 @@ function BrowsePage() {
               </tr>
             ))}
             {rows.length === 0 && (
-              <LedgerEmptyRow colSpan={5} onReset={resetFilters} />
+              <LedgerEmptyRow
+                colSpan={5}
+                hasFilters={activeFilters > 0}
+                onReset={resetFilters}
+              />
             )}
           </tbody>
         </LedgerPane>
@@ -293,7 +297,7 @@ function BrowsePage() {
                 search={{ ...search, page: p === 1 ? undefined : p }}
                 aria-current={p === page ? 'page' : undefined}
                 className={
-                  'rounded-[10px] border px-3 py-1.5 text-[0.8125rem] font-medium no-underline transition-colors duration-150 ' +
+                  'rounded-[10px] border px-3 py-1.5 text-[0.8125rem] font-medium no-underline transition-colors duration-200 ' +
                   (p === page
                     ? 'border-transparent bg-[var(--pill-active)] text-fg'
                     : 'border-hairline text-fg-muted hover:border-[var(--hairline-hover)] hover:text-fg')

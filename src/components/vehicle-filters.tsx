@@ -106,7 +106,7 @@ function FilterChip({
       aria-pressed={active}
       onClick={onClick}
       className={
-        'rounded-[10px] border px-2.5 py-1 text-[0.8125rem] font-medium transition-colors duration-150 ' +
+        'rounded-[10px] border px-2.5 py-1 text-[0.8125rem] font-medium transition-colors duration-200 ' +
         (active
           ? 'border-transparent bg-[var(--pill-active)] text-fg'
           : 'border-hairline text-fg-muted hover:border-[var(--hairline-hover)] hover:text-fg')
@@ -153,7 +153,7 @@ export function VehicleFilters({
   }
 
   const brSelectClass =
-    'rounded-[10px] border border-hairline bg-transparent px-2 py-1 text-[0.8125rem] text-fg transition-colors duration-150 hover:border-[var(--hairline-hover)]'
+    'rounded-[10px] border border-hairline bg-transparent px-2 py-1 text-[0.8125rem] text-fg transition-colors duration-200 hover:border-[var(--hairline-hover)]'
 
   const activeCount = countActiveFilters(search) - (search.q ? 1 : 0)
 
@@ -168,7 +168,7 @@ export function VehicleFilters({
         aria-controls="vehicle-filter-groups"
         onClick={() => setExpanded((e) => !e)}
         className={
-          'flex items-center gap-1.5 text-[0.8125rem] font-medium text-fg-muted transition-colors duration-150 hover:text-fg sm:hidden ' +
+          'flex items-center gap-1.5 text-[0.8125rem] font-medium text-fg-muted transition-colors duration-200 hover:text-fg sm:hidden ' +
           (nameSlot != null ? 'mt-3.5' : '')
         }
       >

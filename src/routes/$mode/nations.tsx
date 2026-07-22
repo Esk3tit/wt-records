@@ -25,7 +25,7 @@ function Nations() {
 
   return (
     <section className="py-6">
-      <p className="text-[0.6875rem] font-semibold tracking-[0.18em] text-fg-muted uppercase">
+      <p className="text-[0.6875rem] font-semibold tracking-[0.2em] text-fg-muted uppercase">
         {mode.toUpperCase()} · {modeCtx.name}
       </p>
       <h1 className="mt-1.5 text-2xl font-semibold">Nations</h1>
