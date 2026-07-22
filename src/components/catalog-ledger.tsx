@@ -139,7 +139,7 @@ export function KillsCell({ kills }: { kills: number | null }) {
 export function isHeld(
   row: LedgerVehicleRow,
 ): row is LedgerVehicleRow & { playerSlug: string; displayName: string } {
-  return row.playerSlug != null && row.displayName != null
+  return !!row.playerSlug && !!row.displayName
 }
 
 export function HolderCell({ row }: { row: LedgerVehicleRow }) {

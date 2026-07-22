@@ -1,5 +1,6 @@
 import {
   createRouter as createTanStackRouter,
+  parseSearchWith,
   stringifySearchWith,
 } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
@@ -14,6 +15,14 @@ export function getRouter() {
     // (?rank="4"), breaking the canonical bare-string URLs. Scalars serialize
     // bare; validators canonicalize parsed types back via asParam.
     stringifySearch: stringifySearchWith(JSON.stringify),
+    // A numeric parse that doesn't round-trip (float precision on long
+    // digit strings, leading zeros) keeps the raw string instead.
+    parseSearch: parseSearchWith((value) => {
+      const parsed: unknown = JSON.parse(value)
+      return typeof parsed === 'number' && String(parsed) !== value
+        ? value
+        : parsed
+    }),
   })
 
   return router
