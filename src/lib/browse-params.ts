@@ -1,3 +1,4 @@
+import { asParam } from '#/lib/search-param'
 import { VEHICLE_CLASSES } from '#/lib/vehicle-classes'
 import type { VehicleClass } from '#/lib/vehicle-classes'
 
@@ -55,9 +56,10 @@ export type BrowseFacet = keyof Pick<BrowseSearch, 'q' | 'nation'>
 const SLUG_RE = /^[a-z0-9-]+$/
 
 function csv<T extends string>(
-  value: unknown,
+  raw: unknown,
   valid: (item: string) => item is T,
 ): T[] {
+  const value = asParam(raw)
   if (typeof value !== 'string') return []
   const items = [...new Set(value.split(',').map((s) => s.trim()))]
   return items.filter(valid)
@@ -89,8 +91,9 @@ export function normalizeBrowseSearch(
 ): BrowseSearch {
   const out: BrowseSearch = {}
 
-  if (!omit.includes('q') && typeof raw.q === 'string' && raw.q.trim()) {
-    out.q = raw.q.trim()
+  const q = asParam(raw.q)
+  if (!omit.includes('q') && typeof q === 'string' && q.trim()) {
+    out.q = q.trim()
   }
   if (!omit.includes('nation')) {
     const nations = csv(raw.nation, isNationSlug)

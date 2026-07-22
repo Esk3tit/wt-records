@@ -992,6 +992,7 @@ export function searchVehicles(
       name: vehicles.name,
       branch: vehicles.branch,
       nation: nations.name,
+      nationSlug: nations.slug,
       br: vehicleBr.br,
       ...vehicleTagFlags,
     })
@@ -1055,6 +1056,7 @@ export async function search(db: Db, q: string) {
         slug: v.slug,
         name: v.name,
         nation: v.nation,
+        nationSlug: v.nationSlug,
         ...pickVehicleTags(v),
         linkMode: pref && liveModes.has(pref) ? pref : null,
       }

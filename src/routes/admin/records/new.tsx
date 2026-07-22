@@ -28,6 +28,7 @@ import type { ProofDraftState } from '#/components/admin/proof-uploader'
 import { formatBr } from '#/lib/format'
 import { formatDayYear } from '#/lib/dates'
 import { displayVehicleName } from '#/lib/vehicle-name'
+import { asParam } from '#/lib/search-param'
 import {
   adminAddPatch,
   adminEntryContext,
@@ -43,8 +44,10 @@ export const Route = createFileRoute('/admin/records/new')({
   // "Add another" seeds the batch-stable fields from the previous save.
   validateSearch: (s: Record<string, unknown>): { m?: string; p?: string } => {
     const out: { m?: string; p?: string } = {}
-    if (typeof s.m === 'string' && s.m) out.m = s.m
-    if (typeof s.p === 'string' && s.p) out.p = s.p
+    const m = asParam(s.m)
+    const p = asParam(s.p)
+    if (typeof m === 'string' && m) out.m = m
+    if (typeof p === 'string' && p) out.p = p
     return out
   },
   loader: async ({ context }) => {

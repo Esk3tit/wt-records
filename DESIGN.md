@@ -111,6 +111,21 @@ components:
     textColor: "{colors.ink}"
     rounded: "{rounded.panel}"
     padding: "24px"
+  input-search:
+    backgroundColor: "#FFFFFF0F"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.media}"
+    padding: "6px 12px"
+  filter-chip:
+    backgroundColor: "transparent"
+    textColor: "{colors.ink-muted}"
+    rounded: "{rounded.media}"
+    padding: "4px 10px"
+  filter-chip-active:
+    backgroundColor: "#FFFFFF24"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.media}"
+    padding: "4px 10px"
 ---
 
 # Design System: WT Records
@@ -176,7 +191,7 @@ One committed base per lighting state, mirrored ink ramps, one warm accent with 
 - **Body compact** (400, 0.9375rem, 1.4): explanatory copy inside panes and filter/control text.
 - **Data** (400, 0.8125rem, 1.45): the ledger register — feed rows, captions, table metadata; usually paired with tabular numerals.
 - **Label** (500, 0.75rem, 0.05em tracking, uppercase where used): metadata tags like the removed chip; used sparingly.
-- **Kicker** (600, 0.6875rem, 0.12em tracking, uppercase): micro section labels — the smallest step, always tracked and uppercase, never for running text. The hero `.kicker` alone widens tracking to 0.24em.
+- **Kicker** (600, 0.6875rem, 0.12em tracking, uppercase): micro section labels — the smallest step, always tracked and uppercase, never for running text. Two sanctioned wider forms: ruled section labels and page eyebrows track at 0.2em, and the hero `.kicker` alone widens to 0.24em. No other tracking values exist.
 
 ### Named Rules
 **The Tabular Rule.** `font-variant-numeric: tabular-nums` applies globally, no exceptions. A kill count that shifts width when it changes is a bug.
@@ -224,7 +239,8 @@ The identity layer. A small, curated, fixed set of battle scenes, each processed
 - **Internal Padding:** 24px (xl).
 
 ### Inputs / Fields
-- **Style:** faint fill, the mode's hairline border, 4px radius, full ink text.
+- **Two registers.** Back-of-house (/admin) fields stay machined instruments: faint fill, the mode's hairline border, 4px control radius. Front-of-house search fields (hero lookup, Browse name filter, /search) are softer objects at the 10px media radius — they sit beside 10px chips and pagination pills, not beside admin controls.
+- **Style:** faint fill, the mode's hairline border, full ink text.
 - **Focus:** visible ring in Medal Amber (night) / Medal Amber Deep (day) — keyboard focus is part of the WCAG 2.1 AA floor, never suppressed.
 - **Placeholder:** must meet 4.5:1 like any body text.
 
@@ -238,6 +254,15 @@ The mode's all-time high as a lock-screen moment inside the hero: a monumental a
 
 ### Leaderboard Row (signature)
 Rank number right-aligned in a fixed 1.5rem column — faint ink, or the mode's metal forms for 1/2/3 where medals are on — holder name as link, record count pushed to the row's end in muted ink, tabular numerals aligning every row into a ledger.
+
+### Catalog Ledger
+The registry's table voice (Browse, nation sheets, /search results): a mid-weight glass pane wrapping the whole table, never per-row cards. Header row in the uppercase muted label register; soft hairline row dividers with the row-hover wash; vehicle names as quiet links (underline on hover only), flag chips beside nations, and the kills column bold in full ink — the number is the hero of every row. Nation sheets add ruled rank dividers inside the ledger: uppercase rank label, a hairline rule fading right, and a faint "N of M held" count. Empty ledgers teach: they state what happened and offer "Reset filters" only when filters are active. Columns fold responsively (nation into a flag chip below md, BR out below sm) — the ledger composes, it never shrinks. Pagination continues the nav's pill vocabulary: 10px-radius hairline pills, the current page in the bright pill-active fill, windowed with ellipses, arrows disabled in faint ink.
+
+### Filter Panel
+Catalog filtering lives in one thin-glass instrument panel above the ledger: a fixed 6.5rem uppercase label column (Nation / Class / Rank / BR / Acquisition / Title) with 10px-radius chip rows beside it. Active chips drop their hairline for the bright pill-active fill at constant weight — selection reads as light, not as bold, so nothing shifts. The name search, where a page mounts one, is part of the panel, not separate chrome. On phones the group stack folds behind a "Filters" disclosure carrying an active-count badge; the name search stays visible.
+
+### Page Eyebrow
+List pages introduce themselves with a mode eyebrow above the h1 — kicker-size (0.6875rem), semibold, uppercase, tracked at the section-label's 0.2em, muted ink: `GRB · GROUND REALISTIC BATTLES`. It is context, never a link, and never amber.
 
 ## 6. Do's and Don'ts
 

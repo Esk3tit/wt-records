@@ -7,6 +7,7 @@ import {
 import { Panel, inputClass } from '#/components/admin/ui'
 import { ADMIN_PAGE_SIZE, Pager, pageParam } from '#/components/admin/pager'
 import { adminPlayerList } from '#/admin/api'
+import { asParam } from '#/lib/search-param'
 
 interface PlayersSearch {
   q?: string
@@ -16,7 +17,8 @@ interface PlayersSearch {
 export const Route = createFileRoute('/admin/players/')({
   validateSearch: (s: Record<string, unknown>): PlayersSearch => {
     const out: PlayersSearch = {}
-    if (typeof s.q === 'string' && s.q.trim()) out.q = s.q.trim()
+    const q = asParam(s.q)
+    if (typeof q === 'string' && q.trim()) out.q = q.trim()
     out.page = pageParam(s.page)
     return out
   },

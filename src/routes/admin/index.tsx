@@ -16,6 +16,7 @@ import { ADMIN_PAGE_SIZE, Pager, pageParam } from '#/components/admin/pager'
 import { formatDayYear } from '#/lib/dates'
 import { displayVehicleName } from '#/lib/vehicle-name'
 import { adminRecordList } from '#/admin/api'
+import { asParam } from '#/lib/search-param'
 
 interface RecordsSearch {
   status?: 'verified' | 'retired' | 'pending' | 'rejected'
@@ -36,7 +37,8 @@ export const Route = createFileRoute('/admin/')({
       out.status = s.status as RecordsSearch['status']
     }
     if (typeof s.mode === 'string' && s.mode) out.mode = s.mode
-    if (typeof s.q === 'string' && s.q.trim()) out.q = s.q.trim()
+    const q = asParam(s.q)
+    if (typeof q === 'string' && q.trim()) out.q = q.trim()
     if (s.sort === 'kills') out.sort = 'kills'
     if (s.dir === 'asc') out.dir = 'asc'
     out.page = pageParam(s.page)

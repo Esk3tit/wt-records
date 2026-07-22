@@ -1,5 +1,6 @@
-import { Link, createFileRoute, notFound } from '@tanstack/react-router'
+import { createFileRoute, notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import { NationCompletion } from '#/components/nation-completion'
 import { db } from '#/db'
 import { listNations } from '#/db/queries'
 
@@ -19,23 +20,18 @@ export const Route = createFileRoute('/$mode/nations')({
 
 function Nations() {
   const { mode } = Route.useParams()
+  const { mode: modeCtx } = Route.useRouteContext()
   const nations = Route.useLoaderData()
 
   return (
-    <section className="p-6">
-      <h1 className="text-2xl font-semibold">{mode.toUpperCase()} nations</h1>
-      <ul className="mt-4 space-y-1">
-        {nations.map((n) => (
-          <li key={n.slug} className="flex items-baseline gap-3">
-            <Link to="/$mode/nation/$slug" params={{ mode, slug: n.slug }}>
-              {n.name}
-            </Link>
-            <span className="ml-auto text-fg-muted">
-              {n.coveredVehicles}/{n.eligibleVehicles} · {n.completionPct}%
-            </span>
-          </li>
-        ))}
-      </ul>
+    <section className="py-6">
+      <p className="text-[0.6875rem] font-semibold tracking-[0.2em] text-fg-muted uppercase">
+        {mode.toUpperCase()} · {modeCtx.name}
+      </p>
+      <h1 className="mt-1.5 text-2xl font-semibold">Nations</h1>
+      <div className="mt-5">
+        <NationCompletion mode={mode} nations={nations} />
+      </div>
     </section>
   )
 }

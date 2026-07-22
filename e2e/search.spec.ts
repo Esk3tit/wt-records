@@ -24,8 +24,7 @@ test('searching a catalogued vehicle leads to its page', async ({ page }) => {
   ).toBeVisible()
 })
 
-test('a query with no matches reports both groups empty', async ({ page }) => {
+test('a query with no matches reports the empty state', async ({ page }) => {
   await page.goto('/search?q=zzzznotathing')
-  await expect(page.getByText('No players.')).toBeVisible()
-  await expect(page.getByText('No vehicles.')).toBeVisible()
+  await expect(page.getByText('Nothing matches “zzzznotathing”')).toBeVisible()
 })
