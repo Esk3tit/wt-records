@@ -793,12 +793,14 @@ export async function getPlayer(db: Db, slug: string) {
         kills: records.kills,
         vehicleSlug: vehicles.slug,
         vehicleName: vehicles.name,
+        nationSlug: nations.slug,
         ...vehicleTagFlags,
         ignSnapshot: records.ignSnapshot,
         displayNameSnapshot: records.displayNameSnapshot,
       })
       .from(records)
       .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
+      .innerJoin(nations, eq(nations.id, vehicles.nationId))
       // Same counted-record definition as the stats views: live mode + branch
       // match, so an off-branch record (invalid data) never renders here either.
       .innerJoin(modes, and(modeMatchesBranch, eq(modes.isLive, true)))
@@ -836,6 +838,78 @@ export async function playerMergeRedirect(
     survivorId = next.mergedInto
   }
   return null
+}
+
+/** Everything a nation share card shows, in one consistent read. Held / total /
+    completion / avg come from nation_stats (same numbers as the site); most-held
+    Player is the holder of the most current titles for this nation + mode. Null
+    when the nation isn't in this mode (→ 404). */
+export async function getNationCard(db: Db, mode: string, slug: string) {
+  const stats = one(
+    await db
+      .select({
+        name: nationStats.name,
+        nationId: nationStats.nationId,
+        held: nationStats.coveredVehicles,
+        total: nationStats.eligibleVehicles,
+        completionPct: nationStats.completionPct,
+        avgKills: nationStats.avgKills,
+      })
+      .from(nationStats)
+      .where(and(eq(nationStats.mode, mode), eq(nationStats.slug, slug)))
+      .limit(1),
+  )
+  if (!stats) return null
+
+  const top = one(
+    await db
+      .select({ displayName: players.displayName })
+      .from(records)
+      .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
+      .innerJoin(modes, modeMatchesBranch)
+      .innerJoin(players, eq(players.id, records.playerId))
+      .where(
+        and(
+          eq(records.mode, mode),
+          eq(vehicles.nationId, stats.nationId),
+          isCurrentVerified,
+        ),
+      )
+      .groupBy(players.id, players.displayName)
+      .orderBy(desc(count(records.id)), asc(players.displayName))
+      .limit(1),
+  )
+
+  return {
+    name: stats.name,
+    nationSlug: slug,
+    held: stats.held,
+    total: stats.total,
+    completionPct: stats.completionPct,
+    avgKills: stats.avgKills,
+    mostHeldPlayer: top ? top.displayName : null,
+  }
+}
+
+/** Display name a merged-player slug carried before the Merge — the source for a
+    survivor card's "previously known as" line when reached via `?from=`. Null
+    when the slug isn't a tombstone. Callers verify the slug actually merges into
+    the survivor before trusting the name. */
+export async function mergedFromName(
+  db: Db,
+  slug: string,
+): Promise<string | null> {
+  const row = one(
+    await db
+      .select({
+        displayName: players.displayName,
+        mergedInto: players.mergedInto,
+      })
+      .from(players)
+      .where(eq(players.slug, slug))
+      .limit(1),
+  )
+  return row && row.mergedInto != null ? row.displayName : null
 }
 
 export async function getRules(db: Db, mode: string) {

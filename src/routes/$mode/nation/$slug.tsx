@@ -5,10 +5,14 @@ import { RecordName } from '#/components/record-name'
 import { VehicleFilters } from '#/components/vehicle-filters'
 import { VehicleTags } from '#/components/vehicle-tags'
 import { db } from '#/db'
-import { browseFacets, getNationSheet } from '#/db/queries'
+import { browseFacets, getNationCard, getNationSheet } from '#/db/queries'
 import { browseFilters, normalizeBrowseSearch } from '#/lib/browse-params'
 import type { BrowseSearch } from '#/lib/browse-params'
 import { formatBr, formatRank } from '#/lib/format'
+import { toNationCardModel } from '#/og/props/nation'
+import { nationUnfurl } from '#/og/copy'
+import { nationCardUrl } from '#/og/urls'
+import { cardMeta } from '#/og/meta'
 
 // The page IS the nation filter, and the header search covers name lookup.
 const OMITTED_FACETS = ['q', 'nation'] as const
@@ -22,12 +26,15 @@ const loadNationSheet = createServerFn({ method: 'GET' })
       data.search as Record<string, unknown>,
       [...OMITTED_FACETS],
     )
-    const [sheet, facets] = await Promise.all([
+    // `card` carries the unfiltered nation aggregates the share card + unfurl
+    // need (the sheet itself is filtered by the browse search).
+    const [sheet, facets, card] = await Promise.all([
       getNationSheet(db, data.mode, data.slug, browseFilters(search)),
       browseFacets(db, data.mode),
+      getNationCard(db, data.mode, data.slug),
     ])
     if (!sheet || !facets) throw notFound()
-    return { sheet, facets }
+    return { sheet, facets, card }
   })
 
 export const Route = createFileRoute('/$mode/nation/$slug')({
@@ -40,6 +47,18 @@ export const Route = createFileRoute('/$mode/nation/$slug')({
           data: { mode: params.mode, slug: params.slug, search: deps.search },
         })
       : null,
+  head: ({ loaderData, params }) => {
+    if (!loaderData?.card) return {}
+    const model = toNationCardModel(params.mode, loaderData.card)
+    const { title, description } = nationUnfurl(model)
+    return {
+      meta: cardMeta({
+        title,
+        description,
+        image: nationCardUrl(params.mode, params.slug, model.version),
+      }),
+    }
+  },
   component: NationSheet,
 })
 

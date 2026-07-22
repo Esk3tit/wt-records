@@ -181,6 +181,9 @@ One committed base per lighting state, mirrored ink ramps, one warm accent with 
 ### Named Rules
 **The Tabular Rule.** `font-variant-numeric: tabular-nums` applies globally, no exceptions. A kill count that shifts width when it changes is a bug.
 
+### Share-card faces (the one exception to the system stack)
+Share cards (`/og/*`, issue #17) render server-side to a static 1200×630 image, where the live system font stack isn't available — so they embed two self-hosted OFL faces, used **nowhere else**: **Saira** (square HUD character — hero numerals, vehicle names, wordmark; tabular figures) and **Golos Text** (Cyrillic-native — player names, labels, chips). Same hierarchy intent as the site (the number is the hero, one amber anchor), just carried by embedded faces the renderer can rasterize. Legibility floor for the card medium: no informational text below ~26px at 1200×630 (~9.4px at Discord's 432px render), informational ink ≥0.7 alpha.
+
 ## 4. Elevation
 
 The page is a strict three-layer sandwich: **Spatial Scene** (WebGL canvas, depth-parallax imagery) at the bottom; the **scrim/veil** (Night Scrim or Day Veil, per mode) above it; **glass DOM surfaces** on top. Glass panes *float* over the scene (per the locked `wt-glass-concept.html`): each carries a soft, long-offset, negative-spread ambient shadow at rest that anchors it in the depth the parallax creates, alongside the material cues — backdrop blur + saturate, the 1px hairline border, the Glass Highlight top edge. Interaction deepens the float: hover/focus lifts the pane and strengthens its shadow.

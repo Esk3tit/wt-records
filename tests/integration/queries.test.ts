@@ -14,8 +14,10 @@ import {
   getMode,
   getModeLanding,
   getModeStats,
+  getNationCard,
   getNationSheet,
   getPlayer,
+  mergedFromName,
   playerMergeRedirect,
   getRules,
   getVehicle,
@@ -215,6 +217,34 @@ describe('merge tombstones', () => {
     await tombstone('floppa', 'ace')
     const result = await search(t.db, 'floppa')
     expect(result.players).toEqual([])
+  })
+
+  it('mergedFromName yields the old name for a tombstone, null for a live player', async () => {
+    const floppa = await getPlayer(t.db, 'floppa')
+    await tombstone('floppa', 'ace')
+    // The share card's "previously known as" source (the OG player route serves
+    // a 301 to the survivor carrying this name).
+    expect(await mergedFromName(t.db, 'floppa')).toBe(
+      floppa?.player.displayName,
+    )
+    expect(await mergedFromName(t.db, 'ace')).toBeNull()
+    expect(await mergedFromName(t.db, 'nope')).toBeNull()
+  })
+})
+
+describe('getNationCard', () => {
+  it('returns the nation-stats aggregates plus the most-held player', async () => {
+    const card = await getNationCard(t.db, 'grb', 'usa')
+    expect(card?.name).toBeTruthy()
+    expect(card?.total).toBeGreaterThan(0)
+    expect(card?.held).toBeLessThanOrEqual(card!.total)
+    expect(card?.completionPct).toBeGreaterThanOrEqual(0)
+    // Someone holds a USA title in the seed, so the most-held slot is filled.
+    expect(typeof card?.mostHeldPlayer).toBe('string')
+  })
+
+  it('returns null for a nation not in the mode', async () => {
+    expect(await getNationCard(t.db, 'grb', 'nope')).toBeNull()
   })
 })
 

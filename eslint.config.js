@@ -18,6 +18,7 @@ export default [
     ignores: [
       'eslint.config.js',
       'prettier.config.js',
+      'src/og/assets/embedded.ts',
       '.output/**',
       '.nitro/**',
       '.tanstack/**',

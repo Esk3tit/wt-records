@@ -8,6 +8,10 @@ import { createServerFn } from '@tanstack/react-start'
 import { VehicleTags } from '#/components/vehicle-tags'
 import { db } from '#/db'
 import { getPlayer, playerMergeRedirect } from '#/db/queries'
+import { toPlayerCardModel } from '#/og/props/player'
+import { playerUnfurl } from '#/og/copy'
+import { playerCardUrl } from '#/og/urls'
+import { cardMeta } from '#/og/meta'
 
 const loadPlayer = createServerFn({ method: 'GET' })
   .validator((slug: string) => slug)
@@ -32,6 +36,18 @@ export const Route = createFileRoute('/player/$slug')({
     }
     if (!result.profile) throw notFound()
     return result.profile
+  },
+  head: ({ loaderData, params }) => {
+    if (!loaderData) return {}
+    const model = toPlayerCardModel(loaderData)
+    const { title, description } = playerUnfurl(model)
+    return {
+      meta: cardMeta({
+        title,
+        description,
+        image: playerCardUrl(params.slug, { version: model.version }),
+      }),
+    }
   },
   component: PlayerProfile,
 })

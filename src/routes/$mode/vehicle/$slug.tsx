@@ -9,6 +9,10 @@ import { db } from '#/db'
 import { getVehicle } from '#/db/queries'
 import { daysSince, formatDayYear } from '#/lib/dates'
 import { formatBr } from '#/lib/format'
+import { toVehicleCardModel } from '#/og/props/vehicle'
+import { vehicleUnfurl } from '#/og/copy'
+import { vehicleCardUrl } from '#/og/urls'
+import { cardMeta } from '#/og/meta'
 
 const loadVehicle = createServerFn({ method: 'GET' })
   .validator((data: { mode: string; slug: string }) => data)
@@ -23,6 +27,19 @@ export const Route = createFileRoute('/$mode/vehicle/$slug')({
     context.mode.isLive
       ? loadVehicle({ data: { mode: params.mode, slug: params.slug } })
       : null,
+  // Coming-soon mode → loaderData null → keep the site card (root defaults).
+  head: ({ loaderData, params }) => {
+    if (!loaderData) return {}
+    const model = toVehicleCardModel(params.mode, loaderData)
+    const { title, description } = vehicleUnfurl(model)
+    return {
+      meta: cardMeta({
+        title,
+        description,
+        image: vehicleCardUrl(params.mode, params.slug, model.version),
+      }),
+    }
+  },
   component: VehicleDetail,
 })
 
