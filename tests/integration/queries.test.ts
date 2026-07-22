@@ -270,6 +270,7 @@ describe('search', () => {
         slug: 'm4a1',
         name: 'M4A1',
         nation: 'USA',
+        nationSlug: 'usa',
         isEvent: false,
         isPremium: false,
         isSquadron: false,

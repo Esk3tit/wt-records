@@ -1,8 +1,22 @@
 import { Link, createFileRoute, notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { RecordName } from '#/components/record-name'
-import { VehicleFilters } from '#/components/vehicle-filters'
-import { VehicleTags } from '#/components/vehicle-tags'
+import { Search } from 'lucide-react'
+import {
+  BrCell,
+  HolderCell,
+  KillsCell,
+  LEDGER_ROW,
+  LEDGER_TH,
+  LedgerEmptyRow,
+  LedgerPane,
+  NationCell,
+  VehicleCell,
+} from '#/components/catalog-ledger'
+import {
+  VehicleFilters,
+  clearedFilters,
+  countActiveFilters,
+} from '#/components/vehicle-filters'
 import { db } from '#/db'
 import { browseFacets, browseVehicles } from '#/db/queries'
 import {
@@ -11,7 +25,6 @@ import {
   normalizeBrowseSearch,
 } from '#/lib/browse-params'
 import type { BrowseSearch, BrowseSort } from '#/lib/browse-params'
-import { formatBr } from '#/lib/format'
 
 const loadBrowse = createServerFn({ method: 'GET' })
   .validator((data: { mode: string; search: BrowseSearch }) => data)
@@ -63,8 +76,8 @@ function SortHeader({
     <button
       type="button"
       className={
-        'font-inherit inline-flex items-center gap-1 ' +
-        (active ? 'text-fg' : 'hover:text-fg')
+        'inline-flex items-center gap-1 text-xs font-semibold tracking-wide uppercase transition-colors duration-150 ' +
+        (active ? 'text-fg' : 'text-fg-muted hover:text-fg')
       }
       onClick={() => {
         const next: BrowseSearch = { ...search }
@@ -87,8 +100,27 @@ function SortHeader({
   )
 }
 
+function pageWindow(page: number, pageCount: number): Array<number | null> {
+  const wanted = new Set([1, pageCount, page - 1, page, page + 1])
+  const pages = [...wanted]
+    .filter((p) => p >= 1 && p <= pageCount)
+    .sort((a, b) => a - b)
+  const out: Array<number | null> = []
+  let prev = 0
+  for (const p of pages) {
+    if (p - prev > 1) out.push(null)
+    out.push(p)
+    prev = p
+  }
+  return out
+}
+
+const PAGER_ARROW =
+  'rounded-[10px] border px-3 py-1.5 text-[0.8125rem] font-medium no-underline transition-colors duration-150 '
+
 function BrowsePage() {
   const { mode } = Route.useParams()
+  const { mode: modeCtx } = Route.useRouteContext()
   const search = Route.useSearch()
   const data = Route.useLoaderData()
   const navigate = Route.useNavigate()
@@ -97,135 +129,200 @@ function BrowsePage() {
   const { rows, total, page, pageCount } = result
 
   const setSearch = (next: BrowseSearch) => navigate({ search: next })
+  const resetFilters = () => setSearch(clearedFilters(search))
+  const activeFilters = countActiveFilters(search)
   const from = total === 0 ? 0 : (page - 1) * BROWSE_PAGE_SIZE + 1
   const to = Math.min(page * BROWSE_PAGE_SIZE, total)
 
   return (
-    <section className="p-6">
-      <h1 className="text-2xl font-semibold">
-        Vehicles — {mode.toUpperCase()}
-      </h1>
-      <p className="mt-1 text-sm text-fg-muted" aria-live="polite">
-        {total} {total === 1 ? 'vehicle' : 'vehicles'}
-        {total > 0 && ` · ${from}–${to}`}
-      </p>
-
-      <form
-        className="mt-4"
-        onSubmit={(e) => {
-          e.preventDefault()
-          const q = new FormData(e.currentTarget).get('q')
-          setSearch({
-            ...search,
-            q: typeof q === 'string' && q.trim() ? q.trim() : undefined,
-            page: undefined,
-          })
-        }}
-      >
-        <label htmlFor="browse-q" className="sr-only">
-          Filter by vehicle name
-        </label>
-        <input
-          id="browse-q"
-          type="search"
-          name="q"
-          // Uncontrolled; the key re-syncs it when history changes q.
-          key={search.q ?? ''}
-          defaultValue={search.q ?? ''}
-          placeholder="Vehicle name…"
-          className="rounded border border-hairline bg-transparent px-3 py-1"
-        />
-      </form>
-
-      <div className="mt-4">
-        <VehicleFilters search={search} facets={facets} onChange={setSearch} />
+    <section className="py-6">
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+        <div>
+          <p className="text-[0.6875rem] font-semibold tracking-[0.18em] text-fg-muted uppercase">
+            {mode.toUpperCase()} · {modeCtx.name}
+          </p>
+          <h1 className="mt-1.5 text-2xl font-semibold">Vehicles</h1>
+        </div>
+        <p className="text-[0.8125rem] text-fg-muted" aria-live="polite">
+          {total} {total === 1 ? 'vehicle' : 'vehicles'}
+          {total > BROWSE_PAGE_SIZE && ` · showing ${from}–${to}`}
+          {activeFilters > 0 && (
+            <>
+              {' · '}
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="underline decoration-1 underline-offset-2 transition-colors duration-150 hover:text-fg"
+              >
+                Reset filters
+              </button>
+            </>
+          )}
+        </p>
       </div>
 
-      <table className="mt-5 w-full max-w-4xl text-left">
-        <thead className="text-sm text-fg-faint">
-          <tr>
-            <th className="py-1 pr-4" aria-sort={sortAriaValue(search, 'name')}>
-              <SortHeader sort="name" search={search} onChange={setSearch}>
-                Vehicle
-              </SortHeader>
-            </th>
-            <th className="py-1 pr-4">Nation</th>
-            <th className="py-1 pr-4" aria-sort={sortAriaValue(search, 'br')}>
-              <SortHeader sort="br" search={search} onChange={setSearch}>
-                BR
-              </SortHeader>
-            </th>
-            <th
-              className="py-1 pr-4"
-              aria-sort={sortAriaValue(search, 'kills')}
+      <div className="mt-5">
+        <VehicleFilters
+          search={search}
+          facets={facets}
+          onChange={setSearch}
+          nameSlot={
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                const q = new FormData(e.currentTarget).get('q')
+                setSearch({
+                  ...search,
+                  q: typeof q === 'string' && q.trim() ? q.trim() : undefined,
+                  page: undefined,
+                })
+              }}
             >
-              <SortHeader sort="kills" search={search} onChange={setSearch}>
-                Kills
-              </SortHeader>
-            </th>
-            <th className="py-1">Holder</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.vehicleSlug} className="border-t border-white/5">
-              <td className="py-1 pr-4">
-                <Link
-                  to="/$mode/vehicle/$slug"
-                  params={{ mode, slug: r.vehicleSlug }}
-                >
-                  {r.vehicleName}
-                </Link>
-                {r.isDifficult && <span className="ml-1 text-fg-faint">◆</span>}
-                <VehicleTags tags={r} />
-              </td>
-              <td className="py-1 pr-4 text-fg-muted">{r.nationName}</td>
-              <td className="py-1 pr-4 text-fg-muted">
-                {r.br != null ? formatBr(r.br) : '—'}
-              </td>
-              <td className="py-1 pr-4">{r.kills ?? '—'}</td>
-              <td className="py-1">
-                {r.playerSlug && r.displayName ? (
-                  <RecordName
-                    displayName={r.displayName}
-                    playerSlug={r.playerSlug}
-                    ignSnapshot={r.ignSnapshot}
-                    displayNameSnapshot={r.displayNameSnapshot}
-                  />
-                ) : (
-                  <span className="text-fg-faint">Open bounty</span>
-                )}
-              </td>
+              <label htmlFor="browse-q" className="sr-only">
+                Filter by vehicle name
+              </label>
+              <div className="relative max-w-[22rem]">
+                <Search
+                  size={15}
+                  aria-hidden="true"
+                  className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-fg-muted"
+                />
+                <input
+                  id="browse-q"
+                  type="search"
+                  name="q"
+                  // Uncontrolled; the key re-syncs it when history changes q.
+                  key={search.q ?? ''}
+                  defaultValue={search.q ?? ''}
+                  placeholder="Vehicle name…"
+                  className="w-full rounded-[10px] border border-hairline bg-[var(--tint)] py-1.5 pr-3 pl-9 text-[0.9375rem] placeholder:text-fg-muted"
+                />
+              </div>
+            </form>
+          }
+        />
+      </div>
+
+      <div className="mt-5">
+        <LedgerPane>
+          <thead>
+            <tr>
+              <th
+                className={LEDGER_TH + ' pl-5'}
+                aria-sort={sortAriaValue(search, 'name')}
+              >
+                <SortHeader sort="name" search={search} onChange={setSearch}>
+                  Vehicle
+                </SortHeader>
+              </th>
+              <th className={LEDGER_TH + ' hidden md:table-cell'}>Nation</th>
+              <th
+                className={LEDGER_TH + ' hidden text-right sm:table-cell'}
+                aria-sort={sortAriaValue(search, 'br')}
+              >
+                <SortHeader sort="br" search={search} onChange={setSearch}>
+                  BR
+                </SortHeader>
+              </th>
+              <th
+                className={LEDGER_TH + ' text-right'}
+                aria-sort={sortAriaValue(search, 'kills')}
+              >
+                <SortHeader sort="kills" search={search} onChange={setSearch}>
+                  Kills
+                </SortHeader>
+              </th>
+              <th className={LEDGER_TH.replace('pr-4', 'pr-5')}>Holder</th>
             </tr>
-          ))}
-          {rows.length === 0 && (
-            <tr className="border-t border-white/5">
-              <td colSpan={5} className="py-3 text-fg-faint">
-                No vehicles match these filters.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.vehicleSlug} className={LEDGER_ROW}>
+                <VehicleCell mode={mode} row={r} nationChip="mobile" />
+                <NationCell row={r} />
+                <BrCell br={r.br} />
+                <KillsCell kills={r.kills} />
+                <HolderCell row={r} />
+              </tr>
+            ))}
+            {rows.length === 0 && (
+              <LedgerEmptyRow colSpan={5} onReset={resetFilters} />
+            )}
+          </tbody>
+        </LedgerPane>
+      </div>
 
       {pageCount > 1 && (
-        <nav aria-label="Pages" className="mt-5 flex flex-wrap gap-1.5">
-          {Array.from({ length: pageCount }, (_, i) => i + 1).map((p) => (
+        <nav
+          aria-label="Pages"
+          className="mt-6 flex flex-wrap items-center gap-1.5"
+        >
+          {page > 1 ? (
             <Link
-              key={p}
               from={Route.fullPath}
-              search={{ ...search, page: p === 1 ? undefined : p }}
-              aria-current={p === page ? 'page' : undefined}
+              search={{ ...search, page: page - 1 === 1 ? undefined : page - 1 }}
+              aria-label="Previous page"
               className={
-                'rounded-[8px] border border-hairline px-2.5 py-1 text-sm no-underline ' +
-                (p === page
-                  ? 'bg-[var(--pill-active)] font-semibold text-fg'
-                  : 'text-fg-muted hover:text-fg')
+                PAGER_ARROW +
+                'border-hairline text-fg-muted hover:border-[var(--hairline-hover)] hover:text-fg'
               }
             >
-              {p}
+              ‹
             </Link>
-          ))}
+          ) : (
+            <span
+              aria-hidden="true"
+              className={PAGER_ARROW + 'border-hairline-soft text-fg-faint'}
+            >
+              ‹
+            </span>
+          )}
+          {pageWindow(page, pageCount).map((p, i) =>
+            p === null ? (
+              <span
+                key={`gap-${i}`}
+                aria-hidden="true"
+                className="px-1 text-fg-faint select-none"
+              >
+                …
+              </span>
+            ) : (
+              <Link
+                key={p}
+                from={Route.fullPath}
+                search={{ ...search, page: p === 1 ? undefined : p }}
+                aria-current={p === page ? 'page' : undefined}
+                className={
+                  'rounded-[10px] border px-3 py-1.5 text-[0.8125rem] font-medium no-underline transition-colors duration-150 ' +
+                  (p === page
+                    ? 'border-transparent bg-[var(--pill-active)] text-fg'
+                    : 'border-hairline text-fg-muted hover:border-[var(--hairline-hover)] hover:text-fg')
+                }
+              >
+                {p}
+              </Link>
+            ),
+          )}
+          {page < pageCount ? (
+            <Link
+              from={Route.fullPath}
+              search={{ ...search, page: page + 1 }}
+              aria-label="Next page"
+              className={
+                PAGER_ARROW +
+                'border-hairline text-fg-muted hover:border-[var(--hairline-hover)] hover:text-fg'
+              }
+            >
+              ›
+            </Link>
+          ) : (
+            <span
+              aria-hidden="true"
+              className={PAGER_ARROW + 'border-hairline-soft text-fg-faint'}
+            >
+              ›
+            </span>
+          )}
         </nav>
       )}
     </section>

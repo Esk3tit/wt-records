@@ -1,6 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useEffect, useRef, useState } from 'react'
+import { NationFlag } from '#/components/nation-flag'
 import { VehicleTags } from '#/components/vehicle-tags'
 import { db } from '#/db'
 import { lookupVehicles } from '#/db/queries'
@@ -122,7 +123,7 @@ export function VehicleLookup({ mode }: { mode: string }) {
           id="vehicle-lookup-listbox"
           role="listbox"
           aria-label="Vehicles"
-          className="menu-glass absolute top-full right-0 left-0 z-30 mt-1.5 overflow-hidden rounded-[14px] py-1"
+          className="menu-glass absolute top-full right-0 left-0 z-30 mt-1.5 overflow-hidden rounded-[14px] p-1.5"
         >
           {items.map((v, i) => (
             <li
@@ -134,25 +135,34 @@ export function VehicleLookup({ mode }: { mode: string }) {
               onMouseEnter={() => setActive(i)}
               onClick={() => go(i)}
               className={
-                'flex cursor-pointer items-baseline gap-2 px-3.5 py-1.5 text-sm ' +
+                'flex cursor-pointer items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-sm ' +
                 (active === i ? 'bg-[var(--pill-active)]' : '')
               }
             >
+              <NationFlag slug={v.nationSlug} />
               <span className="min-w-0 flex-1 truncate">
                 {v.name}
                 <VehicleTags tags={v} />
               </span>
               <span className="text-xs text-fg-faint">{v.nation}</span>
               {v.br != null && (
-                <span className="text-xs text-fg-muted">{formatBr(v.br)}</span>
+                <span className="min-w-[2rem] text-right text-xs text-fg-muted">
+                  {formatBr(v.br)}
+                </span>
               )}
             </li>
           ))}
           {items.length === 0 && (
-            <li className="px-3.5 py-1.5 text-sm text-fg-faint">
+            <li
+              role="presentation"
+              className="px-2.5 py-2 text-sm text-fg-muted"
+            >
               No vehicles found.
             </li>
           )}
+          <li role="presentation" aria-hidden="true" className="px-1 py-1">
+            <span className="block h-px bg-[var(--hairline-soft)]" />
+          </li>
           <li
             id={`vehicle-lookup-opt-${items.length}`}
             role="option"
@@ -161,8 +171,8 @@ export function VehicleLookup({ mode }: { mode: string }) {
             onMouseEnter={() => setActive(items.length)}
             onClick={() => go(-1)}
             className={
-              'cursor-pointer border-t border-white/5 px-3.5 py-1.5 text-[0.8125rem] text-fg-muted ' +
-              (active === items.length ? 'bg-[var(--pill-active)]' : '')
+              'cursor-pointer rounded-[10px] px-2.5 py-2 text-[0.8125rem] text-fg-muted ' +
+              (active === items.length ? 'bg-[var(--pill-active)] text-fg' : '')
             }
           >
             All results for “{value.trim()}” →

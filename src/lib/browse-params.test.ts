@@ -54,6 +54,13 @@ describe('normalizeBrowseSearch', () => {
     ).toEqual({ class: 'heavy', rank: '3' })
   })
 
+  it('canonicalizes bare numerics the router JSON-parses (?rank=4 → 4)', () => {
+    expect(normalizeBrowseSearch({ rank: 4, q: 88 })).toEqual({
+      rank: '4',
+      q: '88',
+    })
+  })
+
   it('swaps reversed BR bounds', () => {
     expect(normalizeBrowseSearch({ br: '6.7-5.3' })).toEqual({ br: '5.3-6.7' })
   })
