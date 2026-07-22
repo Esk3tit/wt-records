@@ -1,3 +1,4 @@
+import { asParam } from '#/lib/search-param'
 import { VEHICLE_CLASSES } from '#/lib/vehicle-classes'
 import type { VehicleClass } from '#/lib/vehicle-classes'
 
@@ -53,14 +54,6 @@ export interface BrowseFilters {
 export type BrowseFacet = keyof Pick<BrowseSearch, 'q' | 'nation'>
 
 const SLUG_RE = /^[a-z0-9-]+$/
-
-// The router JSON-parses search values, so a bare numeric like ?rank=4
-// arrives as a number — canonicalize it back to its string form.
-function asParam(value: unknown): unknown {
-  return typeof value === 'number' && Number.isFinite(value)
-    ? String(value)
-    : value
-}
 
 function csv<T extends string>(
   raw: unknown,

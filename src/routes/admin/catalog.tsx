@@ -18,6 +18,7 @@ import {
 import { VEHICLE_CLASSES } from '#/lib/vehicle-classes'
 import type { VehicleClass } from '#/lib/vehicle-classes'
 import { displayVehicleName } from '#/lib/vehicle-name'
+import { asParam } from '#/lib/search-param'
 
 interface CatalogSearch {
   q?: string
@@ -27,7 +28,8 @@ interface CatalogSearch {
 export const Route = createFileRoute('/admin/catalog')({
   validateSearch: (s: Record<string, unknown>): CatalogSearch => {
     const out: CatalogSearch = {}
-    if (typeof s.q === 'string' && s.q.trim()) out.q = s.q.trim()
+    const q = asParam(s.q)
+    if (typeof q === 'string' && q.trim()) out.q = q.trim()
     if (s.difficult === true) out.difficult = true
     return out
   },

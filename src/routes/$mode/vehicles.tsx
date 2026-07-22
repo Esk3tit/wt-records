@@ -121,6 +121,9 @@ const PAGER_PILL =
 const PAGER_IDLE =
   'border-hairline text-fg-muted hover:border-[var(--hairline-hover)] hover:text-fg'
 const PAGER_DISABLED = 'border-hairline-soft text-fg-faint'
+// Without search-aware matching the router marks every pagination link to
+// this pathname active and injects aria-current="page" on all of them.
+const PAGER_ACTIVE = { includeSearch: true, explicitUndefined: true } as const
 
 function BrowsePage() {
   const { mode } = Route.useParams()
@@ -266,6 +269,7 @@ function BrowsePage() {
                 ...search,
                 page: page - 1 === 1 ? undefined : page - 1,
               }}
+              activeOptions={PAGER_ACTIVE}
               aria-label="Previous page"
               className={PAGER_PILL + PAGER_IDLE}
             >
@@ -290,6 +294,7 @@ function BrowsePage() {
                 key={p}
                 from={Route.fullPath}
                 search={{ ...search, page: p === 1 ? undefined : p }}
+                activeOptions={PAGER_ACTIVE}
                 aria-current={p === page ? 'page' : undefined}
                 className={
                   PAGER_PILL +
@@ -306,6 +311,7 @@ function BrowsePage() {
             <Link
               from={Route.fullPath}
               search={{ ...search, page: page + 1 }}
+              activeOptions={PAGER_ACTIVE}
               aria-label="Next page"
               className={PAGER_PILL + PAGER_IDLE}
             >

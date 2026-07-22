@@ -6,6 +6,7 @@ import { SectionHead } from '#/components/section-head'
 import { VehicleTags } from '#/components/vehicle-tags'
 import { db } from '#/db'
 import { search } from '#/db/queries'
+import { asParam } from '#/lib/search-param'
 
 const runSearch = createServerFn({ method: 'GET' })
   .validator((q: string) => q)
@@ -13,7 +14,8 @@ const runSearch = createServerFn({ method: 'GET' })
 
 export const Route = createFileRoute('/search')({
   validateSearch: (s: Record<string, unknown>): { q?: string } => {
-    const q = typeof s.q === 'string' ? s.q.trim() : ''
+    const raw = asParam(s.q)
+    const q = typeof raw === 'string' ? raw.trim() : ''
     return q ? { q } : {}
   },
   loaderDeps: ({ search: s }) => ({ q: s.q ?? '' }),
