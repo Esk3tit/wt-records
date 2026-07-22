@@ -134,10 +134,18 @@ export function KillsCell({ kills }: { kills: number | null }) {
   )
 }
 
+/** The one definition of a held title; every surface counts and renders
+    from this so headers and cells can never disagree. */
+export function isHeld(
+  row: LedgerVehicleRow,
+): row is LedgerVehicleRow & { playerSlug: string; displayName: string } {
+  return row.playerSlug != null && row.displayName != null
+}
+
 export function HolderCell({ row }: { row: LedgerVehicleRow }) {
   return (
     <td className="py-2.5 pr-5 [&_a]:no-underline [&_a:hover]:underline">
-      {row.playerSlug && row.displayName ? (
+      {isHeld(row) ? (
         <RecordName
           displayName={row.displayName}
           playerSlug={row.playerSlug}

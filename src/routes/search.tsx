@@ -46,9 +46,7 @@ function SearchPage() {
   const q = Route.useSearch().q ?? ''
   const results = Route.useLoaderData()
   const empty =
-    q !== '' &&
-    results.players.length === 0 &&
-    results.vehicles.length === 0
+    q !== '' && results.players.length === 0 && results.vehicles.length === 0
 
   return (
     <section className="mx-auto w-full max-w-[40rem] py-6">
@@ -92,8 +90,8 @@ function SearchPage() {
 
       {q === '' && (
         <NoticePane title="Search the registry">
-          Players and vehicles across every mode — typos are fine, partial
-          names work.
+          Players and vehicles across every mode — typos are fine, partial names
+          work.
         </NoticePane>
       )}
 

@@ -11,6 +11,7 @@ import {
   LedgerMeta,
   LedgerPane,
   VehicleCell,
+  isHeld,
 } from '#/components/catalog-ledger'
 import { NationFlag } from '#/components/nation-flag'
 import {
@@ -91,9 +92,7 @@ function NationSheet() {
   const resetFilters = () => setSearch(clearedFilters(search))
   const activeFilters = countActiveFilters(search)
   const avgKills =
-    card && card.avgKills != null
-      ? Math.round(card.avgKills * 10) / 10
-      : null
+    card && card.avgKills != null ? Math.round(card.avgKills * 10) / 10 : null
 
   const groups: Array<{ rank: number | null; rows: typeof rows }> = []
   for (const r of rows) {
@@ -208,7 +207,9 @@ function NationSheet() {
           <thead>
             <tr>
               <th className={LEDGER_TH + ' pr-4 pl-5'}>Vehicle</th>
-              <th className={LEDGER_TH + ' hidden pr-4 text-right sm:table-cell'}>
+              <th
+                className={LEDGER_TH + ' hidden pr-4 text-right sm:table-cell'}
+              >
                 BR
               </th>
               <th className={LEDGER_TH + ' pr-4 text-right'}>Kills</th>
@@ -237,10 +238,7 @@ function NationSheet() {
                         className="h-px flex-1 bg-linear-to-r from-[var(--hairline)] to-transparent"
                       />
                       <span className="text-[0.6875rem] font-medium text-fg-faint">
-                        {/* Same held test as HolderCell — one definition of
-                            a held title on the page. */}
-                        {g.rows.filter((r) => r.playerSlug != null).length} of{' '}
-                        {g.rows.length} held
+                        {g.rows.filter(isHeld).length} of {g.rows.length} held
                       </span>
                     </span>
                   </th>

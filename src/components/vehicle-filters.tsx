@@ -187,7 +187,8 @@ export function VehicleFilters({
       <div
         id="vehicle-filter-groups"
         className={
-          (expanded ? 'mt-3.5 flex' : 'hidden') + ' flex-col gap-3 sm:mt-0 sm:flex'
+          (expanded ? 'mt-3.5 flex' : 'hidden') +
+          ' flex-col gap-3 sm:mt-0 sm:flex'
         }
       >
         {facets.nations && (
@@ -229,10 +230,7 @@ export function VehicleFilters({
         </FilterGroup>
         {facets.brSteps.length > 0 && (
           <FilterGroup label="BR">
-            <label
-              className="text-[0.8125rem] text-fg-muted"
-              htmlFor="br-min"
-            >
+            <label className="text-[0.8125rem] text-fg-muted" htmlFor="br-min">
               from
             </label>
             <select

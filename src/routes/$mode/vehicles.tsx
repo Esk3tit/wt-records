@@ -262,7 +262,10 @@ function BrowsePage() {
           {page > 1 ? (
             <Link
               from={Route.fullPath}
-              search={{ ...search, page: page - 1 === 1 ? undefined : page - 1 }}
+              search={{
+                ...search,
+                page: page - 1 === 1 ? undefined : page - 1,
+              }}
               aria-label="Previous page"
               className={PAGER_PILL + PAGER_IDLE}
             >

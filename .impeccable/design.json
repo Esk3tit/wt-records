@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-07-22T06:04:03.048529Z",
+  "generatedAt": "2026-07-22T06:25:15.573267Z",
   "title": "Design System: WT Records",
   "extensions": {
     "colorMeta": {
@@ -353,7 +353,7 @@
       "refersTo": "input-search",
       "description": "Front-of-house search field (hero lookup, Browse filter, /search); 10px media radius, hairline border, amber focus (Deep form by day). Admin fields stay at the 4px control radius.",
       "html": "<input class=\"ds-input\" type=\"search\" placeholder=\"Search players or vehicles\" aria-label=\"Search\" />",
-      "css": ".ds-input { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.96); border: 1px solid rgba(255,255,255,0.16); border-radius: 10px; padding: 8px 12px; font-size: 1rem; width: 100%; max-width: 28rem; transition: border-color 180ms cubic-bezier(0.25, 1, 0.5, 1); } .ds-input::placeholder { color: rgba(255,255,255,0.6); } .ds-input:focus-visible { outline: none; border-color: #F0B94A; box-shadow: 0 0 0 1px #F0B94A; }"
+      "css": ".ds-input { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.96); border: 1px solid rgba(255,255,255,0.16); border-radius: 10px; padding: 6px 12px; font-size: 1rem; width: 100%; max-width: 28rem; transition: border-color 180ms cubic-bezier(0.25, 1, 0.5, 1); } .ds-input::placeholder { color: rgba(255,255,255,0.6); } .ds-input:focus-visible { outline: none; border-color: #F0B94A; box-shadow: 0 0 0 1px #F0B94A; }"
     },
     {
       "name": "Glass Pill",
