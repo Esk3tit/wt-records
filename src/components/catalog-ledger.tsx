@@ -19,10 +19,43 @@ export interface LedgerVehicleRow extends VehicleTagFlags {
   displayNameSnapshot: string | null
 }
 
+/* Right padding stays per-column (pr-4 between, pr-5 at the pane edge). */
 export const LEDGER_TH =
-  'py-3 pr-4 text-left text-xs font-semibold tracking-wide text-fg-muted uppercase'
+  'py-3 text-left text-xs font-semibold tracking-wide text-fg-muted uppercase'
 export const LEDGER_ROW =
   'border-t border-hairline-soft transition-colors duration-200 hover:bg-[var(--row-hover)]'
+
+/** The count-plus-reset line both catalog routes render above their filters. */
+export function LedgerMeta({
+  count,
+  suffix,
+  hasFilters,
+  onReset,
+}: {
+  count: number
+  suffix?: string
+  hasFilters: boolean
+  onReset: () => void
+}) {
+  return (
+    <p className="text-[0.8125rem] text-fg-muted" aria-live="polite">
+      {count} {count === 1 ? 'vehicle' : 'vehicles'}
+      {suffix}
+      {hasFilters && (
+        <>
+          {' · '}
+          <button
+            type="button"
+            onClick={onReset}
+            className="underline decoration-1 underline-offset-2 transition-colors duration-200 hover:text-fg"
+          >
+            Reset filters
+          </button>
+        </>
+      )}
+    </p>
+  )
+}
 
 export function LedgerPane({ children }: { children: React.ReactNode }) {
   return (

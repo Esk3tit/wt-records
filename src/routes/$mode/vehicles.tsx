@@ -8,6 +8,7 @@ import {
   LEDGER_ROW,
   LEDGER_TH,
   LedgerEmptyRow,
+  LedgerMeta,
   LedgerPane,
   NationCell,
   VehicleCell,
@@ -115,8 +116,11 @@ function pageWindow(page: number, pageCount: number): Array<number | null> {
   return out
 }
 
-const PAGER_ARROW =
+const PAGER_PILL =
   'rounded-[10px] border px-3 py-1.5 text-[0.8125rem] font-medium no-underline transition-colors duration-200 '
+const PAGER_IDLE =
+  'border-hairline text-fg-muted hover:border-[var(--hairline-hover)] hover:text-fg'
+const PAGER_DISABLED = 'border-hairline-soft text-fg-faint'
 
 function BrowsePage() {
   const { mode } = Route.useParams()
@@ -143,22 +147,14 @@ function BrowsePage() {
           </p>
           <h1 className="mt-1.5 text-2xl font-semibold">Vehicles</h1>
         </div>
-        <p className="text-[0.8125rem] text-fg-muted" aria-live="polite">
-          {total} {total === 1 ? 'vehicle' : 'vehicles'}
-          {total > BROWSE_PAGE_SIZE && ` · showing ${from}–${to}`}
-          {activeFilters > 0 && (
-            <>
-              {' · '}
-              <button
-                type="button"
-                onClick={resetFilters}
-                className="underline decoration-1 underline-offset-2 transition-colors duration-200 hover:text-fg"
-              >
-                Reset filters
-              </button>
-            </>
-          )}
-        </p>
+        <LedgerMeta
+          count={total}
+          suffix={
+            total > BROWSE_PAGE_SIZE ? ` · showing ${from}–${to}` : undefined
+          }
+          hasFilters={activeFilters > 0}
+          onReset={resetFilters}
+        />
       </div>
 
       <div className="mt-5">
@@ -208,16 +204,18 @@ function BrowsePage() {
           <thead>
             <tr>
               <th
-                className={LEDGER_TH + ' pl-5'}
+                className={LEDGER_TH + ' pr-4 pl-5'}
                 aria-sort={sortAriaValue(search, 'name')}
               >
                 <SortHeader sort="name" search={search} onChange={setSearch}>
                   Vehicle
                 </SortHeader>
               </th>
-              <th className={LEDGER_TH + ' hidden md:table-cell'}>Nation</th>
+              <th className={LEDGER_TH + ' hidden pr-4 md:table-cell'}>
+                Nation
+              </th>
               <th
-                className={LEDGER_TH + ' hidden text-right sm:table-cell'}
+                className={LEDGER_TH + ' hidden pr-4 text-right sm:table-cell'}
                 aria-sort={sortAriaValue(search, 'br')}
               >
                 <SortHeader sort="br" search={search} onChange={setSearch}>
@@ -225,14 +223,14 @@ function BrowsePage() {
                 </SortHeader>
               </th>
               <th
-                className={LEDGER_TH + ' text-right'}
+                className={LEDGER_TH + ' pr-4 text-right'}
                 aria-sort={sortAriaValue(search, 'kills')}
               >
                 <SortHeader sort="kills" search={search} onChange={setSearch}>
                   Kills
                 </SortHeader>
               </th>
-              <th className={LEDGER_TH.replace('pr-4', 'pr-5')}>Holder</th>
+              <th className={LEDGER_TH + ' pr-5'}>Holder</th>
             </tr>
           </thead>
           <tbody>
@@ -266,18 +264,12 @@ function BrowsePage() {
               from={Route.fullPath}
               search={{ ...search, page: page - 1 === 1 ? undefined : page - 1 }}
               aria-label="Previous page"
-              className={
-                PAGER_ARROW +
-                'border-hairline text-fg-muted hover:border-[var(--hairline-hover)] hover:text-fg'
-              }
+              className={PAGER_PILL + PAGER_IDLE}
             >
               ‹
             </Link>
           ) : (
-            <span
-              aria-hidden="true"
-              className={PAGER_ARROW + 'border-hairline-soft text-fg-faint'}
-            >
+            <span aria-hidden="true" className={PAGER_PILL + PAGER_DISABLED}>
               ‹
             </span>
           )}
@@ -297,10 +289,10 @@ function BrowsePage() {
                 search={{ ...search, page: p === 1 ? undefined : p }}
                 aria-current={p === page ? 'page' : undefined}
                 className={
-                  'rounded-[10px] border px-3 py-1.5 text-[0.8125rem] font-medium no-underline transition-colors duration-200 ' +
+                  PAGER_PILL +
                   (p === page
                     ? 'border-transparent bg-[var(--pill-active)] text-fg'
-                    : 'border-hairline text-fg-muted hover:border-[var(--hairline-hover)] hover:text-fg')
+                    : PAGER_IDLE)
                 }
               >
                 {p}
@@ -312,18 +304,12 @@ function BrowsePage() {
               from={Route.fullPath}
               search={{ ...search, page: page + 1 }}
               aria-label="Next page"
-              className={
-                PAGER_ARROW +
-                'border-hairline text-fg-muted hover:border-[var(--hairline-hover)] hover:text-fg'
-              }
+              className={PAGER_PILL + PAGER_IDLE}
             >
               ›
             </Link>
           ) : (
-            <span
-              aria-hidden="true"
-              className={PAGER_ARROW + 'border-hairline-soft text-fg-faint'}
-            >
+            <span aria-hidden="true" className={PAGER_PILL + PAGER_DISABLED}>
               ›
             </span>
           )}

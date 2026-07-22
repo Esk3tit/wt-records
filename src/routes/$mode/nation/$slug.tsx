@@ -8,6 +8,7 @@ import {
   LEDGER_ROW,
   LEDGER_TH,
   LedgerEmptyRow,
+  LedgerMeta,
   LedgerPane,
   VehicleCell,
 } from '#/components/catalog-ledger'
@@ -136,7 +137,7 @@ function NationSheet() {
           {card && (
             <dl className="mt-5 flex flex-wrap items-end gap-x-10 gap-y-4">
               <div>
-                <dt className="text-[0.6875rem] font-semibold tracking-[0.14em] text-fg-muted uppercase">
+                <dt className="text-[0.6875rem] font-semibold tracking-[0.12em] text-fg-muted uppercase">
                   Titles held
                 </dt>
                 <dd className="mt-1 text-[1.0625rem] font-bold">
@@ -147,7 +148,7 @@ function NationSheet() {
                 </dd>
               </div>
               <div>
-                <dt className="text-[0.6875rem] font-semibold tracking-[0.14em] text-fg-muted uppercase">
+                <dt className="text-[0.6875rem] font-semibold tracking-[0.12em] text-fg-muted uppercase">
                   Completion
                 </dt>
                 <dd className="mt-1 flex items-center gap-3">
@@ -167,7 +168,7 @@ function NationSheet() {
               </div>
               {avgKills != null && (
                 <div>
-                  <dt className="text-[0.6875rem] font-semibold tracking-[0.14em] text-fg-muted uppercase">
+                  <dt className="text-[0.6875rem] font-semibold tracking-[0.12em] text-fg-muted uppercase">
                     Avg kills
                   </dt>
                   <dd className="mt-1 text-[1.0625rem] font-bold">
@@ -177,7 +178,7 @@ function NationSheet() {
               )}
               {card.mostHeldPlayer && (
                 <div>
-                  <dt className="text-[0.6875rem] font-semibold tracking-[0.14em] text-fg-muted uppercase">
+                  <dt className="text-[0.6875rem] font-semibold tracking-[0.12em] text-fg-muted uppercase">
                     Most titles
                   </dt>
                   <dd className="mt-1 text-[1.0625rem] font-semibold">
@@ -190,22 +191,12 @@ function NationSheet() {
         </div>
       </header>
 
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-        <p className="text-[0.8125rem] text-fg-muted" aria-live="polite">
-          {rows.length} {rows.length === 1 ? 'vehicle' : 'vehicles'}
-          {activeFilters > 0 && (
-            <>
-              {' · '}
-              <button
-                type="button"
-                onClick={resetFilters}
-                className="underline decoration-1 underline-offset-2 transition-colors duration-200 hover:text-fg"
-              >
-                Reset filters
-              </button>
-            </>
-          )}
-        </p>
+      <div className="mt-5">
+        <LedgerMeta
+          count={rows.length}
+          hasFilters={activeFilters > 0}
+          onReset={resetFilters}
+        />
       </div>
 
       <div className="mt-2.5">
@@ -216,12 +207,12 @@ function NationSheet() {
         <LedgerPane>
           <thead>
             <tr>
-              <th className={LEDGER_TH + ' pl-5'}>Vehicle</th>
-              <th className={LEDGER_TH + ' hidden text-right sm:table-cell'}>
+              <th className={LEDGER_TH + ' pr-4 pl-5'}>Vehicle</th>
+              <th className={LEDGER_TH + ' hidden pr-4 text-right sm:table-cell'}>
                 BR
               </th>
-              <th className={LEDGER_TH + ' text-right'}>Kills</th>
-              <th className={LEDGER_TH.replace('pr-4', 'pr-5')}>Holder</th>
+              <th className={LEDGER_TH + ' pr-4 text-right'}>Kills</th>
+              <th className={LEDGER_TH + ' pr-5'}>Holder</th>
             </tr>
           </thead>
           <tbody>
@@ -246,7 +237,9 @@ function NationSheet() {
                         className="h-px flex-1 bg-linear-to-r from-[var(--hairline)] to-transparent"
                       />
                       <span className="text-[0.6875rem] font-medium text-fg-faint">
-                        {g.rows.filter((r) => r.kills != null).length} of{' '}
+                        {/* Same held test as HolderCell — one definition of
+                            a held title on the page. */}
+                        {g.rows.filter((r) => r.playerSlug != null).length} of{' '}
                         {g.rows.length} held
                       </span>
                     </span>

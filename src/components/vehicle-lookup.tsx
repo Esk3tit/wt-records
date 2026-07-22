@@ -116,7 +116,7 @@ export function VehicleLookup({ mode }: { mode: string }) {
         onKeyDown={onKeyDown}
         onFocus={() => items.length > 0 && setOpen(true)}
         onBlur={() => setOpen(false)}
-        className="w-full rounded-[12px] border border-hairline bg-transparent px-3.5 py-2 text-[0.9375rem] placeholder:text-fg-faint"
+        className="w-full rounded-[10px] border border-hairline bg-transparent px-3.5 py-2 text-[0.9375rem] placeholder:text-fg-faint"
       />
       {open && (
         <ul

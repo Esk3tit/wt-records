@@ -83,7 +83,7 @@ function FilterGroup({
 }) {
   return (
     <fieldset className="flex flex-wrap items-center gap-1.5">
-      <legend className="float-left mb-1 w-full text-[0.6875rem] font-semibold tracking-[0.14em] text-fg-muted uppercase sm:mb-0 sm:w-[6.5rem] sm:pr-3">
+      <legend className="float-left mb-1 w-full text-[0.6875rem] font-semibold tracking-[0.12em] text-fg-muted uppercase sm:mb-0 sm:w-[6.5rem] sm:pr-3">
         {label}
       </legend>
       {children}
@@ -155,7 +155,9 @@ export function VehicleFilters({
   const brSelectClass =
     'rounded-[10px] border border-hairline bg-transparent px-2 py-1 text-[0.8125rem] text-fg transition-colors duration-200 hover:border-[var(--hairline-hover)]'
 
-  const activeCount = countActiveFilters(search) - (search.q ? 1 : 0)
+  // q lives outside the fold (the name input stays visible on phones), so
+  // the disclosure badge counts only the folded groups.
+  const foldedCount = countActiveFilters(search) - (search.q ? 1 : 0)
 
   return (
     <div className="glass-thin rounded-[22px] px-5 py-4">
@@ -176,9 +178,9 @@ export function VehicleFilters({
           {expanded ? '▾' : '▸'}
         </span>
         Filters
-        {activeCount > 0 && (
-          <span className="rounded-[6px] bg-[var(--pill-active)] px-1.5 py-0.5 text-[0.6875rem] font-semibold text-fg">
-            {activeCount}
+        {foldedCount > 0 && (
+          <span className="rounded bg-[var(--pill-active)] px-1.5 py-0.5 text-[0.6875rem] font-semibold text-fg">
+            {foldedCount}
           </span>
         )}
       </button>

@@ -25,6 +25,23 @@ function matchCount(n: number): string {
   return n === 1 ? '1 match' : `${n} matches`
 }
 
+function NoticePane({
+  title,
+  children,
+}: {
+  title: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="glass-thin mt-8 rounded-[22px] px-6 py-12 text-center">
+      <p className="font-medium text-fg">{title}</p>
+      <p className="mx-auto mt-1.5 max-w-[26rem] text-[0.9375rem] text-fg-muted">
+        {children}
+      </p>
+    </div>
+  )
+}
+
 function SearchPage() {
   const q = Route.useSearch().q ?? ''
   const results = Route.useLoaderData()
@@ -56,7 +73,7 @@ function SearchPage() {
             autoFocus={q === ''}
             enterKeyHint="search"
             placeholder="Vehicle or player…"
-            className="w-full rounded-[12px] border border-hairline bg-[var(--tint)] py-3 pr-4 pl-11 text-[1.0625rem] placeholder:text-fg-muted"
+            className="w-full rounded-[10px] border border-hairline bg-[var(--tint)] py-3 pr-4 pl-11 text-[1.0625rem] placeholder:text-fg-muted"
           />
         </div>
       </form>
@@ -74,23 +91,17 @@ function SearchPage() {
       </p>
 
       {q === '' && (
-        <div className="glass-thin mt-8 rounded-[22px] px-6 py-12 text-center">
-          <p className="font-medium text-fg">Search the registry</p>
-          <p className="mx-auto mt-1.5 max-w-[26rem] text-[0.9375rem] text-fg-muted">
-            Players and vehicles across every mode — typos are fine, partial
-            names work.
-          </p>
-        </div>
+        <NoticePane title="Search the registry">
+          Players and vehicles across every mode — typos are fine, partial
+          names work.
+        </NoticePane>
       )}
 
       {empty && (
-        <div className="glass-thin mt-8 rounded-[22px] px-6 py-12 text-center">
-          <p className="font-medium text-fg">Nothing matches “{q}”</p>
-          <p className="mx-auto mt-1.5 max-w-[26rem] text-[0.9375rem] text-fg-muted">
-            Search covers vehicle and player names. Try a shorter fragment —
-            “tiger” finds every Tiger.
-          </p>
-        </div>
+        <NoticePane title={`Nothing matches “${q}”`}>
+          Search covers vehicle and player names. Try a shorter fragment —
+          “tiger” finds every Tiger.
+        </NoticePane>
       )}
 
       {q !== '' && !empty && (
