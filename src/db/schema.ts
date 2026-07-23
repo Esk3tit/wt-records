@@ -137,8 +137,8 @@ export const players = pgTable(
       onDelete: 'set null',
     }),
     // Site-owned avatar (assets-bucket key). Null = the Medallion, a
-    // first-class state, not a placeholder. Seeded once at claim, then #85 owns
-    // on-site upload; the image is always served from R2, never the provider.
+    // first-class state, not a placeholder. Seeded once at claim, then managed
+    // by on-site upload; the image is always served from R2, never the provider.
     avatarKey: text('avatar_key'),
     // Merge tombstone: set = this row is a duplicate collapsed into the
     // survivor; its public slug 301s there and it leaves search.

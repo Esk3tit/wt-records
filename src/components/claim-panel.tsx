@@ -3,6 +3,7 @@ import { useRouter } from '@tanstack/react-router'
 import { BadgeCheck, Clock, Loader2 } from 'lucide-react'
 import { Medallion } from '#/components/medallion'
 import { MAX_NOTE_LENGTH } from '#/claims/limits'
+import { errorMessage } from '#/lib/errors'
 import { releaseMyClaim, submitClaimRequest } from '#/claims/api'
 
 export type ClaimViewer =
@@ -44,7 +45,7 @@ export function ClaimPanel({
       await fn()
       await router.invalidate()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong')
+      setError(errorMessage(e))
       setBusy(false)
     }
   }

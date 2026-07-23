@@ -3,7 +3,7 @@ import { RASTER_EXTENSION_BY_CONTENT_TYPE } from '#/storage/image-types'
 import { assertValidObjectKey } from '#/storage/urls'
 
 /** Assets-bucket key for a Player's site-owned avatar. Content-hashed so a
-    re-seed or later upload (#85) lands on a fresh key and never serves stale
+    re-seed or later on-site upload lands on a fresh key and never serves stale
     bytes from a CDN cache. Throws on a content type we don't store. */
 export function playerAvatarKey(
   playerId: number,

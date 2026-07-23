@@ -88,7 +88,7 @@ export async function viewerHasPendingClaim(
 
 /** Fetch the provider picture and mirror it into the assets bucket. Best-effort:
     any failure returns null so a flaky image never blocks a legitimate claim —
-    the Player falls back to the Medallion, which #85's upload flow can replace. */
+    the Player falls back to the Medallion, which a later upload flow replaces. */
 async function seedAvatar(
   store: AvatarStore,
   playerId: number,

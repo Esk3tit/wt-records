@@ -25,6 +25,7 @@ import {
   adminRemoveAlias,
   adminRenamePlayer,
 } from '#/admin/api'
+import { ClaimedChip } from '#/components/claimed-chip'
 import { revokePlayerClaim } from '#/claims/api'
 
 export const Route = createFileRoute('/admin/players/$id')({
@@ -336,9 +337,7 @@ function ClaimStatus({ onRevoke }: { onRevoke: () => Promise<void> | void }) {
   const [busy, setBusy] = useState(false)
   return (
     <div className="mt-3 flex items-center gap-3 border-t border-hairline-soft pt-3">
-      <span className="inline-flex items-center gap-1 rounded bg-tint-strong px-1.5 py-0.5 text-xs font-medium tracking-wide text-fg-faint uppercase">
-        Claimed
-      </span>
+      <ClaimedChip />
       <button
         type="button"
         className="text-sm text-status-danger transition-[filter] duration-200 hover:brightness-110"

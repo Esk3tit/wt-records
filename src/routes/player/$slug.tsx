@@ -5,9 +5,9 @@ import {
   redirect,
 } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { BadgeCheck } from 'lucide-react'
 import { VehicleTags } from '#/components/vehicle-tags'
 import { PlayerAvatar } from '#/components/player-avatar'
+import { ClaimedChip } from '#/components/claimed-chip'
 import { ClaimPanel } from '#/components/claim-panel'
 import type { ClaimViewer } from '#/components/claim-panel'
 import { db } from '#/db'
@@ -170,15 +170,5 @@ function PlayerProfile() {
         )}
       </div>
     </section>
-  )
-}
-
-/* Subtle, profile-page only — never on record rows, leaderboards, or cards. */
-function ClaimedChip() {
-  return (
-    <span className="inline-flex items-center gap-1 rounded bg-tint-strong px-1.5 py-0.5 text-xs font-medium tracking-wide text-fg-faint uppercase">
-      <BadgeCheck size={12} aria-hidden />
-      Claimed
-    </span>
   )
 }

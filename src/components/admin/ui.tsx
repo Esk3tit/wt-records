@@ -79,9 +79,7 @@ export function ErrorNote({ error }: { error: string | null }) {
   )
 }
 
-export function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'Something went wrong'
-}
+export { errorMessage } from '#/lib/errors'
 
 export function StatusChip({
   status,
