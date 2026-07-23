@@ -34,12 +34,16 @@ function ClaimsQueue() {
     setError(null)
     try {
       await fn()
-      await router.invalidate()
     } catch (e) {
+      // Only a failed mutation is an error; a failed refresh below is not.
       setError(errorMessage(e))
-    } finally {
       setBusyId(null)
+      return
     }
+    // The approve/deny committed — a failed refresh must not read as a failure
+    // and invite a duplicate action against a row that no longer exists.
+    await router.invalidate().catch(() => undefined)
+    setBusyId(null)
   }
 
   return (

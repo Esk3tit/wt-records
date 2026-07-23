@@ -16,6 +16,12 @@ describe('safeNextPath', () => {
     expect(safeNextPath('player/ace')).toBe('/admin')
   })
 
+  it('rejects embedded control characters (response splitting)', () => {
+    expect(safeNextPath('/player/ace\r\nSet-Cookie: x=1')).toBe('/admin')
+    expect(safeNextPath('/player/ace\n')).toBe('/admin')
+    expect(safeNextPath('/player/\tace')).toBe('/admin')
+  })
+
   it('rejects non-strings and honours a custom fallback', () => {
     expect(safeNextPath(undefined)).toBe('/admin')
     expect(safeNextPath(42)).toBe('/admin')
