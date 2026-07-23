@@ -28,6 +28,7 @@ export const Route = createFileRoute('/auth/callback')({
           path: '/',
           maxAge: 0,
           httpOnly: true,
+          sameSite: 'lax',
           secure: url.protocol === 'https:',
         })
         const back = () =>
