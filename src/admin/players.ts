@@ -244,6 +244,46 @@ export async function removeAlias(db: Db, actorId: string, aliasId: number) {
   })
 }
 
+/** Reset a Player's Avatar to the Medallion: null the key and audit it, leaving
+    the Claim intact. Returns the dereferenced key for the caller's R2 cleanup. */
+export async function resetPlayerAvatar(
+  db: Db,
+  actorId: string,
+  playerId: number,
+): Promise<{ clearedAvatarKey: string | null }> {
+  return db.transaction(async (tx) => {
+    const player = (
+      await tx
+        .select({
+          avatarKey: players.avatarKey,
+          mergedInto: players.mergedInto,
+        })
+        .from(players)
+        .where(eq(players.id, playerId))
+        .for('update')
+    ).at(0)
+    if (!player) throw new Error(`Unknown player ${playerId}`)
+    if (player.mergedInto != null) {
+      throw new Error('This player was merged — edit the surviving player')
+    }
+    if (player.avatarKey == null) {
+      throw new Error('This player already shows the Medallion')
+    }
+    await tx
+      .update(players)
+      .set({ avatarKey: null })
+      .where(eq(players.id, playerId))
+    await writeAudit(tx, {
+      actorId,
+      action: 'player.reset_avatar',
+      entity: 'player',
+      entityId: playerId,
+      diff: { before: { avatarKey: player.avatarKey } },
+    })
+    return { clearedAvatarKey: player.avatarKey }
+  })
+}
+
 /* ── Merge (survivor ← duplicate), one transaction ───────────── */
 
 export async function mergePlayers(

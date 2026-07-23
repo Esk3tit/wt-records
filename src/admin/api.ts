@@ -26,6 +26,7 @@ import {
   listAdminPlayers,
   mergePlayers,
   renamePlayer,
+  resetPlayerAvatar,
   addAlias,
   removeAlias,
   searchAdminPlayers,
@@ -57,6 +58,16 @@ import type { VehicleClass } from '#/lib/vehicle-classes'
 export const getAdminGate = createServerFn({ method: 'GET' }).handler(() =>
   adminGate(),
 )
+
+/** Reference-guarded, best-effort R2 cleanup for avatar objects a mutation just
+    dereferenced. Runs post-commit, so a store/DB miss never fails the request. */
+async function cleanupAvatarObjects(keys: string[]): Promise<void> {
+  const store = keys.length ? storageFromEnvIfConfigured() : undefined
+  if (!store) return
+  for (const key of keys) {
+    await deleteAvatarIfUnreferenced(db, store, key)
+  }
+}
 
 /* ── Records ─────────────────────────────────────────────────── */
 
@@ -330,22 +341,23 @@ export const adminRemoveAlias = createServerFn({ method: 'POST' })
     return removeAlias(db, userId, data.aliasId)
   })
 
+export const adminResetPlayerAvatar = createServerFn({ method: 'POST' })
+  .validator((data: { playerId: number }) => data)
+  .handler(async ({ data }) => {
+    const { userId } = await requireModerator()
+    const result = await resetPlayerAvatar(db, userId, data.playerId)
+    await cleanupAvatarObjects(
+      result.clearedAvatarKey ? [result.clearedAvatarKey] : [],
+    )
+    return result
+  })
+
 export const adminMergePlayers = createServerFn({ method: 'POST' })
   .validator((data: { survivorId: number; duplicateId: number }) => data)
   .handler(async ({ data }) => {
     const { userId } = await requireModerator()
     const result = await mergePlayers(db, userId, data)
-    // The discarded avatars ride the same reference-guarded, best-effort
-    // cleanup as release/revoke — the merge already committed, so this never
-    // fails the request even if the DB/R2 call errors.
-    const store = result.orphanedAvatarKeys.length
-      ? storageFromEnvIfConfigured()
-      : undefined
-    if (store) {
-      for (const key of result.orphanedAvatarKeys) {
-        await deleteAvatarIfUnreferenced(db, store, key)
-      }
-    }
+    await cleanupAvatarObjects(result.orphanedAvatarKeys)
     return result
   })
 
