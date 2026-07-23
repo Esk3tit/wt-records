@@ -324,10 +324,9 @@ async function unclaim(
       .where(eq(players.id, playerId))
     return player.avatarKey
   })
-  // Delete the orphaned object after commit — a failed delete only leaks bytes.
-  if (staleKey && store) {
-    await store.delete('assets', staleKey).catch(() => undefined)
-  }
+  // Delete the orphaned object after commit, but only if a concurrent re-claim
+  // hasn't re-referenced the same content-hash key; a failed delete only leaks.
+  if (staleKey && store) await deleteAvatarIfUnreferenced(db, store, staleKey)
 }
 
 /** The User unlinks their own claim (never gated). */

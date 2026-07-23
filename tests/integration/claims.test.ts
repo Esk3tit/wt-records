@@ -253,6 +253,25 @@ describe('release and revoke', () => {
     expect(store.objects.has(key)).toBe(false)
   })
 
+  it('release keeps the avatar object if another player still references its key', async () => {
+    const ace = await playerBySlug('ace')
+    const floppa = await playerBySlug('floppa')
+    const store = fakeStore()
+    const { id } = await requestClaim(t.db, USER_A, ace.id, {
+      seedAvatarUrl: 'https://cdn.discordapp.com/avatars/1/x.png',
+    })
+    await approveClaim(t.db, store, id, { fetchImpl: pngFetch })
+    const key = (await playerBySlug('ace')).avatarKey!
+    // A concurrent re-claim reused the same content-hash key on another player.
+    await t.db
+      .update(players)
+      .set({ userId: USER_B, avatarKey: key })
+      .where(eq(players.id, floppa.id))
+
+    await releaseClaim(t.db, store, USER_A, ace.id)
+    expect(store.objects.has(key)).toBe(true)
+  })
+
   it('revoke: a moderator severs any claim; an unclaimed player is refused', async () => {
     const ace = await playerBySlug('ace')
     const { id } = await requestClaim(t.db, USER_A, ace.id, {})
