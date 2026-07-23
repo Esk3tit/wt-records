@@ -148,6 +148,7 @@ function PlayerProfile() {
           key={profile.id}
           playerId={profile.id}
           slug={profile.slug}
+          isClaimed={profile.isClaimed}
           viewer={viewer}
         />
       </div>

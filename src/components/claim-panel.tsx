@@ -28,10 +28,12 @@ const ghostButton =
 export function ClaimPanel({
   playerId,
   slug,
+  isClaimed,
   viewer,
 }: {
   playerId: number
   slug: string
+  isClaimed: boolean
   viewer: ClaimViewer
 }) {
   const router = useRouter()
@@ -56,7 +58,10 @@ export function ClaimPanel({
   let content: React.ReactNode = null
 
   if (!viewer.signedIn) {
-    content = (
+    // The CTA belongs only on accountless pages — a claimed page shows nothing
+    // here (just the header indicator), so an anonymous visitor is never sent
+    // through login only to hit "already claimed".
+    content = isClaimed ? null : (
       <ClaimPrompt>
         <a
           className={amberButton}

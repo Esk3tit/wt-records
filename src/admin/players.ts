@@ -329,18 +329,23 @@ export async function mergePlayers(
     // refused above). The avatar of whichever side actually held the claim
     // rides along — preferring the survivor's own — so identity survives.
     const carriedUserId = survivor.userId ?? duplicate.userId
+    const survivorAvatar = survivor.userId != null ? survivor.avatarKey : null
+    const duplicateAvatar =
+      duplicate.userId != null ? duplicate.avatarKey : null
+    const finalAvatar =
+      carriedUserId != null ? (survivorAvatar ?? duplicateAvatar) : null
     if (carriedUserId != null) {
-      const survivorAvatar = survivor.userId != null ? survivor.avatarKey : null
-      const duplicateAvatar =
-        duplicate.userId != null ? duplicate.avatarKey : null
       await tx
         .update(players)
-        .set({
-          userId: carriedUserId,
-          avatarKey: survivorAvatar ?? duplicateAvatar,
-        })
+        .set({ userId: carriedUserId, avatarKey: finalAvatar })
         .where(eq(players.id, survivor.id))
     }
+    // The duplicate's avatar object is orphaned when it isn't the one carried
+    // onto the survivor — hand it back so the caller can clean R2.
+    const orphanedAvatarKey =
+      duplicate.avatarKey && duplicate.avatarKey !== finalAvatar
+        ? duplicate.avatarKey
+        : null
     // Drop pending claims that can no longer resolve: the duplicate's (it
     // becomes a tombstone) and, when the survivor ends up claimed, its own —
     // approve would reject them — so the moderation queue stays clean.
@@ -382,7 +387,7 @@ export async function mergePlayers(
         },
       },
     })
-    return { repointedRecords: repointed.length }
+    return { repointedRecords: repointed.length, orphanedAvatarKey }
   })
 }
 

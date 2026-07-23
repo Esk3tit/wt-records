@@ -46,7 +46,8 @@ import {
   validateProofFile,
 } from '#/admin/proofs'
 import type { ImageProofKind, ProofFileInput } from '#/admin/proofs'
-import { storageFromEnv } from '#/storage/r2'
+import { storageFromEnv, storageFromEnvIfConfigured } from '#/storage/r2'
+import { deleteAvatarIfUnreferenced } from '#/claims/claims'
 import { proofUrlIfConfigured } from '#/storage/urls'
 import type { VehicleClass } from '#/lib/vehicle-classes'
 
@@ -333,7 +334,16 @@ export const adminMergePlayers = createServerFn({ method: 'POST' })
   .validator((data: { survivorId: number; duplicateId: number }) => data)
   .handler(async ({ data }) => {
     const { userId } = await requireModerator()
-    return mergePlayers(db, userId, data)
+    const result = await mergePlayers(db, userId, data)
+    // The discarded avatar rides the same reference-guarded cleanup as the
+    // release/revoke paths, so a merge never leaks an object in R2.
+    if (result.orphanedAvatarKey) {
+      const store = storageFromEnvIfConfigured()
+      if (store) {
+        await deleteAvatarIfUnreferenced(db, store, result.orphanedAvatarKey)
+      }
+    }
+    return result
   })
 
 /* ── Catalog & rules ─────────────────────────────────────────── */

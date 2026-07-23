@@ -216,6 +216,27 @@ describe('mergePlayers', () => {
     expect((await playerBySlug('ace')).avatarKey).toBe(avatarKey)
   })
 
+  it('reports the duplicate avatar as orphaned when the survivor keeps its own', async () => {
+    const ace = await playerBySlug('ace')
+    const floppa = await playerBySlug('floppa')
+    const survivorKey = `avatars/${ace.id}/aaaaaaaaaaaa.png`
+    const dupKey = `avatars/${floppa.id}/ffffffffffff.png`
+    await t.db
+      .update(players)
+      .set({ userId: USER_A, avatarKey: survivorKey })
+      .where(eq(players.id, ace.id))
+    await t.db
+      .update(players)
+      .set({ userId: USER_A, avatarKey: dupKey })
+      .where(eq(players.id, floppa.id))
+    const result = await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
+    expect((await playerBySlug('ace')).avatarKey).toBe(survivorKey)
+    expect(result.orphanedAvatarKey).toBe(dupKey)
+  })
+
   it('drops the duplicate pending claims so they never orphan the queue', async () => {
     const ace = await playerBySlug('ace')
     const floppa = await playerBySlug('floppa')

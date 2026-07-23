@@ -32,7 +32,7 @@ export async function requestClaim(
 ): Promise<{ id: number }> {
   const note = input.note?.trim() || null
   if (note && note.length > MAX_NOTE_LENGTH) {
-    throw new Error(`Keep the note under ${MAX_NOTE_LENGTH} characters`)
+    throw new Error(`Keep the note to at most ${MAX_NOTE_LENGTH} characters`)
   }
   const seedAvatarUrl = input.seedAvatarUrl?.trim() || null
   return db.transaction(async (tx) => {
@@ -255,7 +255,7 @@ export async function approveClaim(
 
 /** Delete an avatar object only when no player row still references its key —
     a content-addressed key can be re-referenced by a concurrent seed. */
-async function deleteAvatarIfUnreferenced(
+export async function deleteAvatarIfUnreferenced(
   db: Db,
   store: AvatarStore,
   key: string,
