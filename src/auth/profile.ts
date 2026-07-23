@@ -32,6 +32,21 @@ function firstString(...values: unknown[]): string | undefined {
   )
 }
 
+/** The login provider's profile picture, for the one-time avatar seed choice.
+    https only — the seed fetch must never reach a plaintext or non-URL value. */
+export function providerAvatarUrl(user: {
+  user_metadata?: Record<string, unknown>
+}): string | null {
+  const meta = user.user_metadata ?? {}
+  const candidate = firstString(meta.avatar_url, meta.picture)
+  if (!candidate) return null
+  try {
+    return new URL(candidate).protocol === 'https:' ? candidate : null
+  } catch {
+    return null
+  }
+}
+
 /** Provisions the profile on every OAuth callback. Refreshes identity fields,
     NEVER touches role — mods are promoted by one-off SQL and must stay mods. */
 export async function upsertProfileFromOAuth(

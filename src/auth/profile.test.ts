@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { profileFromUser } from '#/auth/profile'
+import { profileFromUser, providerAvatarUrl } from '#/auth/profile'
 
 describe('profileFromUser', () => {
   it('prefers the Discord global name and provider id', () => {
@@ -33,5 +33,30 @@ describe('profileFromUser', () => {
       handle: null,
       discordId: null,
     })
+  })
+})
+
+describe('providerAvatarUrl', () => {
+  it('reads the Discord avatar_url, then falls back to picture', () => {
+    expect(
+      providerAvatarUrl({
+        user_metadata: { avatar_url: 'https://cdn.discordapp.com/a/1/x.png' },
+      }),
+    ).toBe('https://cdn.discordapp.com/a/1/x.png')
+    expect(
+      providerAvatarUrl({
+        user_metadata: { picture: 'https://lh3.googleusercontent.com/y' },
+      }),
+    ).toBe('https://lh3.googleusercontent.com/y')
+  })
+
+  it('rejects non-https and missing pictures', () => {
+    expect(
+      providerAvatarUrl({ user_metadata: { avatar_url: 'http://insecure/x' } }),
+    ).toBeNull()
+    expect(
+      providerAvatarUrl({ user_metadata: { avatar_url: 'not-a-url' } }),
+    ).toBeNull()
+    expect(providerAvatarUrl({})).toBeNull()
   })
 })

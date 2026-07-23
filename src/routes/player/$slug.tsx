@@ -5,22 +5,70 @@ import {
   redirect,
 } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import { BadgeCheck } from 'lucide-react'
 import { VehicleTags } from '#/components/vehicle-tags'
+import { PlayerAvatar } from '#/components/player-avatar'
+import { ClaimPanel } from '#/components/claim-panel'
+import type { ClaimViewer } from '#/components/claim-panel'
 import { db } from '#/db'
 import { getPlayer, playerMergeRedirect } from '#/db/queries'
+import { hasAuthCookie, getSessionUser } from '#/auth/supabase-server'
+import { providerAvatarUrl } from '#/auth/profile'
+import { viewerHasPendingClaim } from '#/claims/claims'
+import { assetUrlIfConfigured } from '#/storage/urls'
 import { toPlayerCardModel } from '#/og/props/player'
 import { playerUnfurl } from '#/og/copy'
 import { playerCardUrl } from '#/og/urls'
 import { cardMeta } from '#/og/meta'
 
+/** The viewer's relationship to this Player — only for a signed-in visitor;
+    anonymous requests skip the auth round-trip entirely and stay cacheable. */
+async function resolveClaimViewer(player: {
+  id: number
+  userId: string | null
+}): Promise<ClaimViewer> {
+  if (!hasAuthCookie()) return { signedIn: false }
+  const user = await getSessionUser()
+  if (!user) return { signedIn: false }
+  const claimed = player.userId != null
+  const pending = claimed
+    ? false
+    : await viewerHasPendingClaim(db, user.id, player.id)
+  return {
+    signedIn: true,
+    isOwner: player.userId === user.id,
+    pending,
+    canClaim: !claimed && !pending,
+    // Offered only when a claim is actually possible — never leaked otherwise.
+    providerAvatarUrl: !claimed && !pending ? providerAvatarUrl(user) : null,
+  }
+}
+
 const loadPlayer = createServerFn({ method: 'GET' })
   .validator((slug: string) => slug)
   .handler(async ({ data }) => {
-    const player = await getPlayer(db, data)
-    if (player) return { profile: player, redirectTo: null }
-    const redirectTo = await playerMergeRedirect(db, data)
-    if (redirectTo) return { profile: null, redirectTo }
-    throw notFound()
+    const found = await getPlayer(db, data)
+    if (!found) {
+      const redirectTo = await playerMergeRedirect(db, data)
+      return { profile: null, redirectTo, viewer: null }
+    }
+    const viewer = await resolveClaimViewer(found.player)
+    return {
+      profile: {
+        // player.userId (an auth uuid) never crosses to the client.
+        id: found.player.id,
+        slug: found.player.slug,
+        displayName: found.player.displayName,
+        aliases: found.aliases,
+        records: found.records,
+        avatarUrl: found.player.avatarKey
+          ? assetUrlIfConfigured(found.player.avatarKey)
+          : null,
+        isClaimed: found.player.userId != null,
+      },
+      redirectTo: null,
+      viewer,
+    }
   })
 
 export const Route = createFileRoute('/player/$slug')({
@@ -35,11 +83,14 @@ export const Route = createFileRoute('/player/$slug')({
       })
     }
     if (!result.profile) throw notFound()
-    return result.profile
+    return { profile: result.profile, viewer: result.viewer }
   },
   head: ({ loaderData, params }) => {
     if (!loaderData) return {}
-    const model = toPlayerCardModel(loaderData)
+    const model = toPlayerCardModel({
+      player: { displayName: loaderData.profile.displayName },
+      records: loaderData.profile.records,
+    })
     const { title, description } = playerUnfurl(model)
     return {
       meta: cardMeta({
@@ -53,42 +104,81 @@ export const Route = createFileRoute('/player/$slug')({
 })
 
 function PlayerProfile() {
-  const { player, aliases, records } = Route.useLoaderData()
-  const formerNames = aliases.filter((name) => name !== player.displayName)
+  const { profile, viewer } = Route.useLoaderData()
+  const formerNames = profile.aliases.filter(
+    (name) => name !== profile.displayName,
+  )
 
   return (
-    <section className="p-6">
-      <h1 className="text-2xl font-semibold">{player.displayName}</h1>
-      {formerNames.length > 0 && (
-        <p className="mt-1 text-sm text-fg-faint">
-          previously known as {formerNames.join(', ')}
-        </p>
-      )}
+    <section className="mt-6 space-y-5">
+      <div className="glass-mid p-6 sm:p-7">
+        <div className="flex items-center gap-5">
+          <PlayerAvatar
+            avatarUrl={profile.avatarUrl}
+            displayName={profile.displayName}
+            size={84}
+            eager
+          />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              <h1 className="text-2xl font-semibold text-balance">
+                {profile.displayName}
+              </h1>
+              {profile.isClaimed && <ClaimedChip />}
+            </div>
+            {formerNames.length > 0 && (
+              <p className="mt-1 text-sm text-fg-faint">
+                previously known as {formerNames.join(', ')}
+              </p>
+            )}
+          </div>
+        </div>
 
-      <h2 className="mt-6 text-fg-muted">Current records</h2>
-      {records.length === 0 ? (
-        <p className="mt-2 text-fg-faint">No current records.</p>
-      ) : (
-        <ul className="mt-2 space-y-1">
-          {records.map((r) => (
-            <li key={`${r.mode}-${r.vehicleSlug}`} className="flex gap-3">
-              <span className="w-12 shrink-0 text-fg-faint">
-                {r.mode.toUpperCase()}
-              </span>
-              <span className="min-w-0">
-                <Link
-                  to="/$mode/vehicle/$slug"
-                  params={{ mode: r.mode, slug: r.vehicleSlug }}
-                >
-                  {r.vehicleName}
-                </Link>
-                <VehicleTags tags={r} />
-              </span>
-              <span className="ml-auto text-fg-muted">{r.kills}</span>
-            </li>
-          ))}
-        </ul>
-      )}
+        <ClaimPanel playerId={profile.id} slug={profile.slug} viewer={viewer} />
+      </div>
+
+      <div className="glass-mid p-6 sm:p-7">
+        <h2 className="section-label mb-4">Current records</h2>
+        {profile.records.length === 0 ? (
+          <p className="text-sm text-fg-faint">No current records yet.</p>
+        ) : (
+          <ul className="space-y-0.5">
+            {profile.records.map((r) => (
+              <li
+                key={`${r.mode}-${r.vehicleSlug}`}
+                className="flex items-center gap-3 rounded-[10px] px-2 py-1.5 hover:bg-[var(--row-hover)]"
+              >
+                <span className="w-11 shrink-0 text-xs font-medium tracking-wide text-fg-faint uppercase">
+                  {r.mode.toUpperCase()}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <Link
+                    to="/$mode/vehicle/$slug"
+                    params={{ mode: r.mode, slug: r.vehicleSlug }}
+                    className="decoration-hairline underline-offset-2 hover:decoration-current"
+                  >
+                    {r.vehicleName}
+                  </Link>
+                  <VehicleTags tags={r} />
+                </span>
+                <span className="shrink-0 font-semibold text-fg">
+                  {r.kills}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </section>
+  )
+}
+
+/* Subtle, profile-page only — never on record rows, leaderboards, or cards. */
+function ClaimedChip() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded bg-tint-strong px-1.5 py-0.5 text-xs font-medium tracking-wide text-fg-faint uppercase">
+      <BadgeCheck size={12} aria-hidden />
+      Claimed
+    </span>
   )
 }

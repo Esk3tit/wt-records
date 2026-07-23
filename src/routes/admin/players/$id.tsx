@@ -25,6 +25,7 @@ import {
   adminRemoveAlias,
   adminRenamePlayer,
 } from '#/admin/api'
+import { revokePlayerClaim } from '#/claims/api'
 
 export const Route = createFileRoute('/admin/players/$id')({
   loader: async ({ context, params }) => {
@@ -87,12 +88,13 @@ function PlayerDetailInner() {
       <Panel
         title={player.displayName}
         aside={
-          <span className="text-sm text-fg-muted">
-            <Link to="/player/$slug" params={{ slug: player.slug }}>
-              public page
-            </Link>
-            {player.userId ? ' · claimed' : ''}
-          </span>
+          <Link
+            to="/player/$slug"
+            params={{ slug: player.slug }}
+            className="text-sm text-fg-muted"
+          >
+            public page
+          </Link>
         }
       >
         <RenameForm
@@ -107,6 +109,13 @@ function PlayerDetailInner() {
           }
         />
         <p className="mt-2 text-xs text-fg-faint">Last IGN used: {lastIgn}</p>
+        {player.userId && (
+          <ClaimStatus
+            onRevoke={() =>
+              call(() => revokePlayerClaim({ data: { playerId: player.id } }))
+            }
+          />
+        )}
       </Panel>
 
       <Panel title="Aliases">
@@ -319,5 +328,46 @@ function MergePanel({
         </p>
       </ConfirmDialog>
     </Panel>
+  )
+}
+
+function ClaimStatus({ onRevoke }: { onRevoke: () => Promise<void> | void }) {
+  const [confirming, setConfirming] = useState(false)
+  const [busy, setBusy] = useState(false)
+  return (
+    <div className="mt-3 flex items-center gap-3 border-t border-hairline-soft pt-3">
+      <span className="inline-flex items-center gap-1 rounded bg-tint-strong px-1.5 py-0.5 text-xs font-medium tracking-wide text-fg-faint uppercase">
+        Claimed
+      </span>
+      <button
+        type="button"
+        className="text-sm text-status-danger transition-[filter] duration-200 hover:brightness-110"
+        onClick={() => setConfirming(true)}
+      >
+        Revoke claim
+      </button>
+      <ConfirmDialog
+        open={confirming}
+        title="Revoke this claim?"
+        confirmLabel="Revoke"
+        busy={busy}
+        onConfirm={async () => {
+          setBusy(true)
+          try {
+            await onRevoke()
+          } finally {
+            setBusy(false)
+            setConfirming(false)
+          }
+        }}
+        onCancel={() => setConfirming(false)}
+      >
+        <p>
+          The player returns to the accountless state and its avatar resets to
+          the Medallion. Records and snapshots are untouched, and the user can
+          claim again.
+        </p>
+      </ConfirmDialog>
+    </div>
   )
 }

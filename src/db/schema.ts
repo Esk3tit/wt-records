@@ -136,6 +136,10 @@ export const players = pgTable(
     userId: uuid('user_id').references(() => authUsers.id, {
       onDelete: 'set null',
     }),
+    // Site-owned avatar (assets-bucket key). Null = the Medallion, a
+    // first-class state, not a placeholder. Seeded once at claim, then #85 owns
+    // on-site upload; the image is always served from R2, never the provider.
+    avatarKey: text('avatar_key'),
     // Merge tombstone: set = this row is a duplicate collapsed into the
     // survivor; its public slug 301s there and it leaves search.
     mergedInto: integer('merged_into').references(
@@ -159,6 +163,34 @@ export const playerAliases = pgTable(
     lastSeen: timestamp('last_seen', { withTimezone: true }).defaultNow(),
   },
   (t) => [uniqueIndex('alias_uq').on(t.playerId, t.name, t.kind)],
+).enableRLS()
+
+/* A pending Claim: a User asking to be linked to a Player. Not a separate
+   entity — the row exists only while pending; approving sets players.user_id
+   and deletes it, denying just deletes it (no audit trail in v1). */
+export const playerClaims = pgTable(
+  'player_claims',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    playerId: integer('player_id')
+      .references(() => players.id)
+      .notNull(),
+    userId: uuid('user_id')
+      .references(() => authUsers.id, { onDelete: 'cascade' })
+      .notNull(),
+    note: text('note'),
+    // Provider picture captured when the requester opted into the avatar seed;
+    // null = they chose the Medallion. Mirrored to R2 only on approval.
+    seedAvatarUrl: text('seed_avatar_url'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (t) => [
+    // Resolving a claim deletes the row, so "one pending request per
+    // (user, player)" is a plain unique, not a partial one.
+    uniqueIndex('claim_user_player_uq').on(t.userId, t.playerId),
+    index('claim_player_idx').on(t.playerId),
+    index('claim_created_idx').on(t.createdAt),
+  ],
 ).enableRLS()
 
 /* Canonical WT game versions — the community's temporal axis. Catalog-sync
