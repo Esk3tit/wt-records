@@ -287,7 +287,13 @@ export async function denyClaim(db: Db, claimId: number): Promise<void> {
       .from(players)
       .where(eq(players.id, claim.playerId))
       .for('update')
-    await tx.delete(playerClaims).where(eq(playerClaims.id, claimId))
+    // Re-check under the lock: a concurrent approve may have deleted the row
+    // between the read above and this delete — 0 rows means it already won.
+    const deleted = await tx
+      .delete(playerClaims)
+      .where(eq(playerClaims.id, claimId))
+      .returning({ id: playerClaims.id })
+    if (deleted.length === 0) throw new Error('This claim was already resolved')
   })
 }
 

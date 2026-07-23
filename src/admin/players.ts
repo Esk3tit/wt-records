@@ -341,9 +341,14 @@ export async function mergePlayers(
         })
         .where(eq(players.id, survivor.id))
     }
-    // The duplicate's own pending claims can never resolve against a tombstone;
-    // drop them so they don't clog the queue (users re-request on the survivor).
-    await tx.delete(playerClaims).where(eq(playerClaims.playerId, duplicate.id))
+    // Drop pending claims that can no longer resolve: the duplicate's (it
+    // becomes a tombstone) and, when the survivor ends up claimed, its own —
+    // approve would reject them — so the moderation queue stays clean.
+    const clearClaimsFor =
+      carriedUserId != null ? [duplicate.id, survivor.id] : [duplicate.id]
+    await tx
+      .delete(playerClaims)
+      .where(inArray(playerClaims.playerId, clearClaimsFor))
     await tx
       .update(players)
       .set({ mergedInto: survivor.id, userId: null, avatarKey: null })

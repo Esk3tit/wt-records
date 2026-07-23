@@ -233,6 +233,27 @@ describe('mergePlayers', () => {
     expect(left).toHaveLength(0)
   })
 
+  it('drops the survivor pending claims once the merge leaves it claimed', async () => {
+    const ace = await playerBySlug('ace')
+    const floppa = await playerBySlug('floppa')
+    // ace (survivor) is accountless with an open request; floppa carries a claim.
+    await t.db.insert(playerClaims).values({ playerId: ace.id, userId: USER_B })
+    await t.db
+      .update(players)
+      .set({ userId: USER_A })
+      .where(eq(players.id, floppa.id))
+    await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
+    expect((await playerBySlug('ace')).userId).toBe(USER_A)
+    const left = await t.db
+      .select()
+      .from(playerClaims)
+      .where(eq(playerClaims.playerId, ace.id))
+    expect(left).toHaveLength(0)
+  })
+
   it('refuses self-merge and re-merge of a tombstone', async () => {
     const ace = await playerBySlug('ace')
     const floppa = await playerBySlug('floppa')
