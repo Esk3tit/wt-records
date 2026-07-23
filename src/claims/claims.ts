@@ -254,21 +254,27 @@ export async function approveClaim(
 }
 
 /** Delete an avatar object only when no player row still references its key —
-    a content-addressed key can be re-referenced by a concurrent seed. */
+    a content-addressed key can be re-referenced by a concurrent seed. Fully
+    best-effort: it runs after the owning write has committed at every call
+    site, so a leaked object must never surface as an error. */
 export async function deleteAvatarIfUnreferenced(
   db: Db,
   store: AvatarStore,
   key: string,
 ): Promise<void> {
-  const referenced =
-    (
-      await db
-        .select({ id: players.id })
-        .from(players)
-        .where(eq(players.avatarKey, key))
-        .limit(1)
-    ).length > 0
-  if (!referenced) await store.delete('assets', key).catch(() => undefined)
+  try {
+    const referenced =
+      (
+        await db
+          .select({ id: players.id })
+          .from(players)
+          .where(eq(players.avatarKey, key))
+          .limit(1)
+      ).length > 0
+    if (!referenced) await store.delete('assets', key)
+  } catch {
+    // A post-commit cleanup failure only leaks bytes; never fail the caller.
+  }
 }
 
 /** Deny a pending claim — the row vanishes, leaving no trace on the Player.

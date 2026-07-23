@@ -234,7 +234,29 @@ describe('mergePlayers', () => {
       duplicateId: floppa.id,
     })
     expect((await playerBySlug('ace')).avatarKey).toBe(survivorKey)
-    expect(result.orphanedAvatarKey).toBe(dupKey)
+    expect(result.orphanedAvatarKeys).toEqual([dupKey])
+  })
+
+  it('orphans the survivor stale avatar when a lone claim replaces it', async () => {
+    const ace = await playerBySlug('ace')
+    const floppa = await playerBySlug('floppa')
+    const staleKey = `avatars/${ace.id}/aaaaaaaaaaaa.png`
+    const dupKey = `avatars/${floppa.id}/ffffffffffff.png`
+    // ace is accountless but carries a stale key; floppa's claim is carried in.
+    await t.db
+      .update(players)
+      .set({ avatarKey: staleKey })
+      .where(eq(players.id, ace.id))
+    await t.db
+      .update(players)
+      .set({ userId: USER_A, avatarKey: dupKey })
+      .where(eq(players.id, floppa.id))
+    const result = await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
+    expect((await playerBySlug('ace')).avatarKey).toBe(dupKey)
+    expect(result.orphanedAvatarKeys).toEqual([staleKey])
   })
 
   it('drops the duplicate pending claims so they never orphan the queue', async () => {

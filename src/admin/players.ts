@@ -340,12 +340,21 @@ export async function mergePlayers(
         .set({ userId: carriedUserId, avatarKey: finalAvatar })
         .where(eq(players.id, survivor.id))
     }
-    // The duplicate's avatar object is orphaned when it isn't the one carried
-    // onto the survivor — hand it back so the caller can clean R2.
-    const orphanedAvatarKey =
-      duplicate.avatarKey && duplicate.avatarKey !== finalAvatar
-        ? duplicate.avatarKey
-        : null
+    // Any avatar object this merge dereferences and doesn't carry forward is
+    // orphaned — the survivor's replaced key and the duplicate's discarded one.
+    // Hand them back so the caller can clean R2 (guarded against shared keys).
+    const dereferenced = new Set<string>()
+    if (
+      carriedUserId != null &&
+      survivor.avatarKey &&
+      survivor.avatarKey !== finalAvatar
+    ) {
+      dereferenced.add(survivor.avatarKey)
+    }
+    if (duplicate.avatarKey && duplicate.avatarKey !== finalAvatar) {
+      dereferenced.add(duplicate.avatarKey)
+    }
+    const orphanedAvatarKeys = [...dereferenced]
     // Drop pending claims that can no longer resolve: the duplicate's (it
     // becomes a tombstone) and, when the survivor ends up claimed, its own —
     // approve would reject them — so the moderation queue stays clean.
@@ -387,7 +396,7 @@ export async function mergePlayers(
         },
       },
     })
-    return { repointedRecords: repointed.length, orphanedAvatarKey }
+    return { repointedRecords: repointed.length, orphanedAvatarKeys }
   })
 }
 

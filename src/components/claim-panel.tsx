@@ -45,14 +45,18 @@ export function ClaimPanel({
     setError(null)
     try {
       await fn()
-      await router.invalidate()
     } catch (e) {
+      // Only a failed mutation is an error the user should see and retry.
       setError(errorMessage(e))
-    } finally {
-      // Clear even on success: invalidation may re-render this same panel
-      // into a new state without unmounting, leaving a button stuck disabled.
       setBusy(false)
+      return
     }
+    // The mutation committed: a failed refresh must not read as a failed
+    // action (that invites re-submitting a claim that already exists).
+    await router.invalidate().catch(() => undefined)
+    // Clear even on success: invalidation may re-render this same panel into a
+    // new state without unmounting, leaving a button stuck disabled.
+    setBusy(false)
   }
 
   let content: React.ReactNode = null

@@ -335,12 +335,15 @@ export const adminMergePlayers = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const { userId } = await requireModerator()
     const result = await mergePlayers(db, userId, data)
-    // The discarded avatar rides the same reference-guarded cleanup as the
-    // release/revoke paths, so a merge never leaks an object in R2.
-    if (result.orphanedAvatarKey) {
-      const store = storageFromEnvIfConfigured()
-      if (store) {
-        await deleteAvatarIfUnreferenced(db, store, result.orphanedAvatarKey)
+    // The discarded avatars ride the same reference-guarded, best-effort
+    // cleanup as release/revoke — the merge already committed, so this never
+    // fails the request even if the DB/R2 call errors.
+    const store = result.orphanedAvatarKeys.length
+      ? storageFromEnvIfConfigured()
+      : undefined
+    if (store) {
+      for (const key of result.orphanedAvatarKeys) {
+        await deleteAvatarIfUnreferenced(db, store, key)
       }
     }
     return result
