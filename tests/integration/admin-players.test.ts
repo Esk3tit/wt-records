@@ -484,7 +484,10 @@ describe('resetPlayerAvatar', () => {
   it('refuses a merged tombstone', async () => {
     const ace = await playerBySlug('ace')
     const floppa = await playerBySlug('floppa')
-    await mergePlayers(t.db, MOD, { survivorId: ace.id, duplicateId: floppa.id })
+    await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
     await expect(resetPlayerAvatar(t.db, MOD, floppa.id)).rejects.toThrow(
       /merged/i,
     )
