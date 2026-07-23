@@ -243,24 +243,32 @@ export async function approveClaim(
   } catch (error) {
     // Roll back the just-seeded object — but never one a concurrent approval
     // already committed and referenced (content-addressed keys can collide).
-    if (avatarKey && store) {
-      const referenced =
-        (
-          await db
-            .select({ id: players.id })
-            .from(players)
-            .where(eq(players.avatarKey, avatarKey))
-            .limit(1)
-        ).length > 0
-      if (!referenced)
-        await store.delete('assets', avatarKey).catch(() => undefined)
-    }
+    if (avatarKey && store)
+      await deleteAvatarIfUnreferenced(db, store, avatarKey)
     throw error
   }
-  if (staleKey && store) {
-    await store.delete('assets', staleKey).catch(() => undefined)
-  }
+  // Same collision guard on the prior owner's object: a concurrent re-seed of
+  // the identical image could have re-referenced this same content-hash key.
+  if (staleKey && store) await deleteAvatarIfUnreferenced(db, store, staleKey)
   return { playerId: claim.playerId, avatarSeeded: avatarKey != null }
+}
+
+/** Delete an avatar object only when no player row still references its key —
+    a content-addressed key can be re-referenced by a concurrent seed. */
+async function deleteAvatarIfUnreferenced(
+  db: Db,
+  store: AvatarStore,
+  key: string,
+): Promise<void> {
+  const referenced =
+    (
+      await db
+        .select({ id: players.id })
+        .from(players)
+        .where(eq(players.avatarKey, key))
+        .limit(1)
+    ).length > 0
+  if (!referenced) await store.delete('assets', key).catch(() => undefined)
 }
 
 /** Deny a pending claim — the row vanishes, leaving no trace on the Player.

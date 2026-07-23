@@ -10,7 +10,13 @@ import {
   sql,
 } from 'drizzle-orm'
 import type { Db } from '#/db'
-import { playerAliases, players, records, vehicles } from '#/db/schema'
+import {
+  playerAliases,
+  playerClaims,
+  players,
+  records,
+  vehicles,
+} from '#/db/schema'
 import { slugify } from '#/lib/slug'
 import { likeContains } from '#/lib/like'
 import { writeAudit } from '#/admin/audit'
@@ -319,14 +325,25 @@ export async function mergePlayers(
       })
     }
 
-    // A lone claim carries over to the survivor (same person by mod judgment),
-    // and the avatar rides with it so the identity survives the merge.
-    if (survivor.userId == null && duplicate.userId != null) {
+    // The survivor keeps or gains the lone/same-user claim (different-user was
+    // refused above). The avatar of whichever side actually held the claim
+    // rides along — preferring the survivor's own — so identity survives.
+    const carriedUserId = survivor.userId ?? duplicate.userId
+    if (carriedUserId != null) {
+      const survivorAvatar = survivor.userId != null ? survivor.avatarKey : null
+      const duplicateAvatar =
+        duplicate.userId != null ? duplicate.avatarKey : null
       await tx
         .update(players)
-        .set({ userId: duplicate.userId, avatarKey: duplicate.avatarKey })
+        .set({
+          userId: carriedUserId,
+          avatarKey: survivorAvatar ?? duplicateAvatar,
+        })
         .where(eq(players.id, survivor.id))
     }
+    // The duplicate's own pending claims can never resolve against a tombstone;
+    // drop them so they don't clog the queue (users re-request on the survivor).
+    await tx.delete(playerClaims).where(eq(playerClaims.playerId, duplicate.id))
     await tx
       .update(players)
       .set({ mergedInto: survivor.id, userId: null, avatarKey: null })

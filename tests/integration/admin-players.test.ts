@@ -3,7 +3,7 @@ import { asc, eq, inArray } from 'drizzle-orm'
 import { freshDb } from './pglite'
 import type { TestDb } from './pglite'
 import { seed } from '#/db/seed'
-import { playerAliases, players, records } from '#/db/schema'
+import { playerAliases, playerClaims, players, records } from '#/db/schema'
 import {
   addAlias,
   getAdminPlayer,
@@ -195,6 +195,42 @@ describe('mergePlayers', () => {
     const tomb = await playerBySlug('floppa')
     expect(tomb.userId).toBeNull()
     expect(tomb.avatarKey).toBeNull()
+  })
+
+  it('keeps the duplicate avatar when the survivor is same-user but avatarless', async () => {
+    const ace = await playerBySlug('ace')
+    const floppa = await playerBySlug('floppa')
+    const avatarKey = `avatars/${floppa.id}/abc123abc123.png`
+    await t.db
+      .update(players)
+      .set({ userId: USER_A })
+      .where(eq(players.id, ace.id))
+    await t.db
+      .update(players)
+      .set({ userId: USER_A, avatarKey })
+      .where(eq(players.id, floppa.id))
+    await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
+    expect((await playerBySlug('ace')).avatarKey).toBe(avatarKey)
+  })
+
+  it('drops the duplicate pending claims so they never orphan the queue', async () => {
+    const ace = await playerBySlug('ace')
+    const floppa = await playerBySlug('floppa')
+    await t.db
+      .insert(playerClaims)
+      .values({ playerId: floppa.id, userId: USER_A })
+    await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
+    const left = await t.db
+      .select()
+      .from(playerClaims)
+      .where(eq(playerClaims.playerId, floppa.id))
+    expect(left).toHaveLength(0)
   })
 
   it('refuses self-merge and re-merge of a tombstone', async () => {
