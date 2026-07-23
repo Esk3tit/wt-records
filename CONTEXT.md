@@ -22,10 +22,23 @@ _Avoid_: account; "user" (a Player may have no User).
 The Player who holds a given Record. A relational role, not a separate entity.
 
 **Claim**:
-The act of a logged-in User linking a Player to themselves (sets the account link), which also ties that Player's existing Records to the User. Required only to submit.
+The act of a logged-in User linking a Player to themselves (sets the account link), which also ties that Player's existing Records to the User. Required to submit, and the source of identity: a claimed Player inherits its User's avatar and "this is my page" presence.
+
+**Claim request**:
+A pending Claim — not a separate entity. Filed by a logged-in User; the link exists only once a moderator approves. Claims are never self-serve (impersonation of known holders is one click otherwise); a denied request leaves no trace on the Player.
+
+**Release / Revoke** (a Claim):
+Undoing a Claim — **Release** when the User unlinks themselves (never gated), **Revoke** when a moderator severs it. Either way the Player simply returns to the accountless state; Records and Snapshots never move.
 
 **Merge** (Players):
 Collapsing duplicate Player rows for the same person into one survivor: Records repoint, the duplicate's names become survivor Aliases, and the duplicate leaves a tombstone redirecting its old page. Records' Snapshots never change. Players claimed by **different** Users are never mergeable — two claims are two people (the User is the identity source of truth); same-User claims are.
+
+**Avatar**:
+A claimed Player's site-owned picture. Seeded once, at claim, from the login provider's picture — only by the claimant's explicit choice, never auto-published — then changed by uploading on the site, fully detached from the provider thereafter. Moderators can reset any Avatar to the Medallion.
+
+**Medallion**:
+The designed fallback identity mark for any Player without an Avatar — accountless, claimed without choosing one, or reset by a moderator. A first-class permanent state, not a placeholder.
+_Avoid_: default avatar, placeholder.
 
 **Alias**:
 A name a Player has gone by — an in-game name or a former display name. Powers "previously known as".
@@ -145,6 +158,10 @@ Per Mode, the fraction of eligible vehicles (by Branch) that have a Current reco
 **Contest count**:
 Per (vehicle, Mode), how many verified Records that title has ever had — self-improvements included. Ranks the "most contested titles".
 _Avoid_: times changed hands (implies holder-change only), hotness.
+
+**Dethronement**:
+A Player taking a title from a different holder by superseding them — as opposed to filling an Open bounty. A per-Player count ("titles taken off other people"), distinct from Contest count (which belongs to the title).
+_Avoid_: contest wins.
 
 **Leaderboard**:
 Players ranked by Current verified record count — per Mode, plus an all-Modes view. Derived from Records, never stored as counters.

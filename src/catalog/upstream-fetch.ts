@@ -8,6 +8,8 @@ export interface UpstreamFetchOptions {
   retryDelayMs?: number
   /** Per-attempt cap; unset = no timeout. */
   timeoutMs?: number
+  /** Redirect policy; default follows. 'error' hardens SSRF-sensitive fetches. */
+  redirect?: RequestRedirect
 }
 
 /** GET with the catalog user-agent and backoff retries on 429/5xx/network
@@ -27,6 +29,7 @@ export async function fetchUpstream(
     try {
       response = await fetchImpl(url, {
         headers: { 'user-agent': USER_AGENT },
+        redirect: options.redirect,
         signal:
           options.timeoutMs == null
             ? undefined

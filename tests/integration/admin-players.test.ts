@@ -3,7 +3,7 @@ import { asc, eq, inArray } from 'drizzle-orm'
 import { freshDb } from './pglite'
 import type { TestDb } from './pglite'
 import { seed } from '#/db/seed'
-import { playerAliases, players, records } from '#/db/schema'
+import { playerAliases, playerClaims, players, records } from '#/db/schema'
 import {
   addAlias,
   getAdminPlayer,
@@ -177,9 +177,110 @@ describe('mergePlayers', () => {
     expect((await playerBySlug('floppa')).userId).toBeNull()
   })
 
-  it('carries a lone claim on the duplicate over to the survivor', async () => {
+  it('carries a lone claim and its avatar on the duplicate over to the survivor', async () => {
     const ace = await playerBySlug('ace')
     const floppa = await playerBySlug('floppa')
+    const avatarKey = `avatars/${floppa.id}/abc123abc123.png`
+    await t.db
+      .update(players)
+      .set({ userId: USER_A, avatarKey })
+      .where(eq(players.id, floppa.id))
+    await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
+    const survivor = await playerBySlug('ace')
+    expect(survivor.userId).toBe(USER_A)
+    expect(survivor.avatarKey).toBe(avatarKey)
+    const tomb = await playerBySlug('floppa')
+    expect(tomb.userId).toBeNull()
+    expect(tomb.avatarKey).toBeNull()
+  })
+
+  it('keeps the duplicate avatar when the survivor is same-user but avatarless', async () => {
+    const ace = await playerBySlug('ace')
+    const floppa = await playerBySlug('floppa')
+    const avatarKey = `avatars/${floppa.id}/abc123abc123.png`
+    await t.db
+      .update(players)
+      .set({ userId: USER_A })
+      .where(eq(players.id, ace.id))
+    await t.db
+      .update(players)
+      .set({ userId: USER_A, avatarKey })
+      .where(eq(players.id, floppa.id))
+    await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
+    expect((await playerBySlug('ace')).avatarKey).toBe(avatarKey)
+  })
+
+  it('reports the duplicate avatar as orphaned when the survivor keeps its own', async () => {
+    const ace = await playerBySlug('ace')
+    const floppa = await playerBySlug('floppa')
+    const survivorKey = `avatars/${ace.id}/aaaaaaaaaaaa.png`
+    const dupKey = `avatars/${floppa.id}/ffffffffffff.png`
+    await t.db
+      .update(players)
+      .set({ userId: USER_A, avatarKey: survivorKey })
+      .where(eq(players.id, ace.id))
+    await t.db
+      .update(players)
+      .set({ userId: USER_A, avatarKey: dupKey })
+      .where(eq(players.id, floppa.id))
+    const result = await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
+    expect((await playerBySlug('ace')).avatarKey).toBe(survivorKey)
+    expect(result.orphanedAvatarKeys).toEqual([dupKey])
+  })
+
+  it('orphans the survivor stale avatar when a lone claim replaces it', async () => {
+    const ace = await playerBySlug('ace')
+    const floppa = await playerBySlug('floppa')
+    const staleKey = `avatars/${ace.id}/aaaaaaaaaaaa.png`
+    const dupKey = `avatars/${floppa.id}/ffffffffffff.png`
+    // ace is accountless but carries a stale key; floppa's claim is carried in.
+    await t.db
+      .update(players)
+      .set({ avatarKey: staleKey })
+      .where(eq(players.id, ace.id))
+    await t.db
+      .update(players)
+      .set({ userId: USER_A, avatarKey: dupKey })
+      .where(eq(players.id, floppa.id))
+    const result = await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
+    expect((await playerBySlug('ace')).avatarKey).toBe(dupKey)
+    expect(result.orphanedAvatarKeys).toEqual([staleKey])
+  })
+
+  it('drops the duplicate pending claims so they never orphan the queue', async () => {
+    const ace = await playerBySlug('ace')
+    const floppa = await playerBySlug('floppa')
+    await t.db
+      .insert(playerClaims)
+      .values({ playerId: floppa.id, userId: USER_A })
+    await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
+    const left = await t.db
+      .select()
+      .from(playerClaims)
+      .where(eq(playerClaims.playerId, floppa.id))
+    expect(left).toHaveLength(0)
+  })
+
+  it('drops the survivor pending claims once the merge leaves it claimed', async () => {
+    const ace = await playerBySlug('ace')
+    const floppa = await playerBySlug('floppa')
+    // ace (survivor) is accountless with an open request; floppa carries a claim.
+    await t.db.insert(playerClaims).values({ playerId: ace.id, userId: USER_B })
     await t.db
       .update(players)
       .set({ userId: USER_A })
@@ -189,7 +290,11 @@ describe('mergePlayers', () => {
       duplicateId: floppa.id,
     })
     expect((await playerBySlug('ace')).userId).toBe(USER_A)
-    expect((await playerBySlug('floppa')).userId).toBeNull()
+    const left = await t.db
+      .select()
+      .from(playerClaims)
+      .where(eq(playerClaims.playerId, ace.id))
+    expect(left).toHaveLength(0)
   })
 
   it('refuses self-merge and re-merge of a tombstone', async () => {

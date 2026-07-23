@@ -10,7 +10,13 @@ import {
   sql,
 } from 'drizzle-orm'
 import type { Db } from '#/db'
-import { playerAliases, players, records, vehicles } from '#/db/schema'
+import {
+  playerAliases,
+  playerClaims,
+  players,
+  records,
+  vehicles,
+} from '#/db/schema'
 import { slugify } from '#/lib/slug'
 import { likeContains } from '#/lib/like'
 import { writeAudit } from '#/admin/audit'
@@ -319,16 +325,47 @@ export async function mergePlayers(
       })
     }
 
-    // A lone claim carries over to the survivor (same person by mod judgment).
-    if (survivor.userId == null && duplicate.userId != null) {
+    // The survivor keeps or gains the lone/same-user claim (different-user was
+    // refused above). The avatar of whichever side actually held the claim
+    // rides along — preferring the survivor's own — so identity survives.
+    const carriedUserId = survivor.userId ?? duplicate.userId
+    const survivorAvatar = survivor.userId != null ? survivor.avatarKey : null
+    const duplicateAvatar =
+      duplicate.userId != null ? duplicate.avatarKey : null
+    const finalAvatar =
+      carriedUserId != null ? (survivorAvatar ?? duplicateAvatar) : null
+    if (carriedUserId != null) {
       await tx
         .update(players)
-        .set({ userId: duplicate.userId })
+        .set({ userId: carriedUserId, avatarKey: finalAvatar })
         .where(eq(players.id, survivor.id))
     }
+    // Any avatar object this merge dereferences and doesn't carry forward is
+    // orphaned — the survivor's replaced key and the duplicate's discarded one.
+    // Hand them back so the caller can clean R2 (guarded against shared keys).
+    const dereferenced = new Set<string>()
+    if (
+      carriedUserId != null &&
+      survivor.avatarKey &&
+      survivor.avatarKey !== finalAvatar
+    ) {
+      dereferenced.add(survivor.avatarKey)
+    }
+    if (duplicate.avatarKey && duplicate.avatarKey !== finalAvatar) {
+      dereferenced.add(duplicate.avatarKey)
+    }
+    const orphanedAvatarKeys = [...dereferenced]
+    // Drop pending claims that can no longer resolve: the duplicate's (it
+    // becomes a tombstone) and, when the survivor ends up claimed, its own —
+    // approve would reject them — so the moderation queue stays clean.
+    const clearClaimsFor =
+      carriedUserId != null ? [duplicate.id, survivor.id] : [duplicate.id]
+    await tx
+      .delete(playerClaims)
+      .where(inArray(playerClaims.playerId, clearClaimsFor))
     await tx
       .update(players)
-      .set({ mergedInto: survivor.id, userId: null })
+      .set({ mergedInto: survivor.id, userId: null, avatarKey: null })
       .where(eq(players.id, duplicate.id))
     // Keep tombstones one hop deep: anything merged into the duplicate
     // earlier now points straight at the survivor.
@@ -359,7 +396,7 @@ export async function mergePlayers(
         },
       },
     })
-    return { repointedRecords: repointed.length }
+    return { repointedRecords: repointed.length, orphanedAvatarKeys }
   })
 }
 
