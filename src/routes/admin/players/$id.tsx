@@ -61,10 +61,13 @@ function PlayerDetailInner() {
     setError(null)
     try {
       await fn()
-      await refresh()
     } catch (e) {
       setError(errorMessage(e))
+      return
     }
+    // The mutation committed — a failed refresh must not read as a failure
+    // (e.g. a revoke that succeeded but left the ClaimedChip until reload).
+    await refresh().catch(() => undefined)
   }
 
   if (player.mergedInto != null) {
