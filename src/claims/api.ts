@@ -12,6 +12,7 @@ import {
   requestClaim,
   revokeClaim,
 } from '#/claims/claims'
+import { optionalNote, positiveInt } from '#/claims/validate'
 
 const avatarStore = () => storageFromEnvIfConfigured() ?? null
 
@@ -19,7 +20,11 @@ const avatarStore = () => storageFromEnvIfConfigured() ?? null
 
 export const submitClaimRequest = createServerFn({ method: 'POST' })
   .validator(
-    (data: { playerId: number; note?: string; seedAvatar?: boolean }) => data,
+    (data: { playerId: number; note?: string; seedAvatar?: boolean }) => ({
+      playerId: positiveInt(data.playerId, 'playerId'),
+      note: optionalNote(data.note),
+      seedAvatar: data.seedAvatar === true,
+    }),
   )
   .handler(async ({ data }) => {
     const user = await requireSessionUser()
@@ -33,7 +38,9 @@ export const submitClaimRequest = createServerFn({ method: 'POST' })
   })
 
 export const releaseMyClaim = createServerFn({ method: 'POST' })
-  .validator((data: { playerId: number }) => data)
+  .validator((data: { playerId: number }) => ({
+    playerId: positiveInt(data.playerId, 'playerId'),
+  }))
   .handler(async ({ data }) => {
     const user = await requireSessionUser()
     return releaseClaim(db, avatarStore(), user.id, data.playerId)
@@ -49,21 +56,27 @@ export const claimQueue = createServerFn({ method: 'GET' }).handler(
 )
 
 export const approveClaimRequest = createServerFn({ method: 'POST' })
-  .validator((data: { claimId: number }) => data)
+  .validator((data: { claimId: number }) => ({
+    claimId: positiveInt(data.claimId, 'claimId'),
+  }))
   .handler(async ({ data }) => {
     await requireModerator()
     return approveClaim(db, avatarStore(), data.claimId)
   })
 
 export const denyClaimRequest = createServerFn({ method: 'POST' })
-  .validator((data: { claimId: number }) => data)
+  .validator((data: { claimId: number }) => ({
+    claimId: positiveInt(data.claimId, 'claimId'),
+  }))
   .handler(async ({ data }) => {
     await requireModerator()
     return denyClaim(db, data.claimId)
   })
 
 export const revokePlayerClaim = createServerFn({ method: 'POST' })
-  .validator((data: { playerId: number }) => data)
+  .validator((data: { playerId: number }) => ({
+    playerId: positiveInt(data.playerId, 'playerId'),
+  }))
   .handler(async ({ data }) => {
     await requireModerator()
     return revokeClaim(db, avatarStore(), data.playerId)
