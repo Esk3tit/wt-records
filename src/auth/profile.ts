@@ -32,16 +32,34 @@ function firstString(...values: unknown[]): string | undefined {
   )
 }
 
+/** Only the OAuth providers' own avatar CDNs may be mirrored — the seed fetch
+    is server-side, so an off-host URL would be an SSRF vector. */
+export function isAllowedAvatarHost(hostname: string): boolean {
+  return (
+    hostname === 'cdn.discordapp.com' ||
+    hostname === 'googleusercontent.com' ||
+    hostname.endsWith('.googleusercontent.com')
+  )
+}
+
 /** The login provider's profile picture, for the one-time avatar seed choice.
-    https only — the seed fetch must never reach a plaintext or non-URL value. */
+    Read from the provider-set identity data — NEVER user_metadata, which an
+    authenticated user can rewrite to point the server-side seed fetch anywhere
+    (SSRF). https + provider-CDN host only. */
 export function providerAvatarUrl(user: {
-  user_metadata?: Record<string, unknown>
+  identities?: { identity_data?: Record<string, unknown> | null }[] | null
 }): string | null {
-  const meta = user.user_metadata ?? {}
-  const candidate = firstString(meta.avatar_url, meta.picture)
+  const candidate = firstString(
+    ...(user.identities ?? []).flatMap((i) => {
+      const data = i.identity_data ?? {}
+      return [data.avatar_url, data.picture]
+    }),
+  )
   if (!candidate) return null
   try {
-    return new URL(candidate).protocol === 'https:' ? candidate : null
+    const url = new URL(candidate)
+    if (url.protocol !== 'https:') return null
+    return isAllowedAvatarHost(url.hostname) ? candidate : null
   } catch {
     return null
   }

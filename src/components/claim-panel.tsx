@@ -46,6 +46,9 @@ export function ClaimPanel({
       await router.invalidate()
     } catch (e) {
       setError(errorMessage(e))
+    } finally {
+      // Clear even on success: invalidation may re-render this same panel
+      // into a new state without unmounting, leaving a button stuck disabled.
       setBusy(false)
     }
   }

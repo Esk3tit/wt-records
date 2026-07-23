@@ -5,6 +5,7 @@ import {
   redirect,
 } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import { setResponseHeader } from '@tanstack/react-start/server'
 import { VehicleTags } from '#/components/vehicle-tags'
 import { PlayerAvatar } from '#/components/player-avatar'
 import { ClaimedChip } from '#/components/claimed-chip'
@@ -47,11 +48,17 @@ async function resolveClaimViewer(player: {
 const loadPlayer = createServerFn({ method: 'GET' })
   .validator((slug: string) => slug)
   .handler(async ({ data }) => {
+    // Per-viewer claim state below — a shared cache must never serve one
+    // visitor's response to another (or an anon response to a signed-in user).
+    setResponseHeader('Cache-Control', 'private, no-store')
+    setResponseHeader('Vary', 'Cookie')
+
     const found = await getPlayer(db, data)
     if (!found) {
       const redirectTo = await playerMergeRedirect(db, data)
       return { profile: null, redirectTo, viewer: null }
     }
+    const claimed = found.player.userId != null
     const viewer = await resolveClaimViewer(found.player)
     return {
       profile: {
@@ -61,10 +68,13 @@ const loadPlayer = createServerFn({ method: 'GET' })
         displayName: found.player.displayName,
         aliases: found.aliases,
         records: found.records,
-        avatarUrl: found.player.avatarKey
-          ? assetUrlIfConfigured(found.player.avatarKey)
-          : null,
-        isClaimed: found.player.userId != null,
+        // The avatar belongs to a claim: an accountless Player wears the
+        // Medallion even if a stale key lingers (e.g. after a User deletion).
+        avatarUrl:
+          claimed && found.player.avatarKey
+            ? assetUrlIfConfigured(found.player.avatarKey)
+            : null,
+        isClaimed: claimed,
       },
       redirectTo: null,
       viewer,
@@ -134,7 +144,12 @@ function PlayerProfile() {
           </div>
         </div>
 
-        <ClaimPanel playerId={profile.id} slug={profile.slug} viewer={viewer} />
+        <ClaimPanel
+          key={profile.id}
+          playerId={profile.id}
+          slug={profile.slug}
+          viewer={viewer}
+        />
       </div>
 
       <div className="glass-mid p-6 sm:p-7">

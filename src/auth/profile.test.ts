@@ -37,26 +37,42 @@ describe('profileFromUser', () => {
 })
 
 describe('providerAvatarUrl', () => {
-  it('reads the Discord avatar_url, then falls back to picture', () => {
+  const identity = (data: Record<string, unknown>) => ({
+    identities: [{ identity_data: data }],
+  })
+
+  it('reads the provider identity avatar_url, then falls back to picture', () => {
     expect(
-      providerAvatarUrl({
-        user_metadata: { avatar_url: 'https://cdn.discordapp.com/a/1/x.png' },
-      }),
-    ).toBe('https://cdn.discordapp.com/a/1/x.png')
+      providerAvatarUrl(
+        identity({ avatar_url: 'https://cdn.discordapp.com/avatars/1/x.png' }),
+      ),
+    ).toBe('https://cdn.discordapp.com/avatars/1/x.png')
     expect(
-      providerAvatarUrl({
-        user_metadata: { picture: 'https://lh3.googleusercontent.com/y' },
-      }),
+      providerAvatarUrl(
+        identity({ picture: 'https://lh3.googleusercontent.com/y' }),
+      ),
     ).toBe('https://lh3.googleusercontent.com/y')
   })
 
-  it('rejects non-https and missing pictures', () => {
+  it('ignores user_metadata — a user can rewrite it (SSRF)', () => {
     expect(
-      providerAvatarUrl({ user_metadata: { avatar_url: 'http://insecure/x' } }),
+      providerAvatarUrl({
+        // @ts-expect-error deliberately passing the old, untrusted shape
+        user_metadata: { avatar_url: 'https://cdn.discordapp.com/a/1/x.png' },
+      }),
+    ).toBeNull()
+  })
+
+  it('rejects off-host, non-https, and missing pictures', () => {
+    expect(
+      providerAvatarUrl(identity({ avatar_url: 'https://evil.example.com/x' })),
     ).toBeNull()
     expect(
-      providerAvatarUrl({ user_metadata: { avatar_url: 'not-a-url' } }),
+      providerAvatarUrl(
+        identity({ avatar_url: 'http://cdn.discordapp.com/x' }),
+      ),
     ).toBeNull()
+    expect(providerAvatarUrl(identity({ avatar_url: 'not-a-url' }))).toBeNull()
     expect(providerAvatarUrl({})).toBeNull()
   })
 })

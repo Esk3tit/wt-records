@@ -319,16 +319,17 @@ export async function mergePlayers(
       })
     }
 
-    // A lone claim carries over to the survivor (same person by mod judgment).
+    // A lone claim carries over to the survivor (same person by mod judgment),
+    // and the avatar rides with it so the identity survives the merge.
     if (survivor.userId == null && duplicate.userId != null) {
       await tx
         .update(players)
-        .set({ userId: duplicate.userId })
+        .set({ userId: duplicate.userId, avatarKey: duplicate.avatarKey })
         .where(eq(players.id, survivor.id))
     }
     await tx
       .update(players)
-      .set({ mergedInto: survivor.id, userId: null })
+      .set({ mergedInto: survivor.id, userId: null, avatarKey: null })
       .where(eq(players.id, duplicate.id))
     // Keep tombstones one hop deep: anything merged into the duplicate
     // earlier now points straight at the survivor.

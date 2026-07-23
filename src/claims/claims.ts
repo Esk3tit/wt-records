@@ -5,6 +5,7 @@ import type { Storage } from '#/storage/r2'
 import { fetchUpstream } from '#/catalog/upstream-fetch'
 import { RASTER_IMAGE_CONTENT_TYPES } from '#/storage/image-types'
 import { playerAvatarKey } from '#/storage/avatar-key'
+import { isAllowedAvatarHost } from '#/auth/profile'
 import { MAX_NOTE_LENGTH } from '#/claims/limits'
 
 /* The claim lifecycle. A pending Claim is the whole player_claims row: it lives
@@ -95,23 +96,70 @@ async function seedAvatar(
   url: string,
   fetchImpl: typeof fetch,
 ): Promise<string | null> {
+  // Re-validate the host at the fetch boundary (defence in depth) and refuse
+  // redirects — a provider CDN must never bounce the server fetch off-host.
+  let hostname: string
   try {
-    const res = await fetchUpstream(url, { fetchImpl, timeoutMs: 15_000 })
+    hostname = new URL(url).hostname
+  } catch {
+    return null
+  }
+  if (!isAllowedAvatarHost(hostname)) return null
+  try {
+    const res = await fetchUpstream(url, {
+      fetchImpl,
+      timeoutMs: 15_000,
+      redirect: 'error',
+    })
     const contentType =
       res.headers.get('content-type')?.split(';')[0].trim().toLowerCase() ?? ''
     if (!RASTER_IMAGE_CONTENT_TYPES.has(contentType)) {
       await res.body?.cancel().catch(() => undefined)
       return null
     }
-    const bytes = new Uint8Array(await res.arrayBuffer())
-    if (bytes.byteLength === 0 || bytes.byteLength > MAX_AVATAR_BYTES)
-      return null
+    const bytes = await readCapped(res, MAX_AVATAR_BYTES)
+    if (!bytes || bytes.byteLength === 0) return null
     const key = playerAvatarKey(playerId, bytes, contentType)
     await store.put('assets', key, bytes, contentType)
     return key
   } catch {
     return null
   }
+}
+
+/** Read a response body but never buffer more than `max` bytes: a
+    content-length precheck plus a streamed cap, so a lying or unbounded
+    upstream can't exhaust process memory. */
+async function readCapped(
+  res: Response,
+  max: number,
+): Promise<Uint8Array | null> {
+  const declared = Number(res.headers.get('content-length'))
+  if (Number.isFinite(declared) && declared > max) {
+    await res.body?.cancel().catch(() => undefined)
+    return null
+  }
+  const reader = res.body?.getReader()
+  if (!reader) return null
+  const chunks: Uint8Array[] = []
+  let total = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    total += value.byteLength
+    if (total > max) {
+      await reader.cancel().catch(() => undefined)
+      return null
+    }
+    chunks.push(value)
+  }
+  const out = new Uint8Array(total)
+  let offset = 0
+  for (const chunk of chunks) {
+    out.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  return out
 }
 
 /** Approve a pending claim: link the User, seed the avatar if they asked for it,
@@ -146,11 +194,16 @@ export async function approveClaim(
         )
       : null
 
+  let staleKey: string | null = null
   try {
-    await db.transaction(async (tx) => {
+    staleKey = await db.transaction(async (tx) => {
       const player = (
         await tx
-          .select({ userId: players.userId, mergedInto: players.mergedInto })
+          .select({
+            userId: players.userId,
+            mergedInto: players.mergedInto,
+            avatarKey: players.avatarKey,
+          })
           .from(players)
           .where(eq(players.id, claim.playerId))
           .for('update')
@@ -173,30 +226,61 @@ export async function approveClaim(
       ).at(0)
       if (!stillPending) throw new Error('This claim was already resolved')
 
+      // A fresh owner gets a fresh identity: set the seed or reset to the
+      // Medallion (null) — never inherit a prior owner's avatar.
       await tx
         .update(players)
-        .set({ userId: claim.userId, ...(avatarKey && { avatarKey }) })
+        .set({ userId: claim.userId, avatarKey })
         .where(eq(players.id, claim.playerId))
       await tx
         .delete(playerClaims)
         .where(eq(playerClaims.playerId, claim.playerId))
+      // The prior owner's object is now unreferenced (keys are per-player).
+      return player.avatarKey && player.avatarKey !== avatarKey
+        ? player.avatarKey
+        : null
     })
   } catch (error) {
+    // Roll back the just-seeded object — but never one a concurrent approval
+    // already committed and referenced (content-addressed keys can collide).
     if (avatarKey && store) {
-      await store.delete('assets', avatarKey).catch(() => undefined)
+      const referenced =
+        (
+          await db
+            .select({ id: players.id })
+            .from(players)
+            .where(eq(players.avatarKey, avatarKey))
+            .limit(1)
+        ).length > 0
+      if (!referenced)
+        await store.delete('assets', avatarKey).catch(() => undefined)
     }
     throw error
+  }
+  if (staleKey && store) {
+    await store.delete('assets', staleKey).catch(() => undefined)
   }
   return { playerId: claim.playerId, avatarSeeded: avatarKey != null }
 }
 
-/** Deny a pending claim — the row vanishes, leaving no trace on the Player. */
+/** Deny a pending claim — the row vanishes, leaving no trace on the Player.
+    Locks the player row so a deny serialises with a concurrent approve. */
 export async function denyClaim(db: Db, claimId: number): Promise<void> {
-  const deleted = await db
-    .delete(playerClaims)
-    .where(eq(playerClaims.id, claimId))
-    .returning({ id: playerClaims.id })
-  if (deleted.length === 0) throw new Error(`Unknown claim ${claimId}`)
+  return db.transaction(async (tx) => {
+    const claim = (
+      await tx
+        .select({ playerId: playerClaims.playerId })
+        .from(playerClaims)
+        .where(eq(playerClaims.id, claimId))
+    ).at(0)
+    if (!claim) throw new Error(`Unknown claim ${claimId}`)
+    await tx
+      .select({ id: players.id })
+      .from(players)
+      .where(eq(players.id, claim.playerId))
+      .for('update')
+    await tx.delete(playerClaims).where(eq(playerClaims.id, claimId))
+  })
 }
 
 /** Undo an approved claim, returning the Player to the accountless state and

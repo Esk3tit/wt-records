@@ -177,19 +177,24 @@ describe('mergePlayers', () => {
     expect((await playerBySlug('floppa')).userId).toBeNull()
   })
 
-  it('carries a lone claim on the duplicate over to the survivor', async () => {
+  it('carries a lone claim and its avatar on the duplicate over to the survivor', async () => {
     const ace = await playerBySlug('ace')
     const floppa = await playerBySlug('floppa')
+    const avatarKey = `avatars/${floppa.id}/abc123abc123.png`
     await t.db
       .update(players)
-      .set({ userId: USER_A })
+      .set({ userId: USER_A, avatarKey })
       .where(eq(players.id, floppa.id))
     await mergePlayers(t.db, MOD, {
       survivorId: ace.id,
       duplicateId: floppa.id,
     })
-    expect((await playerBySlug('ace')).userId).toBe(USER_A)
-    expect((await playerBySlug('floppa')).userId).toBeNull()
+    const survivor = await playerBySlug('ace')
+    expect(survivor.userId).toBe(USER_A)
+    expect(survivor.avatarKey).toBe(avatarKey)
+    const tomb = await playerBySlug('floppa')
+    expect(tomb.userId).toBeNull()
+    expect(tomb.avatarKey).toBeNull()
   })
 
   it('refuses self-merge and re-merge of a tombstone', async () => {

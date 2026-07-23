@@ -84,7 +84,7 @@ describe('requestClaim', () => {
   it('records the seed intent from the presence of a picture URL', async () => {
     const ace = await playerBySlug('ace')
     await requestClaim(t.db, USER_A, ace.id, {
-      seedAvatarUrl: 'https://cdn/x.png',
+      seedAvatarUrl: 'https://cdn.discordapp.com/avatars/1/x.png',
     })
     const [row] = await listPendingClaims(t.db)
     expect(row.wantsAvatarSeed).toBe(true)
@@ -137,7 +137,7 @@ describe('approveClaim', () => {
     const ace = await playerBySlug('ace')
     const store = fakeStore()
     const { id } = await requestClaim(t.db, USER_A, ace.id, {
-      seedAvatarUrl: 'https://cdn/x.png',
+      seedAvatarUrl: 'https://cdn.discordapp.com/avatars/1/x.png',
     })
     const result = await approveClaim(t.db, store, id, { fetchImpl: pngFetch })
     expect(result.avatarSeeded).toBe(true)
@@ -151,7 +151,7 @@ describe('approveClaim', () => {
     const ace = await playerBySlug('ace')
     const store = fakeStore()
     const { id } = await requestClaim(t.db, USER_A, ace.id, {
-      seedAvatarUrl: 'https://cdn/missing.png',
+      seedAvatarUrl: 'https://cdn.discordapp.com/avatars/1/missing.png',
     })
     const result = await approveClaim(t.db, store, id, {
       fetchImpl: notFoundFetch,
@@ -172,6 +172,53 @@ describe('approveClaim', () => {
       /already claimed/i,
     )
   })
+
+  it('resets a stale avatar to the Medallion when a new owner claims without a seed', async () => {
+    const ace = await playerBySlug('ace')
+    const store = fakeStore()
+    const staleKey = `avatars/${ace.id}/deadbeef0000.png`
+    store.objects.set(staleKey, new Uint8Array([9]))
+    await t.db
+      .update(players)
+      .set({ avatarKey: staleKey })
+      .where(eq(players.id, ace.id))
+
+    const { id } = await requestClaim(t.db, USER_A, ace.id, {})
+    await approveClaim(t.db, store, id)
+
+    expect((await playerBySlug('ace')).avatarKey).toBeNull()
+    expect(store.objects.has(staleKey)).toBe(false)
+  })
+
+  it('rejects an off-host seed URL at the fetch boundary (SSRF backstop)', async () => {
+    const ace = await playerBySlug('ace')
+    const store = fakeStore()
+    const { id } = await requestClaim(t.db, USER_A, ace.id, {
+      seedAvatarUrl: 'https://evil.example.com/x.png',
+    })
+    const result = await approveClaim(t.db, store, id, { fetchImpl: pngFetch })
+    expect(result.avatarSeeded).toBe(false)
+    expect((await playerBySlug('ace')).avatarKey).toBeNull()
+    expect(store.objects.size).toBe(0)
+  })
+
+  it('refuses an avatar whose declared size exceeds the cap', async () => {
+    const ace = await playerBySlug('ace')
+    const store = fakeStore()
+    const hugeFetch: typeof fetch = async () =>
+      new Response(new Uint8Array([1, 2, 3, 4]), {
+        headers: {
+          'content-type': 'image/png',
+          'content-length': String(6 * 1024 * 1024),
+        },
+      })
+    const { id } = await requestClaim(t.db, USER_A, ace.id, {
+      seedAvatarUrl: 'https://cdn.discordapp.com/avatars/1/big.png',
+    })
+    const result = await approveClaim(t.db, store, id, { fetchImpl: hugeFetch })
+    expect(result.avatarSeeded).toBe(false)
+    expect(store.objects.size).toBe(0)
+  })
 })
 
 describe('denyClaim', () => {
@@ -190,7 +237,7 @@ describe('release and revoke', () => {
     const ace = await playerBySlug('ace')
     const store = fakeStore()
     const { id } = await requestClaim(t.db, USER_A, ace.id, {
-      seedAvatarUrl: 'https://cdn/x.png',
+      seedAvatarUrl: 'https://cdn.discordapp.com/avatars/1/x.png',
     })
     await approveClaim(t.db, store, id, { fetchImpl: pngFetch })
     const key = (await playerBySlug('ace')).avatarKey!
