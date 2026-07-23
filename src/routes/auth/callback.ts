@@ -18,16 +18,22 @@ export const Route = createFileRoute('/auth/callback')({
   server: {
     handlers: {
       GET: async () => {
+        const url = getRequestUrl({
+          xForwardedHost: true,
+          xForwardedProto: true,
+        })
         const next = safeNextPath(getCookies()[OAUTH_NEXT_COOKIE])
+        // Match the login cookie's attributes so the browser reliably clears it.
         setCookie(OAUTH_NEXT_COOKIE, '', {
           path: '/',
           maxAge: 0,
           httpOnly: true,
+          secure: url.protocol === 'https:',
         })
         const back = () =>
           new Response(null, { status: 302, headers: { Location: next } })
 
-        const code = getRequestUrl().searchParams.get('code')
+        const code = url.searchParams.get('code')
         if (!code) return back()
         const { data, error } =
           await supabaseServer().auth.exchangeCodeForSession(code)

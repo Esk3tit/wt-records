@@ -110,6 +110,9 @@ async function seedAvatar(
       fetchImpl,
       timeoutMs: 15_000,
       redirect: 'error',
+      // One shot: the seed is best-effort with a Medallion fallback, so don't
+      // spend retry backoff on a transient blip or a redirect rejection.
+      maxAttempts: 1,
     })
     const contentType =
       res.headers.get('content-type')?.split(';')[0].trim().toLowerCase() ?? ''

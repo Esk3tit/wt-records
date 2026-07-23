@@ -21,6 +21,8 @@ export const Route = createFileRoute('/auth/login')({
           sameSite: 'lax',
           path: '/',
           maxAge: OAUTH_NEXT_MAX_AGE,
+          // Secure in prod (https); off on http://localhost so dev still works.
+          secure: url.protocol === 'https:',
         })
         const { data, error } = await supabaseServer().auth.signInWithOAuth({
           provider: 'discord',
