@@ -18,6 +18,11 @@ function connect(): Sql {
   })
 }
 
+// Any content-hashed key: the E2E stack serves no object, so the avatar renders
+// as the Medallion, but hasAvatar (DB truth) is true — enough to make the owner
+// controls flip to Replace/Remove, which a non-owner must still never see.
+const FAKE_AVATAR_KEY = 'avatars/1/deadbeef0000.webp'
+
 /** A player claimed by the E2E viewer, isolated on its own slug so parallel
     specs never touch each other's row. Delete-first survives a prior failure. */
 async function seedOwnedPlayer(sql: Sql, slug: string): Promise<void> {
@@ -59,22 +64,34 @@ test.describe('owner avatar controls', () => {
 })
 
 async function expectNoOwnerControls(page: Page) {
-  // The header renders (the player exists) but no owner controls appear.
+  // The header renders (the player exists) but none of the owner controls do.
   await expect(page.getByText('E2E Avatar Owner')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Upload photo' })).toBeHidden()
-  await expect(page.getByRole('button', { name: 'Replace photo' })).toBeHidden()
+  for (const name of ['Upload photo', 'Replace photo', 'Remove']) {
+    await expect(page.getByRole('button', { name })).toBeHidden()
+  }
+}
+
+/** A non-owner sees no controls whether or not the player carries an avatar —
+    the avatar-backed state is what would surface Replace/Remove for an owner. */
+async function expectNonOwnerSeesNothing(page: Page, sql: Sql, slug: string) {
+  await page.goto(`/player/${slug}`)
+  await expectNoOwnerControls(page)
+  await sql`update players set avatar_key = ${FAKE_AVATAR_KEY} where slug = ${slug}`
+  await page.reload()
+  await expectNoOwnerControls(page)
 }
 
 test.describe('a signed-out visitor sees no avatar controls', () => {
   test.use({ storageState: STATE.anon })
 
-  test('no upload control for anonymous', async ({ page }) => {
+  test('no controls for anonymous, with or without an avatar', async ({
+    page,
+  }) => {
     const slug = 'e2e-avatar-anon'
     const sql = connect()
     try {
       await seedOwnedPlayer(sql, slug)
-      await page.goto(`/player/${slug}`)
-      await expectNoOwnerControls(page)
+      await expectNonOwnerSeesNothing(page, sql, slug)
     } finally {
       await sql`delete from players where slug = ${slug}`
       await sql.end()
@@ -85,13 +102,14 @@ test.describe('a signed-out visitor sees no avatar controls', () => {
 test.describe('a signed-in non-owner sees no avatar controls', () => {
   test.use({ storageState: STATE.admin })
 
-  test('no upload control on someone else’s page', async ({ page }) => {
+  test('no controls on someone else’s page, with or without an avatar', async ({
+    page,
+  }) => {
     const slug = 'e2e-avatar-nonowner'
     const sql = connect()
     try {
       await seedOwnedPlayer(sql, slug)
-      await page.goto(`/player/${slug}`)
-      await expectNoOwnerControls(page)
+      await expectNonOwnerSeesNothing(page, sql, slug)
     } finally {
       await sql`delete from players where slug = ${slug}`
       await sql.end()
