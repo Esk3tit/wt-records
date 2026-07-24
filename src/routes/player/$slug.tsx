@@ -10,6 +10,7 @@ import { VehicleTags } from '#/components/vehicle-tags'
 import { PlayerAvatar } from '#/components/player-avatar'
 import { ClaimedChip } from '#/components/claimed-chip'
 import { ClaimPanel } from '#/components/claim-panel'
+import { OwnerAvatarControls } from '#/components/owner-avatar-controls'
 import type { ClaimViewer } from '#/components/claim-panel'
 import { db } from '#/db'
 import { getPlayer, playerMergeRedirect } from '#/db/queries'
@@ -74,6 +75,9 @@ const loadPlayer = createServerFn({ method: 'GET' })
           claimed && found.player.avatarKey
             ? assetUrlIfConfigured(found.player.avatarKey)
             : null,
+        // DB truth, independent of whether the asset host is configured — the
+        // owner's controls must reflect the stored state, not the served URL.
+        hasAvatar: claimed && found.player.avatarKey != null,
         isClaimed: claimed,
       },
       redirectTo: null,
@@ -140,6 +144,12 @@ function PlayerProfile() {
               <p className="mt-1 text-sm text-fg-faint">
                 previously known as {formerNames.join(', ')}
               </p>
+            )}
+            {viewer.signedIn && viewer.isOwner && (
+              <OwnerAvatarControls
+                playerId={profile.id}
+                hasAvatar={profile.hasAvatar}
+              />
             )}
           </div>
         </div>

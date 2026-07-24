@@ -22,3 +22,7 @@ export const RASTER_EXTENSION_BY_CONTENT_TYPE: Record<string, string> = {
 export const RASTER_IMAGE_CONTENT_TYPES = new Set(
   Object.keys(RASTER_EXTENSION_BY_CONTENT_TYPE),
 )
+
+// One cap for every avatar byte path — the provider seed and the owner upload.
+// Lives here (no heavy deps) so the browser upload control can share it.
+export const MAX_AVATAR_BYTES = 5 * 1024 * 1024
