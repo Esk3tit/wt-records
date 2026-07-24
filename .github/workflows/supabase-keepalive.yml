@@ -43,8 +43,10 @@ jobs:
             exit 1
           fi
           # The verified-record corpus is permanent, so an empty result means
-          # anon RLS broke — and with it the public site. Worth the alarm.
+          # anon PostgREST access broke. Page reads use the direct Drizzle
+          # connection and are unaffected — the blast radius is the anon role
+          # itself: the Realtime live feed subscription and this keep-alive.
           if ! echo "$body" | jq -e 'type == "array" and length > 0' >/dev/null; then
-            echo "Response is not a non-empty array — anon read of records is broken."
+            echo "Response is not a non-empty array — anon read of records is broken (Realtime feed relies on this role; page reads via Drizzle are unaffected)."
             exit 1
           fi
