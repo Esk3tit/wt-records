@@ -85,10 +85,10 @@ export const Route = createFileRoute('/og/player/$slug')({
             { previouslyKnownAs: pka, avatarKey },
           )
           const bytes = await renderCardPng(cardElement(model, avatar))
-          // A claimed Avatar that failed to resolve degrades to the Medallion;
-          // serve that uncacheable so a transient R2 miss can't freeze the
-          // fallback into caches under the avatar's unchanged URL.
-          const avatarMissed = avatarUrl != null && avatar == null
+          // A claimed Avatar we couldn't render degrades to the Medallion (R2
+          // miss, or an unconfigured asset host); serve that uncacheable so the
+          // fallback can't freeze into caches under the avatar's unchanged URL.
+          const avatarMissed = avatarKey != null && avatar == null
           return cardResponse(
             bytes,
             avatarMissed ? NO_STORE_CACHE_CONTROL : undefined,
