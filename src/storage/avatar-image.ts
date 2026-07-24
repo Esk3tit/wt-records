@@ -44,6 +44,9 @@ export async function encodeAvatar(input: Uint8Array): Promise<Uint8Array> {
   }
   try {
     const out = await pipeline
+      // Honour EXIF orientation before cropping (a phone selfie is often
+      // rotated) and drop the tag, so the square is never stored sideways.
+      .rotate()
       .resize(AVATAR_DIMENSION, AVATAR_DIMENSION, {
         fit: 'cover',
         position: 'centre',
