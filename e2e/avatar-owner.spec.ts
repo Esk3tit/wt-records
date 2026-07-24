@@ -53,9 +53,11 @@ test.describe('owner avatar controls', () => {
 
       // The owner is offered the control; with no avatar yet, no Remove.
       await expect(
-        page.getByRole('button', { name: 'Upload photo' }),
+        page.getByRole('button', { name: 'Upload photo', exact: true }),
       ).toBeVisible()
-      await expect(page.getByRole('button', { name: 'Remove' })).toBeHidden()
+      await expect(
+        page.getByRole('button', { name: 'Remove', exact: true }),
+      ).toHaveCount(0)
     } finally {
       await sql`delete from players where slug = ${slug}`
       await sql.end()
@@ -65,9 +67,11 @@ test.describe('owner avatar controls', () => {
 
 async function expectNoOwnerControls(page: Page) {
   // The header renders (the player exists) but none of the owner controls do.
+  // Absence (count 0), not just hidden, so a rendered-but-hidden control fails;
+  // exact names so "Remove" can't match a substring like "Remove claim".
   await expect(page.getByText('E2E Avatar Owner')).toBeVisible()
   for (const name of ['Upload photo', 'Replace photo', 'Remove']) {
-    await expect(page.getByRole('button', { name })).toBeHidden()
+    await expect(page.getByRole('button', { name, exact: true })).toHaveCount(0)
   }
 }
 
@@ -76,7 +80,14 @@ async function expectNoOwnerControls(page: Page) {
 async function expectNonOwnerSeesNothing(page: Page, sql: Sql, slug: string) {
   await page.goto(`/player/${slug}`)
   await expectNoOwnerControls(page)
-  await sql`update players set avatar_key = ${FAKE_AVATAR_KEY} where slug = ${slug}`
+  // Prove the avatar-backed state was actually set, else the second check below
+  // would pass vacuously if the slug filter ever regressed to zero rows.
+  const updated = await sql`
+    update players set avatar_key = ${FAKE_AVATAR_KEY}
+    where slug = ${slug} returning avatar_key
+  `
+  expect(updated).toHaveLength(1)
+  expect(updated[0].avatar_key).toBe(FAKE_AVATAR_KEY)
   await page.reload()
   await expectNoOwnerControls(page)
 }
