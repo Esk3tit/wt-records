@@ -1,0 +1,50 @@
+# Keep the free-tier Supabase project awake: Supabase pauses free projects
+# after ~7 days without platform-API activity, and the app's runtime traffic
+# goes over a direct Postgres pooler connection that does not register as
+# activity — so real site traffic alone cannot prevent a pause. A daily
+# anon-key PostgREST read is genuine API activity (7× headroom vs the pause
+# window) and doubles as a check that anon RLS still serves public records.
+name: supabase keep-alive
+
+on:
+  schedule:
+    # 03:23 UTC daily — off the top of the hour to dodge the cron queue storm.
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+
+# Only calls out to Supabase with repo secrets; never touches the repo itself.
+permissions: {}
+
+concurrency:
+  group: supabase-keepalive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # No continue-on-error: a failed ping should fire GitHub's email-on-failure.
+    steps:
+      - name: Read one public record through PostgREST
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          response=$(curl -sS --max-time 60 -w "\n%{http_code}" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            "${SUPABASE_URL}/rest/v1/records?select=id&limit=1")
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          echo "HTTP ${http_code}: ${body}"
+          if [ "${http_code}" != "200" ]; then
+            echo "Ping failed. 401/403 = anon key wrong or rotated; 5xx = Supabase down; project paused = restore it in the dashboard."
+            exit 1
+          fi
+          # The verified-record corpus is permanent, so an empty result means
+          # anon RLS broke — and with it the public site. Worth the alarm.
+          if ! echo "$body" | jq -e 'type == "array" and length > 0' >/dev/null; then
+            echo "Response is not a non-empty array — anon read of records is broken."
+            exit 1
+          fi
