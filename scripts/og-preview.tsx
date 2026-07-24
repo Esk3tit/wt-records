@@ -95,11 +95,16 @@ const player = toPlayerCardModel({
   ],
 })
 
+const AVATAR = `data:image/png;base64,${(await import('node:fs'))
+  .readFileSync(new URL('../src/og/assets/fallback.png', import.meta.url))
+  .toString('base64')}`
+
 console.log('rendering →', out)
 await write('vehicle-held', cardElement(vehicleHeld))
 await write('vehicle-worst', cardElement(vehicleWorst))
 await write('vehicle-open', cardElement(vehicleOpen))
 await write('nation', cardElement(nation))
 await write('player', cardElement(player))
+await write('player-avatar', cardElement(player, AVATAR))
 await write('site', <SiteCard />)
 console.log('done')

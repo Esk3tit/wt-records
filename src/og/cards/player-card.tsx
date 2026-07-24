@@ -1,8 +1,14 @@
 import type { PlayerCardModel } from '#/og/props/types'
-import { CardFrame, Chip, Medallion, StatLine } from './primitives'
+import {
+  CardFrame,
+  Chip,
+  IdentityDisc,
+  RecordCount,
+  StatLine,
+} from './primitives'
 import { COLOR, GOLOS, SAIRA } from './tokens'
 
-export function PlayerCard(m: PlayerCardModel) {
+export function PlayerCard(m: PlayerCardModel & { avatar?: string | null }) {
   return (
     <CardFrame
       contentStyle={{ flexDirection: 'row', alignItems: 'center', gap: 56 }}
@@ -15,38 +21,50 @@ export function PlayerCard(m: PlayerCardModel) {
           justifyContent: 'center',
         }}
       >
-        <div
-          style={{
-            display: 'flex',
-            fontFamily: GOLOS,
-            fontWeight: 600,
-            fontSize: 66,
-            lineHeight: 1.04,
-            letterSpacing: -1,
-            color: COLOR.ink,
-            wordBreak: 'break-word',
-            maxWidth: 720,
-            maxHeight: 150,
-            overflow: 'hidden',
-          }}
-        >
-          {m.displayName}
-        </div>
-        {m.previouslyKnownAs && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+          <IdentityDisc avatar={m.avatar ?? null} name={m.displayName} />
           <div
             style={{
               display: 'flex',
-              marginTop: 8,
-              fontFamily: GOLOS,
-              fontWeight: 500,
-              fontSize: 26,
-              color: COLOR.inkSoft,
-              maxWidth: 720,
+              flexDirection: 'column',
+              minWidth: 0,
+              flex: 1,
             }}
           >
-            previously known as {m.previouslyKnownAs}
+            <div
+              style={{
+                display: 'flex',
+                fontFamily: GOLOS,
+                fontWeight: 600,
+                fontSize: 66,
+                lineHeight: 1.04,
+                letterSpacing: -1,
+                color: COLOR.ink,
+                wordBreak: 'break-word',
+                maxWidth: 600,
+                maxHeight: 150,
+                overflow: 'hidden',
+              }}
+            >
+              {m.displayName}
+            </div>
+            {m.previouslyKnownAs && (
+              <div
+                style={{
+                  display: 'flex',
+                  marginTop: 8,
+                  fontFamily: GOLOS,
+                  fontWeight: 500,
+                  fontSize: 26,
+                  color: COLOR.inkSoft,
+                  maxWidth: 600,
+                }}
+              >
+                previously known as {m.previouslyKnownAs}
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         <div
           style={{
@@ -146,7 +164,7 @@ export function PlayerCard(m: PlayerCardModel) {
         </div>
       </div>
 
-      <Medallion value={m.totalRecords} caption="current records" />
+      <RecordCount value={m.totalRecords} caption="current records" />
     </CardFrame>
   )
 }

@@ -1,10 +1,18 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { db } from '#/db'
-import { getPlayer, mergedFromName, playerMergeRedirect } from '#/db/queries'
+import {
+  effectiveAvatarKey,
+  getPlayer,
+  mergedFromName,
+  playerMergeRedirect,
+} from '#/db/queries'
 import { toPlayerCardModel } from '#/og/props/player'
+import { assetUrlIfConfigured } from '#/storage/urls'
 import { playerCardRedirect } from '#/og/urls'
 import { cardElement } from '#/og/render/card-element'
+import { resolveArt } from '#/og/render/art'
 import {
+  NO_STORE_CACHE_CONTROL,
   cardResponse,
   fallbackResponse,
   movedResponse,
@@ -45,19 +53,46 @@ export const Route = createFileRoute('/og/player/$slug')({
             const survivor = await playerMergeRedirect(db, slug)
             if (survivor) {
               const s = await getPlayer(db, survivor)
+              // The redirect target renders with the "previously known as"
+              // caption (from=slug), so its version must include it too — else
+              // the `?v=` wouldn't match the content the target self-computes.
               const version = s
-                ? toPlayerCardModel({ player: s.player, records: s.records })
-                    .version
+                ? toPlayerCardModel(
+                    { player: s.player, records: s.records },
+                    {
+                      previouslyKnownAs: await previouslyKnownAs(
+                        slug,
+                        survivor,
+                      ),
+                      avatarKey: effectiveAvatarKey(s.player),
+                    },
+                  ).version
                 : undefined
               return movedResponse(playerCardRedirect(survivor, slug, version))
             }
             return notFoundResponse()
           }
+          const avatarKey = effectiveAvatarKey(player.player)
+          const avatarUrl = avatarKey ? assetUrlIfConfigured(avatarKey) : null
+          // Independent I/O (DB name lookup vs. R2 avatar fetch) on a path
+          // scrapers hit directly — resolve them together.
+          const [pka, avatar] = await Promise.all([
+            previouslyKnownAs(from, slug),
+            avatarUrl ? resolveArt(avatarUrl) : null,
+          ])
           const model = toPlayerCardModel(
             { player: player.player, records: player.records },
-            { previouslyKnownAs: await previouslyKnownAs(from, slug) },
+            { previouslyKnownAs: pka, avatarKey },
           )
-          return cardResponse(await renderCardPng(cardElement(model)))
+          const bytes = await renderCardPng(cardElement(model, avatar))
+          // A claimed Avatar we couldn't render degrades to the Medallion (R2
+          // miss, or an unconfigured asset host); serve that uncacheable so the
+          // fallback can't freeze into caches under the avatar's unchanged URL.
+          const avatarMissed = avatarKey != null && avatar == null
+          return cardResponse(
+            bytes,
+            avatarMissed ? NO_STORE_CACHE_CONTROL : undefined,
+          )
         } catch (err) {
           reportCardError(`player ${slug}`, err)
           return fallbackResponse()

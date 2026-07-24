@@ -24,13 +24,23 @@ export async function renderCardPng(node: ReactElement): Promise<Uint8Array> {
   return new Uint8Array(await res.arrayBuffer())
 }
 
-export function cardResponse(bytes: Uint8Array): Response {
+// Edge-cached at Cloudflare; a Supersede changes the `?v=` URL, not this.
+const CARD_CACHE_CONTROL = 'public, s-maxage=86400, stale-while-revalidate'
+
+// A card whose content degraded from a transient miss (e.g. an avatar that
+// failed to fetch) must not persist under its unchanged URL, or caches show the
+// fallback until the URL next changes. no-store keeps it re-rendering to origin.
+export const NO_STORE_CACHE_CONTROL = 'no-store'
+
+export function cardResponse(
+  bytes: Uint8Array,
+  cacheControl: string = CARD_CACHE_CONTROL,
+): Response {
   return new Response(bytes as unknown as BodyInit, {
     status: 200,
     headers: {
       'Content-Type': 'image/png',
-      // Edge-cached at Cloudflare; a Supersede changes the `?v=` URL, not this.
-      'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate',
+      'Cache-Control': cacheControl,
     },
   })
 }

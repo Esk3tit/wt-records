@@ -49,4 +49,25 @@ describe('toPlayerCardModel', () => {
     expect(m.bestVehicle).toBeNull()
     expect(m.nationsSpanned).toBe(0)
   })
+
+  it('carries the effective avatar key into the model, null by default', () => {
+    expect(toPlayerCardModel(data()).avatarKey).toBeNull()
+    expect(
+      toPlayerCardModel(data(), { avatarKey: 'avatars/42/abc.webp' }).avatarKey,
+    ).toBe('avatars/42/abc.webp')
+  })
+
+  it('busts the version when the avatar is set, replaced, or removed', () => {
+    const medallion = toPlayerCardModel(data())
+    const set = toPlayerCardModel(data(), { avatarKey: 'avatars/42/abc.webp' })
+    const replaced = toPlayerCardModel(data(), {
+      avatarKey: 'avatars/42/def.webp',
+    })
+
+    // set (Medallion → avatar), replace (avatar → different avatar), and remove
+    // (avatar → Medallion) each yield a distinct URL, so caches can't go stale.
+    expect(set.version).not.toBe(medallion.version)
+    expect(replaced.version).not.toBe(set.version)
+    expect(medallion.version).not.toBe(replaced.version)
+  })
 })
