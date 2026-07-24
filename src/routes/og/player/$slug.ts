@@ -52,10 +52,19 @@ export const Route = createFileRoute('/og/player/$slug')({
             const survivor = await playerMergeRedirect(db, slug)
             if (survivor) {
               const s = await getPlayer(db, survivor)
+              // The redirect target renders with the "previously known as"
+              // caption (from=slug), so its version must include it too — else
+              // the `?v=` wouldn't match the content the target self-computes.
               const version = s
                 ? toPlayerCardModel(
                     { player: s.player, records: s.records },
-                    { avatarKey: effectiveAvatarKey(s.player) },
+                    {
+                      previouslyKnownAs: await previouslyKnownAs(
+                        slug,
+                        survivor,
+                      ),
+                      avatarKey: effectiveAvatarKey(s.player),
+                    },
                   ).version
                 : undefined
               return movedResponse(playerCardRedirect(survivor, slug, version))
