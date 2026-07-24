@@ -24,6 +24,7 @@ import {
   adminPlayerSearch,
   adminRemoveAlias,
   adminRenamePlayer,
+  adminResetPlayerAvatar,
 } from '#/admin/api'
 import { ClaimedChip } from '#/components/claimed-chip'
 import { revokePlayerClaim } from '#/claims/api'
@@ -115,6 +116,12 @@ function PlayerDetailInner() {
         <p className="mt-2 text-xs text-fg-faint">Last IGN used: {lastIgn}</p>
         {player.userId && (
           <ClaimStatus
+            hasAvatar={player.avatarKey != null}
+            onResetAvatar={() =>
+              call(() =>
+                adminResetPlayerAvatar({ data: { playerId: player.id } }),
+              )
+            }
             onRevoke={() =>
               call(() => revokePlayerClaim({ data: { playerId: player.id } }))
             }
@@ -335,34 +342,65 @@ function MergePanel({
   )
 }
 
-function ClaimStatus({ onRevoke }: { onRevoke: () => Promise<void> | void }) {
-  const [confirming, setConfirming] = useState(false)
+function ClaimStatus({
+  hasAvatar,
+  onResetAvatar,
+  onRevoke,
+}: {
+  hasAvatar: boolean
+  onResetAvatar: () => Promise<void> | void
+  onRevoke: () => Promise<void> | void
+}) {
+  const [confirming, setConfirming] = useState<'reset' | 'revoke' | null>(null)
   const [busy, setBusy] = useState(false)
+  const run = async (action: () => Promise<void> | void) => {
+    setBusy(true)
+    try {
+      await action()
+    } finally {
+      setBusy(false)
+      setConfirming(null)
+    }
+  }
   return (
     <div className="mt-3 flex items-center gap-3 border-t border-hairline-soft pt-3">
       <ClaimedChip />
+      {hasAvatar && (
+        <button
+          type="button"
+          className="text-sm text-fg-muted transition-colors duration-200 hover:text-fg"
+          onClick={() => setConfirming('reset')}
+        >
+          Reset avatar
+        </button>
+      )}
       <button
         type="button"
         className="text-sm text-status-danger transition-[filter] duration-200 hover:brightness-110"
-        onClick={() => setConfirming(true)}
+        onClick={() => setConfirming('revoke')}
       >
         Revoke claim
       </button>
       <ConfirmDialog
-        open={confirming}
+        open={confirming === 'reset'}
+        title="Reset this avatar?"
+        confirmLabel="Reset"
+        busy={busy}
+        onConfirm={() => run(onResetAvatar)}
+        onCancel={() => setConfirming(null)}
+      >
+        <p>
+          The avatar returns to the Medallion and the stored image is deleted.
+          The claim is untouched, and the owner can upload a new one.
+        </p>
+      </ConfirmDialog>
+      <ConfirmDialog
+        open={confirming === 'revoke'}
         title="Revoke this claim?"
         confirmLabel="Revoke"
         busy={busy}
-        onConfirm={async () => {
-          setBusy(true)
-          try {
-            await onRevoke()
-          } finally {
-            setBusy(false)
-            setConfirming(false)
-          }
-        }}
-        onCancel={() => setConfirming(false)}
+        onConfirm={() => run(onRevoke)}
+        onCancel={() => setConfirming(null)}
       >
         <p>
           The player returns to the accountless state and its avatar resets to

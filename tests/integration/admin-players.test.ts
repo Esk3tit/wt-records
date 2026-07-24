@@ -11,9 +11,25 @@ import {
   mergePlayers,
   removeAlias,
   renamePlayer,
+  resetPlayerAvatar,
   searchAdminPlayers,
 } from '#/admin/players'
+import { deleteAvatarIfUnreferenced } from '#/claims/claims'
 import { listAudit } from '#/admin/audit'
+
+/** In-memory stand-in for the R2 assets bucket (mirrors claims.test.ts). */
+function fakeStore() {
+  const objects = new Map<string, Uint8Array>()
+  return {
+    objects,
+    async put(_role: 'assets', key: string, body: Uint8Array) {
+      objects.set(key, body)
+    },
+    async delete(_role: 'assets', key: string) {
+      objects.delete(key)
+    },
+  }
+}
 
 const MOD = '00000000-0000-4000-8000-000000000001'
 const USER_A = '00000000-0000-4000-8000-00000000000a'
@@ -390,6 +406,91 @@ describe('mergePlayers', () => {
     expect(
       aceAliases.filter((a) => a.name === 'SharedName' && a.kind === 'ign'),
     ).toHaveLength(1)
+  })
+})
+
+describe('resetPlayerAvatar', () => {
+  const avatarKey = (playerId: number) => `avatars/${playerId}/abc123abc123.png`
+
+  it('nulls the avatar, keeps the claim, and audits the prior key', async () => {
+    const ace = await playerBySlug('ace')
+    const key = avatarKey(ace.id)
+    await t.db
+      .update(players)
+      .set({ userId: USER_A, avatarKey: key })
+      .where(eq(players.id, ace.id))
+
+    const result = await resetPlayerAvatar(t.db, MOD, ace.id)
+    expect(result.clearedAvatarKey).toBe(key)
+
+    const reset = await playerBySlug('ace')
+    expect(reset.avatarKey).toBeNull()
+    expect(reset.userId).toBe(USER_A) // the claim is untouched
+
+    const audit = await listAudit(t.db, { entity: 'player' })
+    const row = audit.rows.find((r) => r.action === 'player.reset_avatar')!
+    expect(row.actorId).toBe(MOD)
+    expect(row.entityId).toBe(String(ace.id))
+    expect(row.diff).toMatchObject({ before: { avatarKey: key } })
+  })
+
+  it('deletes the stored object through the reference-guarded cleanup', async () => {
+    const ace = await playerBySlug('ace')
+    const store = fakeStore()
+    const key = avatarKey(ace.id)
+    store.objects.set(key, new Uint8Array([1]))
+    await t.db
+      .update(players)
+      .set({ userId: USER_A, avatarKey: key })
+      .where(eq(players.id, ace.id))
+
+    const { clearedAvatarKey } = await resetPlayerAvatar(t.db, MOD, ace.id)
+    await deleteAvatarIfUnreferenced(t.db, store, clearedAvatarKey!)
+    expect(store.objects.has(key)).toBe(false)
+  })
+
+  it('keeps the object when another player still references the key', async () => {
+    const ace = await playerBySlug('ace')
+    const floppa = await playerBySlug('floppa')
+    const store = fakeStore()
+    const key = avatarKey(ace.id)
+    store.objects.set(key, new Uint8Array([1]))
+    await t.db
+      .update(players)
+      .set({ userId: USER_A, avatarKey: key })
+      .where(eq(players.id, ace.id))
+    // A concurrent re-claim reused the same content-hash key on another player.
+    await t.db
+      .update(players)
+      .set({ userId: USER_B, avatarKey: key })
+      .where(eq(players.id, floppa.id))
+
+    const { clearedAvatarKey } = await resetPlayerAvatar(t.db, MOD, ace.id)
+    await deleteAvatarIfUnreferenced(t.db, store, clearedAvatarKey!)
+    expect(store.objects.has(key)).toBe(true)
+  })
+
+  it('refuses a player that already shows the Medallion', async () => {
+    const ace = await playerBySlug('ace')
+    await t.db
+      .update(players)
+      .set({ userId: USER_A })
+      .where(eq(players.id, ace.id))
+    await expect(resetPlayerAvatar(t.db, MOD, ace.id)).rejects.toThrow(
+      /Medallion/i,
+    )
+  })
+
+  it('refuses a merged tombstone', async () => {
+    const ace = await playerBySlug('ace')
+    const floppa = await playerBySlug('floppa')
+    await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
+    await expect(resetPlayerAvatar(t.db, MOD, floppa.id)).rejects.toThrow(
+      /merged/i,
+    )
   })
 })
 
