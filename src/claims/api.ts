@@ -4,13 +4,17 @@ import { requireSessionUser } from '#/auth/session'
 import { requireModerator } from '#/admin/guard'
 import { providerAvatarUrl } from '#/auth/profile'
 import { storageFromEnvIfConfigured } from '#/storage/r2'
+import { assetUrlIfConfigured } from '#/storage/urls'
+import { MAX_AVATAR_BYTES } from '#/storage/image-types'
 import {
   approveClaim,
   denyClaim,
   listPendingClaims,
   releaseClaim,
+  removeOwnAvatar,
   requestClaim,
   revokeClaim,
+  setOwnAvatar,
 } from '#/claims/claims'
 import { optionalNote, positiveInt } from '#/claims/validate'
 
@@ -44,6 +48,37 @@ export const releaseMyClaim = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const user = await requireSessionUser()
     return releaseClaim(db, avatarStore(), user.id, data.playerId)
+  })
+
+export const uploadMyAvatar = createServerFn({ method: 'POST' })
+  .validator((data: FormData) => data)
+  .handler(async ({ data: form }) => {
+    const user = await requireSessionUser()
+    const playerId = positiveInt(Number(form.get('playerId')), 'playerId')
+    const file = form.get('avatar')
+    if (!(file instanceof File)) throw new Error('Choose an image to upload')
+    // A cheap pre-check on the declared size; the decode is the real gate.
+    if (file.size > MAX_AVATAR_BYTES) {
+      throw new Error('Keep the image under 5 MB.')
+    }
+    const bytes = new Uint8Array(await file.arrayBuffer())
+    const { avatarKey } = await setOwnAvatar(
+      db,
+      avatarStore(),
+      user.id,
+      playerId,
+      bytes,
+    )
+    return { avatarUrl: assetUrlIfConfigured(avatarKey) }
+  })
+
+export const removeMyAvatar = createServerFn({ method: 'POST' })
+  .validator((data: { playerId: number }) => ({
+    playerId: positiveInt(data.playerId, 'playerId'),
+  }))
+  .handler(async ({ data }) => {
+    const user = await requireSessionUser()
+    await removeOwnAvatar(db, avatarStore(), user.id, data.playerId)
   })
 
 /* ── Moderator ───────────────────────────────────────────────── */
