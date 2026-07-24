@@ -8,7 +8,6 @@ import {
   RASTER_IMAGE_CONTENT_TYPES,
 } from '#/storage/image-types'
 import { playerAvatarKey } from '#/storage/avatar-key'
-import { encodeAvatar } from '#/storage/avatar-image'
 import { isAllowedAvatarHost } from '#/auth/profile'
 import { MAX_NOTE_LENGTH } from '#/claims/limits'
 
@@ -319,6 +318,9 @@ export async function setOwnAvatar(
     userId,
   )
 
+  // Imported here, not at module top: keep sharp (a heavy native addon) out of
+  // the profile-view path, which pulls this module only for claim reads.
+  const { encodeAvatar } = await import('#/storage/avatar-image')
   const processed = await encodeAvatar(bytes)
   const key = playerAvatarKey(playerId, processed, 'image/webp')
   // Put before the transaction so the (fast) DB write never waits on the store;

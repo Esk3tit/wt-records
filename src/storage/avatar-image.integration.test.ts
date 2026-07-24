@@ -8,17 +8,16 @@ import { MAX_AVATAR_BYTES } from '#/storage/image-types'
 
 /** A solid-colour raster in the requested format — a tiny real image fixture. */
 async function solid(
-  format: 'png' | 'jpeg' | 'webp',
+  format: 'png' | 'jpeg' | 'webp' | 'gif' | 'avif',
   width: number,
   height: number,
   color = { r: 204, g: 51, b: 51 },
 ): Promise<Uint8Array> {
-  const img = sharp({
+  const buf = await sharp({
     create: { width, height, channels: 3, background: color },
   })
-  const buf = await (
-    format === 'png' ? img.png() : format === 'jpeg' ? img.jpeg() : img.webp()
-  ).toBuffer()
+    [format]()
+    .toBuffer()
   return new Uint8Array(buf)
 }
 
@@ -60,8 +59,9 @@ describe('encodeAvatar', () => {
     expect(m.height).toBe(512)
   })
 
-  it('accepts JPEG and WebP inputs too', async () => {
-    for (const fmt of ['jpeg', 'webp'] as const) {
+  it('accepts JPEG, WebP, GIF, and AVIF inputs too', async () => {
+    // AVIF matters: sharp reports it as the `heif` container, not `avif`.
+    for (const fmt of ['jpeg', 'webp', 'gif', 'avif'] as const) {
       const m = await meta(await encodeAvatar(await solid(fmt, 300, 300)))
       expect(m.format).toBe('webp')
       expect(m.width).toBe(512)
