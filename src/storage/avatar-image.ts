@@ -42,8 +42,10 @@ export async function encodeAvatar(input: Uint8Array): Promise<Uint8Array> {
       .webp({ quality: 82 })
       .toBuffer()
     return new Uint8Array(out)
-  } catch {
-    // A header that decodes but a body that doesn't (truncated/bomb) lands here.
+  } catch (error) {
+    // A header that decodes but a body that doesn't (truncated/bomb) lands here;
+    // keep the diagnostic detail in the logs behind the generic user message.
+    console.warn('avatar re-encode failed', error)
     throw new Error(NOT_AN_IMAGE)
   }
 }

@@ -11,7 +11,7 @@ async function solid(
   format: 'png' | 'jpeg' | 'webp',
   width: number,
   height: number,
-  color = '#c33',
+  color = { r: 204, g: 51, b: 51 },
 ): Promise<Uint8Array> {
   const img = sharp({
     create: { width, height, channels: 3, background: color },
@@ -24,12 +24,22 @@ async function solid(
 
 async function animatedGif(): Promise<Uint8Array> {
   const red = await sharp({
-    create: { width: 8, height: 8, channels: 3, background: '#f00' },
+    create: {
+      width: 8,
+      height: 8,
+      channels: 3,
+      background: { r: 255, g: 0, b: 0 },
+    },
   })
     .gif()
     .toBuffer()
   const blue = await sharp({
-    create: { width: 8, height: 8, channels: 3, background: '#00f' },
+    create: {
+      width: 8,
+      height: 8,
+      channels: 3,
+      background: { r: 0, g: 0, b: 255 },
+    },
   })
     .gif()
     .toBuffer()
