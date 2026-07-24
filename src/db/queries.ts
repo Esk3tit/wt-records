@@ -811,6 +811,15 @@ export async function getPlayer(db: Db, slug: string) {
   return { player, aliases: aliases.map((a) => a.name), records: recs }
 }
 
+/** The Avatar key that actually renders: an Avatar belongs to a claim, so an
+    accountless Player shows the Medallion even if a stale key lingers. */
+export function effectiveAvatarKey(player: {
+  userId: string | null
+  avatarKey: string | null
+}): string | null {
+  return player.userId != null ? player.avatarKey : null
+}
+
 /** Survivor slug for a merged player's slug, following later merges of the
     survivor itself, or null when the slug isn't a tombstone. */
 export async function playerMergeRedirect(

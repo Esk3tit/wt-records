@@ -9,19 +9,19 @@ import { NationCard } from '#/og/cards/nation-card'
 import { PlayerCard } from '#/og/cards/player-card'
 import { SiteCard } from '#/og/cards/site-card'
 
-/** Model → card element. One place the route, the golden tests, and the
-    fallback generator all agree on which template renders which model. */
+/** Model → card element. The one place route, golden tests, and fallback
+    generator agree. `media` = pre-resolved bytes (vehicle art or Player avatar). */
 export function cardElement(
   model: VehicleCardModel | NationCardModel | PlayerCardModel,
-  art?: string | null,
+  media?: string | null,
 ): ReactElement {
   switch (model.kind) {
     case 'vehicle':
-      return <VehicleCard {...model} art={art} />
+      return <VehicleCard {...model} art={media} />
     case 'nation':
       return <NationCard {...model} />
     case 'player':
-      return <PlayerCard {...model} />
+      return <PlayerCard {...model} avatar={media} />
   }
 }
 

@@ -13,7 +13,11 @@ import { ClaimPanel } from '#/components/claim-panel'
 import { OwnerAvatarControls } from '#/components/owner-avatar-controls'
 import type { ClaimViewer } from '#/components/claim-panel'
 import { db } from '#/db'
-import { getPlayer, playerMergeRedirect } from '#/db/queries'
+import {
+  effectiveAvatarKey,
+  getPlayer,
+  playerMergeRedirect,
+} from '#/db/queries'
 import { hasAuthCookie, getSessionUser } from '#/auth/supabase-server'
 import { providerAvatarUrl } from '#/auth/profile'
 import { viewerHasPendingClaim } from '#/claims/claims'
@@ -60,6 +64,7 @@ const loadPlayer = createServerFn({ method: 'GET' })
       return { profile: null, redirectTo, viewer: null }
     }
     const claimed = found.player.userId != null
+    const avatarKey = effectiveAvatarKey(found.player)
     const viewer = await resolveClaimViewer(found.player)
     return {
       profile: {
@@ -69,15 +74,11 @@ const loadPlayer = createServerFn({ method: 'GET' })
         displayName: found.player.displayName,
         aliases: found.aliases,
         records: found.records,
-        // The avatar belongs to a claim: an accountless Player wears the
-        // Medallion even if a stale key lingers (e.g. after a User deletion).
-        avatarUrl:
-          claimed && found.player.avatarKey
-            ? assetUrlIfConfigured(found.player.avatarKey)
-            : null,
-        // DB truth, independent of whether the asset host is configured — the
-        // owner's controls must reflect the stored state, not the served URL.
-        hasAvatar: claimed && found.player.avatarKey != null,
+        avatarUrl: avatarKey ? assetUrlIfConfigured(avatarKey) : null,
+        // DB truth, independent of whether the asset host is configured, so the
+        // owner's controls reflect the stored state, not the served URL.
+        hasAvatar: avatarKey != null,
+        avatarKey,
         isClaimed: claimed,
       },
       redirectTo: null,
@@ -101,10 +102,13 @@ export const Route = createFileRoute('/player/$slug')({
   },
   head: ({ loaderData, params }) => {
     if (!loaderData) return {}
-    const model = toPlayerCardModel({
-      player: { displayName: loaderData.profile.displayName },
-      records: loaderData.profile.records,
-    })
+    const model = toPlayerCardModel(
+      {
+        player: { displayName: loaderData.profile.displayName },
+        records: loaderData.profile.records,
+      },
+      { avatarKey: loaderData.profile.avatarKey },
+    )
     const { title, description } = playerUnfurl(model)
     return {
       meta: cardMeta({

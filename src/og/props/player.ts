@@ -13,7 +13,7 @@ export interface PlayerCardData {
 
 export function toPlayerCardModel(
   data: PlayerCardData,
-  opts: { previouslyKnownAs?: string | null } = {},
+  opts: { previouslyKnownAs?: string | null; avatarKey?: string | null } = {},
 ): PlayerCardModel {
   const { records } = data
 
@@ -39,6 +39,7 @@ export function toPlayerCardModel(
     bestKills: best ? best.kills : null,
     nationsSpanned,
     previouslyKnownAs: opts.previouslyKnownAs ?? null,
+    avatarKey: opts.avatarKey ?? null,
   }
   return { ...base, version: contentVersion(base) }
 }

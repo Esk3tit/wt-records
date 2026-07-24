@@ -1,9 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { db } from '#/db'
-import { getPlayer, mergedFromName, playerMergeRedirect } from '#/db/queries'
+import {
+  effectiveAvatarKey,
+  getPlayer,
+  mergedFromName,
+  playerMergeRedirect,
+} from '#/db/queries'
 import { toPlayerCardModel } from '#/og/props/player'
+import { assetUrlIfConfigured } from '#/storage/urls'
 import { playerCardRedirect } from '#/og/urls'
 import { cardElement } from '#/og/render/card-element'
+import { resolveArt } from '#/og/render/art'
 import {
   cardResponse,
   fallbackResponse,
@@ -46,18 +53,27 @@ export const Route = createFileRoute('/og/player/$slug')({
             if (survivor) {
               const s = await getPlayer(db, survivor)
               const version = s
-                ? toPlayerCardModel({ player: s.player, records: s.records })
-                    .version
+                ? toPlayerCardModel(
+                    { player: s.player, records: s.records },
+                    { avatarKey: effectiveAvatarKey(s.player) },
+                  ).version
                 : undefined
               return movedResponse(playerCardRedirect(survivor, slug, version))
             }
             return notFoundResponse()
           }
+          const avatarKey = effectiveAvatarKey(player.player)
           const model = toPlayerCardModel(
             { player: player.player, records: player.records },
-            { previouslyKnownAs: await previouslyKnownAs(from, slug) },
+            {
+              previouslyKnownAs: await previouslyKnownAs(from, slug),
+              avatarKey,
+            },
           )
-          return cardResponse(await renderCardPng(cardElement(model)))
+          const avatar = avatarKey
+            ? await resolveArt(assetUrlIfConfigured(avatarKey))
+            : null
+          return cardResponse(await renderCardPng(cardElement(model, avatar)))
         } catch (err) {
           reportCardError(`player ${slug}`, err)
           return fallbackResponse()

@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import sharp from 'sharp'
 import { describe, expect, it } from 'vitest'
 import { createElement } from 'react'
 import { renderCardPng } from './renderer'
@@ -70,6 +71,21 @@ const ART_PNG = `data:image/png;base64,${readFileSync(
   new URL('../assets/fallback.png', import.meta.url),
 ).toString('base64')}`
 
+// A real WebP — the exact format avatars are stored as (512×512 WebP) — so the
+// Avatar golden proves the renderer decodes the production format, not just PNG.
+const AVATAR_WEBP = `data:image/webp;base64,${(
+  await sharp({
+    create: {
+      width: 512,
+      height: 512,
+      channels: 3,
+      background: { r: 200, g: 60, b: 60 },
+    },
+  })
+    .webp({ quality: 82 })
+    .toBuffer()
+).toString('base64')}`
+
 describe('renderCardPng', () => {
   it('renders a held vehicle card', () =>
     expectValidCard(cardElement(toVehicleCardModel('grb', vehicle()))))
@@ -135,6 +151,62 @@ describe('renderCardPng', () => {
             { mode: 'grb', kills: 12, vehicleName: 'M4A1', nationSlug: 'usa' },
           ],
         }),
+      ),
+    ))
+
+  it('renders a player card with the Avatar in the identity slot', () =>
+    expectValidCard(
+      cardElement(
+        toPlayerCardModel(
+          {
+            player: { displayName: 'Пётр Железняков' },
+            records: [
+              {
+                mode: 'grb',
+                kills: 34,
+                vehicleName: 'IS-2',
+                nationSlug: 'ussr',
+              },
+            ],
+          },
+          { avatarKey: 'avatars/1/a.webp' },
+        ),
+        AVATAR_WEBP,
+      ),
+    ))
+
+  it('renders the card-native Medallion for a Player without an Avatar', () =>
+    expectValidCard(
+      cardElement(
+        toPlayerCardModel({
+          player: { displayName: 'Пётр Железняков' },
+          records: [
+            { mode: 'grb', kills: 34, vehicleName: 'IS-2', nationSlug: 'ussr' },
+          ],
+        }),
+      ),
+    ))
+
+  it('degrades to the Medallion when the Avatar fetch failed (bytes null)', () =>
+    // The route resolves R2 bytes out of band; a miss passes null here, and the
+    // identity slot must still render (the Medallion), never crash the card.
+    expectValidCard(
+      cardElement(
+        toPlayerCardModel(
+          {
+            player: { displayName: 'Пётр Железняков' },
+            records: [
+              {
+                mode: 'grb',
+                kills: 34,
+                vehicleName: 'IS-2',
+                nationSlug: 'ussr',
+              },
+            ],
+          },
+          { avatarKey: 'avatars/1/a.webp' },
+        ),
+        null,
       ),
     ))
 

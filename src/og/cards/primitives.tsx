@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { CARD_HEIGHT, CARD_WIDTH } from '#/og/render/renderer'
+import { monogram } from '#/lib/monogram'
 import { flagDataUri } from './flag-image'
 import {
   AMBER_GLOW,
@@ -230,8 +231,8 @@ export function CompletionRing({ pct }: { pct: number }) {
 }
 
 // The player card's framed record count — a neutral ring frame so the amber
-// number never floats unanchored (the critique's fix). Number amber, frame not.
-export function Medallion({
+// number never floats unanchored. Number amber, frame not.
+export function RecordCount({
   value,
   caption,
 }: {
@@ -279,6 +280,90 @@ export function Medallion({
       >
         {caption}
       </div>
+    </div>
+  )
+}
+
+// The card-native Medallion: the site's engraved-disc/monogram identity mark in
+// the renderer's fixed tokens. Neutral by design — metals belong to ranks.
+function Medallion({ name, size }: { name: string; size: number }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: size,
+        height: size,
+        borderRadius: RADIUS.pill,
+        background: `radial-gradient(circle at 50% 32%, ${COLOR.glassHighlight}, ${COLOR.frostFaint} 46%, ${COLOR.frostFainter} 100%)`,
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: Math.round(size * 0.82),
+          height: Math.round(size * 0.82),
+          borderRadius: RADIUS.pill,
+          boxShadow: `inset 0 0 0 1px ${COLOR.hairlineSoft}`,
+          fontFamily: GOLOS,
+          fontWeight: 600,
+          fontSize: Math.round(size * 0.34),
+          letterSpacing: 1,
+          color: COLOR.inkSoft,
+        }}
+      >
+        {monogram(name)}
+      </div>
+    </div>
+  )
+}
+
+/* The Player's face on the card: the site-owned Avatar when its bytes resolved,
+   else the Medallion — a lit, hairline-ringed disc, as in the profile hall. */
+export function IdentityDisc({
+  avatar,
+  name,
+  size = 104,
+}: {
+  avatar: string | null
+  name: string
+  size?: number
+}) {
+  return (
+    <div
+      style={{
+        position: 'relative',
+        display: 'flex',
+        flex: 'none',
+        width: size,
+        height: size,
+        borderRadius: RADIUS.pill,
+        overflow: 'hidden',
+      }}
+    >
+      {avatar ? (
+        <img
+          src={avatar}
+          width={size}
+          height={size}
+          style={{ objectFit: 'cover' }}
+          alt=""
+        />
+      ) : (
+        <Medallion name={name} size={size} />
+      )}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          borderRadius: RADIUS.pill,
+          boxShadow: `inset 0 0 0 1px ${COLOR.hairline}, inset 0 1.5px 0 ${COLOR.glassHighlight}`,
+        }}
+      />
     </div>
   )
 }

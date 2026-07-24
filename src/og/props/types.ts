@@ -53,5 +53,8 @@ export interface PlayerCardModel {
   nationsSpanned: number
   /** The single Merge-tombstone exception to current-names-only. */
   previouslyKnownAs: string | null
+  /** R2 key of the Player's Avatar (null = Medallion). Enters the version so
+      set/replace/remove busts the card URL; the route resolves it to bytes. */
+  avatarKey: string | null
   version: string
 }
