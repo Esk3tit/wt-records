@@ -296,7 +296,9 @@ function assertClaimOwnership<
 /** The owner uploads a new Avatar for their own Player: the bytes are decoded,
     center-cropped, and re-encoded to a 512×512 WebP (never stored as-is), put
     under a fresh content-hashed key, and the Player is repointed. The sibling of
-    the seed path — same cap, key scheme, and reference-guarded cleanup. */
+    the seed path — same cap, key scheme, and reference-guarded cleanup. Refuses
+    when no store is configured: persisting a key with no object behind it would
+    render a broken avatar, unlike the best-effort seed which just stays null. */
 export async function setOwnAvatar(
   db: Db,
   store: AvatarStore | null,
@@ -304,6 +306,7 @@ export async function setOwnAvatar(
   playerId: number,
   bytes: Uint8Array,
 ): Promise<{ avatarKey: string }> {
+  if (!store) throw new Error('Avatar uploads are not available right now')
   // Fast-fail ownership before spending any CPU on the decode; the transaction
   // below re-checks under a row lock (the authoritative guard against a race).
   assertClaimOwnership(
@@ -320,7 +323,7 @@ export async function setOwnAvatar(
   const key = playerAvatarKey(playerId, processed, 'image/webp')
   // Put before the transaction so the (fast) DB write never waits on the store;
   // the object is cleaned up below if that write fails.
-  if (store) await store.put('assets', key, processed, 'image/webp')
+  await store.put('assets', key, processed, 'image/webp')
 
   let staleKey: string | null = null
   try {
@@ -348,10 +351,10 @@ export async function setOwnAvatar(
         : null
     })
   } catch (error) {
-    if (store) await deleteAvatarIfUnreferenced(db, store, key)
+    await deleteAvatarIfUnreferenced(db, store, key)
     throw error
   }
-  if (staleKey && store) await deleteAvatarIfUnreferenced(db, store, staleKey)
+  if (staleKey) await deleteAvatarIfUnreferenced(db, store, staleKey)
   return { avatarKey: key }
 }
 

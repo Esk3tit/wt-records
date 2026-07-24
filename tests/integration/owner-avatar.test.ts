@@ -28,7 +28,11 @@ function fakeStore() {
 
 /** A tiny real PNG in a given colour — a distinct colour re-encodes to distinct
     bytes, so uploads land on distinct content-hashed keys. */
-async function png(color: string): Promise<Uint8Array> {
+async function png(color: {
+  r: number
+  g: number
+  b: number
+}): Promise<Uint8Array> {
   const buf = await sharp({
     create: { width: 200, height: 120, channels: 3, background: color },
   })
@@ -36,6 +40,9 @@ async function png(color: string): Promise<Uint8Array> {
     .toBuffer()
   return new Uint8Array(buf)
 }
+
+const RED = { r: 204, g: 51, b: 51 }
+const BLUE = { r: 51, g: 119, b: 204 }
 
 async function playerBySlug(slug: string) {
   const [p] = await t.db.select().from(players).where(eq(players.slug, slug))
@@ -73,7 +80,7 @@ describe('setOwnAvatar', () => {
       store,
       USER_A,
       ace.id,
-      await png('#c33'),
+      await png(RED),
     )
 
     expect(avatarKey).toMatch(/^avatars\/\d+\/[0-9a-f]{12}\.webp$/)
@@ -92,14 +99,14 @@ describe('setOwnAvatar', () => {
       store,
       USER_A,
       ace.id,
-      await png('#c33'),
+      await png(RED),
     )
     const second = await setOwnAvatar(
       t.db,
       store,
       USER_A,
       ace.id,
-      await png('#37c'),
+      await png(BLUE),
     )
 
     expect(second.avatarKey).not.toBe(first.avatarKey)
@@ -116,7 +123,7 @@ describe('setOwnAvatar', () => {
       store,
       USER_A,
       ace.id,
-      await png('#c33'),
+      await png(RED),
     )
 
     // A concurrent re-reference of the same content-hash key on another player.
@@ -126,7 +133,7 @@ describe('setOwnAvatar', () => {
       .set({ userId: USER_B, avatarKey: first.avatarKey })
       .where(eq(players.id, floppa.id))
 
-    await setOwnAvatar(t.db, store, USER_A, ace.id, await png('#37c'))
+    await setOwnAvatar(t.db, store, USER_A, ace.id, await png(BLUE))
     expect(store.objects.has(first.avatarKey)).toBe(true)
   })
 
@@ -135,12 +142,12 @@ describe('setOwnAvatar', () => {
 
     const unclaimed = await playerBySlug('ace')
     await expect(
-      setOwnAvatar(t.db, store, USER_A, unclaimed.id, await png('#c33')),
+      setOwnAvatar(t.db, store, USER_A, unclaimed.id, await png(RED)),
     ).rejects.toThrow(/not claimed/i)
 
     await claim('ace', USER_B)
     await expect(
-      setOwnAvatar(t.db, store, USER_A, unclaimed.id, await png('#c33')),
+      setOwnAvatar(t.db, store, USER_A, unclaimed.id, await png(RED)),
     ).rejects.toThrow(/do not hold/i)
 
     // A non-owner is rejected before any bytes reach the store.
@@ -152,7 +159,7 @@ describe('setOwnAvatar', () => {
       .set({ mergedInto: unclaimed.id })
       .where(eq(players.id, floppa.id))
     await expect(
-      setOwnAvatar(t.db, store, USER_A, floppa.id, await png('#c33')),
+      setOwnAvatar(t.db, store, USER_A, floppa.id, await png(RED)),
     ).rejects.toThrow(/merged/i)
   })
 
@@ -182,6 +189,14 @@ describe('setOwnAvatar', () => {
     ).rejects.toThrow(/5 MB/i)
     expect(store.objects.size).toBe(0)
   })
+
+  it('refuses when no object store is configured, never persisting a key', async () => {
+    const ace = await claim('ace', USER_A)
+    await expect(
+      setOwnAvatar(t.db, null, USER_A, ace.id, await png(RED)),
+    ).rejects.toThrow(/not available/i)
+    expect((await playerBySlug('ace')).avatarKey).toBeNull()
+  })
 })
 
 describe('removeOwnAvatar', () => {
@@ -193,7 +208,7 @@ describe('removeOwnAvatar', () => {
       store,
       USER_A,
       ace.id,
-      await png('#c33'),
+      await png(RED),
     )
 
     await removeOwnAvatar(t.db, store, USER_A, ace.id)
@@ -209,7 +224,7 @@ describe('removeOwnAvatar', () => {
       store,
       USER_A,
       ace.id,
-      await png('#c33'),
+      await png(RED),
     )
     const floppa = await playerBySlug('floppa')
     await t.db
