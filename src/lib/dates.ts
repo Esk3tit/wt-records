@@ -69,6 +69,14 @@ export function formatDaysAgo(d: DateLike): string {
   return `${Math.floor(days / 30)} months ago`
 }
 
+// A title's tenure, in the registry's unit: days, however many. Anything
+// shorter than a day is a real (if brief) reign, not a zero.
+export function formatHeldDays(secs: number): string {
+  const days = Math.floor(Math.max(0, secs) / (DAY_MS / 1000))
+  if (days === 0) return 'under a day'
+  return `${days.toLocaleString('en-US')} ${days === 1 ? 'day' : 'days'}`
+}
+
 export function formatDuration(secs: number): string {
   if (secs < 3600) return `${Math.max(1, Math.round(secs / 60))} min`
   if (secs < (2 * DAY_MS) / 1000) return `${Math.round(secs / 3600)} h`

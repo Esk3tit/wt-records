@@ -8,6 +8,7 @@ import {
   inArray,
   isNotNull,
   isNull,
+  max,
   or,
   sql,
 } from 'drizzle-orm'
@@ -809,6 +810,94 @@ export async function getPlayer(db: Db, slug: string) {
   ])
 
   return { player, aliases: aliases.map((a) => a.name), records: recs }
+}
+
+// A raw SQL expression carries no column decoder, so a timestamp computed in
+// one reaches callers driver-shaped (a string on some drivers) unless mapped.
+const asTimestamp = (value: unknown): Date | null =>
+  value == null ? null : (records.verifiedAt.mapFromDriverValue(value) as Date)
+
+/* Every verified, dated record beside the moment it lost its title: the next
+   verification of the same (vehicle, mode). Retired rows leave the succession
+   entirely — they neither hold a window nor close the previous holder's. */
+function heldWindows(db: Db) {
+  return db
+    .select({
+      id: records.id,
+      playerId: records.playerId,
+      vehicleId: records.vehicleId,
+      mode: records.mode,
+      heldFrom: records.verifiedAt,
+      lostAt: sql`lead(${records.verifiedAt}) over (
+        partition by ${records.vehicleId}, ${records.mode}
+        order by ${records.verifiedAt}, ${records.id}
+      )`
+        .mapWith(asTimestamp)
+        .as('lost_at'),
+    })
+    .from(records)
+    .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
+    .innerJoin(modes, and(modeMatchesBranch, eq(modes.isLive, true)))
+    .where(and(eq(records.status, 'verified'), isNotNull(records.verifiedAt)))
+    .as('held')
+}
+
+/** The three identity stats the profile shows beside a Player's name: where
+    their titles live, the one they've defended longest, and how recently they
+    were last verified. Undated records are outside the temporal stats (they
+    still count as titles); a Player with nothing verified gets empty stats. */
+export async function getPlayerEnrichment(db: Db, playerId: number) {
+  const held = heldWindows(db)
+  const heldSeconds =
+    sql<number>`extract(epoch from (coalesce(${held.lostAt}, now()) - ${held.heldFrom}))`.mapWith(
+      Number,
+    )
+  const titles = count()
+
+  const [nationSpread, longest, recency] = await Promise.all([
+    db
+      .select({ slug: nations.slug, name: nations.name, records: titles })
+      .from(records)
+      .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
+      .innerJoin(nations, eq(nations.id, vehicles.nationId))
+      .innerJoin(modes, and(modeMatchesBranch, eq(modes.isLive, true)))
+      .where(and(eq(records.playerId, playerId), isCurrentVerified))
+      .groupBy(nations.id)
+      .orderBy(desc(titles), asc(nations.sort)),
+    db
+      .select({
+        vehicleSlug: vehicles.slug,
+        vehicleName: vehicles.name,
+        nationSlug: nations.slug,
+        mode: held.mode,
+        heldSeconds,
+        lostAt: held.lostAt,
+      })
+      .from(held)
+      .innerJoin(vehicles, eq(vehicles.id, held.vehicleId))
+      .innerJoin(nations, eq(nations.id, vehicles.nationId))
+      .where(eq(held.playerId, playerId))
+      // Equal tenures: the later title wins, id settling the last tie.
+      .orderBy(desc(heldSeconds), desc(held.heldFrom), desc(held.id))
+      .limit(1),
+    db
+      .select({ lastVerifiedAt: max(records.verifiedAt) })
+      .from(records)
+      .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
+      .innerJoin(modes, and(modeMatchesBranch, eq(modes.isLive, true)))
+      .where(
+        and(eq(records.playerId, playerId), eq(records.status, 'verified')),
+      ),
+  ])
+
+  const longestHeld = one(longest)
+  return {
+    nationSpread,
+    longestHeld: longestHeld
+      ? { ...longestHeld, heldSeconds: Number(longestHeld.heldSeconds) }
+      : null,
+    lastVerifiedAt: one(recency)?.lastVerifiedAt ?? null,
+  }
 }
 
 /** The Avatar key that actually renders: an Avatar belongs to a claim, so an

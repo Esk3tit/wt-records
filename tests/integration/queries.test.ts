@@ -17,6 +17,7 @@ import {
   getNationCard,
   getNationSheet,
   getPlayer,
+  getPlayerEnrichment,
   mergedFromName,
   playerMergeRedirect,
   getRules,
@@ -185,6 +186,213 @@ describe('getPlayer', () => {
 
   it('returns null for an unknown player', async () => {
     expect(await getPlayer(t.db, 'nope')).toBeNull()
+  })
+})
+
+describe('getPlayerEnrichment', () => {
+  const DAY = 86_400_000
+
+  async function idOf(table: typeof players | typeof vehicles, slug: string) {
+    const [row] = await t.db
+      .select({ id: table.id })
+      .from(table)
+      .where(eq(table.slug, slug))
+    return row.id
+  }
+
+  async function enrich(slug: string) {
+    return getPlayerEnrichment(t.db, await idOf(players, slug))
+  }
+
+  const heldDays = (secs: number | undefined) =>
+    secs == null ? null : Math.round(secs / 86_400)
+
+  it('counts current verified titles per nation, most held first', async () => {
+    // Ace holds one USA title and one German one — a tie falls back to the
+    // canonical nation order.
+    expect((await enrich('ace')).nationSpread).toEqual([
+      { slug: 'usa', name: 'USA', records: 1 },
+      { slug: 'germany', name: 'Germany', records: 1 },
+    ])
+
+    await t.db.insert(records).values({
+      vehicleId: await idOf(vehicles, 'm18-gmc'),
+      mode: 'grb',
+      playerId: await idOf(players, 'ace'),
+      ignSnapshot: 'Ace',
+      kills: 7,
+      patch: '2.53',
+      status: 'verified',
+      isCurrent: true,
+      verifiedAt: new Date(Date.now() - 5 * DAY),
+    })
+    expect((await enrich('ace')).nationSpread).toEqual([
+      { slug: 'usa', name: 'USA', records: 2 },
+      { slug: 'germany', name: 'Germany', records: 1 },
+    ])
+  })
+
+  it('excludes superseded, unverified, non-live and off-branch records from the spread', async () => {
+    const [usa] = await t.db
+      .select()
+      .from(nations)
+      .where(eq(nations.slug, 'usa'))
+    const [jet] = await t.db
+      .insert(vehicles)
+      .values({
+        externalId: 'jet_enrich',
+        name: 'Jet',
+        slug: 'jet-enrich',
+        nationId: usa.id,
+        branch: 'air',
+        class: 'fighter',
+      })
+      .returning()
+    const maverick = await idOf(players, 'maverick')
+    await t.db.insert(records).values([
+      // Non-live mode (coming soon), and an off-branch record (invalid data).
+      {
+        vehicleId: jet.id,
+        mode: 'arb',
+        playerId: maverick,
+        ignSnapshot: 'Maverick',
+        kills: 9,
+        patch: '2.53',
+        status: 'verified',
+        isCurrent: true,
+        verifiedAt: new Date(Date.now() - 3 * DAY),
+      },
+      {
+        vehicleId: jet.id,
+        mode: 'grb',
+        playerId: maverick,
+        ignSnapshot: 'Maverick',
+        kills: 9,
+        patch: '2.53',
+        status: 'verified',
+        isCurrent: true,
+        verifiedAt: new Date(Date.now() - 3 * DAY),
+      },
+    ])
+    // Maverick's superseded M4A1 and pending Wirbelwind don't count either.
+    expect((await enrich('maverick')).nationSpread).toEqual([
+      { slug: 'usa', name: 'USA', records: 1 },
+    ])
+  })
+
+  it('runs a current title’s held window up to now', async () => {
+    const e = await enrich('ace')
+    expect(e.longestHeld?.vehicleSlug).toBe('panther-d')
+    expect(e.longestHeld?.vehicleName).toBe('Panther D')
+    expect(e.longestHeld?.nationSlug).toBe('germany')
+    expect(e.longestHeld?.mode).toBe('grb')
+    expect(e.longestHeld?.lostAt).toBeNull()
+    expect(heldDays(e.longestHeld?.heldSeconds)).toBe(420)
+  })
+
+  it('closes a superseded title’s window at the successor’s verification', async () => {
+    // Floppa held the M4A1 from 120 days ago until Maverick took it at 60.
+    const e = await enrich('floppa')
+    expect(e.longestHeld?.vehicleSlug).toBe('m4a1')
+    expect(heldDays(e.longestHeld?.heldSeconds)).toBe(60)
+    // The loss stamp is a usable date, not a driver-shaped string.
+    expect(e.longestHeld?.lostAt).toBeInstanceOf(Date)
+    expect(Math.round((Date.now() - Number(e.longestHeld?.lostAt)) / DAY)).toBe(
+      60,
+    )
+  })
+
+  it('forms no window for a retired record', async () => {
+    await t.db
+      .update(records)
+      .set({ status: 'retired', isCurrent: false })
+      .where(
+        and(
+          eq(records.playerId, await idOf(players, 'maverick')),
+          eq(records.vehicleId, await idOf(vehicles, 'm26')),
+        ),
+      )
+    // The retired M26 (200 days) drops out entirely, leaving the superseded
+    // M4A1 window: 60 days ago until Ace took it at 2.
+    const e = await enrich('maverick')
+    expect(e.longestHeld?.vehicleSlug).toBe('m4a1')
+    expect(e.longestHeld?.lostAt).toBeInstanceOf(Date)
+    expect(heldDays(e.longestHeld?.heldSeconds)).toBe(58)
+  })
+
+  it('does not close a predecessor’s window with a retired successor', async () => {
+    await t.db
+      .update(records)
+      .set({ status: 'retired', isCurrent: false })
+      .where(
+        and(
+          eq(records.playerId, await idOf(players, 'maverick')),
+          eq(records.vehicleId, await idOf(vehicles, 'm4a1')),
+        ),
+      )
+    // Floppa's window now runs past the retired row to Ace's record at 2 days.
+    const e = await enrich('floppa')
+    expect(e.longestHeld?.vehicleSlug).toBe('m4a1')
+    expect(e.longestHeld?.lostAt).toBeInstanceOf(Date)
+    expect(heldDays(e.longestHeld?.heldSeconds)).toBe(118)
+  })
+
+  it('excludes undated records from temporal stats but keeps them in the spread', async () => {
+    await t.db
+      .update(records)
+      .set({ verifiedAt: null })
+      .where(
+        and(
+          eq(records.playerId, await idOf(players, 'ace')),
+          eq(records.vehicleId, await idOf(vehicles, 'panther-d')),
+        ),
+      )
+    const e = await enrich('ace')
+    expect(e.longestHeld?.vehicleSlug).toBe('m4a1')
+    expect(e.nationSpread).toEqual([
+      { slug: 'usa', name: 'USA', records: 1 },
+      { slug: 'germany', name: 'Germany', records: 1 },
+    ])
+  })
+
+  it('breaks ties on the later record, deterministically', async () => {
+    const ace = await idOf(players, 'ace')
+    const sameDay = new Date(Date.now() - 500 * DAY)
+    const shared = {
+      mode: 'grb',
+      playerId: ace,
+      ignSnapshot: 'Ace',
+      kills: 7,
+      patch: '2.53',
+      status: 'verified' as const,
+      isCurrent: true,
+      verifiedAt: sameDay,
+    }
+    await t.db.insert(records).values([
+      { ...shared, vehicleId: await idOf(vehicles, 'm18-gmc') },
+      { ...shared, vehicleId: await idOf(vehicles, 'm163') },
+    ])
+    // Both windows are 500 days and still open; the later record wins.
+    expect((await enrich('ace')).longestHeld?.vehicleSlug).toBe('m163')
+  })
+
+  it('reports the latest verification, superseded records included', async () => {
+    // Maverick's newest verification is the M4A1 he has since lost.
+    const e = await enrich('maverick')
+    expect(e.lastVerifiedAt).not.toBeNull()
+    expect(Math.round((Date.now() - Number(e.lastVerifiedAt)) / DAY)).toBe(60)
+  })
+
+  it('degrades to empty stats for a player with nothing verified', async () => {
+    const [ghost] = await t.db
+      .insert(players)
+      .values({ slug: 'ghost', displayName: 'Ghost' })
+      .returning()
+    expect(await getPlayerEnrichment(t.db, ghost.id)).toEqual({
+      nationSpread: [],
+      longestHeld: null,
+      lastVerifiedAt: null,
+    })
   })
 })
 
