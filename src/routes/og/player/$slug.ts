@@ -12,6 +12,7 @@ import { playerCardRedirect } from '#/og/urls'
 import { cardElement } from '#/og/render/card-element'
 import { resolveArt } from '#/og/render/art'
 import {
+  NO_STORE_CACHE_CONTROL,
   cardResponse,
   fallbackResponse,
   movedResponse,
@@ -72,17 +73,26 @@ export const Route = createFileRoute('/og/player/$slug')({
             return notFoundResponse()
           }
           const avatarKey = effectiveAvatarKey(player.player)
+          const avatarUrl = avatarKey ? assetUrlIfConfigured(avatarKey) : null
+          // Independent I/O (DB name lookup vs. R2 avatar fetch) on a path
+          // scrapers hit directly — resolve them together.
+          const [pka, avatar] = await Promise.all([
+            previouslyKnownAs(from, slug),
+            avatarUrl ? resolveArt(avatarUrl) : null,
+          ])
           const model = toPlayerCardModel(
             { player: player.player, records: player.records },
-            {
-              previouslyKnownAs: await previouslyKnownAs(from, slug),
-              avatarKey,
-            },
+            { previouslyKnownAs: pka, avatarKey },
           )
-          const avatar = avatarKey
-            ? await resolveArt(assetUrlIfConfigured(avatarKey))
-            : null
-          return cardResponse(await renderCardPng(cardElement(model, avatar)))
+          const bytes = await renderCardPng(cardElement(model, avatar))
+          // A claimed Avatar that failed to resolve degrades to the Medallion;
+          // serve that uncacheable so a transient R2 miss can't freeze the
+          // fallback into caches under the avatar's unchanged URL.
+          const avatarMissed = avatarUrl != null && avatar == null
+          return cardResponse(
+            bytes,
+            avatarMissed ? NO_STORE_CACHE_CONTROL : undefined,
+          )
         } catch (err) {
           reportCardError(`player ${slug}`, err)
           return fallbackResponse()
