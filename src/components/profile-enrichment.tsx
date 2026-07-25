@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
-import { NATION_FLAG_SLUGS, NationFlag } from '#/components/nation-flag'
+import { NationFlag, hasNationFlag } from '#/components/nation-flag'
 import {
   formatDayYear,
   formatDaysAgo,
@@ -32,10 +32,8 @@ interface Cell {
   grow?: boolean
 }
 
-/* What kind of holder this Player is, beside their name: where their titles
-   live, the one they defended longest, and how recently they were verified.
-   Each stat appears only when it has something true to say — a Player with
-   nothing verified gets no strip, never a row of dashes. */
+/* What kind of holder this Player is, beside their name. Each stat appears
+   only when it has something true to say — never a row of dashes. */
 export function ProfileEnrichment({ stats }: { stats: ProfileEnrichmentData }) {
   const { nationSpread, longestHeld, lastVerifiedAt } = stats
   const cells: Cell[] = []
@@ -48,8 +46,12 @@ export function ProfileEnrichment({ stats }: { stats: ProfileEnrichmentData }) {
       value: (
         <span className="flex flex-wrap items-center gap-x-3.5 gap-y-2">
           {nationSpread.map((n) => (
-            <span key={n.slug} className="inline-flex items-center gap-1.5">
-              {NATION_FLAG_SLUGS.includes(n.slug) ? (
+            <span
+              key={n.slug}
+              title={n.name}
+              className="inline-flex items-center gap-1.5"
+            >
+              {hasNationFlag(n.slug) ? (
                 <>
                   <NationFlag slug={n.slug} />
                   <span className="sr-only">{n.name}</span>

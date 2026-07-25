@@ -284,7 +284,6 @@ describe('getPlayerEnrichment', () => {
     const e = await enrich('ace')
     expect(e.longestHeld?.vehicleSlug).toBe('panther-d')
     expect(e.longestHeld?.vehicleName).toBe('Panther D')
-    expect(e.longestHeld?.nationSlug).toBe('germany')
     expect(e.longestHeld?.mode).toBe('grb')
     expect(e.longestHeld?.lostAt).toBeNull()
     expect(heldDays(e.longestHeld?.heldSeconds)).toBe(420)
@@ -347,12 +346,64 @@ describe('getPlayerEnrichment', () => {
           eq(records.vehicleId, await idOf(vehicles, 'panther-d')),
         ),
       )
-    const e = await enrich('ace')
-    expect(e.longestHeld?.vehicleSlug).toBe('m4a1')
-    expect(e.nationSpread).toEqual([
+    const spread = [
       { slug: 'usa', name: 'USA', records: 1 },
       { slug: 'germany', name: 'Germany', records: 1 },
-    ])
+    ]
+    const e = await enrich('ace')
+    expect(e.longestHeld?.vehicleSlug).toBe('m4a1')
+    expect(e.nationSpread).toEqual(spread)
+
+    // With every date gone the temporal stats fall silent, titles and all.
+    await t.db
+      .update(records)
+      .set({ verifiedAt: null })
+      .where(eq(records.playerId, await idOf(players, 'ace')))
+    const undated = await enrich('ace')
+    expect(undated.longestHeld).toBeNull()
+    expect(undated.lastVerifiedAt).toBeNull()
+    expect(undated.nationSpread).toEqual(spread)
+  })
+
+  it('breaks equal tenures on the later verification', async () => {
+    const ace = await idOf(players, 'ace')
+    const shared = {
+      mode: 'grb',
+      playerId: ace,
+      ignSnapshot: 'Ace',
+      patch: '2.53',
+      status: 'verified' as const,
+      isCurrent: false,
+    }
+    // One clock for the whole fixture: the two reigns must be equal to the
+    // millisecond, or the duration decides the tie instead of the date.
+    const now = Date.now()
+    // Two 500-day reigns, each closed by a successor; the later one wins.
+    for (const [slug, from, taken] of [
+      ['m18-gmc', 900, 400],
+      ['m163', 890, 390],
+    ] as const) {
+      await t.db.insert(records).values([
+        {
+          ...shared,
+          vehicleId: await idOf(vehicles, slug),
+          kills: 7,
+          verifiedAt: new Date(now - from * DAY),
+        },
+        {
+          ...shared,
+          vehicleId: await idOf(vehicles, slug),
+          playerId: await idOf(players, 'maverick'),
+          ignSnapshot: 'Maverick',
+          kills: 9,
+          isCurrent: true,
+          verifiedAt: new Date(now - taken * DAY),
+        },
+      ])
+    }
+    const e = await enrich('ace')
+    expect(heldDays(e.longestHeld?.heldSeconds)).toBe(500)
+    expect(e.longestHeld?.vehicleSlug).toBe('m163')
   })
 
   it('breaks ties on the later record, deterministically', async () => {
@@ -381,6 +432,25 @@ describe('getPlayerEnrichment', () => {
     const e = await enrich('maverick')
     expect(e.lastVerifiedAt).not.toBeNull()
     expect(Math.round((Date.now() - Number(e.lastVerifiedAt)) / DAY)).toBe(60)
+  })
+
+  it('reads the same for a claimed Player as for an accountless one', async () => {
+    // An open window grows between the two reads; days is the honest grain.
+    const stable = async (slug: string) => {
+      const e = await enrich(slug)
+      return {
+        ...e,
+        longestHeld: e.longestHeld && {
+          ...e.longestHeld,
+          heldSeconds: heldDays(e.longestHeld.heldSeconds),
+        },
+      }
+    }
+    const accountless = await stable('ace')
+    const userId = '11111111-1111-4111-8111-111111111111'
+    await t.client.query('insert into auth.users (id) values ($1)', [userId])
+    await t.db.update(players).set({ userId }).where(eq(players.slug, 'ace'))
+    expect(await stable('ace')).toEqual(accountless)
   })
 
   it('degrades to empty stats for a player with nothing verified', async () => {
