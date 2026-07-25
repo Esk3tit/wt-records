@@ -112,9 +112,7 @@ export function ProfileEnrichment({ stats }: { stats: ProfileEnrichmentData }) {
             cell.grow ? 'sm:flex-[1.5]' : 'sm:flex-1'
           }`}
         >
-          <dt className="text-[0.6875rem] font-medium tracking-[0.08em] text-fg-muted uppercase">
-            {cell.label}
-          </dt>
+          <dt className="stat-label text-fg-muted">{cell.label}</dt>
           <dd className="mt-2">
             <span className="block text-lg leading-none font-semibold text-fg">
               {cell.value}

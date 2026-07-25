@@ -48,9 +48,7 @@ export function LongestStanding({
                 <span className="block text-[1.0625rem] leading-tight font-bold tabular-nums text-fg">
                   {r.kills}
                 </span>
-                <span className="text-[0.6875rem] font-medium tracking-[0.08em] uppercase text-fg-faint">
-                  kills
-                </span>
+                <span className="stat-label text-fg-faint">kills</span>
               </span>
               <span className="min-w-[6.5rem] text-right">
                 <span className="block text-2xl leading-none font-bold tracking-[-0.03em] tabular-nums text-fg">
@@ -58,9 +56,7 @@ export function LongestStanding({
                     ? daysSince(r.verifiedAt).toLocaleString('en-US')
                     : '—'}
                 </span>
-                <span className="text-[0.6875rem] font-medium tracking-[0.08em] uppercase text-fg-faint">
-                  days untouched
-                </span>
+                <span className="stat-label text-fg-faint">days untouched</span>
               </span>
             </div>
           </li>

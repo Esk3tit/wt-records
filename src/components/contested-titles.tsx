@@ -60,7 +60,7 @@ export function ContestedTitles({
                 <span className="block text-2xl leading-none font-bold tracking-[-0.03em] tabular-nums text-fg">
                   {r.contests}
                 </span>
-                <span className="text-[0.6875rem] font-medium tracking-[0.08em] whitespace-nowrap uppercase text-fg-faint">
+                <span className="stat-label whitespace-nowrap text-fg-faint">
                   records set
                 </span>
               </span>

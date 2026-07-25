@@ -47,9 +47,7 @@ export function RecordMonument({
       </p>
       <p className="text-[clamp(4rem,9vw,6rem)] leading-none font-bold tracking-[-0.03em] text-accent-text">
         <CountUp value={record.kills} />
-        <span className="ml-2 text-[0.9375rem] font-medium tracking-[0.06em] text-fg-muted">
-          kills
-        </span>
+        <span className="ml-2 stat-unit text-[0.9375rem]">kills</span>
       </p>
       <p className="mt-2 text-[1.0625rem] font-semibold">
         <VehicleLink

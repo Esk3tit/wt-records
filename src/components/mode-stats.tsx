@@ -23,9 +23,7 @@ function Stat({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="mr-5 flex flex-col gap-0.5 border-r border-hairline-soft pr-5 last:mr-0 last:border-r-0 last:pr-0">
       <dd className="text-lg leading-none font-semibold">{value}</dd>
-      <dt className="text-[0.6875rem] tracking-[0.08em] text-fg-muted uppercase">
-        {label}
-      </dt>
+      <dt className="stat-label text-fg-muted">{label}</dt>
     </div>
   )
 }

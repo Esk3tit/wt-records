@@ -38,9 +38,7 @@ function WeekCard({
         </p>
         <p className="mt-3 text-4xl leading-none font-bold tracking-[-0.03em] text-fg">
           {record.kills}
-          <span className="ml-1 text-xs font-medium tracking-[0.06em] text-fg-muted">
-            kills
-          </span>
+          <span className="ml-1 stat-unit text-xs">kills</span>
         </p>
         <p className="mt-3 truncate text-[0.9375rem] font-semibold text-fg">
           <VehicleIcon src={record.vehicleImage} className="mr-1" />
