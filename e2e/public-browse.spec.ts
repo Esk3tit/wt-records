@@ -39,8 +39,11 @@ test('a profile introduces its holder with the enrichment stats', async ({
   await page.goto('/grb/leaderboard')
   const topHolder = page.getByRole('listitem').first().getByRole('link').first()
   const name = (await topHolder.textContent())?.trim()
+  expect(name, 'the leaderboard rendered no holders').toBeTruthy()
   await topHolder.click()
-  await expect(page.getByRole('heading', { level: 1, name })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { level: 1, name: name! }),
+  ).toBeVisible()
 
   // The top holder holds current, dated titles, so all three stats are real.
   await expect(page.getByText('Titles by nation')).toBeVisible()
