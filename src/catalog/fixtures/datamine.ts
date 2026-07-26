@@ -152,7 +152,12 @@ export const UNITTAGS: Record<string, FixtureUnittagsUnit> = {
   ussr_t_35: { tags: tags('country_ussr', 'tank', 'type_heavy_tank') },
   // the modifier sorts first alphabetically — precedence must still pick the class
   ussr_object_775: {
-    tags: tags('country_ussr', 'tank', 'type_missile_tank', 'type_tank_destroyer'),
+    tags: tags(
+      'country_ussr',
+      'tank',
+      'type_missile_tank',
+      'type_tank_destroyer',
+    ),
   },
   nt_mig_23mld: {
     tags: tags('country_ussr', 'air', 'type_fighter', 'type_jet_fighter'),

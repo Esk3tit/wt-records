@@ -210,7 +210,9 @@ describe('DatamineSource', () => {
       // both are shop-named and not _killstreak — only operatorCountry closes them
       expect(byId(snap.vehicles, 'uav_quadcopter')).toBeUndefined()
       expect(byId(snap.vehicles, 'us_m8_scott_snowball')).toBeUndefined()
-      const warning = snap.warnings!.find((w) => w.includes('country_invisible'))
+      const warning = snap.warnings!.find((w) =>
+        w.includes('country_invisible'),
+      )
       expect(warning).toContain('uav_quadcopter')
       expect(warning).toContain('us_m8_scott_snowball')
     })
@@ -232,6 +234,28 @@ describe('DatamineSource', () => {
         'ussr_t_35',
       ])
     })
+  })
+
+  it('skips a unit whose rank or economic rank is unusable', async () => {
+    const snap = await snapshot({
+      wpcost: {
+        ...WPCOST,
+        us_m1_abrams: { ...(WPCOST.us_m1_abrams as object), rank: null },
+        b5n2: { ...(WPCOST.b5n2 as object), economicRankHistorical: 'gone' },
+      },
+    })
+
+    expect(byId(snap.vehicles, 'us_m1_abrams')).toBeUndefined()
+    expect(byId(snap.vehicles, 'b5n2')).toBeUndefined()
+    const warning = snap.warnings!.find((w) => w.includes('unusable'))
+    expect(warning).toContain('us_m1_abrams')
+    expect(warning).toContain('b5n2')
+  })
+
+  it('names the file when a datamine response is not JSON', async () => {
+    await expect(
+      snapshot({ replies: { wpcost: () => ({ body: '<html>nope' }) } }),
+    ).rejects.toThrow(/Invalid JSON from .*wpcost/)
   })
 
   it('requires a unit in both wpcost and unittags', async () => {
@@ -301,6 +325,37 @@ describe('DatamineSource', () => {
     expect(byId(snap.vehicles, 'us_m1_abrams')!.name).toBe('M1; Abrams "Semi"')
   })
 
+  it('pins the data files to one revision, but never the images', async () => {
+    const sha = 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0'
+    const requests: Array<string> = []
+    const fetchImpl = (async (input: URL | RequestInfo) => {
+      const url = String(input)
+      requests.push(url)
+      if (url.startsWith('https://api.github.com/')) {
+        return new Response(JSON.stringify({ sha }))
+      }
+      if (url.includes('wpcost')) return new Response(JSON.stringify(WPCOST))
+      if (url.includes('unittags')) {
+        return new Response(JSON.stringify(UNITTAGS))
+      }
+      if (url.includes('units.csv')) return new Response(UNITS_CSV)
+      return new Response(DATAMINE_VERSION)
+    }) as typeof fetch
+
+    const snap = await new DatamineSource({ fetchImpl }).fetchSnapshot()
+
+    // all four files come from the one revision master pointed at
+    const files = requests.filter((u) => u.startsWith('https://raw.'))
+    expect(files).toHaveLength(4)
+    for (const url of files) expect(url).toContain(`/${sha}/`)
+
+    // images stay on the branch: vehicleImageKey hashes this URL, so pinning it
+    // would re-mirror the whole catalog every single run
+    const image = byId(snap.vehicles, 'us_m1_abrams')!.imageUrl!
+    expect(image).toContain('/master/')
+    expect(image).not.toContain(sha)
+  })
+
   it('rejects a version file that is not a game version', async () => {
     await expect(snapshot({ version: '<!DOCTYPE html>' })).rejects.toThrow(
       /version/i,
@@ -343,7 +398,9 @@ describe('DatamineSource', () => {
 
   it('throws once retries are exhausted', async () => {
     await expect(
-      snapshot({ replies: { unittags: () => ({ status: 500, body: 'down' }) } }),
+      snapshot({
+        replies: { unittags: () => ({ status: 500, body: 'down' }) },
+      }),
     ).rejects.toThrow(/500/)
   })
 })

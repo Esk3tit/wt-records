@@ -10,11 +10,13 @@ import { fetchUpstream } from '#/catalog/upstream-fetch'
 /* The gszabi99 War Thunder datamine, read directly: four files over HTTPS, no
    clone. Images are the same repo's textures. */
 
-const DEFAULT_BASE_URL =
-  'https://raw.githubusercontent.com/gszabi99/War-Thunder-Datamine/master'
+const DEFAULT_REPO_URL =
+  'https://raw.githubusercontent.com/gszabi99/War-Thunder-Datamine'
+const DEFAULT_COMMIT_API =
+  'https://api.github.com/repos/gszabi99/War-Thunder-Datamine/commits/master'
 
 export interface DatamineOptions {
-  /** Repo root the four files hang off; also the image host. */
+  /** Read the files from here verbatim instead of pinning a revision. */
   baseUrl?: string
   /** Locale file, separately configurable — it is the one file with a mirror. */
   unitsCsvUrl?: string
@@ -75,9 +77,7 @@ const BR_FRACTIONS = [0, 0.3, 0.7]
 /** Economic rank → battle rating: 1.0 upward in thirds, so rank 42 is 15.0.
     A formula rather than a fixed table, so a raised BR ceiling keeps working. */
 export function battleRating(economicRank: number): number {
-  return (
-    Math.floor(economicRank / 3) + 1 + BR_FRACTIONS[economicRank % 3]
-  )
+  return Math.floor(economicRank / 3) + 1 + BR_FRACTIONS[economicRank % 3]
 }
 
 interface WpcostUnit {
@@ -98,35 +98,46 @@ interface UnittagsUnit {
 
 export class DatamineSource implements CatalogSource {
   readonly name = 'gszabi99-datamine'
-  private readonly baseUrl: string
-  private readonly unitsCsvUrl: string
+  private readonly configuredBaseUrl: string | undefined
+  private readonly configuredUnitsCsvUrl: string | undefined
   private readonly fetchImpl: typeof fetch
   private readonly retryDelayMs: number
 
   constructor(options: DatamineOptions = {}) {
-    this.baseUrl = (options.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, '')
-    this.unitsCsvUrl =
-      options.unitsCsvUrl ?? `${this.baseUrl}/lang.vromfs.bin_u/lang/units.csv`
+    this.configuredBaseUrl = options.baseUrl?.replace(/\/+$/, '')
+    this.configuredUnitsCsvUrl = options.unitsCsvUrl
     this.fetchImpl = options.fetchImpl ?? fetch
     this.retryDelayMs = options.retryDelayMs ?? 1000
   }
 
   async fetchSnapshot(): Promise<CatalogSnapshot> {
+    // The four files must come from one revision: read off a moving branch, a
+    // push landing mid-flight yields a snapshot whose units.csv doesn't cover
+    // its wpcost, and the missing units read as removed.
+    const dataUrl =
+      this.configuredBaseUrl ?? `${DEFAULT_REPO_URL}/${await this.headSha()}`
+    // Images stay on the branch: vehicleImageKey hashes the source URL, so a
+    // per-run revision would re-mirror every image every night.
+    const imageUrl = this.configuredBaseUrl ?? `${DEFAULT_REPO_URL}/master`
+
     const [wpcost, unittags, names, version] = await Promise.all([
       this.fetchJson<Record<string, unknown>>(
-        `${this.baseUrl}/char.vromfs.bin_u/config/wpcost.blkx`,
+        `${dataUrl}/char.vromfs.bin_u/config/wpcost.blkx`,
       ),
       this.fetchJson<Record<string, unknown>>(
-        `${this.baseUrl}/char.vromfs.bin_u/config/unittags.blkx`,
+        `${dataUrl}/char.vromfs.bin_u/config/unittags.blkx`,
       ),
-      this.fetchEnglishNames(),
-      this.fetchText(`${this.baseUrl}/version`),
+      this.fetchEnglishNames(
+        this.configuredUnitsCsvUrl ??
+          `${dataUrl}/lang.vromfs.bin_u/lang/units.csv`,
+      ),
+      this.fetchText(`${dataUrl}/version`),
     ])
 
     const gameVersion = version.trim()
     if (!/^\d+(\.\d+)*$/.test(gameVersion)) {
       throw new Error(
-        `Not a game version at ${this.baseUrl}/version: ${JSON.stringify(gameVersion.slice(0, 40))}`,
+        `Not a game version at ${dataUrl}/version: ${JSON.stringify(gameVersion.slice(0, 40))}`,
       )
     }
 
@@ -138,6 +149,7 @@ export class DatamineSource implements CatalogSource {
     const invisible: Array<string> = []
     const unclassified: Array<string> = []
     const unplaceable: Array<string> = []
+    const incomplete: Array<string> = []
     const ignoredTags = new Set<string>()
 
     for (const [externalId, entry] of Object.entries(wpcost)) {
@@ -192,21 +204,35 @@ export class DatamineSource implements CatalogSource {
         continue
       }
 
+      // Checked on the raw fields, not on Number(): a null rank coerces to a
+      // perfectly finite 0, which would land as a real rank-0 vehicle.
+      const ranks = [
+        unit.rank,
+        unit.economicRankArcade,
+        unit.economicRankHistorical,
+        unit.economicRankSimulation,
+      ]
+      if (!ranks.every(isRankValue)) {
+        incomplete.push(externalId)
+        continue
+      }
+      const [era, arcade, historical, simulation] = ranks as Array<number>
+
       const country = String(unit.country ?? '').replace(/^country_/, '')
       vehicles.push({
         externalId,
         name,
         country,
         vehicleType,
-        era: Number(unit.rank),
-        arcadeBr: battleRating(Number(unit.economicRankArcade)),
-        realisticBr: battleRating(Number(unit.economicRankHistorical)),
-        simulatorBr: battleRating(Number(unit.economicRankSimulation)),
+        era,
+        arcadeBr: battleRating(arcade),
+        realisticBr: battleRating(historical),
+        simulatorBr: battleRating(simulation),
         isPremium: unit.costGold != null,
         isSquadron: unit.researchType === 'clanVehicle',
         event: typeof unit.event === 'string' ? unit.event : null,
         imageUrl:
-          `${this.baseUrl}/tex.vromfs.bin_u/${IMAGE_FOLDER[branch]}/` +
+          `${imageUrl}/tex.vromfs.bin_u/${IMAGE_FOLDER[branch]}/` +
           `${externalId.toLowerCase()}.png`,
       })
     }
@@ -218,6 +244,7 @@ export class DatamineSource implements CatalogSource {
       [invisible, 'country_invisible units skipped (scripted)'],
       [unclassified, 'units with no recognized base class tag skipped'],
       [unplaceable, 'units whose base class the sync engine cannot place'],
+      [incomplete, 'units with unusable rank or economic rank skipped'],
     ]
     for (const [ids, label] of skipped) {
       if (ids.length > 0) warnings.push(countedList(label, ids))
@@ -232,9 +259,18 @@ export class DatamineSource implements CatalogSource {
     return { gameVersion, vehicles, warnings }
   }
 
+  /** Commit behind `master`, so all four files come from one revision. */
+  private async headSha(): Promise<string> {
+    const { sha } = await this.fetchJson<{ sha?: unknown }>(DEFAULT_COMMIT_API)
+    if (typeof sha !== 'string' || !/^[0-9a-f]{40}$/.test(sha)) {
+      throw new Error(`No commit sha at ${DEFAULT_COMMIT_API}`)
+    }
+    return sha
+  }
+
   /** `<identifier>_shop` key → English name; other rows/columns are skipped. */
-  private async fetchEnglishNames(): Promise<Map<string, string>> {
-    const csv = await this.fetchText(this.unitsCsvUrl)
+  private async fetchEnglishNames(url: string): Promise<Map<string, string>> {
+    const csv = await this.fetchText(url)
     const names = new Map<string, string>()
     for (const line of csv.split('\n')) {
       if (!line.includes('_shop"')) continue
@@ -242,13 +278,18 @@ export class DatamineSource implements CatalogSource {
       if (cols[0]?.endsWith('_shop') && cols[1]) names.set(cols[0], cols[1])
     }
     if (names.size === 0) {
-      throw new Error(`No locale entries parsed from ${this.unitsCsvUrl}`)
+      throw new Error(`No locale entries parsed from ${url}`)
     }
     return names
   }
 
   private async fetchJson<T>(url: string): Promise<T> {
-    return JSON.parse(await this.fetchText(url)) as T
+    const text = await this.fetchText(url)
+    try {
+      return JSON.parse(text) as T
+    } catch (cause) {
+      throw new Error(`Invalid JSON from ${url}`, { cause })
+    }
   }
 
   private async fetchText(url: string): Promise<string> {
@@ -258,6 +299,11 @@ export class DatamineSource implements CatalogSource {
     })
     return response.text()
   }
+}
+
+/** Ranks index the BR table, so a fraction or a negative is not one. */
+function isRankValue(value: unknown): boolean {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0
 }
 
 function countedList(label: string, ids: Array<string>): string {

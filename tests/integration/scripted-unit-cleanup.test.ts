@@ -45,7 +45,10 @@ afterEach(async () => {
 })
 
 async function addVehicle(externalId: string, slug: string): Promise<number> {
-  const [nation] = await t.db.select().from(nations).where(eq(nations.slug, 'usa'))
+  const [nation] = await t.db
+    .select()
+    .from(nations)
+    .where(eq(nations.slug, 'usa'))
   const [row] = await t.db
     .insert(vehicles)
     .values({
