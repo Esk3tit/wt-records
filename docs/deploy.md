@@ -60,11 +60,27 @@ Switching the app between providers is then just repointing the service's `DATAB
 
 Merge to `main` → Railway builds the Dockerfile and deploys. **Migrations must already be applied to the hosted DB** (above) before/with the deploy.
 
+## catalog-sync watchdog
+
+The nightly catalog sync is a separate Railway cron service (`bun run catalog:sync`, 06:00 UTC, `CATALOG_SYNC_REMOTE=1`). Nothing about it is visible from this repo, so every finished attempt writes a `catalog_sync_runs` row — success or failure, with the reason — and that is the only record that the cron still works.
+
+- **`/status/catalog-sync`** serves that freshness signal (last success, its age in seconds, and the newest attempt). Public and uncacheable: it reveals only when the public catalog last synced, which is what lets the probe hold no secret. Like `/healthz` it answers **200 whenever the app is up** and reports database trouble in the body (`"db": "unavailable"`) — an unreadable signal is a thing to alarm on, so the probe must never have to guess whether a non-200 meant that or a sleeping app.
+- The **`catalog watchdog`** workflow reads it daily at 08:00 UTC and keeps one `catalog-watchdog` issue in sync — opened while the last success is older than `STALE_AFTER_HOURS` (20: healthy mornings read ~2h, one missed night reads ~26h, so the first failed night alarms), body refreshed each night rather than commented on, closed automatically once a sync lands. Sticky by design: a long upstream outage holds a single open issue instead of one per night, and a lone blip closes itself the next morning.
+
+Triage from the issue body:
+
+- **The newest attempt FAILED with an upstream 5xx** — nothing to do on our side. The sync is transactional and dies during fetch, so the catalog is stale, never half-applied. The issue closes itself when the upstream recovers.
+- **The newest attempt SUCCEEDED**, or none is recorded — then no sync has run since. Check the Railway cron service (schedule, crashed deploy, missing `DATABASE_URL`), not the upstream.
+- **The freshness signal itself is unreadable** (`db: unavailable`) — usually migration `0009` not yet applied through the [gated migrate-prod action](#apply-migrations), otherwise a database brownout.
+- **The workflow run failed red without an issue** — nothing answered at that URL, so freshness is unknown; that is the `prod watchdog`'s beat, not a sync failure.
+
+After a fix, run _Actions → catalog watchdog → Run workflow_ rather than waiting for 08:00 UTC to confirm the stand-down.
+
 ## If a deploy fails at the healthcheck
 
 The Railway healthcheck must target a path that answers 200 (`healthcheckPath` is `/healthz`; `/` only 307s to `/grb`). Diagnose in this order:
 
-0. **Healthcheck probes `/healthz`** — app liveness + a 2s-bounded DB ping that reports (but does not fail on) database state, so deploys are not hostage to provider brownouts. The scheduled `prod watchdog` workflow separately probes the real landing every 30 min and opens/closes a `watchdog` issue with provider-status context.
+0. **Healthcheck probes `/healthz`** — app liveness + a 2s-bounded DB ping that reports (but does not fail on) database state, so deploys are not hostage to provider brownouts. The scheduled `prod watchdog` workflow separately probes the real landing every 30 min and opens/closes a `watchdog` issue with provider-status context; the nightly cron has its own, see [catalog-sync watchdog](#catalog-sync-watchdog).
 1. **Requests hang with no errors anywhere, while lightly-loaded routes still serve:** the pooler is stalling NEW connection establishment (established ones keep working) — a provider brownout, not an app bug. `connect_timeout` now turns these into fast 500s + Sentry events. Check status.supabase.com first; redeploy after it clears.
 1. **Hangs, no error (~5 min):** the DB connection can't be established → `DATABASE_URL` is the local/direct host, not the IPv4 pooler.
 2. **Fast 5xx ("service unavailable"):** the DB is reachable but a query throws → schema not migrated (`relation "modes" does not exist`), or the pooler password placeholder wasn't filled.

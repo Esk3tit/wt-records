@@ -64,6 +64,13 @@
       "when": 1784776909375,
       "tag": "0008_claim_flow",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1785045061261,
+      "tag": "0009_catalog_sync_runs",
+      "breakpoints": true
     }
   ]
 }
