@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render } from '@testing-library/react'
+import { render, within } from '@testing-library/react'
 import {
   RouterProvider,
   createRootRoute,
@@ -115,7 +115,7 @@ describe('NationGrid', () => {
   })
 
   it('marks difficult vehicles and names acquisition for assistive tech', async () => {
-    const { findByText, findByTitle } = renderGrid([
+    const { findAllByRole } = renderGrid([
       row({
         vehicleSlug: 'd',
         vehicleName: 'Difficult One',
@@ -129,9 +129,19 @@ describe('NationGrid', () => {
         isSquadron: true,
       }),
     ])
-    await findByTitle('Difficult vehicle — higher qualifying kill bar')
-    expect(await findByText('Squadron vehicle')).toBeTruthy()
-    expect(await findByText('Premium vehicle, Squadron vehicle')).toBeTruthy()
+    const cards = await findAllByRole('article')
+    const difficult = cards.find((c) => within(c).queryByText('Difficult One'))
+    expect(difficult).toBeTruthy()
+    expect(
+      within(difficult!).getByTitle(
+        'Difficult vehicle — higher qualifying kill bar',
+      ),
+    ).toBeTruthy()
+    expect(within(difficult!).getByText('Squadron vehicle')).toBeTruthy()
+    const both = cards.find((c) => within(c).queryByText('Both One'))
+    expect(both).toBeTruthy()
+    const label = within(both!).getByText('Premium vehicle, Squadron vehicle')
+    expect(label.closest('[aria-hidden="true"]')).toBeNull()
   })
 
   it('carries name snapshots through to the record line', async () => {
