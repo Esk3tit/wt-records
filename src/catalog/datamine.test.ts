@@ -356,6 +356,30 @@ describe('DatamineSource', () => {
     expect(image).not.toContain(sha)
   })
 
+  it('says so when an overridden locale file sits outside the pinned revision', async () => {
+    const fetchImpl = (async (input: URL | RequestInfo) => {
+      const url = String(input)
+      if (url.startsWith('https://api.github.com/')) {
+        return new Response(JSON.stringify({ sha: 'b'.repeat(40) }))
+      }
+      if (url.includes('wpcost')) return new Response(JSON.stringify(WPCOST))
+      if (url.includes('unittags')) {
+        return new Response(JSON.stringify(UNITTAGS))
+      }
+      if (url.includes('mirror.test')) return new Response(UNITS_CSV)
+      return new Response(DATAMINE_VERSION)
+    }) as typeof fetch
+
+    const snap = await new DatamineSource({
+      unitsCsvUrl: 'https://mirror.test/units.csv',
+      fetchImpl,
+    }).fetchSnapshot()
+
+    expect(snap.warnings!.join('\n')).toContain(
+      'https://mirror.test/units.csv, outside the pinned revision',
+    )
+  })
+
   it('rejects a version file that is not a game version', async () => {
     await expect(snapshot({ version: '<!DOCTYPE html>' })).rejects.toThrow(
       /version/i,

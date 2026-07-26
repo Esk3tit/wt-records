@@ -142,6 +142,13 @@ export class DatamineSource implements CatalogSource {
     }
 
     const warnings: Array<string> = []
+    // An overridden locale file sits outside the pinned revision, so a shop
+    // name it lacks makes an ownable unit look scripted. Say so, don't guess.
+    if (this.configuredUnitsCsvUrl && !this.configuredBaseUrl) {
+      warnings.push(
+        `locale file read from ${this.configuredUnitsCsvUrl}, outside the pinned revision`,
+      )
+    }
     const vehicles: Array<SourceVehicle> = []
     const untagged: Array<string> = []
     const nameless: Array<string> = []

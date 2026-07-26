@@ -12,7 +12,11 @@ bun run catalog:sync             # the real thing, against DATABASE_URL
 
 ## What a run does
 
-1. Fetches four datamine files over HTTPS (~2.6 MB gzipped, no clone):
+1. Resolves `master` to a commit and reads every data file from that one
+   revision, so a push landing mid-run can't yield a `units.csv` that doesn't
+   cover its `wpcost`. Image URLs deliberately stay on `master`: their key is a
+   hash of the source URL, so pinning them would re-mirror the catalog nightly.
+   Fetches four datamine files over HTTPS (~2.6 MB gzipped, no clone):
    `wpcost.blkx` (economy — rank, economic ranks, country, `costGold`,
    `researchType`, `event`), `unittags.blkx` (class tags, `operatorCountry`),
    `units.csv` (English display names) and `/version`. Hidden, event and
@@ -85,7 +89,7 @@ warning in the summary, never a failed sync.
 | --- | --- | --- |
 | `DATABASE_URL` | — (required) | Target Postgres |
 | `CATALOG_SYNC_REMOTE` | unset | A real (non-dry) sync against a non-local DB refuses to run unless this is `1`. Slugs are first-run-wins, so accidental remote syncs are irreversible; `Dockerfile.sync` sets it for the cron service. |
-| `WT_UNITS_CSV_URL` | gszabi99 `units.csv` on raw.githubusercontent.com | English display names |
+| `WT_UNITS_CSV_URL` | gszabi99 `units.csv` on the pinned revision | English display names. Setting it opts that one file out of revision pinning, so the run warns — a shop name the override lacks makes an ownable unit look scripted |
 | `R2_*` | unset (mirroring skipped) | Assets-bucket credentials for image mirroring — see `.env.example` |
 
 ## Scheduling (Railway cron)
