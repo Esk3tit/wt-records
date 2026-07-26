@@ -62,7 +62,8 @@ describe('NationGrid', () => {
       row({ vehicleSlug: 'r', vehicleName: 'Removed One', isRemoved: true }),
     ])
     await findByText('Tech tree')
-    await findByText('Premium & special')
+    // Wall header at xl plus the stacked-layout band label both name the wall.
+    expect(getAllByText('Premium & special').length).toBeGreaterThan(0)
     // One shared rank row: both walls carry a Rank I rule with their own count.
     expect(getAllByText('Rank I')).toHaveLength(2)
     expect(await findByText('1 of 1 held')).toBeTruthy()
@@ -96,6 +97,39 @@ describe('NationGrid', () => {
     expect(await findByText('34')).toBeTruthy()
     expect(await findByText('Koalkiest')).toBeTruthy()
     expect(await findByText('Open bounty')).toBeTruthy()
+  })
+
+  it('renders no empty tech-tree rule when a rank is special-only', async () => {
+    const { findByText, getAllByText, queryByText } = renderGrid([
+      row({ vehicleSlug: 'p1', vehicleName: 'Premium One', isPremium: true }),
+      row({
+        vehicleSlug: 'p2',
+        vehicleName: 'Premium Two',
+        isPremium: true,
+        rank: 2,
+      }),
+    ])
+    await findByText('Premium One')
+    expect(queryByText('0 of 0 held')).toBeNull()
+    expect(getAllByText(/^Rank/)).toHaveLength(2)
+  })
+
+  it('marks difficult vehicles and names acquisition for assistive tech', async () => {
+    const { findByText, findByTitle } = renderGrid([
+      row({
+        vehicleSlug: 'd',
+        vehicleName: 'Difficult One',
+        isDifficult: true,
+        isSquadron: true,
+      }),
+    ])
+    await findByTitle('Difficult vehicle — higher qualifying kill bar')
+    expect(await findByText('Squadron vehicle')).toBeTruthy()
+  })
+
+  it('carries name snapshots through to the record line', async () => {
+    const { findByText } = renderGrid([row({ ignSnapshot: 'OldIGN' })])
+    expect(await findByText('as «OldIGN»')).toBeTruthy()
   })
 
   it('renders no special wall when every vehicle is tech tree', async () => {

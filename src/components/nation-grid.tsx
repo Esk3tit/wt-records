@@ -99,6 +99,21 @@ function RecordCard({
             name={row.vehicleName}
             tags={tags}
           />
+          {row.isDifficult && (
+            <span
+              className="ml-1.5 text-fg-faint"
+              title="Difficult vehicle — higher qualifying kill bar"
+            >
+              ◆
+            </span>
+          )}
+          {/* The tinted glass is the sighted cue inside this wall; assistive
+              tech still needs the words the muted chips no longer carry. */}
+          {mutedAcquisition && (row.isPremium || row.isSquadron) && (
+            <span className="sr-only">
+              {row.isPremium ? 'Premium vehicle' : 'Squadron vehicle'}
+            </span>
+          )}
         </span>
         <span className="text-[0.8125rem] whitespace-nowrap text-fg-faint">
           {row.br != null ? formatBr(row.br) : '—'}
@@ -129,6 +144,8 @@ function RecordCard({
             <RecordName
               displayName={row.displayName}
               playerSlug={row.playerSlug}
+              ignSnapshot={row.ignSnapshot}
+              displayNameSnapshot={row.displayNameSnapshot}
             />
           </p>
         ) : (
@@ -201,19 +218,26 @@ export function NationGrid({
             className="mt-5 flex flex-col gap-4 first-of-type:mt-3 xl:flex-row xl:items-start xl:gap-6"
           >
             <div className="min-w-0 flex-1">
-              <BandRule rank={rank} rows={tree} />
               {tree.length > 0 && (
-                <div className="mt-2.5 grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2.5">
-                  {tree.map((r) => (
-                    <RecordCard key={r.vehicleSlug} row={r} mode={mode} />
-                  ))}
-                </div>
+                <>
+                  <BandRule rank={rank} rows={tree} />
+                  <div className="mt-2.5 grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2.5">
+                    {tree.map((r) => (
+                      <RecordCard key={r.vehicleSlug} row={r} mode={mode} />
+                    ))}
+                  </div>
+                </>
               )}
             </div>
             {hasSpecial && (
               <div className="xl:w-[420px] xl:shrink-0">
                 {special.length > 0 && (
                   <>
+                    {/* The wall headers only exist at xl; when the layout
+                        stacks, this names the special band inside the rank. */}
+                    <p className="mb-1.5 text-[0.6875rem] font-semibold tracking-[0.2em] text-fg-faint uppercase xl:hidden">
+                      Premium &amp; special
+                    </p>
                     <BandRule rank={rank} rows={special} />
                     <div className="mt-2.5 grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2.5 xl:grid-cols-2">
                       {special.map((r) => (
