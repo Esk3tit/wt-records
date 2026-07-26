@@ -95,26 +95,6 @@ export function modeBrField(mode: string): BrField | null {
   return MODE_BR_FIELD[mode] ?? null
 }
 
-export function latestGameVersion(versions: Array<string>): string {
-  // A non-numeric segment would compare as NaN and silently lose — drop it.
-  const numeric = versions.filter((v) =>
-    v.split('.').every((s) => /^\d+$/.test(s)),
-  )
-  if (numeric.length === 0) {
-    throw new Error(`No usable game versions in ${JSON.stringify(versions)}`)
-  }
-  const parts = (v: string) => v.split('.').map(Number)
-  return numeric.reduce((best, v) => {
-    const a = parts(v)
-    const b = parts(best)
-    for (let i = 0; i < Math.max(a.length, b.length); i++) {
-      const d = (a[i] ?? 0) - (b[i] ?? 0)
-      if (d !== 0) return d > 0 ? v : best
-    }
-    return best
-  })
-}
-
 /** Permanent public URL slug for a new vehicle: base name, then a nation
     suffix, then a counter — or null when nothing slugifiable exists. */
 export function assignVehicleSlug(

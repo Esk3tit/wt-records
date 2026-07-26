@@ -76,6 +76,8 @@ Triage from the issue body:
 
 After a fix, run _Actions → catalog watchdog → Run workflow_ rather than waiting for 08:00 UTC to confirm the stand-down.
 
+The sync reads the [gszabi99 datamine](catalog-sync.md#data-source--licensing) directly. `WT_VEHICLES_API_URL` is retired — delete it from the `catalog-sync` service's variables; it is read by nothing and only misleads the next person triaging a stale catalog.
+
 ## If a deploy fails at the healthcheck
 
 The Railway healthcheck must target a path that answers 200 (`healthcheckPath` is `/healthz`; `/` only 307s to `/grb`). Diagnose in this order:

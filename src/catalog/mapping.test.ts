@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import {
   assignVehicleSlug,
   branchAndClassForType,
-  latestGameVersion,
   modeBrField,
   nationForCountry,
   patchFromGameVersion,
@@ -107,27 +106,6 @@ describe('patchFromGameVersion', () => {
     expect(() => patchFromGameVersion('latest')).toThrow(/game version/i)
     expect(() => patchFromGameVersion('2')).toThrow(/game version/i)
     expect(() => patchFromGameVersion('')).toThrow(/game version/i)
-  })
-})
-
-describe('latestGameVersion', () => {
-  it('picks the numerically greatest version, not the last element', () => {
-    expect(latestGameVersion(['2.55.1.153', '2.57.0.8', '2.47.0.134'])).toBe(
-      '2.57.0.8',
-    )
-    // numeric compare: 2.9 < 2.55
-    expect(latestGameVersion(['2.9.0.1', '2.55.0.1'])).toBe('2.55.0.1')
-  })
-
-  it('throws on an empty list — a snapshot must know its game version', () => {
-    expect(() => latestGameVersion([])).toThrow(/version/i)
-  })
-
-  it('ignores versions with non-numeric segments instead of mis-ordering them', () => {
-    expect(latestGameVersion(['2.55.0.1', '2.57.0.8-rc1'])).toBe('2.55.0.1')
-    expect(() => latestGameVersion(['latest', '2.57_hotfix'])).toThrow(
-      /version/i,
-    )
   })
 })
 

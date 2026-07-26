@@ -1,6 +1,6 @@
 import process from 'node:process'
 import { isLocalDatabaseUrl, openCliDb } from '#/db/cli'
-import { WtVehiclesApiSource } from '#/catalog/wt-vehicles-api'
+import { DatamineSource } from '#/catalog/datamine'
 import { syncCatalog } from '#/catalog/sync'
 import { mirrorVehicleImages } from '#/catalog/mirror-images'
 import { recordCatalogSyncRun } from '#/catalog/sync-status'
@@ -35,8 +35,7 @@ if (
   )
 }
 
-const source = new WtVehiclesApiSource({
-  apiBaseUrl: process.env.WT_VEHICLES_API_URL,
+const source = new DatamineSource({
   unitsCsvUrl: process.env.WT_UNITS_CSV_URL,
 })
 

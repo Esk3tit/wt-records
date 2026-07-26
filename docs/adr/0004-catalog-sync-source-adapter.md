@@ -56,8 +56,13 @@ Decisions fixed here (the §12 "datamine field → class" residual):
   premium is `costGold` present, squadron is `researchType == "clanVehicle"`.
   Squadron needs no `shop.blkx` tech-tree traversal — the flat field alone
   reproduces the catalog's squadron set exactly.
-- **BR = `BATTLE_RATINGS[economicRank…]`**, a 43-entry table from 1.0 to 15.0
-  in thirds, indexed by `economicRankArcade` / `Historical` / `Simulation`.
+- **BR = `battleRating(economicRank…)`**, read off `economicRankArcade` /
+  `Historical` / `Simulation`. Economic rank 0 is 1.0 and each step is a third
+  of a BR, so ranks 0–42 reproduce the game's 43-entry 1.0–15.0 table exactly.
+  Computed rather than tabulated on purpose: Gaijin raises the BR ceiling every
+  few years, and a fixed table would answer `undefined` for every vehicle above
+  it — silently dropping the whole top tier's `vehicle_br` rows until someone
+  noticed. The formula just keeps going.
 - **Scope is mode-driven:** vehicles are synced iff some `modes` row plays
   their branch — adding a naval mode auto-extends the catalog, no code
   change.

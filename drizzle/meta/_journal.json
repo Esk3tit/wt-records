@@ -71,6 +71,13 @@
       "when": 1785045061261,
       "tag": "0009_catalog_sync_runs",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1785094247249,
+      "tag": "0010_remove_scripted_units",
+      "breakpoints": true
     }
   ]
 }
