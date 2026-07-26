@@ -1,6 +1,7 @@
 const USER_AGENT = 'wt-records-catalog-sync (+https://wtrecords.gg)'
 const MAX_ATTEMPTS = 3
 const REASON_MAX = 200
+const REASON_MAX_READS = 16
 
 export interface UpstreamFetchOptions {
   fetchImpl?: typeof fetch
@@ -59,13 +60,19 @@ async function failureReason(response: Response): Promise<string> {
   const reader = response.body?.getReader()
   if (!reader) return ''
   try {
-    if (!/json|text|xml|^$/.test(type)) return ''
-    const { value } = await reader.read()
-    return new TextDecoder()
-      .decode(value)
-      .replace(/\s+/g, ' ')
-      .trim()
-      .slice(0, REASON_MAX)
+    if (!/json|text|xml|^$/i.test(type)) return ''
+    const decoder = new TextDecoder()
+    let reason = ''
+    // the read cap keeps an endless body from stalling the retry loop
+    for (let read = 0; read < REASON_MAX_READS; read++) {
+      const { done, value } = await reader.read()
+      if (done) break
+      reason = (reason + decoder.decode(value, { stream: true }))
+        .replace(/\s+/g, ' ')
+        .trimStart()
+      if (reason.length >= REASON_MAX) break
+    }
+    return reason.trim().slice(0, REASON_MAX)
   } catch {
     return ''
   } finally {

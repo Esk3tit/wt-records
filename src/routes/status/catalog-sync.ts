@@ -1,13 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { readCatalogSyncStatus } from '#/catalog/sync-status'
+import { DETAIL_MAX, readCatalogSyncStatus } from '#/catalog/sync-status'
 import { db } from '#/db'
 
 // Drizzle wraps the driver error, and the wrapper says only which SQL failed —
-// the cause ("relation … does not exist") is the half worth reporting.
+// the cause ("relation … does not exist") is the half worth reporting. Capped
+// like a recorded detail: this answer is public, so it gets no unbounded field.
 function causeOf(error: unknown): string {
-  if (error instanceof Error && error.cause instanceof Error)
-    return error.cause.message
-  return error instanceof Error ? error.message : String(error)
+  if (!(error instanceof Error)) return String(error).slice(0, DETAIL_MAX)
+  const cause = error.cause instanceof Error ? error.cause : error
+  return cause.message.slice(0, DETAIL_MAX)
 }
 
 // Catalog-cron freshness for the watchdog. Unauthenticated so the probe holds no

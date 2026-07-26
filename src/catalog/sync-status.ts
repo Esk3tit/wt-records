@@ -17,7 +17,7 @@ export interface CatalogSyncStatus {
   lastRun: CatalogSyncRun | null
 }
 
-const DETAIL_MAX = 500
+export const DETAIL_MAX = 500
 
 export async function recordCatalogSyncRun(
   db: Db,

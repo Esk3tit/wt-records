@@ -81,6 +81,11 @@ jobs:
           # jq composes the body straight from the JSON: an upstream error line
           # never reaches the shell as a word.
           jq -r '
+            # An indented block has no closing fence, so no run of backticks in an
+            # upstream error body can break out of it and inject markdown.
+            def as_code($fallback):
+              (if . == null or . == "" then $fallback else . end)
+              | split("\n") | map("    " + .) | join("\n");
             def headline:
               if .db != "ok" then
                 "**The catalog freshness signal cannot be read**, so whether the nightly sync still runs is unknown."
@@ -91,7 +96,7 @@ jobs:
               end;
             def reason:
               if .db == "unavailable" then
-                "The app is up but the query failed:\n\n```\n\(.reason // "no reason reported")\n```\n\nUsually the migration adding `catalog_sync_runs` is not applied to production yet; otherwise a database brownout."
+                "The app is up but the query failed:\n\n\(.reason | as_code("no reason reported"))\n\nUsually the migration adding `catalog_sync_runs` is not applied to production yet; otherwise a database brownout."
               elif .db != "ok" then
                 "\(.reason // "no reason reported")\n\nThe app answered, so this is the endpoint itself: a deploy without `/status/catalog-sync`, or something else serving that path."
               elif .lastRun == null then
@@ -99,7 +104,7 @@ jobs:
               elif .lastRun.ok then
                 "The newest recorded attempt (\(.lastRun.finishedAt)) SUCCEEDED, so no sync has run at all since then — look at the Railway cron schedule, not the upstream API."
               else
-                "The newest attempt (\(.lastRun.finishedAt)) FAILED with:\n\n```\n\(.lastRun.detail // "no reason recorded")\n```\n\nThe sync is transactional, so a failed night leaves the catalog untouched — only stale."
+                "The newest attempt (\(.lastRun.finishedAt)) FAILED with:\n\n\(.lastRun.detail | as_code("no reason recorded"))\n\nThe sync is transactional, so a failed night leaves the catalog untouched — only stale."
               end;
             headline + "\n\n" + reason
             + "\n\nRunbook: `docs/deploy.md` § catalog-sync watchdog. This issue body refreshes nightly and closes itself when a sync succeeds."
