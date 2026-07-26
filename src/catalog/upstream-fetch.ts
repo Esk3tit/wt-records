@@ -2,6 +2,7 @@ const USER_AGENT = 'wt-records-catalog-sync (+https://wtrecords.gg)'
 const MAX_ATTEMPTS = 3
 const REASON_MAX = 200
 const REASON_MAX_READS = 16
+const REASON_READ_TIMEOUT_MS = 2000
 
 export interface UpstreamFetchOptions {
   fetchImpl?: typeof fetch
@@ -59,15 +60,20 @@ async function failureReason(response: Response): Promise<string> {
   const type = response.headers.get('content-type') ?? ''
   const reader = response.body?.getReader()
   if (!reader) return ''
+  let stallTimer: ReturnType<typeof setTimeout> | undefined
   try {
     if (!/json|text|xml|^$/i.test(type)) return ''
+    // The read cap bounds how many chunks we take; the deadline bounds how long
+    // we wait for one, since a body that stalls never resolves a read at all.
+    const stalled = new Promise<'stalled'>((resolve) => {
+      stallTimer = setTimeout(() => resolve('stalled'), REASON_READ_TIMEOUT_MS)
+    })
     const decoder = new TextDecoder()
     let reason = ''
-    // the read cap keeps an endless body from stalling the retry loop
     for (let read = 0; read < REASON_MAX_READS; read++) {
-      const { done, value } = await reader.read()
-      if (done) break
-      reason = (reason + decoder.decode(value, { stream: true }))
+      const chunk = await Promise.race([reader.read(), stalled])
+      if (chunk === 'stalled' || chunk.done) break
+      reason = (reason + decoder.decode(chunk.value, { stream: true }))
         .replace(/\s+/g, ' ')
         .trimStart()
       if (reason.length >= REASON_MAX) break
@@ -76,6 +82,7 @@ async function failureReason(response: Response): Promise<string> {
   } catch {
     return ''
   } finally {
+    clearTimeout(stallTimer)
     await reader.cancel().catch(() => undefined) // release the connection
   }
 }

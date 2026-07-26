@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { fetchUpstream } from '#/catalog/upstream-fetch'
 
 const URL_UNDER_TEST = 'https://wt.example/vehicles'
@@ -32,6 +32,15 @@ const streamed = (
 function* endlessWhitespace(): Generator<string> {
   for (;;) yield ' '
 }
+
+/** Headers arrive, then the body never produces a chunk — a stalled upstream. */
+const stalling = (status: number, contentType = 'application/json') =>
+  new Response(
+    new ReadableStream({
+      pull: () => new Promise<never>(() => undefined),
+    }),
+    { status, headers: { 'content-type': contentType } },
+  )
 
 const stub = (...responses: Array<Response>) => {
   const calls: Array<string> = []
@@ -81,6 +90,17 @@ describe('fetchUpstream error context', () => {
     const message = await failureMessage(reply(500, 'boom', 'Text/Plain'))
 
     expect(message).toBe(`GET ${URL_UNDER_TEST} → 500: boom`)
+  })
+
+  it('gives up on a body that never sends a chunk', async () => {
+    vi.useFakeTimers()
+    try {
+      const pending = failureMessage(stalling(500))
+      await vi.advanceTimersByTimeAsync(2000)
+      expect(await pending).toBe(`GET ${URL_UNDER_TEST} → 500`)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('stops reading an endless body instead of hanging', async () => {
