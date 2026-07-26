@@ -620,7 +620,7 @@ export async function getNationSheet(
   if (!m) return null
 
   const rows = await db
-    .select(catalogRowShape)
+    .select({ ...catalogRowShape, imageKey: vehicles.imageKey })
     .from(vehicles)
     .innerJoin(nations, eq(nations.id, vehicles.nationId))
     .leftJoin(
@@ -639,7 +639,7 @@ export async function getNationSheet(
     .where(catalogConditions(m.branch, filters, nation.id))
     .orderBy(asc(vehicles.rank), asc(vehicles.name))
 
-  return { nation, rows }
+  return { nation, rows: rows.map(withVehicleImage) }
 }
 
 export async function getVehicle(db: Db, mode: string, slug: string) {

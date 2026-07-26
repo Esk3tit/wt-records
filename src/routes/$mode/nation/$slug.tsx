@@ -1,18 +1,7 @@
 import { Link, createFileRoute, notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { Fragment } from 'react'
-import {
-  BrCell,
-  HolderCell,
-  KillsCell,
-  LEDGER_ROW,
-  LEDGER_TH,
-  LedgerEmptyRow,
-  LedgerMeta,
-  LedgerPane,
-  VehicleCell,
-  isHeld,
-} from '#/components/catalog-ledger'
+import { LedgerMeta } from '#/components/catalog-ledger'
+import { NationGrid } from '#/components/nation-grid'
 import { NationFlag } from '#/components/nation-flag'
 import {
   VehicleFilters,
@@ -23,7 +12,6 @@ import { db } from '#/db'
 import { browseFacets, getNationCard, getNationSheet } from '#/db/queries'
 import { browseFilters, normalizeBrowseSearch } from '#/lib/browse-params'
 import type { BrowseSearch } from '#/lib/browse-params'
-import { formatRank } from '#/lib/format'
 import { toNationCardModel } from '#/og/props/nation'
 import { nationUnfurl } from '#/og/copy'
 import { nationCardUrl } from '#/og/urls'
@@ -93,13 +81,6 @@ function NationSheet() {
   const activeFilters = countActiveFilters(search)
   const avgKills =
     card && card.avgKills != null ? Math.round(card.avgKills * 10) / 10 : null
-
-  const groups: Array<{ rank: number | null; rows: typeof rows }> = []
-  for (const r of rows) {
-    const last = groups.at(-1)
-    if (last && last.rank === r.rank) last.rows.push(r)
-    else groups.push({ rank: r.rank, rows: [r] })
-  }
 
   return (
     <section className="py-6">
@@ -203,65 +184,12 @@ function NationSheet() {
       </div>
 
       <div className="mt-5">
-        <LedgerPane>
-          <thead>
-            <tr>
-              <th className={LEDGER_TH + ' pr-4 pl-5'}>Vehicle</th>
-              <th
-                className={LEDGER_TH + ' hidden pr-4 text-right sm:table-cell'}
-              >
-                BR
-              </th>
-              <th className={LEDGER_TH + ' pr-4 text-right'}>Kills</th>
-              <th className={LEDGER_TH + ' pr-5'}>Holder</th>
-            </tr>
-          </thead>
-          <tbody>
-            {groups.map((g, gi) => (
-              <Fragment key={g.rank ?? 'unranked'}>
-                <tr>
-                  <th
-                    colSpan={4}
-                    scope="rowgroup"
-                    className={
-                      'px-5 pb-2 text-left ' + (gi === 0 ? 'pt-4' : 'pt-7')
-                    }
-                  >
-                    <span className="flex items-center gap-3">
-                      <span className="text-xs font-semibold tracking-[0.2em] text-fg-muted uppercase">
-                        {g.rank != null
-                          ? `Rank ${formatRank(g.rank)}`
-                          : 'Unranked'}
-                      </span>
-                      <span
-                        aria-hidden="true"
-                        className="h-px flex-1 bg-linear-to-r from-[var(--hairline)] to-transparent"
-                      />
-                      <span className="text-[0.6875rem] font-medium text-fg-faint">
-                        {g.rows.filter(isHeld).length} of {g.rows.length} held
-                      </span>
-                    </span>
-                  </th>
-                </tr>
-                {g.rows.map((r) => (
-                  <tr key={r.vehicleSlug} className={LEDGER_ROW}>
-                    <VehicleCell mode={mode} row={r} />
-                    <BrCell br={r.br} />
-                    <KillsCell kills={r.kills} />
-                    <HolderCell row={r} />
-                  </tr>
-                ))}
-              </Fragment>
-            ))}
-            {rows.length === 0 && (
-              <LedgerEmptyRow
-                colSpan={4}
-                hasFilters={activeFilters > 0}
-                onReset={resetFilters}
-              />
-            )}
-          </tbody>
-        </LedgerPane>
+        <NationGrid
+          mode={mode}
+          rows={rows}
+          hasFilters={activeFilters > 0}
+          onReset={resetFilters}
+        />
       </div>
     </section>
   )
