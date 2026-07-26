@@ -32,9 +32,7 @@ export function TopRecords({
           </p>
           <p className="mt-2 text-5xl leading-none font-bold tracking-[-0.03em] text-fg">
             {r.kills}
-            <span className="ml-1 text-[0.8125rem] font-medium tracking-[0.06em] text-fg-muted">
-              kills
-            </span>
+            <span className="ml-1 stat-unit text-[0.8125rem]">kills</span>
           </p>
           <p className="mt-3.5 text-[1.0625rem] font-semibold">
             <VehicleLink

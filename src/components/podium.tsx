@@ -63,17 +63,13 @@ function PodiumCard({
           {big ? (
             <p className="mt-2 text-6xl leading-none font-bold tracking-[-0.03em] text-fg">
               {record.kills}
-              <span className="ml-1.5 text-xs font-medium tracking-[0.06em] text-fg-muted">
-                kills
-              </span>
+              <span className="ml-1.5 stat-unit text-xs">kills</span>
             </p>
           ) : (
             <div className="min-w-0">
               <p className="text-5xl leading-none font-bold tracking-[-0.03em] text-fg">
                 {record.kills}
-                <span className="ml-1.5 text-xs font-medium tracking-[0.06em] text-fg-muted">
-                  kills
-                </span>
+                <span className="ml-1.5 stat-unit text-xs">kills</span>
               </p>
               <p className="mt-3 text-[1.0625rem] font-semibold text-fg">
                 <VehicleLink
@@ -187,9 +183,7 @@ function LedgerRows({
               </span>
               <span className="text-right text-[1.0625rem] font-bold text-fg">
                 {r.kills}
-                <span className="ml-1 text-[0.6875rem] font-medium tracking-[0.06em] text-fg-muted">
-                  kills
-                </span>
+                <span className="ml-1 stat-unit text-[0.6875rem]">kills</span>
               </span>
             </div>
           </li>

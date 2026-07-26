@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-07-22T06:25:15.573267Z",
+  "generatedAt": "2026-07-24T19:20:00.000000Z",
   "title": "Design System: WT Records",
   "extensions": {
     "colorMeta": {
@@ -77,7 +77,7 @@
       "ink-faint": {
         "role": "neutral",
         "displayName": "Ink Faint (night)",
-        "canonical": "rgba(255,255,255,0.4)"
+        "canonical": "rgba(255,255,255,0.5)"
       },
       "day-ink": {
         "role": "neutral",
@@ -87,12 +87,12 @@
       "day-ink-muted": {
         "role": "neutral",
         "displayName": "Day Ink Muted",
-        "canonical": "rgba(10,12,16,0.62)"
+        "canonical": "rgba(10,12,16,0.66)"
       },
       "day-ink-faint": {
         "role": "neutral",
         "displayName": "Day Ink Faint",
-        "canonical": "rgba(10,12,16,0.45)"
+        "canonical": "rgba(10,12,16,0.58)"
       },
       "hairline": {
         "role": "neutral",
@@ -107,12 +107,17 @@
       "glass-highlight": {
         "role": "neutral",
         "displayName": "Glass Highlight",
-        "canonical": "rgba(255,255,255,0.2)"
+        "canonical": "rgba(255,255,255,0.22)"
+      },
+      "day-glass-highlight": {
+        "role": "neutral",
+        "displayName": "Glass Highlight (day)",
+        "canonical": "rgba(255,255,255,0.9)"
       },
       "night-scrim": {
         "role": "neutral",
         "displayName": "Night Scrim",
-        "canonical": "rgba(4,6,10,0.55)"
+        "canonical": "rgba(8,10,14,0.5)"
       },
       "day-veil": {
         "role": "neutral",
@@ -224,6 +229,14 @@
       "kicker": {
         "displayName": "Kicker",
         "purpose": "Tracked-uppercase micro section labels and the hero kicker; never running text."
+      },
+      "stat-label": {
+        "displayName": "Stat label",
+        "purpose": "The uppercase caption under or beside a number; ink is the call site’s choice."
+      },
+      "stat-unit": {
+        "displayName": "Stat unit",
+        "purpose": "The lowercase word trailing a numeral; size follows the number it trails."
       }
     },
     "shadows": [
@@ -413,6 +426,11 @@
         "name": "The Sandwich Rule",
         "body": "Text never sits directly on the Spatial Scene. Between any scene and any text there is always the mode's scrim/veil, a glass surface, or both. Contrast (≥4.5:1 body text) is enforced by the layer stack, not hoped for from whatever the screenshot happens to be.",
         "section": "elevation"
+      },
+      {
+        "name": "The Attending Type Rule",
+        "body": "Type that attends a number is never invented at the call site: the uppercase caption is .stat-label, the lowercase unit is .stat-unit. Both are layered under Tailwind’s utilities, so a site may override ink or weight for emphasis, but never size, tracking, or case.",
+        "section": "typography"
       }
     ],
     "dos": [

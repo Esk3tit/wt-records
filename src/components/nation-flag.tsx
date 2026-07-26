@@ -150,6 +150,12 @@ export const FLAGS: Record<string, ReactNode> = {
 
 export const NATION_FLAG_SLUGS = Object.keys(FLAGS)
 
+/** Whether this nation has vendored art — callers that lean on the flag to
+    carry the nation's identity need a fallback when it doesn't. */
+export function hasNationFlag(slug: string): boolean {
+  return Object.hasOwn(FLAGS, slug)
+}
+
 /* Rendered once in the root document so the path data (USA alone is ~5KB)
    isn't serialized again for every flag instance on the page. */
 export function NationFlagSprite() {
@@ -182,7 +188,7 @@ export function NationFlag({
   variant?: keyof typeof VARIANT_CLASS
   className?: string
 }) {
-  if (!Object.hasOwn(FLAGS, slug)) return null
+  if (!hasNationFlag(slug)) return null
   return (
     <span
       aria-hidden="true"

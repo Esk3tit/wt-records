@@ -33,6 +33,28 @@ test('the leaderboard renders for the live mode', async ({ page }) => {
   ).toBeVisible()
 })
 
+test('a profile introduces its holder with the enrichment stats', async ({
+  page,
+}) => {
+  await page.goto('/grb/leaderboard')
+  const topHolder = page.getByRole('listitem').first().getByRole('link').first()
+  const name = (await topHolder.textContent())?.trim()
+  expect(name, 'the leaderboard rendered no holders').toBeTruthy()
+  await topHolder.click()
+  await expect(
+    page.getByRole('heading', { level: 1, name: name! }),
+  ).toBeVisible()
+
+  // The top holder holds current, dated titles, so all three stats are real.
+  await expect(page.getByText('Titles by nation')).toBeVisible()
+  await expect(page.getByText('Longest held')).toBeVisible()
+  await expect(page.getByText('Last verified')).toBeVisible()
+  await expect(
+    page.getByText(/^(under a day|[\d,]+ days?)$/),
+    'the longest-held tenure renders as a real span',
+  ).toBeVisible()
+})
+
 test('a mode that is not live shows the coming-soon shell, not a 404', async ({
   page,
 }) => {

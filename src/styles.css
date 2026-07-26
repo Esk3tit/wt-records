@@ -371,6 +371,24 @@
   background: linear-gradient(90deg, var(--hairline), transparent);
 }
 
+/* The two micro-registers that attend a number: the uppercase label under a
+   stat, and the lowercase unit trailing it. Layered so a call site picks ink. */
+@layer components {
+  .stat-label {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* Size follows the numeral it trails, so it stays a call-site choice. */
+  .stat-unit {
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: var(--ink-muted);
+  }
+}
+
 /* The lead (all-time-high) record card wears the one amber moment per page. */
 .record-lead {
   background: linear-gradient(

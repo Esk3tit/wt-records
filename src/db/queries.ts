@@ -4,10 +4,12 @@ import {
   count,
   desc,
   eq,
+  gt,
   ilike,
   inArray,
   isNotNull,
   isNull,
+  max,
   or,
   sql,
 } from 'drizzle-orm'
@@ -46,6 +48,10 @@ const modeMatchesBranch = and(
   eq(modes.mode, records.mode),
   eq(modes.branch, vehicles.branch),
 )
+
+// The same guard for the player-facing reads, which also hide the modes that
+// haven't opened yet (the coming-soon gate).
+const liveModeMatchesBranch = and(modeMatchesBranch, eq(modes.isLive, true))
 
 // Every vehicle-facing read exposes the same tag facet (acquisition chips +
 // removed), so no surface can drift to a partial set.
@@ -803,12 +809,134 @@ export async function getPlayer(db: Db, slug: string) {
       .innerJoin(nations, eq(nations.id, vehicles.nationId))
       // Same counted-record definition as the stats views: live mode + branch
       // match, so an off-branch record (invalid data) never renders here either.
-      .innerJoin(modes, and(modeMatchesBranch, eq(modes.isLive, true)))
+      .innerJoin(modes, liveModeMatchesBranch)
       .where(and(eq(records.playerId, player.id), isCurrentVerified))
       .orderBy(asc(records.mode), desc(records.kills)),
   ])
 
   return { player, aliases: aliases.map((a) => a.name), records: recs }
+}
+
+// A raw SQL expression carries no column decoder, so a timestamp computed in
+// one reaches callers driver-shaped (a string on some drivers) unless mapped.
+const asTimestamp = (value: unknown): Date | null =>
+  value == null ? null : (records.verifiedAt.mapFromDriverValue(value) as Date)
+
+/* Every verified, dated record beside the best kill count that preceded it in
+   its (vehicle, mode) succession. Retired rows leave the succession entirely:
+   no window of their own, and none closed for anyone else. */
+function titleSuccession(db: Db, playerId: number) {
+  return db
+    .select({
+      id: records.id,
+      playerId: records.playerId,
+      vehicleId: records.vehicleId,
+      mode: records.mode,
+      kills: records.kills,
+      heldFrom: records.verifiedAt,
+      bestBefore: sql<number | null>`max(${records.kills}) over (
+        partition by ${records.vehicleId}, ${records.mode}
+        order by ${records.verifiedAt}, ${records.id}
+        rows between unbounded preceding and 1 preceding
+      )`.as('best_before'),
+    })
+    .from(records)
+    .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
+    .innerJoin(modes, liveModeMatchesBranch)
+    .where(
+      and(
+        eq(records.status, 'verified'),
+        isNotNull(records.verifiedAt),
+        // Only the successions this Player took part in — the rest of the
+        // registry can't affect their windows, so it stays out of the sort.
+        sql`(${records.vehicleId}, ${records.mode}) in (
+          select ${records.vehicleId}, ${records.mode} from ${records}
+          where ${eq(records.playerId, playerId)}
+        )`,
+      ),
+    )
+    .as('succession')
+}
+
+/* The tenure of every record that actually took its title, paired with the
+   moment it lost it. Only strictly more kills takes a title, so a later
+   verification that didn't beat the holder is no successor: it forms no
+   window and closes nobody's — the same frontier rule as titleFrontier(). */
+function heldWindows(db: Db, playerId: number) {
+  const succession = titleSuccession(db, playerId)
+  return db
+    .select({
+      id: succession.id,
+      playerId: succession.playerId,
+      mode: succession.mode,
+      vehicleId: succession.vehicleId,
+      heldFrom: succession.heldFrom,
+      lostAt: sql`lead(${succession.heldFrom}) over (
+        partition by ${succession.vehicleId}, ${succession.mode}
+        order by ${succession.heldFrom}, ${succession.id}
+      )`
+        .mapWith(asTimestamp)
+        .as('lost_at'),
+    })
+    .from(succession)
+    .where(
+      or(
+        isNull(succession.bestBefore),
+        gt(succession.kills, succession.bestBefore),
+      ),
+    )
+    .as('held')
+}
+
+/** The three identity stats a profile shows beside a Player's name. Undated
+    records stay out of the temporal stats but keep their place in the counts. */
+export async function getPlayerEnrichment(db: Db, playerId: number) {
+  const held = heldWindows(db, playerId)
+  const heldSeconds =
+    sql<number>`extract(epoch from (coalesce(${held.lostAt}, now()) - ${held.heldFrom}))`.mapWith(
+      Number,
+    )
+  const titles = count()
+
+  const [nationSpread, longest, recency] = await Promise.all([
+    db
+      .select({ slug: nations.slug, name: nations.name, records: titles })
+      .from(records)
+      .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
+      .innerJoin(nations, eq(nations.id, vehicles.nationId))
+      .innerJoin(modes, liveModeMatchesBranch)
+      .where(and(eq(records.playerId, playerId), isCurrentVerified))
+      .groupBy(nations.id)
+      .orderBy(desc(titles), asc(nations.sort)),
+    db
+      .select({
+        vehicleSlug: vehicles.slug,
+        vehicleName: vehicles.name,
+        mode: held.mode,
+        heldSeconds,
+        lostAt: held.lostAt,
+      })
+      .from(held)
+      .innerJoin(vehicles, eq(vehicles.id, held.vehicleId))
+      .where(eq(held.playerId, playerId))
+      // Equal tenures: the later title wins, id settling the last tie.
+      .orderBy(desc(heldSeconds), desc(held.heldFrom), desc(held.id))
+      .limit(1),
+    db
+      .select({ lastVerifiedAt: max(records.verifiedAt) })
+      .from(records)
+      .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
+      .innerJoin(modes, liveModeMatchesBranch)
+      .where(
+        and(eq(records.playerId, playerId), eq(records.status, 'verified')),
+      ),
+  ])
+
+  return {
+    nationSpread,
+    longestHeld: one(longest),
+    lastVerifiedAt: one(recency)?.lastVerifiedAt ?? null,
+  }
 }
 
 /** The Avatar key that actually renders: an Avatar belongs to a claim, so an

@@ -72,9 +72,7 @@ export function FallenRecords({
                     {f.newKills}
                   </span>
                 </span>
-                <span className="text-[0.6875rem] font-medium tracking-[0.08em] uppercase text-fg-faint">
-                  kills
-                </span>
+                <span className="stat-label text-fg-faint">kills</span>
               </span>
             </div>
           </li>

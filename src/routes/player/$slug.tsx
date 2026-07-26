@@ -11,11 +11,13 @@ import { PlayerAvatar } from '#/components/player-avatar'
 import { ClaimedChip } from '#/components/claimed-chip'
 import { ClaimPanel } from '#/components/claim-panel'
 import { OwnerAvatarControls } from '#/components/owner-avatar-controls'
+import { ProfileEnrichment } from '#/components/profile-enrichment'
 import type { ClaimViewer } from '#/components/claim-panel'
 import { db } from '#/db'
 import {
   effectiveAvatarKey,
   getPlayer,
+  getPlayerEnrichment,
   playerMergeRedirect,
 } from '#/db/queries'
 import { hasAuthCookie, getSessionUser } from '#/auth/supabase-server'
@@ -61,12 +63,16 @@ const loadPlayer = createServerFn({ method: 'GET' })
     const found = await getPlayer(db, data)
     if (!found) {
       const redirectTo = await playerMergeRedirect(db, data)
-      return { profile: null, redirectTo, viewer: null }
+      return { profile: null, redirectTo, viewer: null, enrichment: null }
     }
     const claimed = found.player.userId != null
     const avatarKey = effectiveAvatarKey(found.player)
-    const viewer = await resolveClaimViewer(found.player)
+    const [viewer, enrichment] = await Promise.all([
+      resolveClaimViewer(found.player),
+      getPlayerEnrichment(db, found.player.id),
+    ])
     return {
+      enrichment,
       profile: {
         // player.userId (an auth uuid) never crosses to the client.
         id: found.player.id,
@@ -98,7 +104,11 @@ export const Route = createFileRoute('/player/$slug')({
       })
     }
     if (!result.profile) throw notFound()
-    return { profile: result.profile, viewer: result.viewer }
+    return {
+      profile: result.profile,
+      viewer: result.viewer,
+      enrichment: result.enrichment,
+    }
   },
   head: ({ loaderData, params }) => {
     if (!loaderData) return {}
@@ -122,7 +132,7 @@ export const Route = createFileRoute('/player/$slug')({
 })
 
 function PlayerProfile() {
-  const { profile, viewer } = Route.useLoaderData()
+  const { profile, viewer, enrichment } = Route.useLoaderData()
   const formerNames = profile.aliases.filter(
     (name) => name !== profile.displayName,
   )
@@ -157,6 +167,8 @@ function PlayerProfile() {
             )}
           </div>
         </div>
+
+        <ProfileEnrichment stats={enrichment} />
 
         <ClaimPanel
           key={profile.id}

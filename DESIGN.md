@@ -8,14 +8,15 @@ colors:
   daylight-hall: "#F2F3F6"
   ink: "#FFFFFFF5"
   ink-muted: "#FFFFFF99"
-  ink-faint: "#FFFFFF66"
+  ink-faint: "#FFFFFF80"
   day-ink: "#0A0C10EB"
-  day-ink-muted: "#0A0C109E"
-  day-ink-faint: "#0A0C1073"
+  day-ink-muted: "#0A0C10A8"
+  day-ink-faint: "#0A0C1094"
   hairline: "#FFFFFF29"
   day-hairline: "#0A0C101F"
-  glass-highlight: "#FFFFFF33"
-  night-scrim: "#04060A8C"
+  glass-highlight: "#FFFFFF38"
+  day-glass-highlight: "#FFFFFFE6"
+  night-scrim: "#080A0E80"
   day-veil: "#F2F3F699"
   ace-gold: "#FFD75E"
   squadron-silver: "#D6DBE2"
@@ -159,11 +160,11 @@ One committed base per lighting state, mirrored ink ramps, one warm accent with 
 ### Neutral
 - **Night Hangar** (#0A0C10): dark-mode body base — the hall at night.
 - **Daylight Hall** (#F2F3F6): light-mode body base — cool, chroma-neutral off-white. Deliberately not cream, sand, or beige.
-- **Ink ramp, night** — Ink (#FFFFFFF5 · rgba(255,255,255,.96)) primary text; Ink Muted (#FFFFFF99 · .6) secondary; Ink Faint (#FFFFFF66 · .4) tertiary/metadata only (fails 4.5:1 by design — never body copy).
-- **Ink ramp, day** — Day Ink (#0A0C10EB · rgba(10,12,16,.92)); Day Ink Muted (#0A0C109E · .62); Day Ink Faint (#0A0C1073 · .45, tertiary/metadata only).
+- **Ink ramp, night** — Ink (#FFFFFFF5 · rgba(255,255,255,.96)) primary text; Ink Muted (#FFFFFF99 · .6) secondary; Ink Faint (#FFFFFF80 · .5) tertiary/metadata. The faint step is held at the ≥4.5:1 floor against the base *and* against the lightened glass fills — metadata is quiet, never unreadable.
+- **Ink ramp, day** — Day Ink (#0A0C10EB · rgba(10,12,16,.92)); Day Ink Muted (#0A0C10A8 · .66); Day Ink Faint (#0A0C1094 · .58, tertiary/metadata, same AA floor as its night twin).
 - **Hairline** (#FFFFFF29 · rgba(255,255,255,.16)) / **Day Hairline** (#0A0C101F · rgba(10,12,16,.12)): the 1px border on every glass surface, per mode. (Some early components ship rgba(255,255,255,.10); normalize to Hairline when touched.)
-- **Glass Highlight** (#FFFFFF33 · rgba(255,255,255,.2)): the inset top edge that makes glass read lit — white in both modes (light catches the top of glass regardless of room lighting).
-- **Night Scrim** (#04060A8C · rgba(4,6,10,.55)) / **Day Veil** (#F2F3F699 · rgba(242,243,246,.6)): the legibility layer between the Spatial Scene and the glass, per mode.
+- **Glass Highlight** (#FFFFFF38 · rgba(255,255,255,.22) night / #FFFFFFE6 · .9 day): the inset top edge that makes glass read lit. White in both modes — light catches the top of glass regardless of room lighting — but daylight needs a near-opaque edge to read against a bright veil, where night needs only a whisper.
+- **Night Scrim** (#080A0E80 · rgba(8,10,14,.5)) / **Day Veil** (#F2F3F699 · rgba(242,243,246,.6)): the legibility layer between the Spatial Scene and the glass, per mode. Each ships as a gradient, not a flat fill — the quoted value is the outer stop, where the scrim closes at the frame edges and clears toward the center so the scene still breathes.
 
 ### Tertiary
 - **Ace Gold** (#FFD75E), **Squadron Silver** (#D6DBE2), **Veteran Bronze** (#E0995A): rank metals by night (and as fills/badges in both modes).
@@ -191,10 +192,16 @@ One committed base per lighting state, mirrored ink ramps, one warm accent with 
 - **Body compact** (400, 0.9375rem, 1.4): explanatory copy inside panes and filter/control text.
 - **Data** (400, 0.8125rem, 1.45): the ledger register — feed rows, captions, table metadata; usually paired with tabular numerals.
 - **Label** (500, 0.75rem, 0.05em tracking, uppercase where used): metadata tags like the removed chip; used sparingly.
-- **Kicker** (600, 0.6875rem, 0.12em tracking, uppercase): micro section labels — the smallest step, always tracked and uppercase, never for running text. Two sanctioned wider forms: ruled section labels and page eyebrows track at 0.2em, and the hero `.kicker` alone widens to 0.24em. No other tracking values exist.
+- **Kicker** (600, 0.6875rem, 0.12em tracking, uppercase): micro section labels — the smallest step, always tracked and uppercase, never for running text. Two sanctioned wider forms: ruled section labels and page eyebrows track at 0.2em, and the hero `.kicker` alone widens to 0.24em.
+- **Stat label** (`.stat-label` — 500, 0.6875rem, 0.08em tracking, uppercase): the caption under or beside a number — RECORDS, HOLDERS, DAYS UNTOUCHED, TITLES BY NATION. Kicker's size, one notch tighter and one weight lighter, because it attends a numeral instead of opening a section. Ink is the call site's choice: muted for a label the eye should find, faint for pure metadata.
+- **Stat unit** (`.stat-unit` — 500, 0.06em tracking, muted ink): the lowercase word trailing a numeral — *kills*, *records*, *held*. Size follows the number it trails (0.6875–0.9375rem), so it stays a call-site choice; everything else is fixed.
+
+**The open-tracking ladder is closed at six steps.** Across the tracked micro-registers — Label, Stat unit, Stat label, Kicker, ruled section labels, hero kicker — positive tracking takes exactly six values: 0.05em (Label), 0.06em (Stat unit), 0.08em (Stat label), 0.12em (Kicker), 0.2em (ruled section labels and page eyebrows), 0.24em (the hero `.kicker` alone). No seventh exists — a new one means the register already exists and you haven't found it. Display type and standalone numerals run the opposite axis, tightening optically as they grow (-0.01em at Display, to -0.03em on the largest figures); that axis never borrows a step from this ladder.
 
 ### Named Rules
 **The Tabular Rule.** `font-variant-numeric: tabular-nums` applies globally, no exceptions. A kill count that shifts width when it changes is a bug.
+
+**The Attending Type Rule.** Type that attends a number is never invented at the call site: the uppercase caption is `.stat-label`, the lowercase unit is `.stat-unit`. Both are layered under Tailwind's utilities, so a site may override ink or weight for emphasis (the vehicle sheet's semibold "HOLDS IT") — but never size, tracking, or case.
 
 ### Share-card faces (the one exception to the system stack)
 Share cards (`/og/*`, issue #17) render server-side to a static 1200×630 image, where the live system font stack isn't available — so they embed two self-hosted OFL faces, used **nowhere else**: **Saira** (square HUD character — hero numerals, vehicle names, wordmark; tabular figures) and **Golos Text** (Cyrillic-native — player names, labels, chips). Same hierarchy intent as the site (the number is the hero, one amber anchor), just carried by embedded faces the renderer can rasterize. Legibility floor for the card medium: no informational text below ~26px at 1200×630 (~9.4px at Discord's 432px render), informational ink ≥0.7 alpha.

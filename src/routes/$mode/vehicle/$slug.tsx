@@ -119,9 +119,7 @@ function VehicleDetail() {
                 </p>
                 <p className="mt-1 text-6xl leading-none font-bold tracking-[-0.03em] text-accent-text md:text-7xl">
                   {current.kills}
-                  <span className="ml-2 text-[0.9375rem] font-medium tracking-[0.06em] text-fg-muted">
-                    kills
-                  </span>
+                  <span className="ml-2 stat-unit text-[0.9375rem]">kills</span>
                 </p>
                 <p className="mt-3 text-[1.0625rem] font-semibold">
                   <RecordName
@@ -153,7 +151,7 @@ function VehicleDetail() {
                   <>
                     <p className="mt-1 text-6xl leading-none font-bold tracking-[-0.03em] text-fg md:text-7xl">
                       {minKills}
-                      <span className="ml-2 text-[0.9375rem] font-medium tracking-[0.06em] text-fg-muted">
+                      <span className="ml-2 stat-unit text-[0.9375rem]">
                         kills to claim
                       </span>
                     </p>
@@ -279,7 +277,7 @@ function VehicleDetail() {
                         />
                       </span>
                       {h.isCurrent && (
-                        <span className="ml-2 text-[0.6875rem] font-semibold tracking-[0.08em] text-fg-muted uppercase">
+                        <span className="ml-2 stat-label font-semibold text-fg-muted">
                           holds it
                         </span>
                       )}
