@@ -1,0 +1,127 @@
+# The nightly sync runs off-repo as a Railway cron, so its failures are visible
+# only on that dashboard. Probing catalog freshness instead of the cron covers
+# "ran and failed", "never ran", and "can't tell" with one signal.
+name: catalog watchdog
+
+concurrency:
+  group: catalog-watchdog
+  cancel-in-progress: false
+
+on:
+  schedule:
+    # Two hours after the 06:00 UTC sync — late enough that a slow run isn't
+    # mistaken for a dead one.
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  GH_REPO: ${{ github.repository }}
+  STATUS_URL: https://wt-records-production.up.railway.app/status/catalog-sync
+  # Anything past this means last night's 06:00 run did not land: ~2h on a
+  # healthy morning, ~26h once one night is missed. Alarming on the first
+  # failed night is the point; a lone blip closes itself the next morning.
+  STALE_AFTER_HOURS: 20
+  LABEL: catalog-watchdog
+
+jobs:
+  freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read the catalog freshness signal
+        id: probe
+        run: |
+          # curl's own %{http_code} is 000 when it never got a response; anything
+          # non-numeric (it died before writing) is normalized to the same.
+          probe() {
+            code=$(curl -s --compressed -m "$1" -o /tmp/status.json -w '%{http_code}' "$STATUS_URL" || true)
+            case "$code" in '' | *[!0-9]*) code=000 ;; esac
+            echo "$code"
+          }
+          code=$(probe 30)
+          # The app sleeps when idle; give a cold start one long retry.
+          if [ "$code" != "200" ]; then
+            sleep 20
+            code=$(probe 60)
+          fi
+          echo "Probe result: HTTP $code"
+          # An app that answers nothing is the prod watchdog's beat; alarming here
+          # would double-report. Fail the run to keep it visible (and mailed).
+          if [ "$code" = "000" ] || [ "$code" -ge 500 ]; then
+            echo "::error::Nothing answered at $STATUS_URL (HTTP $code) — catalog freshness is unknown."
+            exit 1
+          fi
+          # An app that answers but not with the signal (missing route, rolled-back
+          # deploy) is covered by nothing else, so it has to alarm here.
+          if ! jq -e 'has("ageSeconds")' /tmp/status.json > /dev/null 2>&1; then
+            jq -n --arg code "$code" --arg url "$STATUS_URL" \
+              '{db: "unreadable", reason: "HTTP \($code) from \($url), and the body was not the freshness signal.", lastSuccessAt: null, ageSeconds: null, lastRun: null}' \
+              > /tmp/status.json
+          fi
+          db=$(jq -r '.db' /tmp/status.json)
+          age=$(jq -r '.ageSeconds // "null"' /tmp/status.json)
+          stale_after=$((STALE_AFTER_HOURS * 3600))
+          # `db != ok` means the signal itself is unreadable while the app is
+          # up (unapplied migration, brownout) — the catalog's state is unknown,
+          # which must alarm rather than pass quietly.
+          if [ "$db" != "ok" ] || [ "$age" = "null" ] || [ "$age" -gt "$stale_after" ]; then
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+            echo "Catalog is STALE or unknown (db: $db, age: $age, threshold: $stale_after)"
+          else
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+            echo "Catalog is fresh (age: $age, threshold: $stale_after)"
+          fi
+
+      - name: Raise the alarm
+        if: steps.probe.outputs.stale == 'true'
+        run: |
+          # jq composes the body straight from the JSON: an upstream error line
+          # never reaches the shell as a word.
+          jq -r '
+            def headline:
+              if .db != "ok" then
+                "**The catalog freshness signal cannot be read**, so whether the nightly sync still runs is unknown."
+              elif .lastSuccessAt == null then
+                "The nightly catalog sync has **no successful run on record**."
+              else
+                "The nightly catalog sync has not succeeded in **\(.ageSeconds / 3600 | floor)h** (last success `\(.lastSuccessAt)`)."
+              end;
+            def reason:
+              if .db == "unavailable" then
+                "The app is up but the query failed:\n\n```\n\(.reason // "no reason reported")\n```\n\nUsually the migration adding `catalog_sync_runs` is not applied to production yet; otherwise a database brownout."
+              elif .db != "ok" then
+                "\(.reason // "no reason reported")\n\nThe app answered, so this is the endpoint itself: a deploy without `/status/catalog-sync`, or something else serving that path."
+              elif .lastRun == null then
+                "No attempt has been recorded yet: either no sync has run since this alerting landed, or it dies before it can record one — check the Railway cron service logs."
+              elif .lastRun.ok then
+                "The newest recorded attempt (\(.lastRun.finishedAt)) SUCCEEDED, so no sync has run at all since then — look at the Railway cron schedule, not the upstream API."
+              else
+                "The newest attempt (\(.lastRun.finishedAt)) FAILED with:\n\n```\n\(.lastRun.detail // "no reason recorded")\n```\n\nThe sync is transactional, so a failed night leaves the catalog untouched — only stale."
+              end;
+            headline + "\n\n" + reason
+            + "\n\nRunbook: `docs/deploy.md` § catalog-sync watchdog. This issue body refreshes nightly and closes itself when a sync succeeds."
+          ' /tmp/status.json > /tmp/catalog-watchdog.md
+          cat /tmp/catalog-watchdog.md
+
+          gh label create "$LABEL" --color D93F0B --description "Automated catalog-sync alarm" 2>/dev/null || true
+          open=$(gh issue list --label "$LABEL" --author 'github-actions[bot]' --state open --json number --jq '.[0].number // empty')
+          if [ -n "$open" ]; then
+            # Refresh in place rather than commenting: still one alert, and no
+            # notification per failed night.
+            gh issue edit "$open" --body-file /tmp/catalog-watchdog.md
+            echo "Refreshed catalog watchdog issue #$open."
+          else
+            gh issue create --label "$LABEL" \
+              --title '🚨 Catalog watchdog: the nightly catalog sync is stale' \
+              --body-file /tmp/catalog-watchdog.md
+          fi
+
+      - name: Stand down on recovery
+        if: steps.probe.outputs.stale == 'false'
+        run: |
+          for n in $(gh issue list --label "$LABEL" --author 'github-actions[bot]' --state open --json number --jq '.[].number'); do
+            gh issue close "$n" --comment "A catalog sync succeeded again ($(jq -r '.lastSuccessAt' /tmp/status.json)) — standing down."
+          done

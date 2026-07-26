@@ -3,6 +3,7 @@ import { isLocalDatabaseUrl, openCliDb } from '#/db/cli'
 import { WtVehiclesApiSource } from '#/catalog/wt-vehicles-api'
 import { syncCatalog } from '#/catalog/sync'
 import { mirrorVehicleImages } from '#/catalog/mirror-images'
+import { recordCatalogSyncRun } from '#/catalog/sync-status'
 import { storageFromEnvIfConfigured } from '#/storage/r2'
 
 const url = process.env.DATABASE_URL
@@ -39,23 +40,35 @@ const source = new WtVehiclesApiSource({
   unitsCsvUrl: process.env.WT_UNITS_CSV_URL,
 })
 
-console.log(`Fetching catalog snapshot from ${source.name}…`)
-const snapshot = await source.fetchSnapshot()
-console.log(
-  `Snapshot: ${snapshot.vehicles.length} vehicles @ game version ${snapshot.gameVersion}`,
-)
-
+// The DB handle is opened before the fetch (postgres-js connects lazily) so an
+// upstream failure still has somewhere to leave its reason for the watchdog.
 const { db, close } = openCliDb(url)
 try {
+  console.log(`Fetching catalog snapshot from ${source.name}…`)
+  const snapshot = await source.fetchSnapshot()
+  console.log(
+    `Snapshot: ${snapshot.vehicles.length} vehicles @ game version ${snapshot.gameVersion}`,
+  )
+
   const summary = await syncCatalog(db, snapshot, { dryRun })
 
   for (const warning of summary.warnings) console.warn(`⚠ ${warning}`)
-  console.log(
+  const summaryLine =
     `Patch ${summary.patch}: ${summary.inserted} inserted, ` +
-      `${summary.updated} updated, ${summary.removed} removed, ` +
-      `${summary.restored} restored, ${summary.brRows} BR rows, ` +
-      `${summary.skippedNoMode} skipped (no mode plays their branch).`,
-  )
+    `${summary.updated} updated, ${summary.removed} removed, ` +
+    `${summary.restored} restored, ${summary.brRows} BR rows, ` +
+    `${summary.skippedNoMode} skipped (no mode plays their branch).`
+  console.log(summaryLine)
+
+  // A dry run rolled itself back; recording it would fake freshness. Never fatal
+  // either: the sync is committed, and the watchdog alarms on a missing row.
+  if (!dryRun) {
+    await recordCatalogSyncRun(db, { ok: true, detail: summaryLine }).catch(
+      (e: unknown) =>
+        console.error('⚠ could not record the successful run:', e),
+    )
+  }
+
   const storage = dryRun ? undefined : storageFromEnvIfConfigured()
   if (dryRun) {
     console.log('Dry run — transaction rolled back; image mirroring skipped.')
@@ -80,6 +93,17 @@ try {
       )
     }
   }
+} catch (error) {
+  if (!dryRun) {
+    // Bookkeeping must never mask the real failure — log it and rethrow.
+    await recordCatalogSyncRun(db, {
+      ok: false,
+      detail: error instanceof Error ? error.message : String(error),
+    }).catch((e: unknown) =>
+      console.error('⚠ could not record the failed run:', e),
+    )
+  }
+  throw error
 } finally {
   await close()
 }

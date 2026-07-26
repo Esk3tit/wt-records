@@ -1,5 +1,6 @@
 const USER_AGENT = 'wt-records-catalog-sync (+https://wtrecords.gg)'
 const MAX_ATTEMPTS = 3
+const REASON_MAX = 200
 
 export interface UpstreamFetchOptions {
   fetchImpl?: typeof fetch
@@ -40,13 +41,36 @@ export async function fetchUpstream(
       lastError = e // network/timeout failure — worth retrying
       continue
     }
-    await response.body?.cancel().catch(() => undefined) // release the connection
-    const error = new Error(`GET ${url} → ${response.status}`)
+    const reason = await failureReason(response) // also releases the connection
+    const error = new Error(
+      `GET ${url} → ${response.status}${reason ? `: ${reason}` : ''}`,
+    )
     const transient = response.status >= 500 || response.status === 429
     if (!transient) throw error
     lastError = error
   }
   throw lastError
+}
+
+/** An upstream's own reason ("SQLITE_CORRUPT…") is what makes a 500 actionable;
+    binary bodies are skipped so image fetches can't spray bytes into the log. */
+async function failureReason(response: Response): Promise<string> {
+  const type = response.headers.get('content-type') ?? ''
+  const reader = response.body?.getReader()
+  if (!reader) return ''
+  try {
+    if (!/json|text|xml|^$/.test(type)) return ''
+    const { value } = await reader.read()
+    return new TextDecoder()
+      .decode(value)
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, REASON_MAX)
+  } catch {
+    return ''
+  } finally {
+    await reader.cancel().catch(() => undefined) // release the connection
+  }
 }
 
 function sleep(ms: number): Promise<void> {

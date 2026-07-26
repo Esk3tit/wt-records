@@ -201,6 +201,22 @@ export const patches = pgTable('patches', {
   releasedAt: timestamp('released_at', { withTimezone: true }),
 }).enableRLS()
 
+/* One row per finished catalog-sync attempt. The cron runs unattended off-repo,
+   so freshness here is the only evidence it still works. */
+export const catalogSyncRuns = pgTable(
+  'catalog_sync_runs',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    finishedAt: timestamp('finished_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    ok: boolean('ok').notNull(),
+    /** The sync summary line when ok, the failure reason when not. */
+    detail: text('detail'),
+  },
+  (t) => [index('sync_run_finished_idx').on(t.finishedAt)],
+).enableRLS()
+
 export const records = pgTable(
   'records',
   {

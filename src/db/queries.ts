@@ -15,6 +15,7 @@ import {
 } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Db } from '#/db'
+import { one } from '#/db/rows'
 import {
   globalStats,
   leaderboard,
@@ -75,12 +76,6 @@ function pickVehicleTags(r: {
     isSquadron: r.isSquadron,
     isRemoved: r.isRemoved,
   }
-}
-
-// The schema runs without noUncheckedIndexedAccess, so a destructured first row
-// is typed as always-present; this makes "row might be missing" explicit.
-function one<T>(rows: T[]): T | null {
-  return rows.length > 0 ? rows[0] : null
 }
 
 export function listModes(db: Db) {
