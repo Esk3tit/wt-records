@@ -92,6 +92,28 @@ describe('fetchUpstream error context', () => {
     expect(message).toBe(`GET ${URL_UNDER_TEST} → 500: boom`)
   })
 
+  it('never decodes more of a chunk than could fit in the reason', async () => {
+    const decode = TextDecoder.prototype.decode
+    const decodedSizes: Array<number> = []
+    const spy = vi
+      .spyOn(TextDecoder.prototype, 'decode')
+      .mockImplementation(function (this: TextDecoder, input, options) {
+        decodedSizes.push((input as Uint8Array | undefined)?.length ?? 0)
+        return decode.call(this, input, options)
+      })
+    try {
+      const message = await failureMessage(
+        reply(500, 'A'.repeat(5_000_000), 'text/plain'),
+      )
+
+      // 200 characters of reason, at UTF-8's worst-case 4 bytes each.
+      expect(Math.max(...decodedSizes)).toBeLessThanOrEqual(800)
+      expect(message).toBe(`GET ${URL_UNDER_TEST} → 500: ${'A'.repeat(200)}`)
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
   it('gives up on a body that never sends a chunk', async () => {
     vi.useFakeTimers()
     try {

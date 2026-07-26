@@ -60,29 +60,39 @@ async function failureReason(response: Response): Promise<string> {
   const type = response.headers.get('content-type') ?? ''
   const reader = response.body?.getReader()
   if (!reader) return ''
-  let stallTimer: ReturnType<typeof setTimeout> | undefined
+  let deadlineTimer: ReturnType<typeof setTimeout> | undefined
   try {
     if (!/json|text|xml|^$/i.test(type)) return ''
-    // The read cap bounds how many chunks we take; the deadline bounds how long
-    // we wait for one, since a body that stalls never resolves a read at all.
-    const stalled = new Promise<'stalled'>((resolve) => {
-      stallTimer = setTimeout(() => resolve('stalled'), REASON_READ_TIMEOUT_MS)
+    // One deadline for the whole read, not per chunk: collecting a short
+    // diagnostic must never cost the retry loop more than this, stall or not.
+    const expired = new Promise<'expired'>((resolve) => {
+      deadlineTimer = setTimeout(
+        () => resolve('expired'),
+        REASON_READ_TIMEOUT_MS,
+      )
     })
     const decoder = new TextDecoder()
     let reason = ''
     for (let read = 0; read < REASON_MAX_READS; read++) {
-      const chunk = await Promise.race([reader.read(), stalled])
-      if (chunk === 'stalled' || chunk.done) break
-      reason = (reason + decoder.decode(chunk.value, { stream: true }))
+      const chunk = await Promise.race([reader.read(), expired])
+      if (chunk === 'expired' || chunk.done) break
+      // Decode only what can still fit, so one huge chunk can't be materialized
+      // in full; 4 is UTF-8's worst-case bytes per character.
+      const budget = (REASON_MAX - reason.length) * 4
+      const overflows = chunk.value.length > budget
+      const bytes = overflows ? chunk.value.subarray(0, budget) : chunk.value
+      reason = (reason + decoder.decode(bytes, { stream: true }))
         .replace(/\s+/g, ' ')
         .trimStart()
-      if (reason.length >= REASON_MAX) break
+      // A truncated chunk left the decoder mid-character, so stop here rather
+      // than splicing the next chunk onto a partial one.
+      if (overflows || reason.length >= REASON_MAX) break
     }
     return reason.trim().slice(0, REASON_MAX)
   } catch {
     return ''
   } finally {
-    clearTimeout(stallTimer)
+    clearTimeout(deadlineTimer)
     await reader.cancel().catch(() => undefined) // release the connection
   }
 }
