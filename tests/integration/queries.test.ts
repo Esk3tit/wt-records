@@ -336,6 +336,47 @@ describe('getPlayerEnrichment', () => {
     expect(heldDays(e.longestHeld?.heldSeconds)).toBe(118)
   })
 
+  // A verified run that didn't beat the holder is a real record but never a
+  // holder, so it can neither take a tenure nor end anyone else's.
+  async function runnerUp(vehicle: string, kills: number, daysAgo: number) {
+    const [player] = await t.db
+      .insert(players)
+      .values({ slug: 'runner-up', displayName: 'Runner Up' })
+      .returning()
+    await t.db.insert(records).values({
+      vehicleId: await idOf(vehicles, vehicle),
+      mode: 'grb',
+      playerId: player.id,
+      ignSnapshot: 'Runner Up',
+      kills,
+      patch: '2.53',
+      status: 'verified',
+      isCurrent: false,
+      verifiedAt: new Date(Date.now() - daysAgo * DAY),
+    })
+    return player.id
+  }
+
+  it('gives no tenure to a verified record that never took the title', async () => {
+    // Ace has held the Panther D with 13 kills since 420 days ago.
+    const loser = await runnerUp('panther-d', 5, 10)
+    expect((await getPlayerEnrichment(t.db, loser)).longestHeld).toBeNull()
+
+    const ace = await enrich('ace')
+    expect(ace.longestHeld?.vehicleSlug).toBe('panther-d')
+    expect(ace.longestHeld?.lostAt).toBeNull()
+    expect(heldDays(ace.longestHeld?.heldSeconds)).toBe(420)
+  })
+
+  it('leaves the title with the first to achieve when a later run only ties', async () => {
+    const loser = await runnerUp('panther-d', 13, 10)
+    expect((await getPlayerEnrichment(t.db, loser)).longestHeld).toBeNull()
+
+    const ace = await enrich('ace')
+    expect(ace.longestHeld?.lostAt).toBeNull()
+    expect(heldDays(ace.longestHeld?.heldSeconds)).toBe(420)
+  })
+
   it('excludes undated records from temporal stats but keeps them in the spread', async () => {
     await t.db
       .update(records)

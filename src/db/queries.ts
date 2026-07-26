@@ -4,6 +4,7 @@ import {
   count,
   desc,
   eq,
+  gt,
   ilike,
   inArray,
   isNotNull,
@@ -821,22 +822,23 @@ export async function getPlayer(db: Db, slug: string) {
 const asTimestamp = (value: unknown): Date | null =>
   value == null ? null : (records.verifiedAt.mapFromDriverValue(value) as Date)
 
-/* Every verified, dated record beside the moment it lost its title. Retired
-   rows leave the succession: no window of their own, none closed for others. */
-function heldWindows(db: Db, playerId: number) {
+/* Every verified, dated record beside the best kill count that preceded it in
+   its (vehicle, mode) succession. Retired rows leave the succession entirely:
+   no window of their own, and none closed for anyone else. */
+function titleSuccession(db: Db, playerId: number) {
   return db
     .select({
       id: records.id,
       playerId: records.playerId,
       vehicleId: records.vehicleId,
       mode: records.mode,
+      kills: records.kills,
       heldFrom: records.verifiedAt,
-      lostAt: sql`lead(${records.verifiedAt}) over (
+      bestBefore: sql<number | null>`max(${records.kills}) over (
         partition by ${records.vehicleId}, ${records.mode}
         order by ${records.verifiedAt}, ${records.id}
-      )`
-        .mapWith(asTimestamp)
-        .as('lost_at'),
+        rows between unbounded preceding and 1 preceding
+      )`.as('best_before'),
     })
     .from(records)
     .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
@@ -851,6 +853,36 @@ function heldWindows(db: Db, playerId: number) {
           select ${records.vehicleId}, ${records.mode} from ${records}
           where ${eq(records.playerId, playerId)}
         )`,
+      ),
+    )
+    .as('succession')
+}
+
+/* The tenure of every record that actually took its title, paired with the
+   moment it lost it. Only strictly more kills takes a title, so a later
+   verification that didn't beat the holder is no successor: it forms no
+   window and closes nobody's — the same frontier rule as titleFrontier(). */
+function heldWindows(db: Db, playerId: number) {
+  const succession = titleSuccession(db, playerId)
+  return db
+    .select({
+      id: succession.id,
+      playerId: succession.playerId,
+      mode: succession.mode,
+      vehicleId: succession.vehicleId,
+      heldFrom: succession.heldFrom,
+      lostAt: sql`lead(${succession.heldFrom}) over (
+        partition by ${succession.vehicleId}, ${succession.mode}
+        order by ${succession.heldFrom}, ${succession.id}
+      )`
+        .mapWith(asTimestamp)
+        .as('lost_at'),
+    })
+    .from(succession)
+    .where(
+      or(
+        isNull(succession.bestBefore),
+        gt(succession.kills, succession.bestBefore),
       ),
     )
     .as('held')
