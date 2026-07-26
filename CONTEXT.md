@@ -105,6 +105,13 @@ _Avoid_: type, category.
 A vehicle's class/type (light, medium, heavy, spg, spaa, fighter, attacker, bomber, heli, other) — drives the qualifying threshold.
 _Avoid_: type.
 
+**Catalog vehicle** vs **scripted unit**:
+A Catalog vehicle is one a player can own and set a Record in. A scripted unit is everything else the datamine models as a vehicle — killstreak call-ins, recon drones, UCAVs, event props — carrying names, ranks and BRs like any vehicle, and excluded from the catalog. Scripted is a property of the unit upstream, not a judgement we make about it.
+_Avoid_: "fake vehicle" (they are real in-game objects), "killstreak" as the umbrella (only some are).
+
+**Base class tag** vs **modifier tag**:
+Datamine units carry several `type_*` tags. A base class tag names what the vehicle *is* (`medium_tank`, `fighter`, `bomber`); a modifier tag names a capability or refinement (`naval_aircraft`, `torpedo`, `hydroplane`, `missile_tank`, `jet_fighter`). Only base class tags resolve to a Class, by our own precedence order — the upstream tag order carries no meaning.
+
 **Acquisition** (event / premium / squadron):
 How a vehicle is obtained — independent, overlapping flags (an event vehicle may also be premium). Every applicable flag is shown; a tech-tree vehicle carries none.
 _Avoid_: a single exclusive acquisition "type".
