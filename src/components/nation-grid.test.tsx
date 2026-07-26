@@ -122,9 +122,16 @@ describe('NationGrid', () => {
         isDifficult: true,
         isSquadron: true,
       }),
+      row({
+        vehicleSlug: 'both',
+        vehicleName: 'Both One',
+        isPremium: true,
+        isSquadron: true,
+      }),
     ])
     await findByTitle('Difficult vehicle — higher qualifying kill bar')
     expect(await findByText('Squadron vehicle')).toBeTruthy()
+    expect(await findByText('Premium vehicle, Squadron vehicle')).toBeTruthy()
   })
 
   it('carries name snapshots through to the record line', async () => {

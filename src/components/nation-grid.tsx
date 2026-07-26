@@ -111,7 +111,12 @@ function RecordCard({
               tech still needs the words the muted chips no longer carry. */}
           {mutedAcquisition && (row.isPremium || row.isSquadron) && (
             <span className="sr-only">
-              {row.isPremium ? 'Premium vehicle' : 'Squadron vehicle'}
+              {[
+                row.isPremium && 'Premium vehicle',
+                row.isSquadron && 'Squadron vehicle',
+              ]
+                .filter(Boolean)
+                .join(', ')}
             </span>
           )}
         </span>
