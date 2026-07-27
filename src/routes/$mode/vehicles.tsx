@@ -13,13 +13,14 @@ import {
   NationCell,
   VehicleCell,
 } from '#/components/catalog-ledger'
+import { Spotlight, spotlightVisible } from '#/components/spotlight'
 import {
   VehicleFilters,
   clearedFilters,
   countActiveFilters,
 } from '#/components/vehicle-filters'
 import { db } from '#/db'
-import { browseFacets, browseVehicles } from '#/db/queries'
+import { browseFacets, browseSpotlight, browseVehicles } from '#/db/queries'
 import {
   BROWSE_PAGE_SIZE,
   browseFilters,
@@ -32,12 +33,16 @@ const loadBrowse = createServerFn({ method: 'GET' })
   .handler(async ({ data }) => {
     // Server fn input is untrusted even though the route validated it.
     const search = normalizeBrowseSearch(data.search as Record<string, unknown>)
-    const [result, facets] = await Promise.all([
-      browseVehicles(db, data.mode, browseFilters(search)),
+    const filters = browseFilters(search)
+    // The unfiltered view never shows a Spotlight, so it never pays for one.
+    const wantsSpotlight = countActiveFilters(search) > 0
+    const [result, facets, spotlight] = await Promise.all([
+      browseVehicles(db, data.mode, filters),
       browseFacets(db, data.mode),
+      wantsSpotlight ? browseSpotlight(db, data.mode, filters) : null,
     ])
     if (!result || !facets) throw notFound()
-    return { result, facets }
+    return { result, facets, spotlight: spotlight ?? [] }
   })
 
 export const Route = createFileRoute('/$mode/vehicles')({
@@ -132,12 +137,17 @@ function BrowsePage() {
   const data = Route.useLoaderData()
   const navigate = Route.useNavigate()
   if (!data) return null
-  const { result, facets } = data
+  const { result, facets, spotlight } = data
   const { rows, total, page, pageCount } = result
 
   const setSearch = (next: BrowseSearch) => navigate({ search: next })
   const resetFilters = () => setSearch(clearedFilters(search))
   const activeFilters = countActiveFilters(search)
+  const showSpotlight = spotlightVisible({
+    activeFilters,
+    total,
+    rows: spotlight,
+  })
   const from = total === 0 ? 0 : (page - 1) * BROWSE_PAGE_SIZE + 1
   const to = Math.min(page * BROWSE_PAGE_SIZE, total)
 
@@ -202,8 +212,10 @@ function BrowsePage() {
         />
       </div>
 
+      {showSpotlight && <Spotlight mode={mode} rows={spotlight} />}
+
       <div className="mt-5">
-        <LedgerPane>
+        <LedgerPane stickyHead>
           <thead>
             <tr>
               <th
@@ -233,7 +245,11 @@ function BrowsePage() {
                   Kills
                 </SortHeader>
               </th>
-              <th className={LEDGER_TH + ' pr-5'}>Holder</th>
+              {/* Folds with its cell: a head that keeps a column the body has
+                  dropped shears the table. */}
+              <th className={LEDGER_TH + ' hidden pr-5 md:table-cell'}>
+                Holder
+              </th>
             </tr>
           </thead>
           <tbody>

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { Link, useParams } from '@tanstack/react-router'
 import { Search } from 'lucide-react'
 import { Brand } from '#/components/brand'
@@ -9,6 +10,26 @@ export interface ModeNavItem {
   isLive: boolean
 }
 
+/** Publishes the floating nav's own height, because it wraps: anything that
+    pins below it (the ledger head) needs a measured offset, not a constant. */
+function usePublishedNavHeight() {
+  const ref = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const publish = () =>
+      document.documentElement.style.setProperty(
+        '--nav-h',
+        `${el.getBoundingClientRect().height}px`,
+      )
+    publish()
+    const ro = new ResizeObserver(publish)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  return ref
+}
+
 export function SiteNav({
   modes,
   isModerator = false,
@@ -17,9 +38,13 @@ export function SiteNav({
   isModerator?: boolean
 }) {
   const { mode: activeMode } = useParams({ strict: false })
+  const navRef = usePublishedNavHeight()
 
   return (
-    <header className="glass-thin sticky top-4 z-40 mx-auto mt-4 flex w-full max-w-[67.5rem] flex-wrap items-center gap-x-4 gap-y-2 rounded-[20px] py-2.5 pr-3 pl-5 [&_a]:no-underline">
+    <header
+      ref={navRef}
+      className="glass-thin sticky top-4 z-40 mx-auto mt-4 flex w-full max-w-[67.5rem] flex-wrap items-center gap-x-4 gap-y-2 rounded-[20px] py-2.5 pr-3 pl-5 [&_a]:no-underline"
+    >
       <Link to="/" className="text-[0.9375rem]">
         <Brand />
       </Link>
