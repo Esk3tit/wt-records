@@ -66,19 +66,19 @@ function StandingRow({
       >
         <WashLayer slug={nation.slug} />
         {/* Narrow screens stack so the holder name gets full width to itself. */}
-        <div className="relative z-[1] grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2.5 sm:gap-x-6 lg:grid-cols-[2.5rem_16rem_minmax(0,1fr)_auto] lg:gap-y-1">
+        <div className="relative z-[1] grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2.5 sm:gap-x-6 lg:grid-cols-[2.5rem_16rem_minmax(0,1fr)_auto] lg:gap-y-1">
           <span
             className={`col-start-1 row-start-1 self-center text-right text-2xl leading-none font-bold tracking-[-0.02em] tabular-nums sm:text-3xl lg:row-span-2 ${metal >= 0 ? METAL_TEXT[metal] : 'text-fg-faint'}`}
           >
             {nation.rank ?? ''}
           </span>
 
-          <span className="col-start-2 row-start-1 flex min-w-0 items-center gap-2.5 text-lg font-semibold text-fg">
+          <span className="col-start-2 col-end-4 row-start-1 flex min-w-0 items-center gap-2.5 text-lg font-semibold text-fg sm:text-xl lg:col-end-3">
             <NationFlag slug={nation.slug} />
             <span className="truncate">{nation.name}</span>
           </span>
 
-          <div className="col-start-2 col-span-2 row-start-2 min-w-0 lg:col-span-1 lg:col-start-2">
+          <div className="col-start-2 col-end-4 row-start-2 min-w-0 lg:col-end-3">
             {nation.holder ? (
               <>
                 <p className="stat-label text-fg-faint">Most titles</p>
@@ -96,21 +96,25 @@ function StandingRow({
             )}
           </div>
 
-          {/* An empty mode would render ten identical zeroes. */}
-          {contested && (
-            <div className="col-start-2 col-span-2 row-start-3 lg:col-span-1 lg:col-start-3 lg:row-span-2 lg:row-start-1 lg:self-center">
-              <CompletionBar nation={nation} />
-            </div>
-          )}
-
-          <p className="col-start-3 row-start-1 justify-self-end text-right lg:col-start-4 lg:row-span-2 lg:self-center">
-            <span className="text-2xl leading-none font-bold tracking-[-0.03em] tabular-nums text-fg sm:text-3xl lg:text-4xl">
-              {contested ? nation.coveredVehicles : nation.openBounties}
-            </span>
-            <span className="stat-unit ml-1.5 text-[0.8125rem]">
-              {contested ? `of ${nation.eligibleVehicles}` : 'open'}
-            </span>
-          </p>
+          {/* Below lg the held count rides the bar's line, leaving the nation
+              name a row to itself — at 320px it otherwise loses to the numeral.
+              `lg:contents` hands both children back to the grid. */}
+          <div className="col-start-2 col-end-4 row-start-3 flex items-center gap-3 lg:contents">
+            {/* An empty mode would render ten identical zeroes. */}
+            {contested && (
+              <div className="min-w-0 flex-1 lg:col-start-3 lg:row-span-2 lg:row-start-1 lg:self-center">
+                <CompletionBar nation={nation} />
+              </div>
+            )}
+            <p className="shrink-0 text-right lg:col-start-4 lg:row-span-2 lg:row-start-1 lg:justify-self-end lg:self-center">
+              <span className="text-2xl leading-none font-bold tracking-[-0.03em] tabular-nums text-fg sm:text-3xl lg:text-4xl">
+                {contested ? nation.coveredVehicles : nation.openBounties}
+              </span>
+              <span className="stat-unit ml-1 text-[0.75rem] sm:ml-1.5 sm:text-[0.8125rem]">
+                {contested ? `of ${nation.eligibleVehicles}` : 'open'}
+              </span>
+            </p>
+          </div>
         </div>
       </Link>
     </li>
