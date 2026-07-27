@@ -442,7 +442,10 @@ export async function listNationStandings(
         completionPct: nationStats.completionPct,
       })
       .from(nationStats)
-      .where(eq(nationStats.mode, mode)),
+      .where(eq(nationStats.mode, mode))
+      // Ranking is a stable sort, so a deterministic read keeps the order
+      // reproducible even if two nations ever compare equal.
+      .orderBy(asc(nationStats.sort)),
     db
       .selectDistinctOn([vehicles.nationId], {
         nationId: vehicles.nationId,
