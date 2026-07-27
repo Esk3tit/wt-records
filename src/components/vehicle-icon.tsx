@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 /* Vehicle silhouette. `row` steps aside in a narrow list; `ledger` narrows
    instead of leaving, so a row keeps its face on a phone. */
 const SLOTS = {
@@ -14,6 +16,9 @@ export function VehicleIcon({
   variant?: keyof typeof SLOTS
   className?: string
 }) {
+  // A key can outlive its object (a sync renames ahead of the asset job).
+  // Keyed by src so a corrected image is tried, not left hidden.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null)
   const rowSlot = variant ? SLOTS[variant] : ''
   if (!src) {
     return variant ? (
@@ -27,11 +32,9 @@ export function VehicleIcon({
       className={`vehicle-icon ${rowSlot}${className}`.trim()}
       loading="lazy"
       draggable={false}
-      // A key can outlive its object (a sync renames ahead of the asset job);
-      // hidden, not removed, so the slot keeps its width.
-      onError={(e) => {
-        e.currentTarget.style.visibility = 'hidden'
-      }}
+      // Hidden, not removed, so the slot keeps its width.
+      style={failedSrc === src ? { visibility: 'hidden' } : undefined}
+      onError={() => setFailedSrc(src)}
     />
   )
 }
