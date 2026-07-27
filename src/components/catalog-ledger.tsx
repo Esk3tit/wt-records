@@ -80,19 +80,37 @@ function useHeadStuck(enabled: boolean) {
     const el = sentinel.current
     const head = pane.current?.querySelector('thead')
     if (!enabled || !el || !head) return
-    // Both read, never assumed: the park line moves when the nav wraps, and the
-    // head's own height is what a focused row must clear.
-    const top = parseFloat(getComputedStyle(head).top) || 0
-    pane.current?.style.setProperty(
-      '--ledger-head-h',
-      `${head.getBoundingClientRect().height}px`,
-    )
-    const io = new IntersectionObserver(
-      ([entry]) => setStuck(!entry.isIntersecting),
-      { rootMargin: `-${top + 1}px 0px 0px 0px`, threshold: 0 },
-    )
-    io.observe(el)
-    return () => io.disconnect()
+    let io: IntersectionObserver | undefined
+    // The park line moves whenever the nav wraps, so the threshold is rebuilt
+    // from the head's current geometry rather than snapshotted once.
+    const sync = () => {
+      io?.disconnect()
+      const top = parseFloat(getComputedStyle(head).top) || 0
+      pane.current?.style.setProperty(
+        '--ledger-head-h',
+        `${head.getBoundingClientRect().height}px`,
+      )
+      io = new IntersectionObserver(
+        ([entry]) => setStuck(!entry.isIntersecting),
+        { rootMargin: `-${top + 1}px 0px 0px 0px`, threshold: 0 },
+      )
+      io.observe(el)
+    }
+    sync()
+    // A frame late on purpose: SiteNav publishes --nav-h from its own resize
+    // observer, and only the next frame is guaranteed to see the new offset.
+    let frame = 0
+    const resync = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(sync)
+    }
+    const ro = new ResizeObserver(resync)
+    ro.observe(document.documentElement)
+    return () => {
+      cancelAnimationFrame(frame)
+      ro.disconnect()
+      io?.disconnect()
+    }
   }, [enabled])
   return { pane, sentinel, stuck }
 }

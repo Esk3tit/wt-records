@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { render } from '@testing-library/react'
+import { fireEvent, render } from '@testing-library/react'
 import {
   RouterProvider,
   createMemoryHistory,
@@ -100,5 +100,21 @@ describe('ledger row imagery', () => {
     )
     expect((await findAllByText(/open bounty/i)).length).toBe(2)
     expect(container.textContent).not.toContain('Koalkiest')
+  })
+})
+
+describe('holder avatar fallback', () => {
+  it('falls back to the Medallion when the avatar object has gone', async () => {
+    const { container, findAllByRole } = renderRow(
+      row({ holderAvatar: 'https://assets.example/missing.png' }),
+    )
+    const imgs = await findAllByRole('img', { name: /Koalkiest's avatar/i })
+    imgs.forEach((img) => fireEvent.error(img))
+    expect(
+      container.querySelectorAll('img[src*="missing.png"]'),
+    ).toHaveLength(0)
+    expect(
+      container.querySelectorAll('svg[aria-label*="no avatar set"]').length,
+    ).toBeGreaterThan(0)
   })
 })
