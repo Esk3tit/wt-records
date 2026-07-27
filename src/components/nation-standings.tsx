@@ -70,7 +70,7 @@ function StandingRow({
         to="/$mode/nation/$slug"
         params={{ mode, slug: nation.slug }}
         aria-label={rowLabel(nation, contested)}
-        className={`relative block border-b border-hairline-soft px-5 py-5 no-underline transition-colors duration-200 last:border-b-0 hover:bg-[var(--row-hover)] sm:px-7 sm:py-6 ${metal >= 0 ? METAL_PANE[metal] : ''}`}
+        className={`standings-row relative block border-b border-hairline-soft px-5 py-5 no-underline transition-colors duration-200 last:border-b-0 hover:bg-[var(--row-hover)] sm:px-7 sm:py-6 ${metal >= 0 ? METAL_PANE[metal] : ''}`}
       >
         <WashLayer slug={nation.slug} />
         {/* Narrow screens stack — place, nation and the held count on one line,
