@@ -505,6 +505,34 @@ const catalogRowShape = {
   displayNameSnapshot: records.displayNameSnapshot,
 }
 
+// PROTOTYPE (#110): the illustrated-ledger row adds vehicle art and the
+// holder's face to the catalog shape.
+const catalogIllustratedShape = {
+  ...catalogRowShape,
+  imageKey: vehicles.imageKey,
+  holderUserId: players.userId,
+  holderAvatarKey: players.avatarKey,
+}
+
+// Both serving URLs computed server-side; neither raw key ever ships.
+function withRowImagery<
+  T extends {
+    imageKey: string | null
+    holderUserId: string | null
+    holderAvatarKey: string | null
+  },
+>({ imageKey, holderUserId, holderAvatarKey, ...row }: T) {
+  const avatarKey = effectiveAvatarKey({
+    userId: holderUserId,
+    avatarKey: holderAvatarKey,
+  })
+  return {
+    ...row,
+    vehicleImage: imageKey ? assetUrlIfConfigured(imageKey) : null,
+    holderAvatar: avatarKey ? assetUrlIfConfigured(avatarKey) : null,
+  }
+}
+
 const ACQ_CONDITIONS: Record<Acquisition, ReturnType<typeof and>> = {
   event: eq(vehicles.isEvent, true),
   premium: eq(vehicles.isPremium, true),
@@ -653,7 +681,7 @@ export async function browseVehicles(
   const page = Math.min(Math.max(1, filters.page), pageCount)
 
   const rows = await db
-    .select(catalogRowShape)
+    .select(catalogIllustratedShape)
     .from(vehicles)
     .innerJoin(nations, eq(nations.id, vehicles.nationId))
     .leftJoin(
@@ -674,7 +702,44 @@ export async function browseVehicles(
     .limit(BROWSE_PAGE_SIZE)
     .offset((page - 1) * BROWSE_PAGE_SIZE)
 
-  return { rows, total, page, pageCount }
+  return { rows: rows.map(withRowImagery), total, page, pageCount }
+}
+
+/** PROTOTYPE (#110) — the Spotlight: the highest-kill Current records inside
+ * the *whole* filtered set, so the ledger's sort and page never move it. Built
+ * on the same `catalogConditions` as the ledger, which is what makes it
+ * structurally impossible for the two to disagree about a filter. */
+export async function browseSpotlight(
+  db: Db,
+  mode: string,
+  filters: BrowseFilters,
+  limit = 3,
+) {
+  const m = await getMode(db, mode)
+  if (!m) return null
+
+  const rows = await db
+    .select(catalogIllustratedShape)
+    .from(vehicles)
+    .innerJoin(nations, eq(nations.id, vehicles.nationId))
+    .leftJoin(
+      vehicleBr,
+      and(eq(vehicleBr.vehicleId, vehicles.id), eq(vehicleBr.mode, mode)),
+    )
+    .innerJoin(
+      records,
+      and(
+        eq(records.vehicleId, vehicles.id),
+        eq(records.mode, mode),
+        isCurrentVerified,
+      ),
+    )
+    .innerJoin(players, eq(players.id, records.playerId))
+    .where(catalogConditions(m.branch, filters, null))
+    .orderBy(desc(records.kills), asc(vehicles.name))
+    .limit(limit)
+
+  return rows.map(withRowImagery)
 }
 
 export async function getNationSheet(
