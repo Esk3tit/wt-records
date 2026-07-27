@@ -32,6 +32,7 @@ import {
   vehicleSearchTerms,
   vehicles,
 } from '#/db/schema'
+import { rankNations } from '#/lib/standings'
 import { searchKey } from '#/lib/search-terms'
 import { likeContains } from '#/lib/like'
 import { assetUrlIfConfigured, proofUrlIfConfigured } from '#/storage/urls'
@@ -410,6 +411,78 @@ export async function listNations(db: Db, mode: string) {
       .orderBy(asc(nationStats.sort)),
   ])
   return m ? rows : null
+}
+
+export interface NationStanding {
+  slug: string
+  name: string
+  eligibleVehicles: number
+  coveredVehicles: number
+  completionPct: number
+  openBounties: number
+  rank: number | null
+  holder: { name: string; slug: string; titles: number } | null
+}
+
+/** A Mode's nation standings, plus each nation's most-titles Holder, which
+    nation_stats doesn't carry. Null when the Mode doesn't exist (→ 404). */
+export async function listNationStandings(
+  db: Db,
+  mode: string,
+): Promise<{ contested: boolean; nations: NationStanding[] } | null> {
+  const [m, rows, holders] = await Promise.all([
+    getMode(db, mode),
+    db
+      .select({
+        nationId: nationStats.nationId,
+        slug: nationStats.slug,
+        name: nationStats.name,
+        eligibleVehicles: nationStats.eligibleVehicles,
+        coveredVehicles: nationStats.coveredVehicles,
+        completionPct: nationStats.completionPct,
+      })
+      .from(nationStats)
+      .where(eq(nationStats.mode, mode))
+      // Ranking is a stable sort, so a deterministic read keeps the order
+      // reproducible even if two nations ever compare equal.
+      .orderBy(asc(nationStats.sort)),
+    db
+      .selectDistinctOn([vehicles.nationId], {
+        nationId: vehicles.nationId,
+        displayName: players.displayName,
+        slug: players.slug,
+        titles: count(records.id),
+      })
+      .from(records)
+      .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
+      .innerJoin(modes, modeMatchesBranch)
+      .innerJoin(players, eq(players.id, records.playerId))
+      .where(and(eq(records.mode, mode), isCurrentVerified))
+      .groupBy(vehicles.nationId, players.id, players.displayName, players.slug)
+      .orderBy(
+        asc(vehicles.nationId),
+        desc(count(records.id)),
+        asc(players.displayName),
+      ),
+  ])
+  if (!m) return null
+
+  const byNation = new Map(
+    holders.map((h) => [
+      h.nationId,
+      { name: h.displayName, slug: h.slug, titles: h.titles },
+    ]),
+  )
+  const contested = rows.some((n) => n.coveredVehicles > 0)
+  const contenders = rows
+    // A nation that fields nothing in this Mode isn't in the running.
+    .filter((n) => n.eligibleVehicles > 0)
+    .map(({ nationId, ...n }) => ({
+      ...n,
+      openBounties: n.eligibleVehicles - n.coveredVehicles,
+      holder: byNation.get(nationId) ?? null,
+    }))
+  return { contested, nations: rankNations(contenders, contested) }
 }
 
 // One row shape for every catalog surface (nation sheet, Browse): vehicle +

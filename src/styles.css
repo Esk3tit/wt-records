@@ -1070,3 +1070,22 @@
 :root[data-theme='light'] .flag-wash--soft {
   opacity: 0.15;
 }
+
+/* Pointing at a standings row brings that nation's colors up — the row
+   answers with its own identity rather than a neutral wash. */
+.standings-row .flag-wash--soft {
+  transition: opacity 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.standings-row:hover .flag-wash--soft,
+.standings-row:focus-visible .flag-wash--soft {
+  opacity: 0.22;
+}
+:root[data-theme='light'] .standings-row:hover .flag-wash--soft,
+:root[data-theme='light'] .standings-row:focus-visible .flag-wash--soft {
+  opacity: 0.26;
+}
+@media (prefers-reduced-motion: reduce) {
+  .standings-row .flag-wash--soft {
+    transition: none;
+  }
+}

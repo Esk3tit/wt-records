@@ -34,6 +34,11 @@ export default defineConfig({
             'tests/integration/**/*.test.ts',
             'src/**/*.integration.test.ts',
           ],
+          // Every test boots its own PGlite; the default 10s hook timeout is
+          // shorter than that boot takes once the whole suite contends for the
+          // machine, which failed a different arbitrary set of files each run.
+          hookTimeout: 60_000,
+          testTimeout: 60_000,
         },
       },
     ],
