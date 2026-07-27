@@ -64,8 +64,13 @@ describe('NationStandings', () => {
     const { findByText, container } = renderStandings([standing()])
     expect(await findByText('CertifiedMonke')).toBeTruthy()
     expect(await findByText('8 titles')).toBeTruthy()
-    expect(container.querySelector('a')?.getAttribute('aria-label')).toBe(
-      'Italy, rank 1. 104 of 106 titles held, 2 left. Most titles: CertifiedMonke, 8.',
+    // The row must speak as a sentence out of its own visible text — an
+    // aria-label would exclude it and break Label in Name (WCAG 2.5.3).
+    expect(container.querySelector('a')?.getAttribute('aria-label')).toBeNull()
+    expect(
+      container.querySelector('a')?.textContent.replace(/\s+/g, ' ').trim(),
+    ).toBe(
+      'Rank 1, Italy. Most titles: CertifiedMonke, 8 titles. 2 left to claim. 104 of 106 titles held.',
     )
   })
 
@@ -90,9 +95,10 @@ describe('NationStandings', () => {
     expect(await findByText('Unclaimed')).toBeTruthy()
     expect(queryByText('left')).toBeNull()
     expect(container.querySelector('[class*="pane-"]')).toBeNull()
-    expect(container.querySelector('a')?.getAttribute('aria-label')).toBe(
-      'USSR. 195 titles open. No titles held yet.',
-    )
+    expect(container.querySelector('a')?.getAttribute('aria-label')).toBeNull()
+    expect(
+      container.querySelector('a')?.textContent.replace(/\s+/g, ' ').trim(),
+    ).toBe('USSR. Unclaimed. 195 open bounties.')
   })
 
   it('links each row to that nation’s record wall', async () => {
