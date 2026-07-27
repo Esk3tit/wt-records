@@ -85,7 +85,10 @@ function useHeadStuck(enabled: boolean) {
     // from the head's current geometry rather than snapshotted once.
     const sync = () => {
       io?.disconnect()
-      const top = parseFloat(getComputedStyle(head).top) || 0
+      // Read the offset off a cell: sticky lives on `th`, so `thead` reports
+      // `auto` and the threshold would silently collapse to zero.
+      const cell = head.querySelector('th')
+      const top = cell ? parseFloat(getComputedStyle(cell).top) || 0 : 0
       pane.current?.style.setProperty(
         '--ledger-head-h',
         `${head.getBoundingClientRect().height}px`,
