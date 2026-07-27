@@ -39,8 +39,10 @@ const loadBrowse = createServerFn({ method: 'GET' })
     // Server fn input is untrusted even though the route validated it.
     const search = normalizeBrowseSearch(data.search as Record<string, unknown>)
     const filters = browseFilters(search)
-    // The unfiltered view never shows a Spotlight, so it never pays for one.
-    const wantsSpotlight = countActiveFilters(search) > 0
+    // Never pay for a Spotlight that cannot appear: the unfiltered view never
+    // shows one, and filtering to open bounties excludes every held title.
+    const wantsSpotlight =
+      countActiveFilters(search) > 0 && search.status !== 'open'
     const [result, facets, spotlight] = await Promise.all([
       browseVehicles(db, data.mode, filters),
       browseFacets(db, data.mode),

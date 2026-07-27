@@ -297,10 +297,12 @@
   -webkit-backdrop-filter: blur(24px) saturate(160%);
   border-bottom-color: var(--hairline);
 }
-/* Tabbing into a row scrolls it into view — under the pinned head unless the
-   row reserves the head's own measured height above itself. */
-.ledger-sticky tbody tr {
-  scroll-margin-top: calc(var(--ledger-head-top) + var(--ledger-head-h, 3.5rem));
+/* Tabbing scrolls the focused control into view, not its row, and scroll-margin
+   does not inherit — so the reservation belongs on the control itself. */
+.ledger-sticky tbody :is(a, button, [tabindex]) {
+  scroll-margin-top: calc(
+    var(--ledger-head-top) + var(--ledger-head-h, 3.5rem)
+  );
 }
 @media (prefers-reduced-motion: reduce) {
   .ledger-sticky thead th {

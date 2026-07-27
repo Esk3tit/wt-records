@@ -110,9 +110,9 @@ describe('holder avatar fallback', () => {
     )
     const imgs = await findAllByRole('img', { name: /Koalkiest's avatar/i })
     imgs.forEach((img) => fireEvent.error(img))
-    expect(
-      container.querySelectorAll('img[src*="missing.png"]'),
-    ).toHaveLength(0)
+    expect(container.querySelectorAll('img[src*="missing.png"]')).toHaveLength(
+      0,
+    )
     expect(
       container.querySelectorAll('svg[aria-label*="no avatar set"]').length,
     ).toBeGreaterThan(0)

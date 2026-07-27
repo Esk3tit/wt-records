@@ -154,7 +154,7 @@ The Mode-scoped, kill-feed-style log of the newest verified Records — new reco
 _Avoid_: ticker, carousel, "latest feed" (implies rotation).
 
 **Spotlight**:
-Per Mode, the three highest-kill Current records within Browse's active filter set — the best feats matching what was asked for, independent of the ledger's sort and page. Absent when no filter is active (the Mode landing already shows the Mode's best) and when the filtered set is too small for three cards to summarise rather than restate it.
+Per Mode, the three highest-kill Current records within Browse's active filter set — the best feats matching what was asked for, independent of the ledger's sort and page. Absent when no filter is active (the Mode landing already shows the Mode's best), and absent unless the filter set holds enough Current records that three of them read as a selection rather than a restatement — counted in held titles, never in rows.
 _Avoid_: top records (the landing's cards), podium (the landing's monument).
 
 **Share card**:

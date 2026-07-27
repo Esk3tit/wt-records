@@ -52,9 +52,7 @@ describe('spotlightVisible', () => {
   })
 
   it('stays absent on the unfiltered view, however many titles are held', () => {
-    expect(
-      spotlightVisible({ ...base, activeFilters: 0 }),
-    ).toBe(false)
+    expect(spotlightVisible({ ...base, activeFilters: 0 })).toBe(false)
   })
 
   it('stays absent when it would restate rather than summarise', () => {
