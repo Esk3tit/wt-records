@@ -1,7 +1,5 @@
-/* Vehicle silhouette; renders nothing until the catalog mirror holds the image.
-   `row` fills a fixed-width slot in wide lists and steps aside when the list is
-   narrow; `ledger` keeps its slot at every width, narrowing instead of leaving,
-   because a ledger row is the vehicle and should carry its face on a phone. */
+/* Vehicle silhouette. `row` steps aside in a narrow list; `ledger` narrows
+   instead of leaving, so a row keeps its face on a phone. */
 const SLOTS = {
   row: 'vehicle-icon-row hidden @[30rem]:block ',
   ledger: 'vehicle-icon-ledger ',
@@ -29,9 +27,8 @@ export function VehicleIcon({
       className={`vehicle-icon ${rowSlot}${className}`.trim()}
       loading="lazy"
       draggable={false}
-      // A key can outlive its mirrored object (a catalog sync can rename one
-      // ahead of the asset job). Hidden, not removed: the row slot keeps its
-      // width so names stay on one edge either way.
+      // A key can outlive its object (a sync renames ahead of the asset job);
+      // hidden, not removed, so the slot keeps its width.
       onError={(e) => {
         e.currentTarget.style.visibility = 'hidden'
       }}

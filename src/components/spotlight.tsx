@@ -1,27 +1,23 @@
 import { RecordCard } from '#/components/record-card'
-import { isHeld } from '#/components/catalog-ledger'
 import type { RecordCardRow } from '#/components/record-card'
 
-/** Below this the ledger is short enough to read whole, so three cards would
-    restate it rather than summarise it. */
-export const SPOTLIGHT_MIN_ROWS = 10
+/** How many feats the strip shows. */
+export const SPOTLIGHT_SHOWS = 3
 
-/** The Spotlight is absent on the unfiltered view — the Mode landing already
-    shows the Mode's best — and absent whenever it would not be summarising. */
+/** Held titles needed before three of them read as a selection. The query
+    fetches exactly this many, so the count is held titles, not rows. */
+export const SPOTLIGHT_MIN_HELD = 8
+
+/** Absent on the unfiltered view — the Mode landing already shows the Mode's
+    best — and absent whenever the strip would not be summarising. */
 export function spotlightVisible({
   activeFilters,
-  total,
-  rows,
+  candidates,
 }: {
   activeFilters: number
-  total: number
-  rows: RecordCardRow[]
+  candidates: RecordCardRow[]
 }): boolean {
-  return (
-    activeFilters > 0 &&
-    total >= SPOTLIGHT_MIN_ROWS &&
-    rows.filter(isHeld).length >= 3
-  )
+  return activeFilters > 0 && candidates.length >= SPOTLIGHT_MIN_HELD
 }
 
 /* The best feats inside the active filter set, in the record wall's own cards.
@@ -29,10 +25,10 @@ export function spotlightVisible({
    as a medal rather than as premium. */
 export function Spotlight({
   mode,
-  rows,
+  candidates,
 }: {
   mode: string
-  rows: RecordCardRow[]
+  candidates: RecordCardRow[]
 }) {
   return (
     <section aria-labelledby="spotlight-heading" className="mt-5">
@@ -51,10 +47,10 @@ export function Spotlight({
           best of these filters
         </span>
       </div>
-      {/* A rail below sm: three stacked cards would push the ledger off a
-          phone entirely, and the ledger is what the page is for. */}
+      {/* A rail below sm: three stacked cards would push the ledger, which is
+          what the page is for, off a phone entirely. */}
       <ul className="-mx-1 mt-2.5 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-1 pb-1 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0">
-        {rows.map((row) => (
+        {candidates.slice(0, SPOTLIGHT_SHOWS).map((row) => (
           <li
             key={row.vehicleSlug}
             className="w-[14.5rem] shrink-0 snap-start sm:w-auto"

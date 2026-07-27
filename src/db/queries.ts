@@ -505,8 +505,6 @@ const catalogRowShape = {
   displayNameSnapshot: records.displayNameSnapshot,
 }
 
-// PROTOTYPE (#110): the illustrated-ledger row adds vehicle art and the
-// holder's face to the catalog shape.
 const catalogIllustratedShape = {
   ...catalogRowShape,
   imageKey: vehicles.imageKey,
@@ -705,15 +703,14 @@ export async function browseVehicles(
   return { rows: rows.map(withRowImagery), total, page, pageCount }
 }
 
-/** PROTOTYPE (#110) — the Spotlight: the highest-kill Current records inside
- * the *whole* filtered set, so the ledger's sort and page never move it. Built
- * on the same `catalogConditions` as the ledger, which is what makes it
- * structurally impossible for the two to disagree about a filter. */
+/** The Spotlight's candidates, over the whole filtered set so the ledger's sort
+ * and page never move it. Shares `catalogConditions` with the ledger, so the
+ * two cannot disagree about a filter. */
 export async function browseSpotlight(
   db: Db,
   mode: string,
   filters: BrowseFilters,
-  limit = 3,
+  limit: number,
 ) {
   const m = await getMode(db, mode)
   if (!m) return null

@@ -6,7 +6,12 @@ import {
   createRootRoute,
   createRouter,
 } from '@tanstack/react-router'
-import { SPOTLIGHT_MIN_ROWS, Spotlight, spotlightVisible } from './spotlight'
+import {
+  SPOTLIGHT_MIN_HELD,
+  SPOTLIGHT_SHOWS,
+  Spotlight,
+  spotlightVisible,
+} from './spotlight'
 import type { RecordCardRow } from './record-card'
 
 function row(overrides: Partial<RecordCardRow> = {}): RecordCardRow {
@@ -40,34 +45,34 @@ const open = () =>
   row({ vehicleSlug: 'open', kills: null, playerSlug: null, displayName: null })
 
 describe('spotlightVisible', () => {
-  const base = { activeFilters: 1, total: SPOTLIGHT_MIN_ROWS, rows: held(3) }
+  const base = { activeFilters: 1, candidates: held(SPOTLIGHT_MIN_HELD) }
 
-  it('shows once filtered, with three held titles and enough rows to summarise', () => {
+  it('shows once filtered and holding enough titles to be a selection', () => {
     expect(spotlightVisible(base)).toBe(true)
   })
 
-  it('stays absent on the unfiltered view, however many records match', () => {
-    expect(spotlightVisible({ ...base, activeFilters: 0, total: 5000 })).toBe(
-      false,
-    )
-  })
-
-  it('stays absent when the filtered set is short enough to read whole', () => {
-    expect(spotlightVisible({ ...base, total: SPOTLIGHT_MIN_ROWS - 1 })).toBe(
-      false,
-    )
-  })
-
-  it('needs three held titles — open bounties do not fill the podium', () => {
+  it('stays absent on the unfiltered view, however many titles are held', () => {
     expect(
-      spotlightVisible({ ...base, rows: [...held(2), open()] }),
+      spotlightVisible({ ...base, activeFilters: 0 }),
     ).toBe(false)
+  })
+
+  it('stays absent when it would restate rather than summarise', () => {
+    expect(
+      spotlightVisible({ ...base, candidates: held(SPOTLIGHT_MIN_HELD - 1) }),
+    ).toBe(false)
+  })
+
+  it('counts held titles, not rows — open bounties never reach it', () => {
+    // The query only returns held titles, so a filter set that is mostly open
+    // bounties yields few candidates and the strip stays away.
+    expect(spotlightVisible({ ...base, candidates: [open()] })).toBe(false)
   })
 })
 
-function renderSpotlight(rows: RecordCardRow[]) {
+function renderSpotlight(candidates: RecordCardRow[]) {
   const rootRoute = createRootRoute({
-    component: () => <Spotlight mode="grb" rows={rows} />,
+    component: () => <Spotlight mode="grb" candidates={candidates} />,
   })
   const router = createRouter({
     routeTree: rootRoute,
@@ -77,11 +82,13 @@ function renderSpotlight(rows: RecordCardRow[]) {
 }
 
 describe('Spotlight', () => {
-  it('names itself as a landmark and renders a card per record', async () => {
-    const { findByRole, getAllByRole } = renderSpotlight(held(3))
+  it('names itself as a landmark and shows only the top few candidates', async () => {
+    const { findByRole, getAllByRole } = renderSpotlight(
+      held(SPOTLIGHT_MIN_HELD),
+    )
     const region = await findByRole('region', { name: /spotlight/i })
     expect(region).toBeTruthy()
-    expect(getAllByRole('listitem')).toHaveLength(3)
+    expect(getAllByRole('listitem')).toHaveLength(SPOTLIGHT_SHOWS)
   })
 
   it('carries the kills and the holder of each record', async () => {

@@ -298,9 +298,9 @@
   border-bottom-color: var(--hairline);
 }
 /* Tabbing into a row scrolls it into view — under the pinned head unless the
-   row reserves the head's own height above itself. */
+   row reserves the head's own measured height above itself. */
 .ledger-sticky tbody tr {
-  scroll-margin-top: calc(var(--ledger-head-top) + 3.5rem);
+  scroll-margin-top: calc(var(--ledger-head-top) + var(--ledger-head-h, 3.5rem));
 }
 @media (prefers-reduced-motion: reduce) {
   .ledger-sticky thead th {

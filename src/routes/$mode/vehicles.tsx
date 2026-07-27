@@ -13,7 +13,11 @@ import {
   NationCell,
   VehicleCell,
 } from '#/components/catalog-ledger'
-import { Spotlight, spotlightVisible } from '#/components/spotlight'
+import {
+  SPOTLIGHT_MIN_HELD,
+  Spotlight,
+  spotlightVisible,
+} from '#/components/spotlight'
 import {
   VehicleFilters,
   clearedFilters,
@@ -24,6 +28,7 @@ import { browseFacets, browseSpotlight, browseVehicles } from '#/db/queries'
 import {
   BROWSE_PAGE_SIZE,
   browseFilters,
+  nextSortSearch,
   normalizeBrowseSearch,
 } from '#/lib/browse-params'
 import type { BrowseSearch, BrowseSort } from '#/lib/browse-params'
@@ -39,7 +44,9 @@ const loadBrowse = createServerFn({ method: 'GET' })
     const [result, facets, spotlight] = await Promise.all([
       browseVehicles(db, data.mode, filters),
       browseFacets(db, data.mode),
-      wantsSpotlight ? browseSpotlight(db, data.mode, filters) : null,
+      wantsSpotlight
+        ? browseSpotlight(db, data.mode, filters, SPOTLIGHT_MIN_HELD)
+        : null,
     ])
     if (!result || !facets) throw notFound()
     return { result, facets, spotlight: spotlight ?? [] }
@@ -77,28 +84,14 @@ function SortHeader({
   children: React.ReactNode
 }) {
   const active = search.sort === sort
-  const nextDir = active && search.dir !== 'desc' ? 'desc' : undefined
   return (
     <button
       type="button"
       className={
-        'inline-flex items-center gap-1 text-xs font-semibold tracking-wide uppercase transition-colors duration-200 ' +
+        'inline-flex items-center gap-1 text-xs font-semibold tracking-[0.05em] uppercase transition-colors duration-200 ' +
         (active ? 'text-fg' : 'text-fg-muted hover:text-fg')
       }
-      onClick={() => {
-        const next: BrowseSearch = { ...search }
-        delete next.page
-        if (active && search.dir === 'desc') {
-          // Third click clears back to the default order.
-          delete next.sort
-          delete next.dir
-        } else {
-          next.sort = sort
-          if (nextDir) next.dir = nextDir
-          else delete next.dir
-        }
-        onChange(next)
-      }}
+      onClick={() => onChange(nextSortSearch(search, sort))}
     >
       {children}
       {active && <span aria-hidden>{search.dir === 'desc' ? '▾' : '▴'}</span>}
@@ -145,8 +138,7 @@ function BrowsePage() {
   const activeFilters = countActiveFilters(search)
   const showSpotlight = spotlightVisible({
     activeFilters,
-    total,
-    rows: spotlight,
+    candidates: spotlight,
   })
   const from = total === 0 ? 0 : (page - 1) * BROWSE_PAGE_SIZE + 1
   const to = Math.min(page * BROWSE_PAGE_SIZE, total)
@@ -212,7 +204,7 @@ function BrowsePage() {
         />
       </div>
 
-      {showSpotlight && <Spotlight mode={mode} rows={spotlight} />}
+      {showSpotlight && <Spotlight mode={mode} candidates={spotlight} />}
 
       <div className="mt-5">
         <LedgerPane stickyHead>

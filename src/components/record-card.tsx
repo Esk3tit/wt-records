@@ -1,16 +1,13 @@
 import { RecordName } from '#/components/record-name'
 import { VehicleLink } from '#/components/vehicle-link'
-import { isHeld } from '#/components/catalog-ledger'
-import type { LedgerVehicleRow } from '#/components/catalog-ledger'
+import { DifficultMark, isHeld } from '#/components/catalog-ledger'
+import type { VehicleArtRow } from '#/components/catalog-ledger'
 import { formatBr } from '#/lib/format'
 
-export interface RecordCardRow extends LedgerVehicleRow {
-  vehicleImage: string | null
-}
+export type RecordCardRow = VehicleArtRow
 
-/* A title as a floating glass card: vehicle portrait over the pane, the record
-   line beneath. An unheld title is an OPEN BOUNTY — the chase itself. Shared by
-   the nation sheet's record wall and Browse's Spotlight. */
+/* A title as a floating glass card, shared by the nation sheet's record wall
+   and Browse's Spotlight. */
 export function RecordCard({
   row,
   mode,
@@ -52,14 +49,7 @@ export function RecordCard({
             name={row.vehicleName}
             tags={tags}
           />
-          {row.isDifficult && (
-            <span
-              className="ml-1.5 text-fg-faint"
-              title="Difficult vehicle — higher qualifying kill bar"
-            >
-              ◆
-            </span>
-          )}
+          <DifficultMark show={row.isDifficult} />
           {/* The tinted glass is the sighted cue inside this wall; assistive
               tech still needs the words the muted chips no longer carry. */}
           {mutedAcquisition && (row.isPremium || row.isSquadron) && (

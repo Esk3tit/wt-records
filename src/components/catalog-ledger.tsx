@@ -22,10 +22,13 @@ export interface LedgerVehicleRow extends VehicleTagFlags {
   displayNameSnapshot: string | null
 }
 
-/** A ledger row that carries its own imagery: the vehicle's silhouette and the
-    Holder's face, both already resolved to serving URLs. */
-export interface IllustratedRow extends LedgerVehicleRow {
+/** A row whose vehicle art is resolved to a serving URL. */
+export interface VehicleArtRow extends LedgerVehicleRow {
   vehicleImage: string | null
+}
+
+/** A ledger row carrying the Holder's face as well as the vehicle's. */
+export interface IllustratedRow extends VehicleArtRow {
   holderAvatar: string | null
 }
 
@@ -34,7 +37,6 @@ export const LEDGER_TH =
   'py-3 text-left text-xs font-semibold tracking-[0.05em] text-fg-muted uppercase'
 export const LEDGER_ROW =
   'border-t border-hairline-soft transition-colors duration-200 hover:bg-[var(--row-hover)]'
-
 
 /** The count-plus-reset line both catalog routes render above their filters. */
 export function LedgerMeta({
@@ -68,20 +70,23 @@ export function LedgerMeta({
   )
 }
 
-/** True once the pane has scrolled far enough that its head is pinned rather
-    than parked. The head only takes its near-opaque backing while stuck — at
-    rest it must stay glass, or it reads as a black bar laid across the pane. */
+/** True once the head is pinned rather than parked: it may only take its
+    near-opaque backing while stuck, or it reads as a bar across the pane. */
 function useHeadStuck(enabled: boolean) {
+  const pane = useRef<HTMLDivElement>(null)
   const sentinel = useRef<HTMLDivElement>(null)
   const [stuck, setStuck] = useState(false)
   useEffect(() => {
     const el = sentinel.current
-    if (!enabled || !el) return
-    const th = el.parentElement?.querySelector('thead th')
-    if (!th) return
-    // The park line is whatever --ledger-head-top resolves to right now; it
-    // moves when the nav wraps, so it is read rather than assumed.
-    const top = parseFloat(getComputedStyle(th).top) || 0
+    const head = pane.current?.querySelector('thead')
+    if (!enabled || !el || !head) return
+    // Both read, never assumed: the park line moves when the nav wraps, and the
+    // head's own height is what a focused row must clear.
+    const top = parseFloat(getComputedStyle(head).top) || 0
+    pane.current?.style.setProperty(
+      '--ledger-head-h',
+      `${head.getBoundingClientRect().height}px`,
+    )
     const io = new IntersectionObserver(
       ([entry]) => setStuck(!entry.isIntersecting),
       { rootMargin: `-${top + 1}px 0px 0px 0px`, threshold: 0 },
@@ -89,13 +94,11 @@ function useHeadStuck(enabled: boolean) {
     io.observe(el)
     return () => io.disconnect()
   }, [enabled])
-  return { sentinel, stuck }
+  return { pane, sentinel, stuck }
 }
 
-/* No horizontal scroller: it would make the pane a scrollport and silently pin
-   the sticky head to the pane instead of the viewport. The row composes down
-   instead — that is what keeps the ledger inside a phone. `@container` is what
-   lets the row icon answer the pane's width rather than the viewport's. */
+/* No horizontal scroller: it would make the pane a scrollport and pin the
+   sticky head to the pane rather than the viewport. */
 export function LedgerPane({
   children,
   stickyHead = false,
@@ -103,9 +106,10 @@ export function LedgerPane({
   children: React.ReactNode
   stickyHead?: boolean
 }) {
-  const { sentinel, stuck } = useHeadStuck(stickyHead)
+  const { pane, sentinel, stuck } = useHeadStuck(stickyHead)
   return (
     <div
+      ref={pane}
       className={'glass-mid @container' + (stickyHead ? ' ledger-sticky' : '')}
       data-head-stuck={stickyHead && stuck ? 'true' : undefined}
     >
@@ -113,6 +117,24 @@ export function LedgerPane({
       <table className="w-full text-left text-[0.9375rem]">{children}</table>
     </div>
   )
+}
+
+/** The one mark for a difficult vehicle, so no surface invents its own. */
+export function DifficultMark({ show }: { show: boolean }) {
+  if (!show) return null
+  return (
+    <span
+      className="ml-1.5 text-fg-faint"
+      title="Difficult vehicle — higher qualifying kill bar"
+    >
+      ◆
+    </span>
+  )
+}
+
+/** The one way an unheld title says so in the ledger's register. */
+export function OpenBountyMark() {
+  return <span className="text-fg-faint">Open bounty</span>
 }
 
 export function VehicleCell({
@@ -127,8 +149,8 @@ export function VehicleCell({
   nationChip?: 'none' | 'mobile'
 }) {
   return (
-    // The one cell that yields: max-w-0 + w-full makes the name truncate under
-    // pressure instead of growing the table past a phone viewport.
+    // The one cell that yields: without max-w-0 the name grows the table
+    // past the viewport instead of truncating.
     <td className="w-full max-w-0 py-2.5 pr-4 pl-5">
       <div className="flex items-center gap-2.5">
         <VehicleIcon src={row.vehicleImage} variant="ledger" />
@@ -148,14 +170,7 @@ export function VehicleCell({
             >
               {row.vehicleName}
             </Link>
-            {row.isDifficult && (
-              <span
-                className="ml-1.5 text-fg-faint"
-                title="Difficult vehicle — higher qualifying kill bar"
-              >
-                ◆
-              </span>
-            )}
+            <DifficultMark show={row.isDifficult} />
             <VehicleTags tags={row} />
           </div>
           <HolderLine row={row} />
@@ -165,9 +180,8 @@ export function VehicleCell({
   )
 }
 
-/* Below md the Holder column folds to here, under the name it belongs to.
-   Kills stays a column at every width — it is the number the page is scanned
-   for, and its header is the only way to sort by it on a phone. */
+/* Where the Holder column goes below md, and BR below sm — under the name they
+   describe. Same inks as the columns they replace: one state, one voice. */
 function HolderLine({ row }: { row: IllustratedRow }) {
   return (
     <div className="mt-1 flex items-center gap-1.5 text-[0.8125rem] text-fg-muted md:hidden">
@@ -188,9 +202,7 @@ function HolderLine({ row }: { row: IllustratedRow }) {
           </span>
         </>
       ) : (
-        <span className="text-[0.6875rem] font-semibold tracking-[0.12em] text-[var(--accent-text)] uppercase">
-          Open bounty
-        </span>
+        <OpenBountyMark />
       )}
       {row.br != null && (
         <span className="ml-auto shrink-0 pl-2 text-fg-faint sm:hidden">
@@ -262,7 +274,7 @@ export function HolderCell({ row }: { row: IllustratedRow }) {
           <>
             {/* Reserved so the column keeps one text edge down the page. */}
             <span aria-hidden="true" className="w-[22px] shrink-0" />
-            <span className="text-fg-faint">Open bounty</span>
+            <OpenBountyMark />
           </>
         )}
       </span>
