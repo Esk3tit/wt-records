@@ -412,6 +412,96 @@ export async function listNations(db: Db, mode: string) {
   return m ? rows : null
 }
 
+export interface NationStanding {
+  slug: string
+  name: string
+  eligibleVehicles: number
+  coveredVehicles: number
+  completionPct: number
+  openBounties: number
+  /** Place in the standings, or null while the nation holds nothing — a rank
+      nobody earned is not a rank. */
+  rank: number | null
+  holder: { name: string; slug: string; titles: number } | null
+}
+
+/** The Mode's nation standings: nation_stats ordered by the standings rule,
+    plus each nation's most-titles Holder, which the view doesn't carry. The
+    Holder read is one grouped query for every nation rather than a per-nation
+    aggregate. `contested` is false for a Mode nobody has scored in, where the
+    page shows unclaimed territory instead of places. Null when the Mode
+    doesn't exist (→ 404). */
+export async function listNationStandings(
+  db: Db,
+  mode: string,
+): Promise<{ contested: boolean; nations: NationStanding[] } | null> {
+  const [m, rows, holders] = await Promise.all([
+    getMode(db, mode),
+    db
+      .select({
+        nationId: nationStats.nationId,
+        slug: nationStats.slug,
+        name: nationStats.name,
+        eligibleVehicles: nationStats.eligibleVehicles,
+        coveredVehicles: nationStats.coveredVehicles,
+        completionPct: nationStats.completionPct,
+      })
+      .from(nationStats)
+      .where(eq(nationStats.mode, mode)),
+    db
+      .selectDistinctOn([vehicles.nationId], {
+        nationId: vehicles.nationId,
+        displayName: players.displayName,
+        slug: players.slug,
+        titles: count(records.id),
+      })
+      .from(records)
+      .innerJoin(vehicles, eq(vehicles.id, records.vehicleId))
+      .innerJoin(modes, modeMatchesBranch)
+      .innerJoin(players, eq(players.id, records.playerId))
+      .where(and(eq(records.mode, mode), isCurrentVerified))
+      .groupBy(
+        vehicles.nationId,
+        players.id,
+        players.displayName,
+        players.slug,
+      )
+      .orderBy(
+        asc(vehicles.nationId),
+        desc(count(records.id)),
+        asc(players.displayName),
+      ),
+  ])
+  if (!m) return null
+
+  const byNation = new Map(
+    holders.map((h) => [
+      h.nationId,
+      { name: h.displayName, slug: h.slug, titles: h.titles },
+    ]),
+  )
+  const contested = rows.some((n) => n.coveredVehicles > 0)
+  const ordered = rows
+    .map(({ nationId, ...n }) => ({
+      ...n,
+      openBounties: n.eligibleVehicles - n.coveredVehicles,
+      holder: byNation.get(nationId) ?? null,
+    }))
+    .sort((a, b) =>
+      contested
+        ? b.completionPct - a.completionPct ||
+          b.coveredVehicles - a.coveredVehicles ||
+          a.name.localeCompare(b.name)
+        : // Unclaimed territory ranks by the size of the prize.
+          b.openBounties - a.openBounties || a.name.localeCompare(b.name),
+    )
+
+  return {
+    contested,
+    nations: ordered.map((n, i) => ({ ...n, rank: contested ? i + 1 : null })),
+  }
+}
+
 // One row shape for every catalog surface (nation sheet, Browse): vehicle +
 // tags + this mode's BR + Current record or open bounty.
 const catalogRowShape = {

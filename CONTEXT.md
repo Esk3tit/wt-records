@@ -162,6 +162,14 @@ _Avoid_: OG image (the transport, not the concept).
 **Completion %**:
 Per Mode, the fraction of eligible vehicles (by Branch) that have a Current record.
 
+**Nation standings**:
+Per Mode, nations ordered by Completion % descending, tie-broken by titles held, then name. A ranking exists only where titles are held: a nation with no Current records has no standing, and a Mode with none has no standings at all — only unclaimed territory.
+_Avoid_: nation leaderboard (the Leaderboard ranks Players, not nations).
+
+**Most titles** (per nation):
+The Player holding the most Current records for a (nation, Mode) — the nation's most present Holder. Ties broken by display name.
+_Avoid_: nation leader, top player.
+
 **Contest count**:
 Per (vehicle, Mode), how many verified Records that title has ever had — self-improvements included. Ranks the "most contested titles".
 _Avoid_: times changed hands (implies holder-change only), hotness.
