@@ -1,13 +1,9 @@
 import { Link } from '@tanstack/react-router'
 import { NationFlag } from '#/components/nation-flag'
+import { METAL_PANE, METAL_TEXT } from '#/lib/metals'
 import type { NationStanding } from '#/db/queries'
 
-const METAL_TEXT = ['text-gold', 'text-silver', 'text-bronze']
-const METAL_PANE = ['pane-gold', 'pane-silver', 'pane-bronze']
-
-/* The wash sets its own z-index to clear a pane's content; scoping it to a
-   layer of its own keeps the metal frost painting above it, so rank outranks
-   nationality on a row that carries both. */
+// The wash sets z-index 1; its own stacking context keeps the metal above it.
 function WashLayer({ slug }: { slug: string }) {
   return (
     <span aria-hidden="true" className="absolute inset-0 z-0 overflow-hidden">
@@ -16,9 +12,7 @@ function WashLayer({ slug }: { slug: string }) {
   )
 }
 
-/* Ten nations inside a 13-point completion band render as ten identical bars,
-   so the fill stays honest at 0–100 while the label carries what actually
-   separates them: how many titles are still unclaimed. */
+// Every nation's bar is near-full, so the label carries the spread instead.
 function CompletionBar({ nation }: { nation: NationStanding }) {
   return (
     <div className="flex items-center gap-2.5">
@@ -39,9 +33,7 @@ function CompletionBar({ nation }: { nation: NationStanding }) {
   )
 }
 
-/* Spoken, the row is a run of bare numerals — "2 left 104 of 106" tells a
-   screen reader nothing the layout tells everyone else. The label says the
-   same thing as a sentence; the visible text stays exactly as it is. */
+// Spoken, the row is bare numerals — "2 left 104 of 106" — so it needs a sentence.
 function rowLabel(nation: NationStanding, contested: boolean): string {
   const holder = nation.holder
     ? ` Most titles: ${nation.holder.name}, ${nation.holder.titles}.`
@@ -73,10 +65,7 @@ function StandingRow({
         className={`standings-row relative block border-b border-hairline-soft px-5 py-5 no-underline transition-colors duration-200 last:border-b-0 hover:bg-[var(--row-hover)] sm:px-7 sm:py-6 ${metal >= 0 ? METAL_PANE[metal] : ''}`}
       >
         <WashLayer slug={nation.slug} />
-        {/* Narrow screens stack — place, nation and the held count on one line,
-            then the holder and the bar across the full width, because a
-            truncated holder name defeats the point of naming them. Wide screens
-            put all four in one ledger line. */}
+        {/* Narrow screens stack so the holder name gets full width to itself. */}
         <div className="relative z-[1] grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2.5 sm:gap-x-6 lg:grid-cols-[2.5rem_16rem_minmax(0,1fr)_auto] lg:gap-y-1">
           <span
             className={`col-start-1 row-start-1 self-center text-right text-2xl leading-none font-bold tracking-[-0.02em] tabular-nums sm:text-3xl lg:row-span-2 ${metal >= 0 ? METAL_TEXT[metal] : 'text-fg-faint'}`}
@@ -84,7 +73,7 @@ function StandingRow({
             {nation.rank ?? ''}
           </span>
 
-          <span className="col-start-2 row-start-1 flex min-w-0 items-center gap-2.5 text-lg font-semibold text-fg sm:text-xl">
+          <span className="col-start-2 row-start-1 flex min-w-0 items-center gap-2.5 text-lg font-semibold text-fg">
             <NationFlag slug={nation.slug} />
             <span className="truncate">{nation.name}</span>
           </span>
@@ -107,8 +96,7 @@ function StandingRow({
             )}
           </div>
 
-          {/* The bar earns its column only where places exist; an empty mode
-              would render ten identical zeroes. */}
+          {/* An empty mode would render ten identical zeroes. */}
           {contested && (
             <div className="col-start-2 col-span-2 row-start-3 lg:col-span-1 lg:col-start-3 lg:row-span-2 lg:row-start-1 lg:self-center">
               <CompletionBar nation={nation} />
@@ -116,7 +104,7 @@ function StandingRow({
           )}
 
           <p className="col-start-3 row-start-1 justify-self-end text-right lg:col-start-4 lg:row-span-2 lg:self-center">
-            <span className="text-2xl leading-none font-bold tracking-[-0.02em] tabular-nums text-fg sm:text-3xl lg:text-4xl">
+            <span className="text-2xl leading-none font-bold tracking-[-0.03em] tabular-nums text-fg sm:text-3xl lg:text-4xl">
               {contested ? nation.coveredVehicles : nation.openBounties}
             </span>
             <span className="stat-unit ml-1.5 text-[0.8125rem]">
@@ -129,9 +117,6 @@ function StandingRow({
   )
 }
 
-/** The Mode's nation standings as one ranked wall: place, nation, its
-    most-titles Holder, what's left to claim, and titles held. A Mode nobody has
-    scored in inverts — no places, ordered by the size of the unclaimed prize. */
 export function NationStandings({
   mode,
   contested,

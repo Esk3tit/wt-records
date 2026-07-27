@@ -1,6 +1,5 @@
 import { Link } from '@tanstack/react-router'
-
-const RANK_COLOR = ['text-gold', 'text-silver', 'text-bronze']
+import { METAL_TEXT as RANK_COLOR } from '#/lib/metals'
 
 export interface LeaderboardRow {
   slug: string

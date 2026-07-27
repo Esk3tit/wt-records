@@ -32,6 +32,7 @@ import {
   vehicleSearchTerms,
   vehicles,
 } from '#/db/schema'
+import { rankNations } from '#/lib/standings'
 import { searchKey } from '#/lib/search-terms'
 import { likeContains } from '#/lib/like'
 import { assetUrlIfConfigured, proofUrlIfConfigured } from '#/storage/urls'
@@ -419,18 +420,12 @@ export interface NationStanding {
   coveredVehicles: number
   completionPct: number
   openBounties: number
-  /** Place in the standings, or null while the nation holds nothing — a rank
-      nobody earned is not a rank. */
   rank: number | null
   holder: { name: string; slug: string; titles: number } | null
 }
 
-/** The Mode's nation standings: nation_stats ordered by the standings rule,
-    plus each nation's most-titles Holder, which the view doesn't carry. The
-    Holder read is one grouped query for every nation rather than a per-nation
-    aggregate. `contested` is false for a Mode nobody has scored in, where the
-    page shows unclaimed territory instead of places. Null when the Mode
-    doesn't exist (→ 404). */
+/** A Mode's nation standings, plus each nation's most-titles Holder, which
+    nation_stats doesn't carry. Null when the Mode doesn't exist (→ 404). */
 export async function listNationStandings(
   db: Db,
   mode: string,
@@ -476,7 +471,7 @@ export async function listNationStandings(
     ]),
   )
   const contested = rows.some((n) => n.coveredVehicles > 0)
-  const ordered = rows
+  const contenders = rows
     // A nation that fields nothing in this Mode isn't in the running.
     .filter((n) => n.eligibleVehicles > 0)
     .map(({ nationId, ...n }) => ({
@@ -484,25 +479,7 @@ export async function listNationStandings(
       openBounties: n.eligibleVehicles - n.coveredVehicles,
       holder: byNation.get(nationId) ?? null,
     }))
-    .sort((a, b) =>
-      contested
-        ? b.completionPct - a.completionPct ||
-          b.coveredVehicles - a.coveredVehicles ||
-          a.name.localeCompare(b.name)
-        : // Unclaimed territory ranks by the size of the prize.
-          b.openBounties - a.openBounties || a.name.localeCompare(b.name),
-    )
-
-  // Holding nothing is no place at all, so an unheld nation stays unranked
-  // even where the Mode itself is contested.
-  let place = 0
-  return {
-    contested,
-    nations: ordered.map((n) => ({
-      ...n,
-      rank: contested && n.coveredVehicles > 0 ? ++place : null,
-    })),
-  }
+  return { contested, nations: rankNations(contenders, contested) }
 }
 
 // One row shape for every catalog surface (nation sheet, Browse): vehicle +
