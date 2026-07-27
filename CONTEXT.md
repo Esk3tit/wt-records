@@ -153,6 +153,10 @@ _Avoid_: alias (reserved for Player names).
 The Mode-scoped, kill-feed-style log of the newest verified Records — new records append at the bottom, the oldest fades out at the top; it moves only when a record actually lands.
 _Avoid_: ticker, carousel, "latest feed" (implies rotation).
 
+**Spotlight**:
+Per Mode, the three highest-kill Current records within Browse's active filter set — the best feats matching what was asked for, independent of the ledger's sort and page. Absent when no filter is active (the Mode landing already shows the Mode's best), and absent unless the filter set holds enough Current records that three of them read as a selection rather than a restatement — counted in held titles, never in rows.
+_Avoid_: top records (the landing's cards), podium (the landing's monument).
+
 **Share card**:
 The image that represents a page when its link unfurls (Discord and social embeds) — mode-scoped for a nation or vehicle, cross-mode for a Player; every other page shares one static site card. Shows current names only (never Snapshots) and the same vehicle chips as the site (class, BR, acquisition, removed). One exception: a Player card reached through a Merge tombstone adds "previously known as" for the old name (via Aliases), so the pasted link still reads as the same person.
 _Avoid_: OG image (the transport, not the concept).

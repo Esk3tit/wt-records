@@ -1,6 +1,9 @@
+import { useEffect, useRef, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { NationFlag } from '#/components/nation-flag'
+import { PlayerAvatar } from '#/components/player-avatar'
 import { RecordName } from '#/components/record-name'
+import { VehicleIcon } from '#/components/vehicle-icon'
 import { VehicleTags } from '#/components/vehicle-tags'
 import { formatBr } from '#/lib/format'
 import type { VehicleTagFlags } from '#/components/vehicle-tags'
@@ -19,9 +22,19 @@ export interface LedgerVehicleRow extends VehicleTagFlags {
   displayNameSnapshot: string | null
 }
 
+/** A row whose vehicle art is resolved to a serving URL. */
+export interface VehicleArtRow extends LedgerVehicleRow {
+  vehicleImage: string | null
+}
+
+/** A ledger row carrying the Holder's face as well as the vehicle's. */
+export interface IllustratedRow extends VehicleArtRow {
+  holderAvatar: string | null
+}
+
 /* Right padding stays per-column (pr-4 between, pr-5 at the pane edge). */
 export const LEDGER_TH =
-  'py-3 text-left text-xs font-semibold tracking-wide text-fg-muted uppercase'
+  'py-3 text-left text-xs font-semibold tracking-[0.05em] text-fg-muted uppercase'
 export const LEDGER_ROW =
   'border-t border-hairline-soft transition-colors duration-200 hover:bg-[var(--row-hover)]'
 
@@ -57,12 +70,92 @@ export function LedgerMeta({
   )
 }
 
-export function LedgerPane({ children }: { children: React.ReactNode }) {
+/** True once the head is pinned rather than parked: it may only take its
+    near-opaque backing while stuck, or it reads as a bar across the pane. */
+function useHeadStuck(enabled: boolean) {
+  const pane = useRef<HTMLDivElement>(null)
+  const sentinel = useRef<HTMLDivElement>(null)
+  const [stuck, setStuck] = useState(false)
+  useEffect(() => {
+    const el = sentinel.current
+    const head = pane.current?.querySelector('thead')
+    if (!enabled || !el || !head) return
+    let io: IntersectionObserver | undefined
+    // The park line moves whenever the nav wraps, so the threshold is rebuilt
+    // from the head's current geometry rather than snapshotted once.
+    const sync = () => {
+      io?.disconnect()
+      // Read the offset off a cell: sticky lives on `th`, so `thead` reports
+      // `auto` and the threshold would silently collapse to zero.
+      const cell = head.querySelector('th')
+      const top = cell ? parseFloat(getComputedStyle(cell).top) || 0 : 0
+      pane.current?.style.setProperty(
+        '--ledger-head-h',
+        `${head.getBoundingClientRect().height}px`,
+      )
+      io = new IntersectionObserver(
+        ([entry]) => setStuck(!entry.isIntersecting),
+        { rootMargin: `-${top + 1}px 0px 0px 0px`, threshold: 0 },
+      )
+      io.observe(el)
+    }
+    sync()
+    // A frame late on purpose: SiteNav publishes --nav-h from its own resize
+    // observer, and only the next frame is guaranteed to see the new offset.
+    let frame = 0
+    const resync = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(sync)
+    }
+    const ro = new ResizeObserver(resync)
+    ro.observe(document.documentElement)
+    return () => {
+      cancelAnimationFrame(frame)
+      ro.disconnect()
+      io?.disconnect()
+    }
+  }, [enabled])
+  return { pane, sentinel, stuck }
+}
+
+/* No horizontal scroller: it would make the pane a scrollport and pin the
+   sticky head to the pane rather than the viewport. */
+export function LedgerPane({
+  children,
+  stickyHead = false,
+}: {
+  children: React.ReactNode
+  stickyHead?: boolean
+}) {
+  const { pane, sentinel, stuck } = useHeadStuck(stickyHead)
   return (
-    <div className="glass-mid overflow-x-auto">
+    <div
+      ref={pane}
+      className={'glass-mid @container' + (stickyHead ? ' ledger-sticky' : '')}
+      data-head-stuck={stickyHead && stuck ? 'true' : undefined}
+    >
+      <div ref={sentinel} aria-hidden="true" />
       <table className="w-full text-left text-[0.9375rem]">{children}</table>
     </div>
   )
+}
+
+/** The one mark for a difficult vehicle, so no surface invents its own. */
+export function DifficultMark({ show }: { show: boolean }) {
+  if (!show) return null
+  return (
+    <span
+      className="ml-1.5 text-fg-faint"
+      title="Difficult vehicle — higher qualifying kill bar"
+    >
+      ◆
+    </span>
+  )
+}
+
+/** The one way an unheld title says so in the ledger's register. */
+export function OpenBountyMark() {
+  return <span className="text-fg-faint">Open bounty</span>
 }
 
 export function VehicleCell({
@@ -71,37 +164,73 @@ export function VehicleCell({
   nationChip = 'none',
 }: {
   mode: string
-  row: LedgerVehicleRow
+  row: IllustratedRow
   /** `mobile`: show the flag chip only below md, where the Nation column folds
       into this cell. */
   nationChip?: 'none' | 'mobile'
 }) {
   return (
-    <td className="py-2.5 pr-4 pl-5">
-      {/* Wrapper span, not a utility on the chip: the unlayered .flag-chip
-          display rule would win over `md:hidden`. */}
-      {nationChip === 'mobile' && (
-        <span className="mr-2 md:hidden">
-          <NationFlag slug={row.nationSlug} />
-        </span>
-      )}
-      <Link
-        to="/$mode/vehicle/$slug"
-        params={{ mode, slug: row.vehicleSlug }}
-        className="font-medium no-underline hover:underline"
-      >
-        {row.vehicleName}
-      </Link>
-      {row.isDifficult && (
-        <span
-          className="ml-1.5 text-fg-faint"
-          title="Difficult vehicle — higher qualifying kill bar"
-        >
-          ◆
-        </span>
-      )}
-      <VehicleTags tags={row} />
+    // The one cell that yields: without max-w-0 the name grows the table
+    // past the viewport instead of truncating.
+    <td className="w-full max-w-0 py-2.5 pr-4 pl-5">
+      <div className="flex items-center gap-2.5">
+        <VehicleIcon src={row.vehicleImage} variant="ledger" />
+        <div className="min-w-0 flex-1">
+          <div className="truncate">
+            {/* Wrapper span, not a utility on the chip: the unlayered
+                .flag-chip display rule would win over `md:hidden`. */}
+            {nationChip === 'mobile' && (
+              <span className="mr-2 md:hidden">
+                <NationFlag slug={row.nationSlug} />
+              </span>
+            )}
+            <Link
+              to="/$mode/vehicle/$slug"
+              params={{ mode, slug: row.vehicleSlug }}
+              className="font-medium no-underline hover:underline"
+            >
+              {row.vehicleName}
+            </Link>
+            <DifficultMark show={row.isDifficult} />
+            <VehicleTags tags={row} />
+          </div>
+          <HolderLine row={row} />
+        </div>
+      </div>
     </td>
+  )
+}
+
+/* Where the Holder column goes below md, and BR below sm — under the name they
+   describe. Same inks as the columns they replace: one state, one voice. */
+function HolderLine({ row }: { row: IllustratedRow }) {
+  return (
+    <div className="mt-1 flex items-center gap-1.5 text-[0.8125rem] text-fg-muted md:hidden">
+      {isHeld(row) ? (
+        <>
+          <PlayerAvatar
+            avatarUrl={row.holderAvatar}
+            displayName={row.displayName}
+            size={18}
+          />
+          <span className="min-w-0 truncate [&_a]:no-underline">
+            <RecordName
+              displayName={row.displayName}
+              playerSlug={row.playerSlug}
+              ignSnapshot={row.ignSnapshot}
+              displayNameSnapshot={row.displayNameSnapshot}
+            />
+          </span>
+        </>
+      ) : (
+        <OpenBountyMark />
+      )}
+      {row.br != null && (
+        <span className="ml-auto shrink-0 pl-2 text-fg-faint sm:hidden">
+          {formatBr(row.br)}
+        </span>
+      )}
+    </div>
   )
 }
 
@@ -142,19 +271,34 @@ export function isHeld(
   return !!row.playerSlug && !!row.displayName
 }
 
-export function HolderCell({ row }: { row: LedgerVehicleRow }) {
+export function HolderCell({ row }: { row: IllustratedRow }) {
   return (
-    <td className="py-2.5 pr-5 [&_a]:no-underline [&_a:hover]:underline">
-      {isHeld(row) ? (
-        <RecordName
-          displayName={row.displayName}
-          playerSlug={row.playerSlug}
-          ignSnapshot={row.ignSnapshot}
-          displayNameSnapshot={row.displayNameSnapshot}
-        />
-      ) : (
-        <span className="text-fg-faint">Open bounty</span>
-      )}
+    <td className="hidden py-2.5 pr-5 md:table-cell [&_a]:no-underline [&_a:hover]:underline">
+      <span className="flex items-center gap-2">
+        {isHeld(row) ? (
+          <>
+            <PlayerAvatar
+              avatarUrl={row.holderAvatar}
+              displayName={row.displayName}
+              size={22}
+            />
+            <span className="min-w-0 truncate">
+              <RecordName
+                displayName={row.displayName}
+                playerSlug={row.playerSlug}
+                ignSnapshot={row.ignSnapshot}
+                displayNameSnapshot={row.displayNameSnapshot}
+              />
+            </span>
+          </>
+        ) : (
+          <>
+            {/* Reserved so the column keeps one text edge down the page. */}
+            <span aria-hidden="true" className="w-[22px] shrink-0" />
+            <OpenBountyMark />
+          </>
+        )}
+      </span>
     </td>
   )
 }

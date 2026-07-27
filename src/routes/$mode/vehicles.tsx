@@ -14,15 +14,21 @@ import {
   VehicleCell,
 } from '#/components/catalog-ledger'
 import {
+  SPOTLIGHT_MIN_HELD,
+  Spotlight,
+  spotlightVisible,
+} from '#/components/spotlight'
+import {
   VehicleFilters,
   clearedFilters,
   countActiveFilters,
 } from '#/components/vehicle-filters'
 import { db } from '#/db'
-import { browseFacets, browseVehicles } from '#/db/queries'
+import { browseFacets, browseSpotlight, browseVehicles } from '#/db/queries'
 import {
   BROWSE_PAGE_SIZE,
   browseFilters,
+  nextSortSearch,
   normalizeBrowseSearch,
 } from '#/lib/browse-params'
 import type { BrowseSearch, BrowseSort } from '#/lib/browse-params'
@@ -32,12 +38,20 @@ const loadBrowse = createServerFn({ method: 'GET' })
   .handler(async ({ data }) => {
     // Server fn input is untrusted even though the route validated it.
     const search = normalizeBrowseSearch(data.search as Record<string, unknown>)
-    const [result, facets] = await Promise.all([
-      browseVehicles(db, data.mode, browseFilters(search)),
+    const filters = browseFilters(search)
+    // Never pay for a Spotlight that cannot appear: the unfiltered view never
+    // shows one, and filtering to open bounties excludes every held title.
+    const wantsSpotlight =
+      countActiveFilters(search) > 0 && search.status !== 'open'
+    const [result, facets, spotlight] = await Promise.all([
+      browseVehicles(db, data.mode, filters),
       browseFacets(db, data.mode),
+      wantsSpotlight
+        ? browseSpotlight(db, data.mode, filters, SPOTLIGHT_MIN_HELD)
+        : null,
     ])
     if (!result || !facets) throw notFound()
-    return { result, facets }
+    return { result, facets, spotlight: spotlight ?? [] }
   })
 
 export const Route = createFileRoute('/$mode/vehicles')({
@@ -72,28 +86,14 @@ function SortHeader({
   children: React.ReactNode
 }) {
   const active = search.sort === sort
-  const nextDir = active && search.dir !== 'desc' ? 'desc' : undefined
   return (
     <button
       type="button"
       className={
-        'inline-flex items-center gap-1 text-xs font-semibold tracking-wide uppercase transition-colors duration-200 ' +
+        'inline-flex items-center gap-1 text-xs font-semibold tracking-[0.05em] uppercase transition-colors duration-200 ' +
         (active ? 'text-fg' : 'text-fg-muted hover:text-fg')
       }
-      onClick={() => {
-        const next: BrowseSearch = { ...search }
-        delete next.page
-        if (active && search.dir === 'desc') {
-          // Third click clears back to the default order.
-          delete next.sort
-          delete next.dir
-        } else {
-          next.sort = sort
-          if (nextDir) next.dir = nextDir
-          else delete next.dir
-        }
-        onChange(next)
-      }}
+      onClick={() => onChange(nextSortSearch(search, sort))}
     >
       {children}
       {active && <span aria-hidden>{search.dir === 'desc' ? '▾' : '▴'}</span>}
@@ -132,12 +132,16 @@ function BrowsePage() {
   const data = Route.useLoaderData()
   const navigate = Route.useNavigate()
   if (!data) return null
-  const { result, facets } = data
+  const { result, facets, spotlight } = data
   const { rows, total, page, pageCount } = result
 
   const setSearch = (next: BrowseSearch) => navigate({ search: next })
   const resetFilters = () => setSearch(clearedFilters(search))
   const activeFilters = countActiveFilters(search)
+  const showSpotlight = spotlightVisible({
+    activeFilters,
+    candidates: spotlight,
+  })
   const from = total === 0 ? 0 : (page - 1) * BROWSE_PAGE_SIZE + 1
   const to = Math.min(page * BROWSE_PAGE_SIZE, total)
 
@@ -202,8 +206,10 @@ function BrowsePage() {
         />
       </div>
 
+      {showSpotlight && <Spotlight mode={mode} candidates={spotlight} />}
+
       <div className="mt-5">
-        <LedgerPane>
+        <LedgerPane stickyHead>
           <thead>
             <tr>
               <th
@@ -233,7 +239,11 @@ function BrowsePage() {
                   Kills
                 </SortHeader>
               </th>
-              <th className={LEDGER_TH + ' pr-5'}>Holder</th>
+              {/* Folds with its cell: a head that keeps a column the body has
+                  dropped shears the table. */}
+              <th className={LEDGER_TH + ' hidden pr-5 md:table-cell'}>
+                Holder
+              </th>
             </tr>
           </thead>
           <tbody>

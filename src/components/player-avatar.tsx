@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Medallion } from '#/components/medallion'
 
 /* A Player's face in the hall: the site-owned avatar when set, otherwise the
@@ -15,12 +16,17 @@ export function PlayerAvatar({
   size?: number
   eager?: boolean
 }) {
+  // A key can outlive its object; the Medallion is a first-class state, so a
+  // failed load falls back to it rather than to a broken frame. Keyed by URL,
+  // so a replacement avatar is tried instead of inheriting the old failure.
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
+  const failed = avatarUrl != null && failedUrl === avatarUrl
   return (
     <div
       className="relative shrink-0 overflow-hidden rounded-full"
       style={{ width: size, height: size }}
     >
-      {avatarUrl ? (
+      {avatarUrl && !failed ? (
         <img
           src={avatarUrl}
           alt={`${displayName}'s avatar`}
@@ -29,6 +35,7 @@ export function PlayerAvatar({
           loading={eager ? 'eager' : 'lazy'}
           decoding="async"
           className="h-full w-full object-cover"
+          onError={() => setFailedUrl(avatarUrl)}
         />
       ) : (
         <Medallion name={displayName} />

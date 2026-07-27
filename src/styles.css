@@ -34,6 +34,11 @@
   --pill-track: rgba(0, 0, 0, 0.2);
   --pill-active: rgba(255, 255, 255, 0.14);
 
+  /* Where a pinned ledger head parks: the nav's own sticky inset, its measured
+     height (SiteNav publishes --nav-h), and a hairline of air. The fallback
+     covers the first paint before the observer reports. */
+  --ledger-head-top: calc(1rem + var(--nav-h, 3.5rem) + 0.5rem);
+
   /* Semantic status ink (verification is the brand): night forms. */
   --status-verified: #6ee7b7;
   --status-warn: #fcd34d;
@@ -266,6 +271,43 @@
     inset 0 -0.5px 0 var(--glass-edge),
     var(--ambient-thick);
   border-radius: 26px;
+}
+
+/* The ledger's head parks inside the pane and pins under the floating nav once
+   the rows reach it. Parked, it is part of the glass and carries no fill of its
+   own. Pinned, it overlays its own rows — which backdrop-filter cannot sample —
+   so it takes the same near-opacity .menu-glass needs, and only then. */
+.ledger-sticky thead th {
+  position: sticky;
+  top: var(--ledger-head-top);
+  z-index: 2;
+  background: transparent;
+  border-bottom: 1px solid transparent;
+  transition:
+    background-color 200ms ease-out,
+    border-color 200ms ease-out;
+}
+.ledger-sticky[data-head-stuck='true'] thead th {
+  /* The pane's own fill over an opaque base: the head reads as this pane
+     turning solid, not as a darker band cut into it. */
+  background:
+    linear-gradient(var(--glass-mid-bg), var(--glass-mid-bg)),
+    color-mix(in srgb, var(--base) 94%, transparent);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border-bottom-color: var(--hairline);
+}
+/* Tabbing scrolls the focused control into view, not its row, and scroll-margin
+   does not inherit — so the reservation belongs on the control itself. */
+.ledger-sticky tbody :is(a, button, [tabindex]) {
+  scroll-margin-top: calc(
+    var(--ledger-head-top) + var(--ledger-head-h, 3.5rem)
+  );
+}
+@media (prefers-reduced-motion: reduce) {
+  .ledger-sticky thead th {
+    transition: none;
+  }
 }
 
 /* Floating menus overlay sibling content that backdrop-filter can't sample
@@ -1058,6 +1100,24 @@
     max-width: 4.75rem;
     object-position: left;
     vertical-align: middle;
+  }
+
+  /* The catalog ledger's slot. Narrow enough to leave the name room on a
+     phone, where the row runs two lines and has the height to carry it. */
+  .vehicle-icon-ledger {
+    display: block;
+    height: 2.25rem;
+    width: 3rem;
+    max-width: 3rem;
+    object-position: left;
+    vertical-align: middle;
+  }
+  @container (min-width: 30rem) {
+    .vehicle-icon-ledger {
+      height: 2.5rem;
+      width: 4.75rem;
+      max-width: 4.75rem;
+    }
   }
 }
 

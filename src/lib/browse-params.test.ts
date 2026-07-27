@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { browseFilters, normalizeBrowseSearch } from '#/lib/browse-params'
+import {
+  browseFilters,
+  nextSortSearch,
+  normalizeBrowseSearch,
+} from '#/lib/browse-params'
 
 describe('normalizeBrowseSearch', () => {
   it('keeps well-formed values in canonical string form', () => {
@@ -103,6 +107,41 @@ describe('browseFilters', () => {
       sort: null,
       dir: 'asc',
       page: 1,
+    })
+  })
+})
+
+describe('nextSortSearch', () => {
+  it('sorts ascending on the first press of an idle column', () => {
+    expect(nextSortSearch({}, 'kills')).toEqual({ sort: 'kills' })
+  })
+
+  it('reverses to descending on the second press', () => {
+    expect(nextSortSearch({ sort: 'kills' }, 'kills')).toEqual({
+      sort: 'kills',
+      dir: 'desc',
+    })
+  })
+
+  it('returns to the default order on the third', () => {
+    expect(nextSortSearch({ sort: 'kills', dir: 'desc' }, 'kills')).toEqual({})
+  })
+
+  it('starts a different column ascending, dropping the old direction', () => {
+    expect(nextSortSearch({ sort: 'kills', dir: 'desc' }, 'br')).toEqual({
+      sort: 'br',
+    })
+  })
+
+  it('restarts paging, since row one is no longer the same row', () => {
+    expect(nextSortSearch({ page: 4 }, 'name')).toEqual({ sort: 'name' })
+  })
+
+  it('leaves the filters alone — order is not a filter', () => {
+    expect(nextSortSearch({ nation: 'france', q: 'tiger' }, 'br')).toEqual({
+      nation: 'france',
+      q: 'tiger',
+      sort: 'br',
     })
   })
 })

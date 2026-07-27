@@ -126,6 +126,27 @@ export function normalizeBrowseSearch(
   return out
 }
 
+/** Next URL shape for a sort-header press: ascending, then descending, then
+ * back to the default order. Defaults stay omitted, so the bare URL stays bare
+ * and paging always restarts. */
+export function nextSortSearch(
+  search: BrowseSearch,
+  sort: BrowseSort,
+): BrowseSearch {
+  const next = { ...search }
+  delete next.page
+  const active = search.sort === sort
+  if (active && search.dir === 'desc') {
+    delete next.sort
+    delete next.dir
+    return next
+  }
+  next.sort = sort
+  if (active) next.dir = 'desc'
+  else delete next.dir
+  return next
+}
+
 export function browseFilters(search: BrowseSearch): BrowseFilters {
   return {
     q: search.q ?? null,
