@@ -460,12 +460,7 @@ export async function listNationStandings(
       .innerJoin(modes, modeMatchesBranch)
       .innerJoin(players, eq(players.id, records.playerId))
       .where(and(eq(records.mode, mode), isCurrentVerified))
-      .groupBy(
-        vehicles.nationId,
-        players.id,
-        players.displayName,
-        players.slug,
-      )
+      .groupBy(vehicles.nationId, players.id, players.displayName, players.slug)
       .orderBy(
         asc(vehicles.nationId),
         desc(count(records.id)),
@@ -482,6 +477,8 @@ export async function listNationStandings(
   )
   const contested = rows.some((n) => n.coveredVehicles > 0)
   const ordered = rows
+    // A nation that fields nothing in this Mode isn't in the running.
+    .filter((n) => n.eligibleVehicles > 0)
     .map(({ nationId, ...n }) => ({
       ...n,
       openBounties: n.eligibleVehicles - n.coveredVehicles,
@@ -496,9 +493,15 @@ export async function listNationStandings(
           b.openBounties - a.openBounties || a.name.localeCompare(b.name),
     )
 
+  // Holding nothing is no place at all, so an unheld nation stays unranked
+  // even where the Mode itself is contested.
+  let place = 0
   return {
     contested,
-    nations: ordered.map((n, i) => ({ ...n, rank: contested ? i + 1 : null })),
+    nations: ordered.map((n) => ({
+      ...n,
+      rank: contested && n.coveredVehicles > 0 ? ++place : null,
+    })),
   }
 }
 

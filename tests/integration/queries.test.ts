@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { freshDb } from './pglite'
 import type { TestDb } from './pglite'
 import { seed } from '#/db/seed'
@@ -142,6 +142,25 @@ describe('listNationStandings', () => {
       [null, 'germany', 3],
     ])
     expect(standings?.nations.every((n) => n.holder === null)).toBe(true)
+  })
+
+  it('leaves a nation that holds nothing unranked, even in a contested mode', async () => {
+    const germanVehicles = t.db
+      .select({ id: vehicles.id })
+      .from(vehicles)
+      .innerJoin(nations, eq(nations.id, vehicles.nationId))
+      .where(eq(nations.slug, 'germany'))
+    await t.db
+      .update(records)
+      .set({ isCurrent: false })
+      .where(inArray(records.vehicleId, germanVehicles))
+
+    const standings = await listNationStandings(t.db, 'grb')
+    expect(standings?.contested).toBe(true)
+    expect(standings?.nations.map((n) => [n.rank, n.slug])).toEqual([
+      [1, 'usa'],
+      [null, 'germany'],
+    ])
   })
 
   it('returns null for a mode that does not exist', async () => {

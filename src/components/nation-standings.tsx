@@ -39,6 +39,19 @@ function CompletionBar({ nation }: { nation: NationStanding }) {
   )
 }
 
+/* Spoken, the row is a run of bare numerals — "2 left 104 of 106" tells a
+   screen reader nothing the layout tells everyone else. The label says the
+   same thing as a sentence; the visible text stays exactly as it is. */
+function rowLabel(nation: NationStanding, contested: boolean): string {
+  const holder = nation.holder
+    ? ` Most titles: ${nation.holder.name}, ${nation.holder.titles}.`
+    : ' No titles held yet.'
+  if (!contested)
+    return `${nation.name}. ${nation.openBounties} titles open.${holder}`
+  const place = nation.rank != null ? `, rank ${nation.rank}` : ''
+  return `${nation.name}${place}. ${nation.coveredVehicles} of ${nation.eligibleVehicles} titles held, ${nation.openBounties} left.${holder}`
+}
+
 function StandingRow({
   mode,
   nation,
@@ -56,6 +69,7 @@ function StandingRow({
       <Link
         to="/$mode/nation/$slug"
         params={{ mode, slug: nation.slug }}
+        aria-label={rowLabel(nation, contested)}
         className={`relative block border-b border-hairline-soft px-5 py-5 no-underline transition-colors duration-200 last:border-b-0 hover:bg-[var(--row-hover)] sm:px-7 sm:py-6 ${metal >= 0 ? METAL_PANE[metal] : ''}`}
       >
         <WashLayer slug={nation.slug} />
