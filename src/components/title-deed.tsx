@@ -59,7 +59,6 @@ export function TitleDeed({
 }) {
   const bar = titleBar(current?.kills ?? null, minKills)
   return (
-    // The washes are masked off this, so material lands where the machine is.
     <header className="glass-thick relative overflow-hidden p-7 [--deed-art-h:8rem] sm:[--deed-art-h:11rem] md:p-10 lg:[--deed-art-h:clamp(14rem,26vw,21rem)]">
       <div aria-hidden="true" className="absolute inset-0 z-0">
         <AcquisitionWash tags={vehicle} scale="pane" />
@@ -176,7 +175,6 @@ export function TitleDeed({
         </div>
 
         {vehicle.image && (
-          // Bled past the pane's padding so the frame's radius crops it.
           <div className="-mr-7 -mb-7 mt-3 h-[var(--deed-art-h)] shrink-0 md:-mr-10 md:-mb-10 lg:mt-0 lg:w-[46%]">
             <img
               src={vehicle.image}

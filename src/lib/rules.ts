@@ -67,6 +67,53 @@ export function titleBar(
   return { held: false, kills: qualifying }
 }
 
+/* Only strictly more kills takes a title, so the entries that actually held it
+   are the ascending frontier. Migrated rows can carry a later date with fewer
+   kills — verified lives, but never holders. */
+export function titleFrontier<T extends { kills: number }>(rows: T[]): T[] {
+  const frontier: T[] = []
+  let best = 0
+  for (const row of rows) {
+    if (row.kills > best) {
+      frontier.push(row)
+      best = row.kills
+    }
+  }
+  return frontier
+}
+
+export interface TitleReign<T> {
+  row: T
+  /** Whether this record ever held the title, rather than merely being a
+      verified life below the standing record. */
+  heldTitle: boolean
+  /** When the title left it — the date of the record that actually took it,
+      which is the next FRONTIER entry and not simply the next row. Null while
+      it still holds, or when it never held at all. */
+  endedAt: Date | null
+}
+
+/** Each verified record paired with the reign it had, oldest first. A losing
+    record neither gets a reign nor closes anybody else's. */
+export function titleReigns<
+  T extends { kills: number; verifiedAt: Date | null },
+>(oldestFirst: T[]): Array<TitleReign<T>> {
+  const frontier = new Set(titleFrontier(oldestFirst))
+  let previousHolder: TitleReign<T> | null = null
+  return oldestFirst.map((row) => {
+    const reign: TitleReign<T> = {
+      row,
+      heldTitle: frontier.has(row),
+      endedAt: null,
+    }
+    if (reign.heldTitle) {
+      if (previousHolder) previousHolder.endedAt = row.verifiedAt
+      previousHolder = reign
+    }
+    return reign
+  })
+}
+
 export interface TitleCandidate {
   id: number
   kills: number

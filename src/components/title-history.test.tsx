@@ -67,9 +67,46 @@ describe('TitleHistory', () => {
   })
 
   it('marks the standing record rather than giving it a tenure', async () => {
-    const { getByText, container } = await history(climb)
+    const { getByText } = await history(climb)
     expect(getByText('holds it')).toBeDefined()
-    expect(container.textContent).not.toContain('stood 0 days')
+  })
+
+  // A verified life below the standing record never held the title, so it must
+  // not show a reign — nor close the reign of the record it never beat.
+  it("gives a losing record no tenure and lets it end nobody else's", async () => {
+    const { getByText, container } = await history([
+      row({ kills: 26, verifiedAt: new Date('2024-01-01T00:00:00Z') }),
+      row({
+        kills: 20,
+        playerSlug: 'kukwa',
+        displayName: 'KuKwa',
+        verifiedAt: new Date('2024-01-05T00:00:00Z'),
+      }),
+      row({
+        kills: 30,
+        playerSlug: 'koalkiest',
+        displayName: 'Koalkiest',
+        isCurrent: true,
+        verifiedAt: new Date('2024-02-01T00:00:00Z'),
+      }),
+    ])
+    expect(getByText('did not take the title')).toBeDefined()
+    // the 26 was taken by the 30 a month later, not by the losing 20 on day 4
+    expect(getByText('stood 31 days')).toBeDefined()
+    expect(container.textContent).not.toContain('stood 4 days')
+  })
+
+  // formatHeldDays' rule: a brief reign is real, never a zero.
+  it('renders a same-day supersede as under a day', async () => {
+    const { getByText } = await history([
+      row({ verifiedAt: new Date('2024-04-12T01:00:00Z') }),
+      row({
+        kills: 30,
+        isCurrent: true,
+        verifiedAt: new Date('2024-04-12T20:00:00Z'),
+      }),
+    ])
+    expect(getByText('stood under a day')).toBeDefined()
   })
 
   it('says only that a record was superseded when a date is missing', async () => {

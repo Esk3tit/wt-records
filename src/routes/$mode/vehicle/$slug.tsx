@@ -54,7 +54,7 @@ function VehicleDetail() {
         current={current}
         minKills={minKills}
       />
-      <ProofGallery proofs={proofs} archived={current?.verifiedAt != null} />
+      <ProofGallery proofs={proofs} />
       <TitleHistory rows={history} steps={titleSteps} />
     </div>
   )

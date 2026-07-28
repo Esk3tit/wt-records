@@ -172,14 +172,14 @@ One committed base per lighting state, mirrored ink ramps, one warm accent with 
 - **Day Gold** (#7A6200), **Day Silver** (#57606C), **Day Bronze** (#8A5220): rank metals as text by day, contrast-safe on Daylight Hall.
 
 ### Acquisition materials
-Not ink and not accent — two gradient washes laid over a glass fill, so acquisition reads as what the surface is *made of*. **Medal Amber** gilds premium; **Service Green** (#6FA05C) is squadron's, the only hue in the system that exists solely as a material and never as text, border, or icon. Each ships at two strengths from one vocabulary: card (`.acq-premium` / `.acq-squadron`) and pane (`.acq-pane`), the latter quieter because a title sheet wears it over an order of magnitude more surface. Event and removed take no material — their chips carry them. Because these are materials, the gilded wash does not count against The One Amber Rule; the accent *ink* on the same screen still does.
+Not ink and not accent — two gradient washes laid over a glass fill, so acquisition reads as what the surface is *made of*. **Medal Amber** gilds premium; **Service Green** (#6FA05C) is squadron's, the only hue in the system that exists solely as a material and never as text, border, or icon. Each ships at two strengths from one vocabulary: card (`.acq-premium` / `.acq-squadron`) and pane (`.acq-pane`), the latter quieter because a title sheet wears it over an order of magnitude more surface. Event and removed take no material — their chips carry them.
 
 ### Named Rules
 **The Same Hall Rule.** Light and dark are the same hall under different light. Tokens flip (base, ink, hairline, scrim/veil, deep accent/metal forms); structure, spacing, radii, type, and layout never do. A screen that rearranges between modes is broken.
 
 **The Earned Metal Rule.** Gold, silver, and bronze (and their day forms) color only ranks 1, 2, and 3 — never headings, never icons, never decoration.
 
-**The One Amber Rule.** Medal Amber (or its Deep day form) covers at most 10% of any screen: primary action, active mode, current selection, record emphasis. Two competing amber elements in one view means one of them is wrong.
+**The One Amber Rule.** Medal Amber (or its Deep day form) covers at most 10% of any screen: primary action, active mode, current selection, record emphasis. Two competing amber elements in one view means one of them is wrong. The premium acquisition wash is exempt — it is a *material*, not the accent doing accent work; the amber **ink** on the same screen still counts.
 
 ## 3. Typography
 
@@ -240,7 +240,7 @@ The identity layer. A small, curated, fixed set of battle scenes, each processed
 - **Glass pill** (live-accepted at frost .12 / float .2): section-nav capsule that is a small liquid-glass pane in its own right — 999px radius, full ink at weight 550, 12% white-alpha fill with blur 36/saturate 180%, specular edges, a subtle 3px anchor shadow rising 2px on hover. Important navigation is never muted into the background.
 
 ### Chips
-- **Removed tag:** faint fill (white .10 night / dark .08 day), the mode's **full** ink, uppercase Label type, 4px radius, 2px 6px padding. Metadata register — informative, never alarming; removed vehicles are first-class citizens. Full ink is the one place metadata takes the primary step, because the chip lays its own lightening fill under the text: measured on thick glass, faint lands at 4.33 night and muted at 3.84, both under the AA floor the rest of the system holds. Size, case and tracking are what keep a chip quiet here, not ink.
+- **Removed tag:** faint fill (white .10 night / dark .08 day), the mode's **full** ink, uppercase Label type, 4px radius, 2px 6px padding. Metadata register — informative, never alarming; removed vehicles are first-class citizens. Full ink is the one place metadata takes the primary step, because the chip lays its own lightening fill under the text: on an untinted glass pane the muted step measures 3.84 night, under the AA floor the rest of the system holds (and the faint step, being lighter still, sits below that). Size, case and tracking are what keep a chip quiet here, not ink.
 
 ### Cards / Containers (Glass Panels)
 - **Corner Style:** continuous radii from the locked band — 22px on mid-weight cards, 26px on thick panels (hero); 10px on embedded media (proof thumbnails), 2px micro-radius on chip-scale marks (flag chips).

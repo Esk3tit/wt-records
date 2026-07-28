@@ -32,6 +32,7 @@ import {
   vehicleSearchTerms,
   vehicles,
 } from '#/db/schema'
+import { titleFrontier } from '#/lib/rules'
 import { rankNations } from '#/lib/standings'
 import { searchKey } from '#/lib/search-terms'
 import { likeContains } from '#/lib/like'
@@ -146,20 +147,16 @@ function countedRecordRows(db: Db) {
     .innerJoin(players, eq(players.id, records.playerId))
 }
 
-/* Only strictly more kills takes a title, so the chartable "history" is the
-   ascending frontier: entries that actually held the record when verified.
-   Migrated rows can carry a later date with fewer kills — verified, but never
-   holders. */
-function titleFrontier<T extends { kills: number }>(steps: T[]): T[] {
-  const frontier: T[] = []
-  let best = 0
-  for (const step of steps) {
-    if (step.kills > best) {
-      frontier.push(step)
-      best = step.kills
-    }
-  }
-  return frontier
+// Null renders the Medallion — a first-class state for an accountless holder,
+// not a gap.
+function withHolderAvatar<
+  T extends { holderUserId: string | null; holderAvatarKey: string | null },
+>({ holderUserId, holderAvatarKey, ...row }: T) {
+  const key = effectiveAvatarKey({
+    userId: holderUserId,
+    avatarKey: holderAvatarKey,
+  })
+  return { ...row, holderAvatar: key ? assetUrlIfConfigured(key) : null }
 }
 
 // Serving URL beside the row (computed server-side: env stays off the client);
@@ -869,20 +866,7 @@ export async function getVehicle(db: Db, mode: string, slug: string) {
   ])
   const brRow = one(brRows)
   const currentRow = one(currentRows)
-  let current = null
-  if (currentRow) {
-    const { holderUserId, holderAvatarKey, ...row } = currentRow
-    // Serving URL computed server-side; the raw key never ships. Null renders
-    // the Medallion — a first-class state for an accountless holder, not a gap.
-    const avatarKey = effectiveAvatarKey({
-      userId: holderUserId,
-      avatarKey: holderAvatarKey,
-    })
-    current = {
-      ...row,
-      holderAvatar: avatarKey ? assetUrlIfConfigured(avatarKey) : null,
-    }
-  }
+  const current = currentRow ? withHolderAvatar(currentRow) : null
 
   // A Difficult vehicle's flat bar beats the class bar (PRD rules semantics).
   const classMin = one(minKillRows)?.minKills ?? null

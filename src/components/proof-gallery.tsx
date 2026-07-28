@@ -38,16 +38,11 @@ function proofHost(url: string): string {
 
 /* The evidence wall. Proof that exists but can't be reached from here is still
    shown — a title's evidence is never silently missing. */
-export function ProofGallery({
-  proofs,
-  archived,
-}: {
-  proofs: Array<ProofItem>
-  /** Verified records mirror their proof at verification; migrated ones
-      inherit whatever the record book had. */
-  archived: boolean
-}) {
+export function ProofGallery({ proofs }: { proofs: Array<ProofItem> }) {
   if (proofs.length === 0) return null
+  // The claim is about mirroring, so it is answered by storagePath — a record
+  // verified with nothing but external links has no archive to boast of.
+  const archived = proofs.some((p) => p.storagePath)
   const images = proofs.filter((p) => p.storagePath && p.url)
   const links = proofs.filter((p) => !(p.storagePath && p.url) && p.url)
   const unreachable = proofs.filter((p) => !p.url)

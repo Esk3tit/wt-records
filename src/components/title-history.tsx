@@ -1,7 +1,8 @@
 import { RecordHistory } from '#/components/record-history'
 import { RecordName } from '#/components/record-name'
 import { SectionHead } from '#/components/section-head'
-import { formatDayYear, stoodDays } from '#/lib/dates'
+import { formatDayYear, formatHeldDays, stoodSecs } from '#/lib/dates'
+import { titleReigns } from '#/lib/rules'
 import type { HistoryStep } from '#/components/record-history'
 import type { RecordNameProps } from '#/components/record-name'
 
@@ -12,8 +13,10 @@ export interface TitleHistoryRow extends RecordNameProps {
   isCurrent: boolean
 }
 
-/* Every verified life this title has had, newest first. A tenure is knowable
-   only from the entry that ended it, hence the successor lookup below. */
+/* Every verified life this title has had, newest first. Tenure comes from the
+   title frontier, not from row order: the corpus carries verified lives that
+   never beat the standing record, and one of those must never look like it
+   held the title or like it ended somebody else's reign. */
 export function TitleHistory({
   rows,
   steps,
@@ -24,8 +27,12 @@ export function TitleHistory({
 }) {
   if (rows.length < 2) return null
   const charted = steps.length >= 2
-  // Newest first for reading; each entry's successor is its predecessor here.
-  const newestFirst = [...rows].reverse()
+  const newestFirst = titleReigns(
+    rows.map((row) => ({
+      ...row,
+      verifiedAt: row.verifiedAt == null ? null : new Date(row.verifiedAt),
+    })),
+  ).reverse()
 
   return (
     <section className="mt-8">
@@ -38,13 +45,8 @@ export function TitleHistory({
       >
         {charted && <RecordHistory steps={steps} />}
         <ol className="glass-mid overflow-hidden">
-          {newestFirst.map((row, i) => {
-            const stood = row.isCurrent
-              ? null
-              : stoodDays(
-                  row.verifiedAt,
-                  newestFirst[i - 1]?.verifiedAt ?? null,
-                )
+          {newestFirst.map(({ row, heldTitle, endedAt }, i) => {
+            const stood = stoodSecs(row.verifiedAt, endedAt)
             return (
               <li
                 key={`${row.playerSlug}-${row.kills}-${i}`}
@@ -74,8 +76,10 @@ export function TitleHistory({
                     <span className="stat-label font-semibold text-fg-muted">
                       holds it
                     </span>
+                  ) : !heldTitle ? (
+                    'did not take the title'
                   ) : stood != null ? (
-                    `stood ${stood} ${stood === 1 ? 'day' : 'days'}`
+                    `stood ${formatHeldDays(stood)}`
                   ) : (
                     'superseded'
                   )}

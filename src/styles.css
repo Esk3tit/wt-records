@@ -12,6 +12,8 @@
   --hairline: rgba(255, 255, 255, 0.16);
   --hairline-soft: rgba(255, 255, 255, 0.08);
   --accent-text: #f0b94a;
+  /* Squadron's material. The one hue that is never ink, border, or icon. */
+  --service-green: #6fa05c;
   --gold: #ffd75e;
   --silver: #d6dbe2;
   --bronze: #e0995a;
@@ -1100,7 +1102,11 @@
   background-image: linear-gradient(to bottom, #f0b94a5c, #f0b94a1a);
 }
 .acq-squadron {
-  background-image: linear-gradient(to bottom, #6fa05c66, #6fa05c21);
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--service-green) 40%, transparent),
+    color-mix(in srgb, var(--service-green) 13%, transparent)
+  );
 }
 /* At pane scale the material pools where the art is rather than veiling the
    whole surface: a wash lightens the glass under it, and the ink ramp's
@@ -1126,7 +1132,11 @@
   background-image: linear-gradient(to bottom, #f0b94a33, #f0b94a5c);
 }
 .acq-pane.acq-squadron {
-  background-image: linear-gradient(to bottom, #6fa05c3d, #6fa05c66);
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--service-green) 24%, transparent),
+    color-mix(in srgb, var(--service-green) 40%, transparent)
+  );
 }
 
 /* The deed's art at page scale. Unlike `.vehicle-portrait` it runs to the pane

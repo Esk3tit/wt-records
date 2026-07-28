@@ -4,6 +4,7 @@ import {
   qualifyingThreshold,
   takesTitle,
   titleBar,
+  titleReigns,
 } from '#/lib/rules'
 import type { ModeThresholds, VehicleClass } from '#/lib/rules'
 
@@ -115,5 +116,54 @@ describe('titleBar (the number to beat)', () => {
 
   it('an open bounty with no configured bar states no number', () => {
     expect(titleBar(null, null)).toEqual({ held: false, kills: null })
+  })
+})
+
+describe('titleReigns', () => {
+  const at = (iso: string) => new Date(iso)
+  const r = (kills: number, iso: string | null) => ({
+    kills,
+    verifiedAt: iso ? at(iso) : null,
+  })
+
+  it('gives every climbing record a reign closed by the one that took it', () => {
+    const out = titleReigns([
+      r(10, '2024-01-01T00:00:00Z'),
+      r(12, '2024-01-11T00:00:00Z'),
+      r(20, '2024-02-01T00:00:00Z'),
+    ])
+    expect(out.map((x) => x.heldTitle)).toEqual([true, true, true])
+    expect(out[0].endedAt).toEqual(at('2024-01-11T00:00:00Z'))
+    expect(out[1].endedAt).toEqual(at('2024-02-01T00:00:00Z'))
+    expect(out[2].endedAt).toBeNull()
+  })
+
+  // The migrated corpus carries verified rows that never beat the standing
+  // record — they are real lives, but they never held the title.
+  it('never lets a losing record hold a title or close another reign', () => {
+    const out = titleReigns([
+      r(10, '2024-01-01T00:00:00Z'),
+      r(9, '2024-01-05T00:00:00Z'),
+      r(20, '2024-02-01T00:00:00Z'),
+    ])
+    expect(out.map((x) => x.heldTitle)).toEqual([true, false, true])
+    // the 10 was taken by the 20, NOT by the losing 9 four days later
+    expect(out[0].endedAt).toEqual(at('2024-02-01T00:00:00Z'))
+    expect(out[1].endedAt).toBeNull()
+  })
+
+  it('does not let an equal score take the title (takesTitle is strict)', () => {
+    const out = titleReigns([
+      r(10, '2024-01-01T00:00:00Z'),
+      r(10, '2024-01-05T00:00:00Z'),
+    ])
+    expect(out.map((x) => x.heldTitle)).toEqual([true, false])
+    expect(out[0].endedAt).toBeNull()
+  })
+
+  it('treats a dateless migrated record as the oldest, per the loader order', () => {
+    const out = titleReigns([r(10, null), r(20, '2024-02-01T00:00:00Z')])
+    expect(out[0].heldTitle).toBe(true)
+    expect(out[0].endedAt).toEqual(at('2024-02-01T00:00:00Z'))
   })
 })

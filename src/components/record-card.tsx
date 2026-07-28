@@ -27,7 +27,7 @@ export function RecordCard({
     : row
   return (
     <article className="glass-mid pane-lift relative flex flex-col px-3 pt-2.5 pb-3">
-      {mutedAcquisition && <AcquisitionWash tags={row} />}
+      {mutedAcquisition && <AcquisitionWash tags={row} className="-z-10" />}
       <header className="flex items-baseline justify-between gap-2">
         <span className="min-w-0 truncate text-[0.9375rem] font-medium">
           <VehicleLink
