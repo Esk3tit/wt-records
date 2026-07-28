@@ -102,21 +102,35 @@ describe('takesTitle (supersede rule)', () => {
 
 describe('titleBar (the number to beat)', () => {
   it('a held title states one more than the standing record', () => {
-    expect(titleBar(23, 12)).toEqual({ held: true, kills: 24 })
+    expect(titleBar(23, 12, true)).toEqual({ held: true, kills: 24 })
   })
 
   it('the held bar ignores the qualifying minimum entirely', () => {
     // a record below its own class bar (migrated corpus) still only needs
     // to be strictly exceeded — the qualifying bar gates new titles, not this
-    expect(titleBar(4, 12)).toEqual({ held: true, kills: 5 })
+    expect(titleBar(4, 12, true)).toEqual({ held: true, kills: 5 })
   })
 
   it('an open bounty states the class qualifying minimum', () => {
-    expect(titleBar(null, 12)).toEqual({ held: false, kills: 12 })
+    expect(titleBar(null, 12, false)).toEqual({ held: false, kills: 12 })
   })
 
   it('an open bounty with no configured bar states no number', () => {
-    expect(titleBar(null, null)).toEqual({ held: false, kills: null })
+    expect(titleBar(null, null, false)).toEqual({ held: false, kills: null })
+  })
+
+  // demoteRecord leaves the displaced record verified and eligible, so the
+  // qualifying minimum alone would be a bar a challenger could clear and lose.
+  it('an open title must also exceed a verified record left standing', () => {
+    expect(titleBar(23, 12, false)).toEqual({ held: false, kills: 24 })
+  })
+
+  it('an open title keeps the qualifying minimum when it is the higher bar', () => {
+    expect(titleBar(4, 12, false)).toEqual({ held: false, kills: 12 })
+  })
+
+  it('an open title with a standing record but no configured bar still states one', () => {
+    expect(titleBar(23, null, false)).toEqual({ held: false, kills: 24 })
   })
 })
 

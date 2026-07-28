@@ -61,10 +61,11 @@ export function TitleDeed({
       already applied), or null when the mode configures none. */
   minKills: number | null
 }) {
-  // Held-ness comes from the holder, never from `standing`: a demoted record
-  // leaves a verified score behind with nobody holding the title, and an open
-  // title is governed by the qualifying bar.
-  const bar = titleBar(current ? standing : null, minKills)
+  const bar = titleBar(standing, minKills, current != null)
+  // makeCurrentRecord can install a record the frontier does not end on, and
+  // demoteRecord can leave one standing with no holder. Either way the row's
+  // own verifiedAt stops meaning "since when this has held".
+  const displaced = standing != null && standing > (current?.kills ?? -Infinity)
   return (
     <header className="glass-thick relative overflow-hidden p-7 [--deed-art-h:8rem] sm:[--deed-art-h:11rem] md:p-10 lg:[--deed-art-h:clamp(14rem,26vw,21rem)]">
       <div aria-hidden="true" className="absolute inset-0 z-0">
@@ -123,9 +124,11 @@ export function TitleDeed({
                     <RecordName {...current} />
                   </p>
                   <p className="text-[0.8125rem] text-fg-muted">
-                    {current.verifiedAt
-                      ? heldLine(current.verifiedAt)
-                      : 'Migrated from the community record book'}
+                    {!current.verifiedAt
+                      ? 'Migrated from the community record book'
+                      : displaced
+                        ? `Verified ${formatDayYear(current.verifiedAt)}`
+                        : heldLine(current.verifiedAt)}
                   </p>
                 </div>
               </div>
@@ -167,9 +170,17 @@ export function TitleDeed({
                   </strong>{' '}
                   in one life — matching the record does not supersede it.
                 </>
+              ) : // The numeral above already IS this number; the line says what
+              // it is, rather than saying it twice.
+              displaced ? (
+                <>
+                  No one holds this title, but a verified{' '}
+                  <strong className="font-semibold text-fg">
+                    {standing} kills
+                  </strong>{' '}
+                  still stands against it — that is the score to exceed.
+                </>
               ) : (
-                // The numeral above already IS this number; the line says what
-                // it is, rather than saying it twice.
                 <>
                   The{' '}
                   {vehicle.isDifficult ? 'Difficult' : `${vehicle.class}-class`}{' '}

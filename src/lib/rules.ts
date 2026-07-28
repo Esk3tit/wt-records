@@ -71,13 +71,20 @@ export function standingKills(
 
 /** A held title is taken by STRICTLY exceeding it (hence +1, per takesTitle),
     an open one by clearing the qualifying bar. A standing record below its own
-    class bar — the migrated corpus has them — still only has to be exceeded. */
+    class bar — the migrated corpus has them — still only has to be exceeded.
+    An open title must ALSO clear any verified record left standing without a
+    holder: demoteRecord leaves one eligible, and rightfulHolder restores it. */
 export function titleBar(
-  currentKills: number | null,
+  standing: number | null,
   qualifying: number | null,
+  held: boolean,
 ): TitleBar {
-  if (currentKills != null) return { held: true, kills: currentKills + 1 }
-  return { held: false, kills: qualifying }
+  if (held && standing != null) return { held: true, kills: standing + 1 }
+  const bar = Math.max(
+    qualifying ?? -Infinity,
+    standing == null ? -Infinity : standing + 1,
+  )
+  return { held: false, kills: Number.isFinite(bar) ? bar : null }
 }
 
 /* Only strictly more kills takes a title, so the entries that actually held it

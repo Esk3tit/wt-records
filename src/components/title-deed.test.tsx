@@ -125,14 +125,27 @@ describe('TitleDeed — the number to beat', () => {
     expect(container.textContent).toContain('Difficult qualifying bar')
   })
 
-  // demoteRecord can leave a verified record with nobody holding the title.
-  // The page must not call it open AND quote the supersede rule at once.
-  it('never mixes the open state with a supersede bar', async () => {
+  // demoteRecord can leave a verified record with nobody holding the title:
+  // the qualifying minimum alone would be a bar a challenger clears and loses,
+  // but the held wording would be a lie too, since nobody holds it.
+  it('states the standing score for a vacant title, without the held wording', async () => {
     const { container, getByText } = await deed({ current: null, standing: 30 })
     expect(getByText('Open bounty')).toBeDefined()
-    expect(container.textContent).toContain('qualifying bar for GRB')
+    expect(getByText('31')).toBeDefined()
+    expect(container.textContent).toContain('still stands against it')
     expect(container.textContent).not.toContain('matching the record')
-    expect(container.textContent).not.toContain('31 kills')
+    expect(container.textContent).not.toContain('qualifying bar for GRB')
+  })
+
+  // makeCurrentRecord can install an older record today; its verifiedAt is
+  // then no longer the day its reign began.
+  it('claims no tenure for a holder a verified record outranks', async () => {
+    const { container } = await deed({
+      current: { ...current, kills: 20 },
+      standing: 30,
+    })
+    expect(container.textContent).toContain('Verified 9 Feb 2026')
+    expect(container.textContent).not.toContain('Held ')
   })
 
   it('states no number when the mode configures no bar for the class', async () => {
