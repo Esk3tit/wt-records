@@ -45,13 +45,14 @@ test('a held title states its record, its holder, and the number to beat', async
     page.getByText(/matching the record does not supersede/),
   ).toBeVisible()
 
-  // The deed's whole claim in one assertion: the bar it asks for is the
-  // standing record strictly exceeded, which is what supersede means.
+  // The deed's whole claim in one assertion. The bar strictly exceeds the
+  // record on show; it clears it by more than one only where a higher verified
+  // score still stands, which the monument does not display.
   const deed = (await page.locator('header').last().textContent()) ?? ''
   const record = Number(/World record(\d+)/.exec(deed)?.[1])
   const bar = Number(/Take this title with (\d+) kills/.exec(deed)?.[1])
   expect(record, 'the deed states no record').toBeGreaterThan(0)
-  expect(bar).toBe(record + 1)
+  expect(bar).toBeGreaterThanOrEqual(record + 1)
 })
 
 test('the leaderboard renders for the live mode', async ({ page }) => {

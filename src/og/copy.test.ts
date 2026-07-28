@@ -26,6 +26,7 @@ describe('vehicleUnfurl', () => {
       displayName: 'Пётр',
     },
     minKills: 15,
+    history: [],
   })
 
   it('tells the whole story in the description for a held record', () => {
@@ -52,6 +53,7 @@ describe('vehicleUnfurl', () => {
       br: 8.0,
       current: null,
       minKills: 18,
+      history: [],
     })
     const u = vehicleUnfurl(open)
     expect(u.title).toBe('Object 279 — GRB bounty')

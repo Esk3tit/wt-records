@@ -34,6 +34,7 @@ const vehicleHeld = toVehicleCardModel('grb', {
     displayName: 'Пётр Железняков',
   },
   minKills: 15,
+  history: [],
 })
 
 const vehicleWorst = toVehicleCardModel('grb', {
@@ -57,6 +58,7 @@ const vehicleWorst = toVehicleCardModel('grb', {
     displayName: 'Александрдлинноеимя',
   },
   minKills: 12,
+  history: [],
 })
 
 const vehicleOpen = toVehicleCardModel('grb', {
@@ -74,6 +76,7 @@ const vehicleOpen = toVehicleCardModel('grb', {
   br: 8.3,
   current: null,
   minKills: 18,
+  history: [],
 })
 
 const nation = toNationCardModel('grb', {

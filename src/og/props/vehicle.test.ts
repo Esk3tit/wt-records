@@ -25,6 +25,7 @@ function data(over: Partial<VehicleCardData> = {}): VehicleCardData {
       displayName: 'Пётр',
     },
     minKills: 15,
+    history: [],
     ...over,
   }
 }
@@ -65,6 +66,24 @@ describe('toVehicleCardModel', () => {
     expect(m.holder).toBeNull()
     expect(m.minKills).toBe(15)
     expect(m.version).toBeTruthy()
+  })
+
+  // The card must advertise the bar the write path would honour, exactly as
+  // the deed does — a score still standing outranks the class minimum.
+  it('advertises the standing score when it outranks the class minimum', () => {
+    const m = toVehicleCardModel(
+      'grb',
+      data({ current: null, minKills: 15, history: [{ kills: 30 }] }),
+    )
+    expect(m.minKills).toBe(31)
+  })
+
+  it('keeps the class minimum when no standing score beats it', () => {
+    const m = toVehicleCardModel(
+      'grb',
+      data({ current: null, minKills: 15, history: [{ kills: 4 }] }),
+    )
+    expect(m.minKills).toBe(15)
   })
 
   it('upper-cases SPG/SPAA class acronyms in the chip', () => {

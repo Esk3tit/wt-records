@@ -61,6 +61,7 @@ function vehicle(over: Partial<VehicleCardData> = {}): VehicleCardData {
       displayName: 'Пётр Железняков',
     },
     minKills: 15,
+    history: [],
     ...over,
   }
 }
@@ -122,6 +123,7 @@ describe('renderCardPng', () => {
             displayName: 'Александрдлинноеимяфамилия',
           },
           minKills: 12,
+          history: [],
         }),
       ),
     ))
