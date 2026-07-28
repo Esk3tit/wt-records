@@ -1067,13 +1067,13 @@
    sampled at its own edge fades to nothing, drawing the rectangle the wash
    exists to avoid. Shape is the mask's job, so the box needs no width. */
 .flag-wash-sheet {
+  --flag-wash-bleed: 2.5rem;
   position: absolute;
   inset: calc(-1 * var(--flag-wash-bleed));
   z-index: 1;
   opacity: 0.1;
   pointer-events: none;
   filter: blur(var(--flag-wash-bleed));
-  --flag-wash-bleed: 2.5rem;
   mask-image: linear-gradient(to left, #000 6%, transparent 42%);
 }
 :root[data-theme='light'] .flag-wash-sheet {
