@@ -50,14 +50,16 @@ function renderDeed(props: Parameters<typeof TitleDeed>[0]) {
 
 // The router mounts asynchronously, so every case waits for the first paint.
 async function deed(over: Partial<Parameters<typeof TitleDeed>[0]> = {}) {
-  const view = renderDeed({
+  const props = {
     mode: 'grb',
     vehicle,
     br: 1.0,
     current,
     minKills: 12,
     ...over,
-  })
+  }
+  // Standing follows the holder unless a case sets it apart on purpose.
+  const view = renderDeed({ standing: props.current?.kills ?? null, ...props })
   await view.findByRole('heading', { level: 1 })
   return view
 }
@@ -79,6 +81,19 @@ describe('TitleDeed — the number to beat', () => {
   it('never states the bar as a number to beat', async () => {
     const { container } = await deed()
     expect(container.textContent).not.toMatch(/beat/i)
+  })
+
+  // A moderator can pin a lower record as holder without retiring the one it
+  // displaces; the next write hands the title back to the higher record, so
+  // the page must ask for a number that would actually win.
+  it('asks for more than the holder scored when a higher record outranks it', async () => {
+    const { getByText, container } = await deed({
+      current: { ...current, kills: 20 },
+      standing: 30,
+    })
+    expect(getByText('20')).toBeDefined()
+    expect(getByText('31 kills')).toBeDefined()
+    expect(container.textContent).not.toContain('21 kills')
   })
 
   it('states the held bar even when the record is under its class bar', async () => {

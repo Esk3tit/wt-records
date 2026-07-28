@@ -56,6 +56,19 @@ export function takesTitle(
 export type TitleBar =
   { held: true; kills: number } | { held: false; kills: number | null }
 
+/** What a challenger has to exceed, which is not always the record currently
+    shown as holder: makeCurrentRecord can install a lower record without
+    retiring the one it displaces, and the next write hands the title back to
+    the highest verified record (rightfulHolder). The bar follows that, so the
+    page never promises a number the write path would refuse. */
+export function standingKills(
+  currentKills: number | null,
+  verifiedKills: Array<number>,
+): number | null {
+  const best = Math.max(currentKills ?? -Infinity, ...verifiedKills)
+  return Number.isFinite(best) ? best : null
+}
+
 /** A held title is taken by STRICTLY exceeding it (hence +1, per takesTitle),
     an open one by clearing the qualifying bar. A standing record below its own
     class bar — the migrated corpus has them — still only has to be exceeded. */

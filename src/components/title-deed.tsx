@@ -47,17 +47,21 @@ export function TitleDeed({
   vehicle,
   br,
   current,
+  standing,
   minKills,
 }: {
   mode: string
   vehicle: TitleDeedVehicle
   br: number | null
   current: TitleDeedRecord | null
+  /** The kills a challenger must exceed — see standingKills, which is not
+      always the holder's own score. */
+  standing: number | null
   /** The mode's qualifying bar for this vehicle's class (difficult override
       already applied), or null when the mode configures none. */
   minKills: number | null
 }) {
-  const bar = titleBar(current?.kills ?? null, minKills)
+  const bar = titleBar(standing, minKills)
   return (
     <header className="glass-thick relative overflow-hidden p-7 [--deed-art-h:8rem] sm:[--deed-art-h:11rem] md:p-10 lg:[--deed-art-h:clamp(14rem,26vw,21rem)]">
       <div aria-hidden="true" className="absolute inset-0 z-0">

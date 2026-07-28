@@ -3,6 +3,7 @@ import {
   qualifies,
   qualifyingThreshold,
   takesTitle,
+  standingKills,
   titleBar,
   titleReigns,
 } from '#/lib/rules'
@@ -116,6 +117,22 @@ describe('titleBar (the number to beat)', () => {
 
   it('an open bounty with no configured bar states no number', () => {
     expect(titleBar(null, null)).toEqual({ held: false, kills: null })
+  })
+})
+
+describe('standingKills (what a challenger must actually exceed)', () => {
+  it('is the standing record when nothing outranks it', () => {
+    expect(standingKills(30, [10, 30])).toBe(30)
+  })
+
+  // recomputeTitle awards the title to the highest verified record on the next
+  // write, so an override to a lower holder must not lower the bar.
+  it('is the highest verified record, not an overridden lower holder', () => {
+    expect(standingKills(20, [10, 30, 20])).toBe(30)
+  })
+
+  it('is null for a title nobody has ever taken', () => {
+    expect(standingKills(null, [])).toBeNull()
   })
 })
 

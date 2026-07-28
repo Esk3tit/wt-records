@@ -5,6 +5,7 @@ import { TitleDeed } from '#/components/title-deed'
 import { TitleHistory } from '#/components/title-history'
 import { db } from '#/db'
 import { getVehicle } from '#/db/queries'
+import { standingKills } from '#/lib/rules'
 import { toVehicleCardModel } from '#/og/props/vehicle'
 import { vehicleUnfurl } from '#/og/copy'
 import { vehicleCardUrl } from '#/og/urls'
@@ -52,6 +53,10 @@ function VehicleDetail() {
         vehicle={vehicle}
         br={br}
         current={current}
+        standing={standingKills(
+          current?.kills ?? null,
+          history.map((h) => h.kills),
+        )}
         minKills={minKills}
       />
       <ProofGallery proofs={proofs} />
