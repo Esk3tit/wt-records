@@ -26,6 +26,35 @@ test('a visitor lands on the live mode and reaches a vehicle from the catalogue'
   ).toBeVisible()
 })
 
+test('a held title states its record, its holder, and the number to beat', async ({
+  page,
+}) => {
+  // Filtered to held and sorted by kills, so the first row is a title with a
+  // current record whatever the corpus is — seed or the real record book.
+  await page.goto('/grb/vehicles?title=held&sort=kills&dir=desc')
+  const row = page.getByRole('table').getByRole('link').first()
+  const vehicleName = (await row.textContent())?.trim()
+  expect(vehicleName, 'no held titles in the catalogue').toBeTruthy()
+  await row.click()
+
+  await expect(
+    page.getByRole('heading', { level: 1, name: vehicleName! }),
+  ).toBeVisible()
+  await expect(page.getByText('World record')).toBeVisible()
+  await expect(
+    page.getByText(/matching the record does not supersede/),
+  ).toBeVisible()
+
+  // The deed's whole claim in one assertion. The bar strictly exceeds the
+  // record on show; it clears it by more than one only where a higher verified
+  // score still stands, which the monument does not display.
+  const deed = (await page.locator('header').last().textContent()) ?? ''
+  const record = Number(/World record(\d+)/.exec(deed)?.[1])
+  const bar = Number(/Take this title with (\d+) kills/.exec(deed)?.[1])
+  expect(record, 'the deed states no record').toBeGreaterThan(0)
+  expect(bar).toBeGreaterThanOrEqual(record + 1)
+})
+
 test('the leaderboard renders for the live mode', async ({ page }) => {
   await page.goto('/grb/leaderboard')
   await expect(

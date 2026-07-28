@@ -12,6 +12,8 @@
   --hairline: rgba(255, 255, 255, 0.16);
   --hairline-soft: rgba(255, 255, 255, 0.08);
   --accent-text: #f0b94a;
+  /* Squadron's material. The one hue that is never ink, border, or icon. */
+  --service-green: #6fa05c;
   --gold: #ffd75e;
   --silver: #d6dbe2;
   --bronze: #e0995a;
@@ -1058,6 +1060,106 @@
 }
 :root[data-theme='light'] .flag-wash-row {
   opacity: 0.12;
+}
+
+/* Sheet-scale wash: at this size the flag's own geometry reads as a banner, so
+   it is blurred into colour — and the box overhangs the pane because a blur
+   sampled at its own edge fades to nothing, drawing the rectangle the wash
+   exists to avoid. Shape is the mask's job, so the box needs no width. */
+.flag-wash-sheet {
+  --flag-wash-bleed: 2.5rem;
+  position: absolute;
+  inset: calc(-1 * var(--flag-wash-bleed));
+  z-index: 1;
+  opacity: 0.1;
+  pointer-events: none;
+  filter: blur(var(--flag-wash-bleed));
+  mask-image: linear-gradient(to left, #000 6%, transparent 42%);
+}
+:root[data-theme='light'] .flag-wash-sheet {
+  opacity: 0.13;
+}
+/* Stacked, the art moves under the text rather than beside it, so the wash
+   follows: intersecting the two masks pools it inside the art's own zone,
+   which is the part of the pane the deed's ink never reaches. */
+@media (max-width: 63.99rem) {
+  .flag-wash-sheet {
+    mask-image:
+      linear-gradient(
+        to top,
+        #000 calc(var(--deed-art-h, 8rem) * 0.3 + var(--flag-wash-bleed)),
+        transparent calc(var(--deed-art-h, 8rem) + var(--flag-wash-bleed))
+      ),
+      linear-gradient(to left, #000 30%, transparent 92%);
+    mask-composite: intersect;
+    -webkit-mask-composite: source-in;
+  }
+}
+
+/* Acquisition material: gradient washes laid over the glass fill, in both
+   lighting states. Event and removed stay neutral — their chips carry them. */
+.acq-premium {
+  background-image: linear-gradient(to bottom, #f0b94a5c, #f0b94a1a);
+}
+.acq-squadron {
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--service-green) 40%, transparent),
+    color-mix(in srgb, var(--service-green) 13%, transparent)
+  );
+}
+/* At pane scale the material pools where the art is rather than veiling the
+   whole surface: a wash lightens the glass under it, and the ink ramp's
+   secondary steps have no contrast margin to spend on that. `--deed-art-h` is
+   the art's height, published by whichever pane wears the material. */
+.acq-pane {
+  mask-image: linear-gradient(
+    to top,
+    #000 calc(var(--deed-art-h, 8rem) * 0.5),
+    transparent var(--deed-art-h, 8rem)
+  );
+}
+@media (min-width: 64rem) {
+  .acq-pane {
+    mask-image: radial-gradient(
+      56% 135% at 100% 100%,
+      #000 18%,
+      transparent 78%
+    );
+  }
+}
+.acq-pane.acq-premium {
+  background-image: linear-gradient(to bottom, #f0b94a33, #f0b94a5c);
+}
+.acq-pane.acq-squadron {
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--service-green) 24%, transparent),
+    color-mix(in srgb, var(--service-green) 40%, transparent)
+  );
+}
+
+/* The deed's art at page scale. Unlike `.vehicle-portrait` it runs to the pane
+   frame instead of floating on a mask fade — the frame's radius does the
+   cropping — so the two treatments are deliberately not the same object. */
+.title-deed-art {
+  display: block;
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+  object-position: right bottom;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.5));
+}
+:root[data-theme='light'] .title-deed-art {
+  filter: drop-shadow(0 18px 30px rgba(10, 12, 16, 0.3));
+}
+/* Sharing a row with the deed, it dissolves leftward so ink never lands on it. */
+@media (min-width: 64rem) {
+  .title-deed-art {
+    mask-image: linear-gradient(to left, #000 58%, transparent 97%);
+  }
 }
 
 /* Hero-scale wash: behind the monument, fading toward the pane's center. */

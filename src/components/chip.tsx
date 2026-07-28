@@ -1,9 +1,8 @@
 import type { ReactNode } from 'react'
 
-// The metadata chip register: informative, never alarming. One vocabulary for
-// every vehicle tag so no surface invents its own.
-// Muted rather than faint ink: the chip lays its own fill under the text, and
-// faint over that stack lands at 4.33 night / 4.44 day — under the AA floor.
+// Full ink, unlike the ink ramp's usual answer for metadata: the chip lays its
+// own lightening fill under the text, where muted measures 3.84 on thick glass.
+// Size, case and tracking are what keep it quiet here.
 export function Chip({
   title,
   children,
@@ -13,7 +12,7 @@ export function Chip({
 }) {
   return (
     <span
-      className="ml-1.5 rounded bg-tint-strong px-1.5 py-0.5 text-xs tracking-[0.05em] text-fg-muted uppercase"
+      className="rounded bg-tint-strong px-1.5 py-0.5 text-xs tracking-[0.05em] text-fg uppercase"
       title={title}
     >
       {children}

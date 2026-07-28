@@ -52,6 +52,109 @@ export function takesTitle(
   return challengerKills > incumbentKills
 }
 
+/** `kills` is null only when the mode configures no bar for the class. */
+export type TitleBar =
+  { held: true; kills: number } | { held: false; kills: number | null }
+
+/** What a challenger has to exceed, which is not always the record currently
+    shown as holder: makeCurrentRecord can install a lower record without
+    retiring the one it displaces, and the next write hands the title back to
+    the highest verified record (rightfulHolder). The bar follows that, so the
+    page never promises a number the write path would refuse. */
+export function standingKills(
+  currentKills: number | null,
+  verifiedKills: Array<number>,
+): number | null {
+  const best = Math.max(currentKills ?? -Infinity, ...verifiedKills)
+  return Number.isFinite(best) ? best : null
+}
+
+/** A held title is taken by STRICTLY exceeding it (hence +1, per takesTitle),
+    an open one by clearing the qualifying bar. A standing record below its own
+    class bar — the migrated corpus has them — still only has to be exceeded.
+    An open title must ALSO clear any verified record left standing without a
+    holder: demoteRecord leaves one eligible, and rightfulHolder restores it. */
+export function titleBar(
+  standing: number | null,
+  qualifying: number | null,
+  held: boolean,
+): TitleBar {
+  if (held && standing != null) return { held: true, kills: standing + 1 }
+  const bar = Math.max(
+    qualifying ?? -Infinity,
+    standing == null ? -Infinity : standing + 1,
+  )
+  return { held: false, kills: Number.isFinite(bar) ? bar : null }
+}
+
+/* Only strictly more kills takes a title, so the entries that actually held it
+   are the ascending frontier. Migrated rows can carry a later date with fewer
+   kills — verified lives, but never holders. */
+export function titleFrontier<T extends { kills: number }>(rows: T[]): T[] {
+  const frontier: T[] = []
+  let best = 0
+  for (const row of rows) {
+    if (row.kills > best) {
+      frontier.push(row)
+      best = row.kills
+    }
+  }
+  return frontier
+}
+
+export interface TitleReign<T> {
+  row: T
+  /** Whether this record ever held the title, rather than merely being a
+      verified life below the standing record. */
+  heldTitle: boolean
+  /** When the title left it — the date of the record that actually took it,
+      which is the next FRONTIER entry and not simply the next row. Null while
+      it still holds, or when it never held at all. */
+  endedAt: Date | null
+  /** It held last and nothing took the title from it: a moderator vacated the
+      title instead. Distinct from being superseded, which had a successor. */
+  vacated: boolean
+}
+
+export interface TitleTimeline<T> {
+  reigns: Array<TitleReign<T>>
+  /** False once a moderator has handed the title to a record the kill frontier
+      does not end on (makeCurrentRecord permits it, and does not retire the
+      record it displaces). These rows then cannot say who held what when, so
+      callers must drop every tenure claim rather than invent one. */
+  chronologyKnown: boolean
+  /** Nobody holds the title. The reigns behind it are still knowable, but no
+      row may be presented as the current holder. */
+  vacant: boolean
+}
+
+/** Each verified record paired with the reign it had, oldest first. A losing
+    record neither gets a reign nor closes anybody else's. */
+export function titleReigns<
+  T extends { kills: number; verifiedAt: Date | null; isCurrent?: boolean },
+>(oldestFirst: T[]): TitleTimeline<T> {
+  const holders = titleFrontier(oldestFirst)
+  const rank = new Map(holders.map((row, i) => [row, i]))
+  const current = oldestFirst.find((row) => row.isCurrent)
+  const vacant = current == null
+  const reigns = oldestFirst.map((row) => {
+    const i = rank.get(row)
+    return {
+      row,
+      heldTitle: i != null,
+      // The title left a holder when the NEXT holder took it — the next
+      // frontier entry, never simply the next row.
+      endedAt: i == null ? null : (holders[i + 1]?.verifiedAt ?? null),
+      vacated: vacant && row === holders.at(-1),
+    }
+  })
+  return {
+    reigns,
+    chronologyKnown: vacant || holders.at(-1) === current,
+    vacant,
+  }
+}
+
 export interface TitleCandidate {
   id: number
   kills: number

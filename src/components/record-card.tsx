@@ -1,3 +1,4 @@
+import { AcquisitionWash } from '#/components/acquisition-wash'
 import { RecordName } from '#/components/record-name'
 import { VehicleLink } from '#/components/vehicle-link'
 import { DifficultMark, isHeld } from '#/components/catalog-ledger'
@@ -24,23 +25,9 @@ export function RecordCard({
   const tags = mutedAcquisition
     ? { ...row, isPremium: false, isSquadron: false }
     : row
-  // Acquisition reads as the card's own material, wiki-style: gilded glass
-  // for premium, service green for squadron. Event/removed stay neutral.
-  const tint = !mutedAcquisition
-    ? null
-    : row.isPremium
-      ? 'bg-linear-to-b from-[#F0B94A5C] to-[#F0B94A1A]'
-      : row.isSquadron
-        ? 'bg-linear-to-b from-[#6FA05C66] to-[#6FA05C21]'
-        : null
   return (
     <article className="glass-mid pane-lift relative flex flex-col px-3 pt-2.5 pb-3">
-      {tint && (
-        <span
-          aria-hidden="true"
-          className={`pointer-events-none absolute inset-0 -z-10 rounded-[inherit] ${tint}`}
-        />
-      )}
+      {mutedAcquisition && <AcquisitionWash tags={row} className="-z-10" />}
       <header className="flex items-baseline justify-between gap-2">
         <span className="min-w-0 truncate text-[0.9375rem] font-medium">
           <VehicleLink

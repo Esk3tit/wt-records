@@ -1,4 +1,5 @@
 import { formatBr } from '#/lib/format'
+import { standingKills, titleBar } from '#/lib/rules'
 import { classLabel } from '#/lib/vehicle-classes'
 import type { CardChip, VehicleCardModel } from './types'
 import { contentVersion } from './version'
@@ -24,6 +25,8 @@ export interface VehicleCardData {
     displayName: string
   } | null
   minKills: number | null
+  /** Every verified life, for the score a vacant title still carries. */
+  history: Array<{ kills: number }>
 }
 
 export function toVehicleCardModel(
@@ -31,6 +34,16 @@ export function toVehicleCardModel(
   data: VehicleCardData,
 ): VehicleCardModel {
   const { vehicle, br, current, minKills } = data
+  // The card quotes the same bar the deed does, or a share preview would
+  // advertise a score the write path refuses.
+  const standing = standingKills(
+    current?.kills ?? null,
+    data.history.map((h) => h.kills),
+  )
+  const bar = titleBar(standing, minKills, current != null)
+  // Verified records outlive their holder, so a vacated title has a score the
+  // card must not deny — and only that case carries the field.
+  const vacated = current == null && standing != null
 
   // Same chip set as the site's vehicle surfaces: class, BR, the acquisition
   // stack, Removed last.
@@ -52,7 +65,8 @@ export function toVehicleCardModel(
     br: br != null ? formatBr(br) : null,
     patch: current ? current.patch : null,
     patchName: current ? current.patchName : null,
-    minKills,
+    minKills: current == null ? bar.kills : minKills,
+    ...(vacated ? { standing } : {}),
     artUrl: vehicle.image,
   }
   return { ...base, version: contentVersion(base) }

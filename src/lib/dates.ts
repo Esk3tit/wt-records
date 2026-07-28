@@ -60,6 +60,19 @@ export function daysSince(d: DateLike): number {
   return Math.max(0, Math.floor((Date.now() - asDate(d).getTime()) / DAY_MS))
 }
 
+/** How long a record stood, in seconds, from its own date to the date of the
+    record that took the title. Seconds rather than days so callers render it
+    through formatHeldDays, where a sub-day reign is "under a day", not a zero.
+    Null when either end is unknown — a migrated record often has no date. */
+export function stoodSecs(
+  from: DateLike | null,
+  until: DateLike | null,
+): number | null {
+  if (from == null || until == null) return null
+  const span = asDate(until).getTime() - asDate(from).getTime()
+  return Math.max(0, Math.floor(span / 1000))
+}
+
 export function formatDaysAgo(d: DateLike): string {
   const days = daysSince(d)
   if (days === 0) return 'today'

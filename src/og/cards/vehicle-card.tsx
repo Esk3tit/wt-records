@@ -204,8 +204,9 @@ export function VehicleCard(props: VehicleCardModel & { art?: string | null }) {
                     color: COLOR.inkSoft,
                   }}
                 >
-                  No verified holder yet — first to {m.minKills} in a single
-                  life takes the title.
+                  {m.standing != null
+                    ? `Nobody holds it — a verified ${m.standing} still stands. Take it with ${m.minKills} in a single life.`
+                    : `No verified holder yet — first to ${m.minKills} in a single life takes the title.`}
                 </div>
               </>
             ) : (

@@ -46,7 +46,9 @@ export function Medallion({ name }: { name: string }) {
         fontSize="33"
         fontWeight="600"
         letterSpacing="0.01em"
-        fill="var(--ink-muted)"
+        // Full ink: the monogram is engraved into the disc's own lit face, and
+        // the muted step all but disappears against the highlight at its centre.
+        fill="var(--ink)"
       >
         {monogram(name)}
       </text>

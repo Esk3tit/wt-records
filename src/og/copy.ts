@@ -20,10 +20,14 @@ export function vehicleUnfurl(m: VehicleCardModel): Unfurl {
   if (m.kills == null) {
     return {
       title: `${m.vehicleName} — ${m.modeLabel} bounty`,
+      // A vacated title has no holder but does have verified records, so only
+      // a title with none may be described as having no record yet.
       description:
-        m.minKills != null
-          ? `Open bounty — no verified record yet. Minimum to claim it: ${m.minKills} kills.`
-          : 'Open bounty — no verified record yet.',
+        m.standing != null
+          ? `Open bounty — nobody holds it, but a verified ${m.standing} kills still stands. Take it with ${m.minKills} kills.`
+          : m.minKills != null
+            ? `Open bounty — no verified record yet. Minimum to claim it: ${m.minKills} kills.`
+            : 'Open bounty — no verified record yet.',
     }
   }
   const parts = [`${m.kills} kills in a single life by ${m.holder}`]

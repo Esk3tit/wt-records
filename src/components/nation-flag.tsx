@@ -175,6 +175,7 @@ const VARIANT_CLASS = {
   wash: 'flag-wash',
   'wash-row': 'flag-wash-row',
   'wash-hero': 'flag-wash-hero',
+  'wash-sheet': 'flag-wash-sheet',
 } as const
 
 export function NationFlag({
@@ -183,8 +184,8 @@ export function NationFlag({
   className = '',
 }: {
   slug: string
-  /** chip: inline beside the nation name; wash / wash-row: faint watermarks
-      at pane and ledger-row scale. */
+  /** chip: inline beside the nation name; the washes are faint watermarks at
+      ledger-row, pane, hero and title-sheet scale. */
   variant?: keyof typeof VARIANT_CLASS
   className?: string
 }) {

@@ -37,14 +37,18 @@ export function VehicleTags({ tags }: { tags: VehicleTagFlags }) {
           tags[flag] && (
             <Fragment key={flag}>
               {' '}
-              <Chip title={title}>{label}</Chip>
+              <span className="ml-1.5">
+                <Chip title={title}>{label}</Chip>
+              </span>
             </Fragment>
           ),
       )}
       {tags.isRemoved && (
         <>
           {' '}
-          <RemovedTag />
+          <span className="ml-1.5">
+            <RemovedTag />
+          </span>
         </>
       )}
     </>
