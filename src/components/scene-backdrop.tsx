@@ -68,8 +68,6 @@ export function SceneBackdrop() {
     <>
       <div ref={sceneRef} className="scene" aria-hidden="true">
         <div className="scene-sky" />
-        <div className="scene-glow" data-depth="0.10" />
-        <div className="scene-glow-cool" data-depth="0.06" />
         <div className="scene-haze" />
         <svg
           className="scene-ridge"

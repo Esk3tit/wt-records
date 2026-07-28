@@ -63,8 +63,6 @@
       #10141c 100%
     ),
     linear-gradient(180deg, #2a3648 0%, #10141c 80%);
-  --scene-glow: rgba(240, 185, 74, 0.32);
-  --scene-glow-cool: rgba(96, 148, 168, 0.2);
   --scene-haze: linear-gradient(
     180deg,
     transparent,
@@ -138,8 +136,6 @@
       #f2f3f6 100%
     ),
     linear-gradient(180deg, #d8e1ec 0%, #f2f3f6 80%);
-  --scene-glow: rgba(240, 185, 74, 0.38);
-  --scene-glow-cool: rgba(120, 160, 185, 0.25);
   --scene-haze: linear-gradient(
     180deg,
     transparent,
@@ -469,24 +465,6 @@
   position: absolute;
   inset: 0;
   background: var(--scene-sky);
-}
-.scene-glow {
-  position: absolute;
-  left: 55%;
-  top: -10%;
-  width: 60vw;
-  height: 60vw;
-  background: radial-gradient(circle, var(--scene-glow), transparent 60%);
-  filter: blur(20px);
-}
-.scene-glow-cool {
-  position: absolute;
-  left: -15%;
-  bottom: 5%;
-  width: 50vw;
-  height: 50vw;
-  background: radial-gradient(circle, var(--scene-glow-cool), transparent 60%);
-  filter: blur(30px);
 }
 .scene-haze {
   position: absolute;
