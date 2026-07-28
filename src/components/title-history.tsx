@@ -26,13 +26,16 @@ export function TitleHistory({
   steps: Array<HistoryStep>
 }) {
   if (rows.length < 2) return null
-  const charted = steps.length >= 2
-  const newestFirst = titleReigns(
+  const { reigns, chronologyKnown } = titleReigns(
     rows.map((row) => ({
       ...row,
       verifiedAt: row.verifiedAt == null ? null : new Date(row.verifiedAt),
     })),
-  ).reverse()
+  )
+  // The chart plots the frontier, so an overridden title would have it ending
+  // somewhere the deed does not. Better to show no progression than a wrong one.
+  const charted = steps.length >= 2 && chronologyKnown
+  const newestFirst = [...reigns].reverse()
 
   return (
     <section className="mt-8">
@@ -76,7 +79,7 @@ export function TitleHistory({
                     <span className="stat-label font-semibold text-fg-muted">
                       holds it
                     </span>
-                  ) : !heldTitle ? (
+                  ) : !chronologyKnown ? null : !heldTitle ? (
                     'did not take the title'
                   ) : stood != null ? (
                     `stood ${formatHeldDays(stood)}`

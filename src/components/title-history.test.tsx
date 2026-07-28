@@ -129,6 +129,33 @@ describe('TitleHistory', () => {
     expect(getByText('stood 1 day')).toBeDefined()
   })
 
+  // makeCurrentRecord can hand the title to a record the frontier does not end
+  // on. Nothing then knows who held what when, so the page claims nothing.
+  it('drops every tenure claim when a moderator has overridden the holder', async () => {
+    const { container, queryByText } = await history([
+      row({ kills: 26, verifiedAt: new Date('2024-01-01T00:00:00Z') }),
+      row({
+        kills: 30,
+        playerSlug: 'kukwa',
+        displayName: 'KuKwa',
+        verifiedAt: new Date('2024-02-01T00:00:00Z'),
+      }),
+      row({
+        kills: 20,
+        playerSlug: 'koalkiest',
+        displayName: 'Koalkiest',
+        isCurrent: true,
+        verifiedAt: new Date('2024-03-01T00:00:00Z'),
+      }),
+    ])
+    // the 30 was never beaten — it must not be called superseded
+    expect(container.textContent).not.toContain('superseded')
+    expect(container.textContent).not.toContain('stood')
+    expect(queryByText('did not take the title')).toBeNull()
+    // the record that actually holds the title still says so
+    expect(queryByText('holds it')).not.toBeNull()
+  })
+
   it('renders nothing for a title that has only ever had one holder', async () => {
     const { container } = await history([row({ isCurrent: true })])
     expect(container.textContent).toBe('')

@@ -127,7 +127,7 @@ describe('titleReigns', () => {
   })
 
   it('gives every climbing record a reign closed by the one that took it', () => {
-    const out = titleReigns([
+    const { reigns: out } = titleReigns([
       r(10, '2024-01-01T00:00:00Z'),
       r(12, '2024-01-11T00:00:00Z'),
       r(20, '2024-02-01T00:00:00Z'),
@@ -141,7 +141,7 @@ describe('titleReigns', () => {
   // The migrated corpus carries verified rows that never beat the standing
   // record — they are real lives, but they never held the title.
   it('never lets a losing record hold a title or close another reign', () => {
-    const out = titleReigns([
+    const { reigns: out } = titleReigns([
       r(10, '2024-01-01T00:00:00Z'),
       r(9, '2024-01-05T00:00:00Z'),
       r(20, '2024-02-01T00:00:00Z'),
@@ -153,7 +153,7 @@ describe('titleReigns', () => {
   })
 
   it('does not let an equal score take the title (takesTitle is strict)', () => {
-    const out = titleReigns([
+    const { reigns: out } = titleReigns([
       r(10, '2024-01-01T00:00:00Z'),
       r(10, '2024-01-05T00:00:00Z'),
     ])
@@ -162,8 +162,35 @@ describe('titleReigns', () => {
   })
 
   it('treats a dateless migrated record as the oldest, per the loader order', () => {
-    const out = titleReigns([r(10, null), r(20, '2024-02-01T00:00:00Z')])
-    expect(out[0].heldTitle).toBe(true)
-    expect(out[0].endedAt).toEqual(at('2024-02-01T00:00:00Z'))
+    const { reigns } = titleReigns([r(10, null), r(20, '2024-02-01T00:00:00Z')])
+    expect(reigns[0].heldTitle).toBe(true)
+    expect(reigns[0].endedAt).toEqual(at('2024-02-01T00:00:00Z'))
+  })
+
+  // makeCurrentRecord lets a moderator hand the title to a record the kill
+  // frontier does not end on. The rows then cannot say who held what when.
+  it('reports the chronology as unknown when the current row is not the frontier tip', () => {
+    const { chronologyKnown } = titleReigns([
+      { ...r(10, '2024-01-01T00:00:00Z'), isCurrent: false },
+      { ...r(30, '2024-02-01T00:00:00Z'), isCurrent: false },
+      { ...r(20, '2024-03-01T00:00:00Z'), isCurrent: true },
+    ])
+    expect(chronologyKnown).toBe(false)
+  })
+
+  it('reports the chronology as known when the frontier tip holds the title', () => {
+    const { chronologyKnown } = titleReigns([
+      { ...r(10, '2024-01-01T00:00:00Z'), isCurrent: false },
+      { ...r(30, '2024-02-01T00:00:00Z'), isCurrent: true },
+    ])
+    expect(chronologyKnown).toBe(true)
+  })
+
+  it('says nothing about chronology when no row claims to be current', () => {
+    const { chronologyKnown } = titleReigns([
+      r(10, '2024-01-01T00:00:00Z'),
+      r(30, '2024-02-01T00:00:00Z'),
+    ])
+    expect(chronologyKnown).toBe(true)
   })
 })

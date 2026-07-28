@@ -93,25 +93,37 @@ export interface TitleReign<T> {
   endedAt: Date | null
 }
 
+export interface TitleTimeline<T> {
+  reigns: Array<TitleReign<T>>
+  /** False once a moderator has handed the title to a record the kill frontier
+      does not end on (makeCurrentRecord permits it, and does not retire the
+      record it displaces). These rows then cannot say who held what when, so
+      callers must drop every tenure claim rather than invent one. */
+  chronologyKnown: boolean
+}
+
 /** Each verified record paired with the reign it had, oldest first. A losing
     record neither gets a reign nor closes anybody else's. */
 export function titleReigns<
-  T extends { kills: number; verifiedAt: Date | null },
->(oldestFirst: T[]): Array<TitleReign<T>> {
-  const frontier = new Set(titleFrontier(oldestFirst))
-  let previousHolder: TitleReign<T> | null = null
-  return oldestFirst.map((row) => {
-    const reign: TitleReign<T> = {
+  T extends { kills: number; verifiedAt: Date | null; isCurrent?: boolean },
+>(oldestFirst: T[]): TitleTimeline<T> {
+  const holders = titleFrontier(oldestFirst)
+  const rank = new Map(holders.map((row, i) => [row, i]))
+  const reigns = oldestFirst.map((row) => {
+    const i = rank.get(row)
+    return {
       row,
-      heldTitle: frontier.has(row),
-      endedAt: null,
+      heldTitle: i != null,
+      // The title left a holder when the NEXT holder took it — the next
+      // frontier entry, never simply the next row.
+      endedAt: i == null ? null : (holders[i + 1]?.verifiedAt ?? null),
     }
-    if (reign.heldTitle) {
-      if (previousHolder) previousHolder.endedAt = row.verifiedAt
-      previousHolder = reign
-    }
-    return reign
   })
+  const current = oldestFirst.find((row) => row.isCurrent)
+  return {
+    reigns,
+    chronologyKnown: current == null || holders.at(-1) === current,
+  }
 }
 
 export interface TitleCandidate {
