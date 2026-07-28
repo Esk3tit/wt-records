@@ -678,8 +678,8 @@
     grid-template-rows: 1fr;
   }
 }
-/* Plateau ~35% before easing out: the wash must survive the scene glow long
-   enough to be witnessed, then decay without a trace. */
+/* Plateau ~35% before easing out: a 12% tint on lit glass is easy to miss, so
+   the wash holds long enough to be witnessed, then decays without a trace. */
 @keyframes feed-just-in {
   0% {
     background-color: color-mix(in oklab, var(--color-accent) 14%, transparent);
