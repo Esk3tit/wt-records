@@ -66,6 +66,9 @@ export function TitleDeed({
   // demoteRecord can leave one standing with no holder. Either way the row's
   // own verifiedAt stops meaning "since when this has held".
   const displaced = standing != null && standing > (current?.kills ?? -Infinity)
+  // It only explains the bar when it IS the bar — a higher qualifying minimum
+  // overrules it, and quoting the lower score would contradict the numeral.
+  const standingSetsBar = displaced && bar.kills === standing + 1
   return (
     <header className="glass-thick relative overflow-hidden p-7 [--deed-art-h:8rem] sm:[--deed-art-h:11rem] md:p-10 lg:[--deed-art-h:clamp(14rem,26vw,21rem)]">
       <div aria-hidden="true" className="absolute inset-0 z-0">
@@ -172,7 +175,7 @@ export function TitleDeed({
                 </>
               ) : // The numeral above already IS this number; the line says what
               // it is, rather than saying it twice.
-              displaced ? (
+              standingSetsBar ? (
                 <>
                   No one holds this title, but a verified{' '}
                   <strong className="font-semibold text-fg">

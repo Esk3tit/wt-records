@@ -137,6 +137,20 @@ describe('TitleDeed — the number to beat', () => {
     expect(container.textContent).not.toContain('qualifying bar for GRB')
   })
 
+  // The migrated corpus holds records under today's class bar, so a vacant
+  // title can have one standing that the qualifying minimum overrules.
+  it('names the qualifying bar when it outranks the standing score', async () => {
+    const { container, getByText } = await deed({
+      current: null,
+      standing: 4,
+      minKills: 12,
+    })
+    expect(getByText('12')).toBeDefined()
+    expect(container.textContent).toContain('qualifying bar for GRB')
+    expect(container.textContent).not.toContain('still stands against it')
+    expect(container.textContent).not.toContain('4 kills')
+  })
+
   // makeCurrentRecord can install an older record today; its verifiedAt is
   // then no longer the day its reign began.
   it('claims no tenure for a holder a verified record outranks', async () => {
