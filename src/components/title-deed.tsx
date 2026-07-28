@@ -61,7 +61,10 @@ export function TitleDeed({
       already applied), or null when the mode configures none. */
   minKills: number | null
 }) {
-  const bar = titleBar(standing, minKills)
+  // Held-ness comes from the holder, never from `standing`: a demoted record
+  // leaves a verified score behind with nobody holding the title, and an open
+  // title is governed by the qualifying bar.
+  const bar = titleBar(current ? standing : null, minKills)
   return (
     <header className="glass-thick relative overflow-hidden p-7 [--deed-art-h:8rem] sm:[--deed-art-h:11rem] md:p-10 lg:[--deed-art-h:clamp(14rem,26vw,21rem)]">
       <div aria-hidden="true" className="absolute inset-0 z-0">

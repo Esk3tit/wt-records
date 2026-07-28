@@ -125,6 +125,16 @@ describe('TitleDeed — the number to beat', () => {
     expect(container.textContent).toContain('Difficult qualifying bar')
   })
 
+  // demoteRecord can leave a verified record with nobody holding the title.
+  // The page must not call it open AND quote the supersede rule at once.
+  it('never mixes the open state with a supersede bar', async () => {
+    const { container, getByText } = await deed({ current: null, standing: 30 })
+    expect(getByText('Open bounty')).toBeDefined()
+    expect(container.textContent).toContain('qualifying bar for GRB')
+    expect(container.textContent).not.toContain('matching the record')
+    expect(container.textContent).not.toContain('31 kills')
+  })
+
   it('states no number when the mode configures no bar for the class', async () => {
     const { container } = await deed({ current: null, minKills: null })
     expect(container.textContent).toContain('waiting for its first claim')
