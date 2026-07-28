@@ -224,4 +224,24 @@ describe('titleReigns', () => {
     ])
     expect(chronologyKnown).toBe(true)
   })
+
+  // demoteRecord clears the only isCurrent flag and leaves the records verified,
+  // so the last holder lost the title to nobody.
+  it('marks the last holder vacated when no row is current', () => {
+    const { reigns: out, vacant } = titleReigns([
+      r(10, '2024-01-01T00:00:00Z'),
+      r(30, '2024-02-01T00:00:00Z'),
+    ])
+    expect(vacant).toBe(true)
+    expect(out.map((x) => x.vacated)).toEqual([false, true])
+  })
+
+  it('vacates nothing while a record still holds the title', () => {
+    const { reigns: out, vacant } = titleReigns([
+      { ...r(10, '2024-01-01T00:00:00Z'), isCurrent: false },
+      { ...r(30, '2024-02-01T00:00:00Z'), isCurrent: true },
+    ])
+    expect(vacant).toBe(false)
+    expect(out.every((x) => !x.vacated)).toBe(true)
+  })
 })

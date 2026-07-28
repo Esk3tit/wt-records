@@ -26,7 +26,7 @@ export function TitleHistory({
   steps: Array<HistoryStep>
 }) {
   if (rows.length < 2) return null
-  const { reigns, chronologyKnown } = titleReigns(
+  const { reigns, chronologyKnown, vacant } = titleReigns(
     rows.map((row) => ({
       ...row,
       verifiedAt: row.verifiedAt == null ? null : new Date(row.verifiedAt),
@@ -34,7 +34,9 @@ export function TitleHistory({
   )
   // The chart plots the frontier, so an overridden title would have it ending
   // somewhere the deed does not. Better to show no progression than a wrong one.
-  const charted = steps.length >= 2 && chronologyKnown
+  // It also names its last step the current holder, which a vacant title has
+  // none of — the deed above calls that same title an open bounty.
+  const charted = steps.length >= 2 && chronologyKnown && !vacant
   const newestFirst = [...reigns].reverse()
 
   return (
@@ -48,7 +50,7 @@ export function TitleHistory({
       >
         {charted && <RecordHistory steps={steps} />}
         <ol className="glass-mid overflow-hidden">
-          {newestFirst.map(({ row, heldTitle, endedAt }, i) => {
+          {newestFirst.map(({ row, heldTitle, endedAt, vacated }, i) => {
             const stood = stoodSecs(row.verifiedAt, endedAt)
             return (
               <li
@@ -81,6 +83,8 @@ export function TitleHistory({
                     </span>
                   ) : !chronologyKnown ? null : !heldTitle ? (
                     'did not take the title'
+                  ) : vacated ? (
+                    'title vacated'
                   ) : stood != null ? (
                     `stood ${formatHeldDays(stood)}`
                   ) : (

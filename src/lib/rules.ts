@@ -111,6 +111,9 @@ export interface TitleReign<T> {
       which is the next FRONTIER entry and not simply the next row. Null while
       it still holds, or when it never held at all. */
   endedAt: Date | null
+  /** It held last and nothing took the title from it: a moderator vacated the
+      title instead. Distinct from being superseded, which had a successor. */
+  vacated: boolean
 }
 
 export interface TitleTimeline<T> {
@@ -120,6 +123,9 @@ export interface TitleTimeline<T> {
       record it displaces). These rows then cannot say who held what when, so
       callers must drop every tenure claim rather than invent one. */
   chronologyKnown: boolean
+  /** Nobody holds the title. The reigns behind it are still knowable, but no
+      row may be presented as the current holder. */
+  vacant: boolean
 }
 
 /** Each verified record paired with the reign it had, oldest first. A losing
@@ -129,6 +135,8 @@ export function titleReigns<
 >(oldestFirst: T[]): TitleTimeline<T> {
   const holders = titleFrontier(oldestFirst)
   const rank = new Map(holders.map((row, i) => [row, i]))
+  const current = oldestFirst.find((row) => row.isCurrent)
+  const vacant = current == null
   const reigns = oldestFirst.map((row) => {
     const i = rank.get(row)
     return {
@@ -137,12 +145,13 @@ export function titleReigns<
       // The title left a holder when the NEXT holder took it — the next
       // frontier entry, never simply the next row.
       endedAt: i == null ? null : (holders[i + 1]?.verifiedAt ?? null),
+      vacated: vacant && row === holders.at(-1),
     }
   })
-  const current = oldestFirst.find((row) => row.isCurrent)
   return {
     reigns,
-    chronologyKnown: current == null || holders.at(-1) === current,
+    chronologyKnown: vacant || holders.at(-1) === current,
+    vacant,
   }
 }
 

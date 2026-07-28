@@ -156,6 +156,49 @@ describe('TitleHistory', () => {
     expect(queryByText('holds it')).not.toBeNull()
   })
 
+  // demoteRecord leaves the records verified with nobody holding the title.
+  // The chart names its last step the current holder, so it must not draw one.
+  it('charts no progression and names no successor for a vacated title', async () => {
+    const rows = [
+      row({
+        kills: 26,
+        playerSlug: 'lope',
+        displayName: 'LOPE',
+        verifiedAt: new Date('2024-01-01T00:00:00Z'),
+      }),
+      row({
+        kills: 30,
+        playerSlug: 'kukwa',
+        displayName: 'KuKwa',
+        verifiedAt: new Date('2024-02-01T00:00:00Z'),
+      }),
+    ]
+    const steps = rows.map((r) => ({
+      kills: r.kills,
+      verifiedAt: r.verifiedAt as Date,
+      displayName: r.displayName,
+      playerSlug: r.playerSlug,
+    }))
+    const rootRoute = createRootRoute({
+      component: () => <TitleHistory rows={rows} steps={steps} />,
+    })
+    const view = render(
+      <RouterProvider
+        router={
+          createRouter({
+            routeTree: rootRoute,
+            history: createMemoryHistory({ initialEntries: ['/'] }),
+          }) as never
+        }
+      />,
+    )
+    await view.findByText('Record history')
+    expect(view.container.textContent).not.toContain('current:')
+    // nobody took the 30 — it was vacated, not superseded
+    expect(view.container.textContent).not.toContain('superseded')
+    expect(view.queryByText('title vacated')).not.toBeNull()
+  })
+
   it('renders nothing for a title that has only ever had one holder', async () => {
     const { container } = await history([row({ isCurrent: true })])
     expect(container.textContent).toBe('')
