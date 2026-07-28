@@ -24,6 +24,7 @@ colors:
   day-gold: "#7A6200"
   day-silver: "#57606C"
   day-bronze: "#8A5220"
+  service-green: "#6FA05C"
 typography:
   display:
     fontFamily: "ui-sans-serif, system-ui, -apple-system, 'SF Pro Text', Inter, sans-serif"
@@ -170,6 +171,9 @@ One committed base per lighting state, mirrored ink ramps, one warm accent with 
 - **Ace Gold** (#FFD75E), **Squadron Silver** (#D6DBE2), **Veteran Bronze** (#E0995A): rank metals by night (and as fills/badges in both modes).
 - **Day Gold** (#7A6200), **Day Silver** (#57606C), **Day Bronze** (#8A5220): rank metals as text by day, contrast-safe on Daylight Hall.
 
+### Acquisition materials
+Not ink and not accent — two gradient washes laid over a glass fill, so acquisition reads as what the surface is *made of*. **Medal Amber** gilds premium; **Service Green** (#6FA05C) is squadron's, the only hue in the system that exists solely as a material and never as text, border, or icon. Each ships at two strengths from one vocabulary: card (`.acq-premium` / `.acq-squadron`) and pane (`.acq-pane`), the latter quieter because a title sheet wears it over an order of magnitude more surface. Event and removed take no material — their chips carry them. Because these are materials, the gilded wash does not count against The One Amber Rule; the accent *ink* on the same screen still does.
+
 ### Named Rules
 **The Same Hall Rule.** Light and dark are the same hall under different light. Tokens flip (base, ink, hairline, scrim/veil, deep accent/metal forms); structure, spacing, radii, type, and layout never do. A screen that rearranges between modes is broken.
 
@@ -236,7 +240,7 @@ The identity layer. A small, curated, fixed set of battle scenes, each processed
 - **Glass pill** (live-accepted at frost .12 / float .2): section-nav capsule that is a small liquid-glass pane in its own right — 999px radius, full ink at weight 550, 12% white-alpha fill with blur 36/saturate 180%, specular edges, a subtle 3px anchor shadow rising 2px on hover. Important navigation is never muted into the background.
 
 ### Chips
-- **Removed tag:** faint fill (white .10 night / dark .08 day), the mode's **muted** ink, uppercase Label type, 4px radius, 2px 6px padding. Metadata register — informative, never alarming; removed vehicles are first-class citizens. Muted, not faint, because the chip lays its own fill under the text: faint over that stack measures 4.33 night / 4.44 day and misses the AA floor the rest of the system holds.
+- **Removed tag:** faint fill (white .10 night / dark .08 day), the mode's **full** ink, uppercase Label type, 4px radius, 2px 6px padding. Metadata register — informative, never alarming; removed vehicles are first-class citizens. Full ink is the one place metadata takes the primary step, because the chip lays its own lightening fill under the text: measured on thick glass, faint lands at 4.33 night and muted at 3.84, both under the AA floor the rest of the system holds. Size, case and tracking are what keep a chip quiet here, not ink.
 
 ### Cards / Containers (Glass Panels)
 - **Corner Style:** continuous radii from the locked band — 22px on mid-weight cards, 26px on thick panels (hero); 10px on embedded media (proof thumbnails), 2px micro-radius on chip-scale marks (flag chips).
@@ -276,6 +280,13 @@ The best feats inside the active filter set, above the ledger: the three highest
 
 ### Record Card Grid (nation sheets)
 The nation sheet's record wall, replacing its ledger table: every title as a small floating glass card (glass-mid material, pane-lift hover) carrying the vehicle name as a quiet link, BR in faint ink, the vehicle-portrait art hovering over the pane, and the record line — kills bold in full ink, holder as link. Two walls share each rank row: the tech tree (auto-fill columns) and Premium & Special (fixed two-column wall at desktop), so a rank rule starts on one baseline across both. Rank rules keep the ledger vocabulary: uppercase rank label, hairline rule fading right, faint "N of M held". Acquisition reads as the card's material — gilded glass for premium, service green for squadron (gradient washes over the glass fill, both modes); event and removed stay neutral glass with their chips. An unheld title renders as an OPEN BOUNTY card: desaturated portrait, the accent-text amber kicker — the page's rationed amber, marking the chase. Empty grids teach like empty ledgers: state what happened, offer "Reset filters" only when filters are active.
+
+### Title Deed (vehicle sheets, signature)
+One title stated as a document. A thick-glass pane holds the deed on the left — nation (linking back to that nation's record wall) · class · rank · BR, the vehicle name as h1 with its acquisition chips, then the monument: the kills numeral at `clamp(3.75rem, 8vw, 5.5rem)` in **full ink**, the holder beneath it behind a 32px `PlayerAvatar`, and the provenance line (patch · run BR). The machine takes the pane's bottom-right corner at page scale, bleeding past the padding so the frame's own radius crops it. This is `.title-deed-art`, deliberately **not** `.vehicle-portrait`: the portrait floats on a mask fade, the deed's art runs to the frame, and only the deed's dissolves leftward (above 64rem) so ink never lands on it.
+
+**Every title closes on its bar** — the one number a challenger has to put on the board. Held: `Take this title with N+1 kills in one life — matching the record does not supersede it`, never phrased as "beat N+1", which would demand one more than the title costs. Open: the monument inverts to the class qualifying minimum in accent amber (the page's single amber ink moment) with the bar named rather than restated. A standing record under its own class bar still only has to be exceeded — the qualifying bar gates first claims alone.
+
+**The washes follow the machine, never the ink.** Both the nation's colours (`.flag-wash-sheet`) and the acquisition material (`.acq-pane`) are masked off `--deed-art-h`, the art's height published by the pane, so they pool where the art is and clear the deed entirely — a wash lightens the glass beneath it, and the ink ramp's secondary steps have no contrast margin to spend on a full-pane veil. At sheet scale the flag is blurred into colour: unblurred, its own geometry (the Union Jack's diagonals worst of all) reads as a banner rather than a watermark.
 
 ### Filter Panel
 Catalog filtering lives in one thin-glass instrument panel above the ledger: a fixed 6.5rem uppercase label column (Nation / Class / Rank / BR / Acquisition / Title) with 10px-radius chip rows beside it. Active chips drop their hairline for the bright pill-active fill at constant weight — selection reads as light, not as bold, so nothing shifts. The name search, where a page mounts one, is part of the panel, not separate chrome. On phones the group stack folds behind a "Filters" disclosure carrying an active-count badge; the name search stays visible.

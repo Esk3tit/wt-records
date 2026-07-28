@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { qualifies, qualifyingThreshold, takesTitle } from '#/lib/rules'
+import {
+  qualifies,
+  qualifyingThreshold,
+  takesTitle,
+  titleBar,
+} from '#/lib/rules'
 import type { ModeThresholds, VehicleClass } from '#/lib/rules'
 
 const grb: ModeThresholds = {
@@ -90,5 +95,25 @@ describe('takesTitle (supersede rule)', () => {
 
   it('takes an open (unclaimed) vehicle', () => {
     expect(takesTitle(1, null)).toBe(true)
+  })
+})
+
+describe('titleBar (the number to beat)', () => {
+  it('a held title states one more than the standing record', () => {
+    expect(titleBar(23, 12)).toEqual({ held: true, kills: 24 })
+  })
+
+  it('the held bar ignores the qualifying minimum entirely', () => {
+    // a record below its own class bar (migrated corpus) still only needs
+    // to be strictly exceeded — the qualifying bar gates new titles, not this
+    expect(titleBar(4, 12)).toEqual({ held: true, kills: 5 })
+  })
+
+  it('an open bounty states the class qualifying minimum', () => {
+    expect(titleBar(null, 12)).toEqual({ held: false, kills: 12 })
+  })
+
+  it('an open bounty with no configured bar states no number', () => {
+    expect(titleBar(null, null)).toEqual({ held: false, kills: null })
   })
 })

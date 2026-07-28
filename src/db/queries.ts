@@ -822,6 +822,8 @@ export async function getVehicle(db: Db, mode: string, slug: string) {
         verifiedAt: records.verifiedAt,
         playerSlug: players.slug,
         displayName: players.displayName,
+        holderUserId: players.userId,
+        holderAvatarKey: players.avatarKey,
         ignSnapshot: records.ignSnapshot,
         displayNameSnapshot: records.displayNameSnapshot,
       })
@@ -866,7 +868,21 @@ export async function getVehicle(db: Db, mode: string, slug: string) {
       .limit(1),
   ])
   const brRow = one(brRows)
-  const current = one(currentRows)
+  const currentRow = one(currentRows)
+  let current = null
+  if (currentRow) {
+    const { holderUserId, holderAvatarKey, ...row } = currentRow
+    // Serving URL computed server-side; the raw key never ships. Null renders
+    // the Medallion — a first-class state for an accountless holder, not a gap.
+    const avatarKey = effectiveAvatarKey({
+      userId: holderUserId,
+      avatarKey: holderAvatarKey,
+    })
+    current = {
+      ...row,
+      holderAvatar: avatarKey ? assetUrlIfConfigured(avatarKey) : null,
+    }
+  }
 
   // A Difficult vehicle's flat bar beats the class bar (PRD rules semantics).
   const classMin = one(minKillRows)?.minKills ?? null

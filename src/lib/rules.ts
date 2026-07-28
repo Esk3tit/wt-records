@@ -52,6 +52,21 @@ export function takesTitle(
   return challengerKills > incumbentKills
 }
 
+/** `kills` is null only when the mode configures no bar for the class. */
+export type TitleBar =
+  { held: true; kills: number } | { held: false; kills: number | null }
+
+/** A held title is taken by STRICTLY exceeding it (hence +1, per takesTitle),
+    an open one by clearing the qualifying bar. A standing record below its own
+    class bar — the migrated corpus has them — still only has to be exceeded. */
+export function titleBar(
+  currentKills: number | null,
+  qualifying: number | null,
+): TitleBar {
+  if (currentKills != null) return { held: true, kills: currentKills + 1 }
+  return { held: false, kills: qualifying }
+}
+
 export interface TitleCandidate {
   id: number
   kills: number

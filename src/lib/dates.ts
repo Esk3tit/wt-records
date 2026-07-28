@@ -56,8 +56,22 @@ export function isToday(d: DateLike): boolean {
   )
 }
 
+const wholeDaysBetween = (from: DateLike, until: number) =>
+  Math.max(0, Math.floor((until - asDate(from).getTime()) / DAY_MS))
+
 export function daysSince(d: DateLike): number {
-  return Math.max(0, Math.floor((Date.now() - asDate(d).getTime()) / DAY_MS))
+  return wholeDaysBetween(d, Date.now())
+}
+
+/** How long a superseded record stood, from its own date to the date of the
+    record that took the title. Null when either end is unknown — a migrated
+    record often has no date to measure from. */
+export function stoodDays(
+  from: DateLike | null,
+  until: DateLike | null,
+): number | null {
+  if (from == null || until == null) return null
+  return wholeDaysBetween(from, asDate(until).getTime())
 }
 
 export function formatDaysAgo(d: DateLike): string {
