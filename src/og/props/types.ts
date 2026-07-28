@@ -19,6 +19,9 @@ export interface VehicleCardModel {
   patchName: string | null
   /** Qualifying threshold shown as the amber anchor on an Open bounty card. */
   minKills: number | null
+  /** A verified score still standing on a title nobody holds. Omitted (not
+      null) elsewhere, so no other card's content version shifts for it. */
+  standing?: number
   artUrl: string | null
   /** Content version for the `?v=` cache bust. */
   version: string

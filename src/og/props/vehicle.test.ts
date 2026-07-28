@@ -86,6 +86,18 @@ describe('toVehicleCardModel', () => {
     expect(m.minKills).toBe(15)
   })
 
+  // Only a vacated title carries `standing`, so every other card's cache-bust
+  // version is unmoved by it and no share card re-renders for nothing.
+  it('leaves the content version of a held title untouched by its history', () => {
+    const bare = toVehicleCardModel('grb', data())
+    const withHistory = toVehicleCardModel(
+      'grb',
+      data({ history: [{ kills: 21 }, { kills: 12 }] }),
+    )
+    expect(withHistory.version).toBe(bare.version)
+    expect(withHistory.standing).toBeUndefined()
+  })
+
   it('upper-cases SPG/SPAA class acronyms in the chip', () => {
     const spaa = toVehicleCardModel(
       'grb',

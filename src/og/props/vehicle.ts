@@ -36,14 +36,14 @@ export function toVehicleCardModel(
   const { vehicle, br, current, minKills } = data
   // The card quotes the same bar the deed does, or a share preview would
   // advertise a score the write path refuses.
-  const bar = titleBar(
-    standingKills(
-      current?.kills ?? null,
-      data.history.map((h) => h.kills),
-    ),
-    minKills,
-    current != null,
+  const standing = standingKills(
+    current?.kills ?? null,
+    data.history.map((h) => h.kills),
   )
+  const bar = titleBar(standing, minKills, current != null)
+  // Verified records outlive their holder, so a vacated title has a score the
+  // card must not deny — and only that case carries the field.
+  const vacated = current == null && standing != null
 
   // Same chip set as the site's vehicle surfaces: class, BR, the acquisition
   // stack, Removed last.
@@ -66,6 +66,7 @@ export function toVehicleCardModel(
     patch: current ? current.patch : null,
     patchName: current ? current.patchName : null,
     minKills: current == null ? bar.kills : minKills,
+    ...(vacated ? { standing } : {}),
     artUrl: vehicle.image,
   }
   return { ...base, version: contentVersion(base) }

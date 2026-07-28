@@ -61,6 +61,32 @@ describe('vehicleUnfurl', () => {
       'Open bounty — no verified record yet. Minimum to claim it: 18 kills.',
     )
   })
+
+  // A vacated title has no holder but does have verified records, so the
+  // preview must not deny that a score exists.
+  it('does not deny a verified score that still stands unheld', () => {
+    const vacated = toVehicleCardModel('grb', {
+      vehicle: {
+        name: 'Object 279',
+        class: 'heavy',
+        nationSlug: 'ussr',
+        nationName: 'USSR',
+        isEvent: false,
+        isPremium: false,
+        isSquadron: false,
+        isRemoved: false,
+        image: null,
+      },
+      br: 8.0,
+      current: null,
+      minKills: 18,
+      history: [{ kills: 30 }],
+    })
+    const u = vehicleUnfurl(vacated)
+    expect(u.description).not.toContain('no verified record yet')
+    expect(u.description).toContain('30')
+    expect(u.description).toContain('31')
+  })
 })
 
 describe('nationUnfurl', () => {
