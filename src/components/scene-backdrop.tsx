@@ -144,7 +144,7 @@ export function SceneBackdrop({
                 d="M0 200 L0 130 Q300 122 620 126 T1200 124 L1200 200Z"
                 fill="var(--ridge-near)"
               />
-              <g fill="var(--ridge-far)" opacity="0.5">
+              <g fill="var(--ridge-far)" opacity="0.7">
                 <rect x="180" y="168" width="70" height="4" />
                 <rect x="420" y="166" width="70" height="4" />
                 <rect x="660" y="165" width="70" height="4" />
@@ -156,13 +156,13 @@ export function SceneBackdrop({
             <svg
               style={{
                 position: 'absolute',
-                left: '11%',
-                bottom: '13.2%',
-                width: 'clamp(11rem, 20vw, 18rem)',
+                left: '5%',
+                bottom: '11%',
+                width: 'clamp(17rem, 40vw, 34rem)',
                 opacity: 0.95,
                 overflow: 'visible',
               }}
-              data-depth="0.12"
+              data-depth="0.18"
               viewBox="0 0 320 170"
             >
               <defs>
@@ -202,6 +202,12 @@ export function SceneBackdrop({
                    M46 170 L46 146 Q46 66 160 66 Q274 66 274 146 L274 170 Z"
                 fill="var(--ridge-near)"
               />
+              <path
+                d="M26 170 L26 147 Q26 50 160 50 Q294 50 294 147 L294 170"
+                fill="none"
+                stroke="var(--ridge-mid)"
+                strokeWidth="2.5"
+              />
               <ellipse
                 cx="160"
                 cy="176"
@@ -215,12 +221,12 @@ export function SceneBackdrop({
             <svg
               style={{
                 position: 'absolute',
-                right: '17%',
-                bottom: '13.8%',
-                width: 'clamp(2.25rem, 3.2vw, 3rem)',
+                right: '12%',
+                bottom: '11%',
+                width: 'clamp(4rem, 6.5vw, 6rem)',
                 opacity: 0.9,
               }}
-              data-depth="0.1"
+              data-depth="0.15"
               viewBox="0 0 60 130"
             >
               <path
@@ -228,7 +234,7 @@ export function SceneBackdrop({
                 fill="var(--ridge-far)"
               />
               <path
-                d="M31 12 Q49 18 47 38 Q45 54 39 56 Q35 42 31 22 Z"
+                d="M31 12 Q56 22 54 48 Q52 66 41 68 Q34 48 31 22 Z"
                 fill="var(--ridge-far)"
               />
             </svg>
