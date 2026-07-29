@@ -77,7 +77,7 @@
   --ridge-far: #2a3646;
   --ridge-mid: #1f2a38;
   --ridge-near: #141c26;
-  /* The not-found hangar: lights left on behind the open doorway. */
+  /* Interior glow of the not-found hangar's open doorway. */
   --hangar-glow: rgba(191, 213, 240, 0.8);
   --scrim:
     radial-gradient(

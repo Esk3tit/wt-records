@@ -20,6 +20,7 @@ import { SceneBackdrop } from '#/components/scene-backdrop'
 import type { SceneVariant } from '#/components/scene-backdrop'
 import { RouteErrorPage } from '#/components/route-error'
 import { SiteNav } from '#/components/site-nav'
+import type { ModeNavItem } from '#/components/site-nav'
 import { db } from '#/db'
 import { listModes } from '#/db/queries'
 import { hasAuthCookie } from '#/auth/supabase-server'
@@ -63,38 +64,52 @@ export const Route = createRootRoute({
   errorComponent: RootErrorComponent,
 })
 
+function HallChrome({
+  modes,
+  isModerator,
+  children,
+}: {
+  modes: Array<ModeNavItem>
+  isModerator: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <div className="relative z-[2] px-5 pb-24">
+      <SiteNav modes={modes} isModerator={isModerator} />
+      <main className="mx-auto w-full max-w-[67.5rem]">{children}</main>
+    </div>
+  )
+}
+
 // A root-loader failure has no shell to render inside, so this rebuilds the
 // scene and bare nav chrome (neither needs loader data) around the fault pane.
 function RootErrorComponent(props: ErrorComponentProps) {
   return (
     <>
       <SceneBackdrop />
-      <div className="relative z-[2] px-5 pb-24">
-        <SiteNav modes={[]} isModerator={false} />
-        <main className="mx-auto w-full max-w-[67.5rem]">
-          <RouteErrorPage {...props} />
-        </main>
-      </div>
+      <HallChrome modes={[]} isModerator={false}>
+        <RouteErrorPage {...props} />
+      </HallChrome>
     </>
   )
 }
 
 function RootComponent() {
   const { modes, isModerator } = Route.useLoaderData()
-  // A not-found anywhere in the tree swaps the backdrop to the empty hangar.
+  // Mirrors the router's own hasNotFoundMatch: a dead URL that resolves at
+  // the root marks globalNotFound while the match status stays 'success'.
   const sceneVariant = useRouterState({
     select: (s): SceneVariant =>
-      s.matches.some((m) => m.status === 'notFound') ? 'hangar' : 'hall',
+      s.matches.some((m) => m.status === 'notFound' || m.globalNotFound)
+        ? 'hangar'
+        : 'hall',
   })
   return (
     <>
       <SceneBackdrop variant={sceneVariant} />
-      <div className="relative z-[2] px-5 pb-24">
-        <SiteNav modes={modes} isModerator={isModerator} />
-        <main className="mx-auto w-full max-w-[67.5rem]">
-          <Outlet />
-        </main>
-      </div>
+      <HallChrome modes={modes} isModerator={isModerator}>
+        <Outlet />
+      </HallChrome>
     </>
   )
 }

@@ -10,9 +10,7 @@ interface Ember {
 export type SceneVariant = 'hall' | 'hangar'
 
 /* The Spatial Scene slot: layered CSS placeholder until the depth-processed
-   imagery lands. Layer contract is already final: scene → scrim → glass.
-   The hangar variant is the not-found scene: an empty hangar on a flat
-   airfield, doorway open to the sky, windsock hanging limp. */
+   imagery lands. Layer contract is already final: scene → scrim → glass. */
 export function SceneBackdrop({
   variant = 'hall',
 }: {
@@ -153,9 +151,8 @@ export function SceneBackdrop({
                 <rect x="900" y="166" width="70" height="4" />
               </g>
             </svg>
-            {/* The empty hangar sits on the mid-band horizon, doorway open,
-                lights left on inside; painted after the apron so the glow
-                can pool on the tarmac (overflow visible, spill below base). */}
+            {/* Hangar paints after the apron, and overflow stays visible, so
+                the doorway glow can spill past the viewBox onto the tarmac. */}
             <svg
               style={{
                 position: 'absolute',
@@ -214,7 +211,7 @@ export function SceneBackdrop({
                 opacity="0.6"
               />
             </svg>
-            {/* Windsock hanging limp — nothing is flying today. */}
+            {/* Windsock */}
             <svg
               style={{
                 position: 'absolute',
