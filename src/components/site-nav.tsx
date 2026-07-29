@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useParams } from '@tanstack/react-router'
+import { Link, useParams, useRouterState } from '@tanstack/react-router'
 import { Search } from 'lucide-react'
 import { Brand } from '#/components/brand'
 import { ThemeToggle } from '#/components/theme-toggle'
@@ -20,23 +20,34 @@ const CLEARS_BEFORE = 24
     the published `--nav-h` (it wraps, so anything pinning below it needs a
     measured offset) and the lines where the pane turns solid, which are read
     off the nav's own bottom edge rather than a constant that could drift. */
-function useNavPane() {
+function useNavPane(locationKey: string) {
   const navRef = useRef<HTMLElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const [navBottom, setNavBottom] = useState(0)
   const [solid, setSolid] = useState(false)
   const [live, setLive] = useState(false)
+  const [arrivedAt, setArrivedAt] = useState(locationKey)
 
-  /* The pane only animates in answer to the reader's own scrolling. A restored
-     scroll position settles the state before any input arrives, so it is
-     already solid on arrival rather than fading in behind the page. */
+  /* The pane only animates in answer to the reader's own scrolling. Their input
+     arms it and each arrival disarms it, so a restored scroll — on first paint
+     or on a later step back through history — settles the pane before it is
+     seen instead of fading in behind the page. The nav never unmounts, so the
+     disarm happens during render, not in an effect: restoration lands before
+     effects flush and would animate the very frame this guards. Comparing
+     against the last key seen, rather than the key motion was armed at, is
+     what makes stepping *back* to an already-armed entry disarm too. */
+  if (arrivedAt !== locationKey) {
+    setArrivedAt(locationKey)
+    setLive(false)
+  }
+
   useEffect(() => {
     const go = () => setLive(true)
     const opts = { once: true, passive: true } as const
     const events = ['wheel', 'touchmove', 'keydown'] as const
     events.forEach((e) => window.addEventListener(e, go, opts))
     return () => events.forEach((e) => window.removeEventListener(e, go))
-  }, [])
+  }, [locationKey])
 
   useEffect(() => {
     const el = navRef.current
@@ -94,7 +105,11 @@ export function SiteNav({
   isModerator?: boolean
 }) {
   const { mode: activeMode } = useParams({ strict: false })
-  const { navRef, sentinelRef, solid, live } = useNavPane()
+  /* Distinct per history entry, so stepping back to the same URL re-arms. */
+  const locationKey = useRouterState({
+    select: (s) => s.location.state.key ?? s.location.href,
+  })
+  const { navRef, sentinelRef, solid, live } = useNavPane(locationKey)
 
   return (
     <>
