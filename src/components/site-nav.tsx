@@ -10,8 +10,6 @@ export interface ModeNavItem {
   isLive: boolean
 }
 
-const NAV_STICKY_INSET = 16
-
 /** How far content must slide under the nav before it turns solid, and how far
     it must retreat before it clears. The gap between them is the deadband that
     stops scroll jitter at the boundary from strobing the state. */
@@ -46,7 +44,10 @@ function useNavPane() {
     const publish = () => {
       const { height } = el.getBoundingClientRect()
       document.documentElement.style.setProperty('--nav-h', `${height}px`)
-      setNavBottom(NAV_STICKY_INSET + height)
+      /* Read the sticky inset off the element so the thresholds cannot drift
+         from whatever `top-*` the nav is actually wearing. */
+      const inset = parseFloat(getComputedStyle(el).top) || 0
+      setNavBottom(inset + height)
     }
     publish()
     const ro = new ResizeObserver(publish)
