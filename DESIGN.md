@@ -215,7 +215,7 @@ Share cards (`/og/*`, issue #17) render server-side to a static 1200×630 image,
 The page is a strict three-layer sandwich: **Spatial Scene** (WebGL canvas, depth-parallax imagery) at the bottom; the **scrim/veil** (Night Scrim or Day Veil, per mode) above it; **glass DOM surfaces** on top. Glass panes *float* over the scene (per the locked `wt-glass-concept.html`): each carries a soft, long-offset, negative-spread ambient shadow at rest that anchors it in the depth the parallax creates, alongside the material cues — backdrop blur + saturate, the 1px hairline border, the Glass Highlight top edge. Interaction deepens the float: hover/focus lifts the pane and strengthens its shadow.
 
 ### Shadow Vocabulary
-- **Ambient thin, night** (`box-shadow: 0 8px 30px -12px rgba(0,0,0,.6)`): resting shadow on thin material — nav, small floating chrome.
+- **Ambient thin, night** (`box-shadow: 0 8px 30px -12px rgba(0,0,0,.6)`): resting shadow on thin material — the parked nav, small floating chrome.
 - **Ambient deep, night** (`box-shadow: 0 30px 60px -30px rgba(0,0,0,.8)`): resting shadow on thick frost — hero, cards, panels (mid-weight surfaces may sit between, e.g. `0 20px 40px -24px rgba(0,0,0,.7)`).
 - **Ambient thin, day** (`box-shadow: 0 8px 30px -12px rgba(10,12,16,.25)`) / **Ambient deep, day** (`box-shadow: 0 30px 60px -30px rgba(10,12,16,.35)`): the same anchoring by daylight.
 - **Lift**: hover/focus deepens the pane's own ambient (roughly +4px offset, +20% alpha) with the spring-eased rise — a stronger float, not a new shadow.
@@ -256,7 +256,8 @@ The identity layer. A small, curated, fixed set of battle scenes, each processed
 - **Placeholder:** must meet 4.5:1 like any body text.
 
 ### Navigation
-- **Mode switcher is the primary nav:** GRB/GAB/ARB/AAB as text links in the floating glass header (thin material) — active mode in Medal Amber / Medal Amber Deep, inactive in muted ink; 4px-radius hover surface. Nav links are not underlined (chrome opts out); content links keep underlines with 2px offset as a non-color affordance.
+- **Mode switcher is the primary nav:** GRB/GAB/ARB/AAB as text links in the floating glass header (thin material when parked) — active mode in Medal Amber / Medal Amber Deep, inactive in muted ink; 4px-radius hover surface. Nav links are not underlined (chrome opts out); content links keep underlines with 2px offset as a non-color affordance.
+- **The nav rests clear, then turns solid.** Parked at the top of a page it is thin glass and the Spatial Scene reads through it. Once content slides under it the pane cross-fades to the thick fill over a near-opaque base, gains the hover hairline as a lit edge, and drops the deep ambient shadow — the overlap must read as one pane above another, never two transparent panes colliding. Frost alone cannot do this: `backdrop-filter` does not sample the sibling content a sticky pane overlays, the same limit that gives the floating menus and the pinned ledger head their near-opacity. The turn-solid and clear-again lines are measured off the nav's own bottom edge and sit 40px apart, so scroll jitter at the boundary cannot strobe the state.
 - **Theme toggle:** lives in the nav; follows `prefers-color-scheme` by default, persists a manual override. It flips tokens only (The Same Hall Rule).
 - **Wordmark:** styled text `WT·RECORDS`, semibold, wide tracking — typography-only branding until identity is finalized.
 

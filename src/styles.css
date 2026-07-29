@@ -271,29 +271,45 @@
   border-radius: 26px;
 }
 
-/* The floating nav rests as near-clear thin glass; once content passes
-   beneath it, it takes the thick tier plus a lit edge — the overlap must
-   read as one pane above another, never two equal thins colliding. */
-.nav-thickens {
-  transition:
-    background 320ms ease,
-    box-shadow 320ms ease,
-    border-color 320ms ease,
-    backdrop-filter 320ms ease,
-    -webkit-backdrop-filter 320ms ease;
-}
-.nav-thickens[data-scrolled='true'] {
-  background: var(--glass-thick-bg);
-  border-color: var(--hairline-hover);
-  backdrop-filter: blur(60px) saturate(190%);
-  -webkit-backdrop-filter: blur(60px) saturate(190%);
+/* The floating nav rests as near-clear thin glass over the scene. Once content
+   slides under it the pane turns solid: frost cannot sample the content it
+   overlays (the same limit .menu-glass and the pinned ledger head answer), so
+   only opacity keeps the hall from reading straight through the chrome.
+   The solid fill lives on a layer of its own because a flat colour cannot
+   interpolate into a gradient — cross-fading its opacity is the only way this
+   reads as a pane rising rather than a swap. */
+.nav-pane::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background:
+    var(--glass-thick-bg), color-mix(in srgb, var(--base) 94%, transparent);
   box-shadow:
     inset 0 1.5px 0 var(--glass-highlight-strong),
+    inset 0 -0.5px 0 var(--glass-edge);
+  opacity: 0;
+  transition: opacity 320ms var(--ease-out-quart);
+}
+.nav-pane {
+  transition:
+    box-shadow 320ms var(--ease-out-quart),
+    border-color 320ms var(--ease-out-quart);
+}
+.nav-pane[data-solid='true']::before {
+  opacity: 1;
+}
+.nav-pane[data-solid='true'] {
+  border-color: var(--hairline-hover);
+  box-shadow:
+    inset 0 1.5px 0 var(--glass-highlight),
     inset 0 -0.5px 0 var(--glass-edge),
     var(--ambient-thick);
 }
 @media (prefers-reduced-motion: reduce) {
-  .nav-thickens {
+  .nav-pane,
+  .nav-pane::before {
     transition: none;
   }
 }

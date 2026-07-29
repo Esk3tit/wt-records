@@ -10,41 +10,60 @@ export interface ModeNavItem {
   isLive: boolean
 }
 
-/** Publishes the floating nav's own height, because it wraps: anything that
-    pins below it (the ledger head) needs a measured offset, not a constant. */
-function usePublishedNavHeight() {
-  const ref = useRef<HTMLElement>(null)
+const NAV_STICKY_INSET = 16
+
+/** How far content must slide under the nav before it turns solid, and how far
+    it must retreat before it clears. The gap between them is the deadband that
+    stops scroll jitter at the boundary from strobing the state. */
+const TURNS_SOLID_AFTER = 64
+const CLEARS_BEFORE = 24
+
+/** Measures the floating nav and drives both things that depend on its height:
+    the published `--nav-h` (it wraps, so anything pinning below it needs a
+    measured offset) and the lines where the pane turns solid, which are read
+    off the nav's own bottom edge rather than a constant that could drift. */
+function useNavPane() {
+  const navRef = useRef<HTMLElement>(null)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const [navBottom, setNavBottom] = useState(0)
+  const [solid, setSolid] = useState(false)
+
   useEffect(() => {
-    const el = ref.current
+    const el = navRef.current
     if (!el) return
-    const publish = () =>
-      document.documentElement.style.setProperty(
-        '--nav-h',
-        `${el.getBoundingClientRect().height}px`,
-      )
+    const publish = () => {
+      const { height } = el.getBoundingClientRect()
+      document.documentElement.style.setProperty('--nav-h', `${height}px`)
+      setNavBottom(NAV_STICKY_INSET + height)
+    }
     publish()
     const ro = new ResizeObserver(publish)
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
-  return ref
-}
 
-/** True once the sentinel strip parked above the nav leaves the viewport —
-    i.e. content is about to pass beneath the sticky pane. */
-function useContentBeneathNav() {
-  const sentinelRef = useRef<HTMLDivElement>(null)
-  const [beneath, setBeneath] = useState(false)
   useEffect(() => {
     const el = sentinelRef.current
-    if (!el) return
-    const io = new IntersectionObserver(([entry]) =>
-      setBeneath(!entry.isIntersecting),
+    if (!el || !navBottom) return
+    const lineAt = (overlap: number) =>
+      `-${Math.max(0, navBottom - overlap)}px 0px 0px 0px`
+    const arm = new IntersectionObserver(
+      ([entry]) => entry.isIntersecting || setSolid(true),
+      { rootMargin: lineAt(TURNS_SOLID_AFTER) },
     )
-    io.observe(el)
-    return () => io.disconnect()
-  }, [])
-  return { sentinelRef, beneath }
+    const disarm = new IntersectionObserver(
+      ([entry]) => entry.isIntersecting && setSolid(false),
+      { rootMargin: lineAt(CLEARS_BEFORE) },
+    )
+    arm.observe(el)
+    disarm.observe(el)
+    return () => {
+      arm.disconnect()
+      disarm.disconnect()
+    }
+  }, [navBottom])
+
+  return { navRef, sentinelRef, solid }
 }
 
 export function SiteNav({
@@ -55,67 +74,63 @@ export function SiteNav({
   isModerator?: boolean
 }) {
   const { mode: activeMode } = useParams({ strict: false })
-  const navRef = usePublishedNavHeight()
-  const { sentinelRef, beneath } = useContentBeneathNav()
+  const { navRef, sentinelRef, solid } = useNavPane()
 
   return (
     <>
-    <div aria-hidden className="relative">
-      <div
-        ref={sentinelRef}
-        className="pointer-events-none absolute top-0 left-0 h-20 w-px"
-      />
-    </div>
-    <header
-      ref={navRef}
-      data-scrolled={beneath || undefined}
-      className="nav-thickens glass-thin sticky top-4 z-40 mx-auto mt-4 flex w-full max-w-[67.5rem] flex-wrap items-center gap-x-4 gap-y-2 rounded-[20px] py-2.5 pr-3 pl-5 [&_a]:no-underline"
-    >
-      <Link to="/" className="text-[0.9375rem]">
-        <Brand />
-      </Link>
-      <nav
-        aria-label="Game modes"
-        className="order-last flex w-full items-center gap-0.5 rounded-[13px] border border-hairline-soft bg-[var(--pill-track)] p-0.5 sm:order-none sm:ml-auto sm:w-auto"
+      <header
+        ref={navRef}
+        data-solid={solid || undefined}
+        className="nav-pane glass-thin sticky top-4 z-40 mx-auto mt-4 flex w-full max-w-[67.5rem] flex-wrap items-center gap-x-4 gap-y-2 rounded-[20px] py-2.5 pr-3 pl-5 [&_a]:no-underline"
       >
-        {modes.map((m) => (
-          <Link
-            key={m.mode}
-            to="/$mode"
-            params={{ mode: m.mode }}
-            aria-label={`${m.mode.toUpperCase()} · ${m.name}`}
-            title={m.name}
-            aria-current={m.mode === activeMode ? 'page' : undefined}
-            className={
-              'rounded-[10px] px-3.5 py-1.5 text-[0.8125rem] font-semibold transition-colors duration-200 ' +
-              (m.mode === activeMode
-                ? 'bg-[var(--pill-active)] text-fg shadow-[0_2px_8px_-2px_rgba(0,0,0,0.5)]'
-                : 'text-fg-muted hover:text-fg')
-            }
-          >
-            {m.mode.toUpperCase()}
-          </Link>
-        ))}
-      </nav>
-      <div className="ml-auto flex items-center gap-1 sm:ml-0">
-        {isModerator && (
-          <Link
-            to="/admin"
-            className="rounded bg-tint-strong px-1.5 py-0.5 text-xs tracking-wide text-fg-muted uppercase transition-colors duration-200 hover:text-fg"
-          >
-            Admin
-          </Link>
-        )}
-        <Link
-          to="/search"
-          aria-label="Search"
-          className="rounded-[10px] p-2 text-fg-muted transition-colors duration-200 hover:text-fg"
-        >
-          <Search size={16} />
+        <Link to="/" className="text-[0.9375rem]">
+          <Brand />
         </Link>
-        <ThemeToggle />
-      </div>
-    </header>
+        <nav
+          aria-label="Game modes"
+          className="order-last flex w-full items-center gap-0.5 rounded-[13px] border border-hairline-soft bg-[var(--pill-track)] p-0.5 sm:order-none sm:ml-auto sm:w-auto"
+        >
+          {modes.map((m) => (
+            <Link
+              key={m.mode}
+              to="/$mode"
+              params={{ mode: m.mode }}
+              aria-label={`${m.mode.toUpperCase()} · ${m.name}`}
+              title={m.name}
+              aria-current={m.mode === activeMode ? 'page' : undefined}
+              className={
+                'rounded-[10px] px-3.5 py-1.5 text-[0.8125rem] font-semibold transition-colors duration-200 ' +
+                (m.mode === activeMode
+                  ? 'bg-[var(--pill-active)] text-fg shadow-[0_2px_8px_-2px_rgba(0,0,0,0.5)]'
+                  : 'text-fg-muted hover:text-fg')
+              }
+            >
+              {m.mode.toUpperCase()}
+            </Link>
+          ))}
+        </nav>
+        <div className="ml-auto flex items-center gap-1 sm:ml-0">
+          {isModerator && (
+            <Link
+              to="/admin"
+              className="rounded bg-tint-strong px-1.5 py-0.5 text-xs tracking-wide text-fg-muted uppercase transition-colors duration-200 hover:text-fg"
+            >
+              Admin
+            </Link>
+          )}
+          <Link
+            to="/search"
+            aria-label="Search"
+            className="rounded-[10px] p-2 text-fg-muted transition-colors duration-200 hover:text-fg"
+          >
+            <Search size={16} />
+          </Link>
+          <ThemeToggle />
+        </div>
+      </header>
+      {/* Marks where content begins, so the pane's solid state is measured
+        against real overlap rather than a scroll distance. */}
+      <div aria-hidden ref={sentinelRef} className="-mb-px h-px" />
     </>
   )
 }
