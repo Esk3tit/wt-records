@@ -2,7 +2,7 @@ import { Link, useRouter } from '@tanstack/react-router'
 import type { ErrorComponentProps } from '@tanstack/react-router'
 import { FaultPane } from '#/components/fault-pane'
 
-export function RouteErrorPage({ error, reset }: ErrorComponentProps) {
+export function RouteErrorPage({ error }: ErrorComponentProps) {
   const router = useRouter()
   return (
     <FaultPane
@@ -23,7 +23,6 @@ export function RouteErrorPage({ error, reset }: ErrorComponentProps) {
             type="button"
             className="glass-pill cursor-pointer"
             onClick={() => {
-              reset()
               router.invalidate()
             }}
           >
