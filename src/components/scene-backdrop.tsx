@@ -7,9 +7,17 @@ interface Ember {
   opacity: number
 }
 
+export type SceneVariant = 'hall' | 'hangar'
+
 /* The Spatial Scene slot: layered CSS placeholder until the depth-processed
-   imagery lands. Layer contract is already final: scene → scrim → glass. */
-export function SceneBackdrop() {
+   imagery lands. Layer contract is already final: scene → scrim → glass.
+   The hangar variant is the not-found scene: an empty hangar on a flat
+   airfield, doorway open to the sky, windsock hanging limp. */
+export function SceneBackdrop({
+  variant = 'hall',
+}: {
+  variant?: SceneVariant
+}) {
   const sceneRef = useRef<HTMLDivElement>(null)
   // Embers are generated client-side only: Math.random during SSR would
   // hydrate against different values.
@@ -26,6 +34,10 @@ export function SceneBackdrop() {
         opacity: 0.3 + Math.random() * 0.5,
       })),
     )
+  }, [])
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
     const scene = sceneRef.current
     if (!scene) return
@@ -62,7 +74,8 @@ export function SceneBackdrop() {
       window.removeEventListener('scroll', onScroll)
       if (frame) cancelAnimationFrame(frame)
     }
-  }, [])
+    // The layer list is queried once per scene, so a variant swap re-collects.
+  }, [variant])
 
   return (
     <>
@@ -81,30 +94,149 @@ export function SceneBackdrop() {
             fill="var(--ridge-far)"
           />
         </svg>
-        <svg
-          className="scene-ridge"
-          style={{ bottom: '8%', opacity: 0.7 }}
-          data-depth="0.08"
-          viewBox="0 0 1200 200"
-          preserveAspectRatio="none"
-        >
-          <path
-            d="M0 200 L0 140 Q200 95 420 130 T820 120 T1200 130 L1200 200Z"
-            fill="var(--ridge-mid)"
-          />
-        </svg>
-        <svg
-          className="scene-ridge"
-          style={{ bottom: '-2%', opacity: 0.95 }}
-          data-depth="0.16"
-          viewBox="0 0 1200 220"
-          preserveAspectRatio="none"
-        >
-          <path
-            d="M0 220 L0 150 Q260 110 520 145 Q760 175 1000 140 Q1120 125 1200 150 L1200 220Z"
-            fill="var(--ridge-near)"
-          />
-        </svg>
+        {variant === 'hall' ? (
+          <>
+            <svg
+              className="scene-ridge"
+              style={{ bottom: '8%', opacity: 0.7 }}
+              data-depth="0.08"
+              viewBox="0 0 1200 200"
+              preserveAspectRatio="none"
+            >
+              <path
+                d="M0 200 L0 140 Q200 95 420 130 T820 120 T1200 130 L1200 200Z"
+                fill="var(--ridge-mid)"
+              />
+            </svg>
+            <svg
+              className="scene-ridge"
+              style={{ bottom: '-2%', opacity: 0.95 }}
+              data-depth="0.16"
+              viewBox="0 0 1200 220"
+              preserveAspectRatio="none"
+            >
+              <path
+                d="M0 220 L0 150 Q260 110 520 145 Q760 175 1000 140 Q1120 125 1200 150 L1200 220Z"
+                fill="var(--ridge-near)"
+              />
+            </svg>
+          </>
+        ) : (
+          <>
+            <svg
+              className="scene-ridge"
+              style={{ bottom: '7%', opacity: 0.7 }}
+              data-depth="0.08"
+              viewBox="0 0 1200 200"
+              preserveAspectRatio="none"
+            >
+              <path
+                d="M0 200 L0 138 Q260 128 560 133 T1200 130 L1200 200Z"
+                fill="var(--ridge-mid)"
+              />
+            </svg>
+            <svg
+              className="scene-ridge"
+              style={{ bottom: '-2%', opacity: 0.95 }}
+              data-depth="0.16"
+              viewBox="0 0 1200 200"
+              preserveAspectRatio="none"
+            >
+              <path
+                d="M0 200 L0 130 Q300 122 620 126 T1200 124 L1200 200Z"
+                fill="var(--ridge-near)"
+              />
+              <g fill="var(--ridge-far)" opacity="0.5">
+                <rect x="180" y="168" width="70" height="4" />
+                <rect x="420" y="166" width="70" height="4" />
+                <rect x="660" y="165" width="70" height="4" />
+                <rect x="900" y="166" width="70" height="4" />
+              </g>
+            </svg>
+            {/* The empty hangar sits on the mid-band horizon, doorway open,
+                lights left on inside; painted after the apron so the glow
+                can pool on the tarmac (overflow visible, spill below base). */}
+            <svg
+              style={{
+                position: 'absolute',
+                left: '11%',
+                bottom: '13.2%',
+                width: 'clamp(11rem, 20vw, 18rem)',
+                opacity: 0.95,
+                overflow: 'visible',
+              }}
+              data-depth="0.12"
+              viewBox="0 0 320 170"
+            >
+              <defs>
+                <radialGradient id="hangar-doorglow" cx="50%" cy="85%" r="70%">
+                  {/* stop-color only resolves var() as a CSS property, not
+                      as a presentation attribute. */}
+                  <stop
+                    offset="0%"
+                    style={{ stopColor: 'var(--hangar-glow)' }}
+                  />
+                  <stop
+                    offset="55%"
+                    style={{ stopColor: 'var(--hangar-glow)' }}
+                    stopOpacity="0.45"
+                  />
+                  <stop
+                    offset="100%"
+                    style={{ stopColor: 'var(--hangar-glow)' }}
+                    stopOpacity="0"
+                  />
+                </radialGradient>
+              </defs>
+              <ellipse
+                cx="160"
+                cy="128"
+                rx="150"
+                ry="80"
+                fill="url(#hangar-doorglow)"
+              />
+              <path
+                d="M6 166 L6 144 Q6 30 160 30 Q314 30 314 144 L314 166 Z"
+                fill="var(--ridge-far)"
+              />
+              <path
+                fillRule="evenodd"
+                d="M6 170 L6 148 Q6 34 160 34 Q314 34 314 148 L314 170 Z
+                   M46 170 L46 146 Q46 66 160 66 Q274 66 274 146 L274 170 Z"
+                fill="var(--ridge-near)"
+              />
+              <ellipse
+                cx="160"
+                cy="176"
+                rx="150"
+                ry="18"
+                fill="url(#hangar-doorglow)"
+                opacity="0.6"
+              />
+            </svg>
+            {/* Windsock hanging limp — nothing is flying today. */}
+            <svg
+              style={{
+                position: 'absolute',
+                right: '17%',
+                bottom: '13.8%',
+                width: 'clamp(2.25rem, 3.2vw, 3rem)',
+                opacity: 0.9,
+              }}
+              data-depth="0.1"
+              viewBox="0 0 60 130"
+            >
+              <path
+                d="M27 130 L27 10 L31 10 L31 130 Z"
+                fill="var(--ridge-far)"
+              />
+              <path
+                d="M31 12 Q49 18 47 38 Q45 54 39 56 Q35 42 31 22 Z"
+                fill="var(--ridge-far)"
+              />
+            </svg>
+          </>
+        )}
         {embers.map((e, i) => (
           <div
             key={i}

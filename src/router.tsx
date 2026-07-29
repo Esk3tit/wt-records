@@ -4,6 +4,8 @@ import {
   stringifySearchWith,
 } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
+import { NotFoundPage } from '#/components/not-found'
+import { RouteErrorPage } from '#/components/route-error'
 
 export function getRouter() {
   const router = createTanStackRouter({
@@ -11,6 +13,8 @@ export function getRouter() {
     scrollRestoration: true,
     defaultPreload: 'intent',
     defaultPreloadStaleTime: 0,
+    defaultNotFoundComponent: NotFoundPage,
+    defaultErrorComponent: RouteErrorPage,
     // No parser arg: the default one re-quotes any string that JSON-parses
     // (?rank="4"), breaking the canonical bare-string URLs. Scalars serialize
     // bare; validators canonicalize parsed types back via asParam.
