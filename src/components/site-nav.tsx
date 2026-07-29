@@ -105,9 +105,12 @@ export function SiteNav({
   isModerator?: boolean
 }) {
   const { mode: activeMode } = useParams({ strict: false })
-  /* Distinct per history entry, so stepping back to the same URL re-arms. */
+  /* Distinct per history entry, so stepping back to the same URL re-arms.
+     `key` is the legacy spelling the router still reads but no longer writes
+     for entries it keys itself, so it is a fallback, not the source. */
   const locationKey = useRouterState({
-    select: (s) => s.location.state.key ?? s.location.href,
+    select: (s) =>
+      s.location.state.__TSR_key ?? s.location.state.key ?? s.location.href,
   })
   const { navRef, sentinelRef, solid, live } = useNavPane(locationKey)
 
