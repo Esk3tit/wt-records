@@ -52,6 +52,11 @@
   --ambient-mid: 0 20px 40px -24px rgba(0, 0, 0, 0.7);
   --ambient-thick: 0 30px 60px -30px rgba(0, 0, 0, 0.8);
   --ambient-mid-lift: 0 32px 60px -24px rgba(0, 0, 0, 0.8);
+  /* The nav is a shallow pane: the -30px spread the card shadows carry would
+     shrink a 60px-tall box to nothing, so it needs a contact stop of its own. */
+  --ambient-nav-solid:
+    0 2px 4px -1px rgba(0, 0, 0, 0.5), 0 12px 24px -8px rgba(0, 0, 0, 0.55),
+    0 28px 44px -20px rgba(0, 0, 0, 0.4);
 
   /* spatial-scene placeholder (real depth-parallax imagery replaces this);
      bright enough to feed the frost — the panes are lit by this layer */
@@ -127,6 +132,10 @@
   --ambient-mid: 0 20px 40px -24px rgba(10, 12, 16, 0.3);
   --ambient-thick: 0 30px 60px -30px rgba(10, 12, 16, 0.35);
   --ambient-mid-lift: 0 32px 60px -24px rgba(10, 12, 16, 0.35);
+  --ambient-nav-solid:
+    0 2px 4px -1px rgba(10, 12, 16, 0.1),
+    0 12px 24px -8px rgba(10, 12, 16, 0.16),
+    0 28px 44px -20px rgba(10, 12, 16, 0.14);
 
   --scene-sky:
     radial-gradient(
@@ -269,6 +278,68 @@
     inset 0 -0.5px 0 var(--glass-edge),
     var(--ambient-thick);
   border-radius: 26px;
+}
+
+/* The floating nav rests as near-clear thin glass over the scene, and gains a
+   veil once content slides under it. The veil stays light on purpose: the pane
+   is meant to read as glass with the hall refracting through it, so separation
+   comes from the lit edge and the shadow, not from hiding what is behind.
+   (Frost alone cannot do it — backdrop-filter samples the scene but not the
+   content the pane overlays, the same limit .menu-glass answers.)
+   The veil lives on a layer of its own because a flat colour cannot
+   interpolate into a gradient — cross-fading its opacity is the only way this
+   reads as a pane rising rather than a swap. */
+.nav-pane::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background:
+    var(--glass-thick-bg), color-mix(in srgb, var(--base) 35%, transparent);
+  box-shadow:
+    inset 0 1.5px 0 var(--glass-highlight-strong),
+    inset 0 -0.5px 0 var(--glass-edge);
+  opacity: 0;
+}
+/* Motion is gated on the reader having scrolled: a state the page arrives in
+   is worn from the first frame, never faded into behind them. */
+.nav-pane[data-live]::before {
+  transition: opacity 320ms var(--ease-out-quart);
+}
+.nav-pane[data-live] {
+  transition:
+    box-shadow 320ms var(--ease-out-quart),
+    border-color 320ms var(--ease-out-quart),
+    max-width 320ms var(--ease-out-quart);
+}
+.nav-pane[data-solid='true']::before {
+  opacity: 1;
+}
+/* Every pane on the page shares the content column's edges, so the nav's own
+   sides are invisible against them. Risen, it overhangs onto open ground —
+   which is also the state change itself, legible where a value shift is not. */
+.nav-pane[data-solid='true'] {
+  max-width: 70.5rem;
+  border-color: var(--hairline-hover);
+  box-shadow:
+    inset 0 1.5px 0 var(--glass-highlight),
+    inset 0 -0.5px 0 var(--glass-edge),
+    var(--ambient-nav-solid);
+}
+/* A phone's nav wraps to ~100px and overlaps far more content than the
+   desktop pane does, so the veil there carries more of the load. */
+@media (max-width: 40rem) {
+  .nav-pane::before {
+    background:
+      var(--glass-thick-bg), color-mix(in srgb, var(--base) 62%, transparent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-pane[data-live],
+  .nav-pane[data-live]::before {
+    transition: none;
+  }
 }
 
 /* The ledger's head parks inside the pane and pins under the floating nav once
