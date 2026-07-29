@@ -27,6 +27,18 @@ function useNavPane() {
   const sentinelRef = useRef<HTMLDivElement>(null)
   const [navBottom, setNavBottom] = useState(0)
   const [solid, setSolid] = useState(false)
+  const [live, setLive] = useState(false)
+
+  /* The pane only animates in answer to the reader's own scrolling. A restored
+     scroll position settles the state before any input arrives, so it is
+     already solid on arrival rather than fading in behind the page. */
+  useEffect(() => {
+    const go = () => setLive(true)
+    const opts = { once: true, passive: true } as const
+    const events = ['wheel', 'touchmove', 'keydown'] as const
+    events.forEach((e) => window.addEventListener(e, go, opts))
+    return () => events.forEach((e) => window.removeEventListener(e, go))
+  }, [])
 
   useEffect(() => {
     const el = navRef.current
@@ -47,8 +59,15 @@ function useNavPane() {
     if (!el || !navBottom) return
     const lineAt = (overlap: number) =>
       `-${Math.max(0, navBottom - overlap)}px 0px 0px 0px`
+    /* Only a sentinel that has left past the TOP means content is under the
+       nav; one below the fold has simply not been reached yet. */
     const arm = new IntersectionObserver(
-      ([entry]) => entry.isIntersecting || setSolid(true),
+      ([entry]) => {
+        const { rootBounds, boundingClientRect, isIntersecting } = entry
+        if (isIntersecting) return
+        if (!rootBounds || boundingClientRect.top < rootBounds.top)
+          setSolid(true)
+      },
       { rootMargin: lineAt(TURNS_SOLID_AFTER) },
     )
     const disarm = new IntersectionObserver(
@@ -63,7 +82,7 @@ function useNavPane() {
     }
   }, [navBottom])
 
-  return { navRef, sentinelRef, solid }
+  return { navRef, sentinelRef, solid, live }
 }
 
 export function SiteNav({
@@ -74,13 +93,14 @@ export function SiteNav({
   isModerator?: boolean
 }) {
   const { mode: activeMode } = useParams({ strict: false })
-  const { navRef, sentinelRef, solid } = useNavPane()
+  const { navRef, sentinelRef, solid, live } = useNavPane()
 
   return (
     <>
       <header
         ref={navRef}
         data-solid={solid || undefined}
+        data-live={live || undefined}
         className="nav-pane glass-thin sticky top-4 z-40 mx-auto mt-4 flex w-full max-w-[67.5rem] flex-wrap items-center gap-x-4 gap-y-2 rounded-[20px] py-2.5 pr-3 pl-5 [&_a]:no-underline"
       >
         <Link to="/" className="text-[0.9375rem]">

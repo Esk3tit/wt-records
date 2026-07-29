@@ -290,9 +290,13 @@
     inset 0 1.5px 0 var(--glass-highlight-strong),
     inset 0 -0.5px 0 var(--glass-edge);
   opacity: 0;
+}
+/* Motion is gated on the reader having scrolled: a state the page arrives in
+   is worn from the first frame, never faded into behind them. */
+.nav-pane[data-live]::before {
   transition: opacity 320ms var(--ease-out-quart);
 }
-.nav-pane {
+.nav-pane[data-live] {
   transition:
     box-shadow 320ms var(--ease-out-quart),
     border-color 320ms var(--ease-out-quart);
@@ -308,8 +312,8 @@
     var(--ambient-thick);
 }
 @media (prefers-reduced-motion: reduce) {
-  .nav-pane,
-  .nav-pane::before {
+  .nav-pane[data-live],
+  .nav-pane[data-live]::before {
     transition: none;
   }
 }
