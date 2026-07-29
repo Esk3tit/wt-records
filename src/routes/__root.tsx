@@ -6,6 +6,7 @@ import {
   createRootRoute,
   useRouterState,
 } from '@tanstack/react-router'
+import type { ErrorComponentProps } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
@@ -16,7 +17,10 @@ import { THEME_INIT_SCRIPT } from '#/lib/theme'
 import { ConsentBanner } from '#/components/consent-banner'
 import { NationFlagSprite } from '#/components/nation-flag'
 import { SceneBackdrop } from '#/components/scene-backdrop'
+import type { SceneVariant } from '#/components/scene-backdrop'
+import { RouteErrorPage } from '#/components/route-error'
 import { SiteNav } from '#/components/site-nav'
+import type { ModeNavItem } from '#/components/site-nav'
 import { db } from '#/db'
 import { listModes } from '#/db/queries'
 import { hasAuthCookie } from '#/auth/supabase-server'
@@ -57,19 +61,55 @@ export const Route = createRootRoute({
   loader: () => loadShell(),
   shellComponent: RootDocument,
   component: RootComponent,
+  errorComponent: RootErrorComponent,
 })
 
-function RootComponent() {
-  const { modes, isModerator } = Route.useLoaderData()
+function HallChrome({
+  modes,
+  isModerator,
+  children,
+}: {
+  modes: Array<ModeNavItem>
+  isModerator: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <div className="relative z-[2] px-5 pb-24">
+      <SiteNav modes={modes} isModerator={isModerator} />
+      <main className="mx-auto w-full max-w-[67.5rem]">{children}</main>
+    </div>
+  )
+}
+
+// A root-loader failure has no shell to render inside, so this rebuilds the
+// scene and bare nav chrome (neither needs loader data) around the fault pane.
+function RootErrorComponent(props: ErrorComponentProps) {
   return (
     <>
       <SceneBackdrop />
-      <div className="relative z-[2] px-5 pb-24">
-        <SiteNav modes={modes} isModerator={isModerator} />
-        <main className="mx-auto w-full max-w-[67.5rem]">
-          <Outlet />
-        </main>
-      </div>
+      <HallChrome modes={[]} isModerator={false}>
+        <RouteErrorPage {...props} />
+      </HallChrome>
+    </>
+  )
+}
+
+function RootComponent() {
+  const { modes, isModerator } = Route.useLoaderData()
+  // Mirrors the router's own hasNotFoundMatch: a dead URL that resolves at
+  // the root marks globalNotFound while the match status stays 'success'.
+  const sceneVariant = useRouterState({
+    select: (s): SceneVariant =>
+      s.matches.some((m) => m.status === 'notFound' || m.globalNotFound)
+        ? 'hangar'
+        : 'hall',
+  })
+  return (
+    <>
+      <SceneBackdrop variant={sceneVariant} />
+      <HallChrome modes={modes} isModerator={isModerator}>
+        <Outlet />
+      </HallChrome>
     </>
   )
 }
