@@ -271,6 +271,33 @@
   border-radius: 26px;
 }
 
+/* The floating nav rests as near-clear thin glass; once content passes
+   beneath it, it takes the thick tier plus a lit edge — the overlap must
+   read as one pane above another, never two equal thins colliding. */
+.nav-thickens {
+  transition:
+    background 320ms ease,
+    box-shadow 320ms ease,
+    border-color 320ms ease,
+    backdrop-filter 320ms ease,
+    -webkit-backdrop-filter 320ms ease;
+}
+.nav-thickens[data-scrolled='true'] {
+  background: var(--glass-thick-bg);
+  border-color: var(--hairline-hover);
+  backdrop-filter: blur(60px) saturate(190%);
+  -webkit-backdrop-filter: blur(60px) saturate(190%);
+  box-shadow:
+    inset 0 1.5px 0 var(--glass-highlight-strong),
+    inset 0 -0.5px 0 var(--glass-edge),
+    var(--ambient-thick);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-thickens {
+    transition: none;
+  }
+}
+
 /* The ledger's head parks inside the pane and pins under the floating nav once
    the rows reach it. Parked, it is part of the glass and carries no fill of its
    own. Pinned, it overlays its own rows — which backdrop-filter cannot sample —

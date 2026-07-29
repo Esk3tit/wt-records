@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from '@tanstack/react-router'
 import { Search } from 'lucide-react'
 import { Brand } from '#/components/brand'
@@ -30,6 +30,23 @@ function usePublishedNavHeight() {
   return ref
 }
 
+/** True once the sentinel strip parked above the nav leaves the viewport —
+    i.e. content is about to pass beneath the sticky pane. */
+function useContentBeneathNav() {
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const [beneath, setBeneath] = useState(false)
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const io = new IntersectionObserver(([entry]) =>
+      setBeneath(!entry.isIntersecting),
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+  return { sentinelRef, beneath }
+}
+
 export function SiteNav({
   modes,
   isModerator = false,
@@ -39,11 +56,20 @@ export function SiteNav({
 }) {
   const { mode: activeMode } = useParams({ strict: false })
   const navRef = usePublishedNavHeight()
+  const { sentinelRef, beneath } = useContentBeneathNav()
 
   return (
+    <>
+    <div aria-hidden className="relative">
+      <div
+        ref={sentinelRef}
+        className="pointer-events-none absolute top-0 left-0 h-20 w-px"
+      />
+    </div>
     <header
       ref={navRef}
-      className="glass-thin sticky top-4 z-40 mx-auto mt-4 flex w-full max-w-[67.5rem] flex-wrap items-center gap-x-4 gap-y-2 rounded-[20px] py-2.5 pr-3 pl-5 [&_a]:no-underline"
+      data-scrolled={beneath || undefined}
+      className="nav-thickens glass-thin sticky top-4 z-40 mx-auto mt-4 flex w-full max-w-[67.5rem] flex-wrap items-center gap-x-4 gap-y-2 rounded-[20px] py-2.5 pr-3 pl-5 [&_a]:no-underline"
     >
       <Link to="/" className="text-[0.9375rem]">
         <Brand />
@@ -90,5 +116,6 @@ export function SiteNav({
         <ThemeToggle />
       </div>
     </header>
+    </>
   )
 }
