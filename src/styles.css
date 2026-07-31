@@ -409,7 +409,7 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  translate: -50% -50%;
+  translate: -50% calc(-50% + var(--tap-reach-drop, 0px));
   width: max(100%, 44px);
   height: max(100%, 44px);
 }
@@ -417,7 +417,7 @@
    over the gap. The lower row hangs its own into the pane's foot instead, by
    the 4px that splits the slack evenly between that foot and the row above. */
 .tap-reach--low::after {
-  translate: -50% calc(-50% + 4px);
+  --tap-reach-drop: 4px;
 }
 
 .pane-lift {
