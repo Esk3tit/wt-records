@@ -61,7 +61,10 @@ async function probe(
         document.head.appendChild(
           Object.assign(document.createElement('style'), { id }),
         )
-      const frozen = `${scope}, ${scope} *, ${scope}::before, ${scope} *::before {
+      /* Everything, not just the scope: the scene behind the pane carries
+         embers on randomised delays, and a backdrop that moves between the
+         reading and the screenshot is a different backdrop. */
+      const frozen = `*, *::before, *::after {
         transition: none !important; animation: none !important; }`
       sheet.textContent =
         want === 'release'

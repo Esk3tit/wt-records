@@ -19,20 +19,28 @@ export async function openNav(
     motion is armed by genuine input, and a scripted `scrollTo` is undone the
     moment the router restores the entry — which also settles after hydration
     and yanks the page back once, so the target is re-asserted until it sticks. */
-export async function readerScrollsTo(page: Page, top: number) {
+export async function readerScrollsTo(page: Page, top: number, within = 8) {
   const { width, height } = page.viewportSize() ?? { width: 1280, height: 720 }
   await page.mouse.move(width / 2, height / 2)
   const where = () => page.evaluate(() => Math.round(window.scrollY))
   for (let attempt = 0; attempt < 12; attempt++) {
-    if (Math.abs((await where()) - top) < 60) {
+    if (Math.abs((await where()) - top) <= within) {
       await settle(page)
-      if (Math.abs((await where()) - top) < 60) return
+      if (Math.abs((await where()) - top) <= within) return
       continue
     }
     await page.mouse.wheel(0, top - (await where()))
     await settle(page)
   }
   throw new Error(`the page would not hold at ${top}px`)
+}
+
+/** How far this page can actually be scrolled, so a depth the content cannot
+    reach is skipped rather than read at whatever position it stopped at. */
+export async function deepestScroll(page: Page) {
+  return page.evaluate(
+    () => document.documentElement.scrollHeight - window.innerHeight,
+  )
 }
 
 /** Waits for scrolling to actually stop, then keeps waiting. The frame-stable
@@ -57,7 +65,7 @@ async function settle(page: Page) {
 export async function paneStill(page: Page) {
   await page.waitForFunction(() => {
     const pane = document.querySelector('.nav-pane')
-    if (!pane) return true
+    if (!pane) throw new Error('the pane never rendered')
     const fill = () => getComputedStyle(pane, '::before').opacity
     const was = fill()
     return new Promise((done) =>
@@ -68,16 +76,23 @@ export async function paneStill(page: Page) {
   })
 }
 
-/** Pins a band of one flat colour under the nav — the worst backdrop any page
-    could ever scroll beneath it. It has to go inside the nav's own stacking
-    context, or the app root's confines it below the band instead. */
+/** Pins a band of one flat colour behind the nav — the worst backdrop a page
+    could ever scroll beneath it. It goes in as a sibling of the header so it
+    shares the stacking context the header's own z-index is resolved in; put it
+    at the root instead and it paints straight over the pane. That it landed
+    *behind* is asserted, not assumed, because a band in front reads as a
+    perfect 1:1 and every ink on it looks fine. */
 export async function pinUnderNav(page: Page, colour: string) {
   await page.evaluate((c) => {
     const header = document.querySelector('header')
     if (!header?.parentElement) throw new Error('the nav never rendered')
     const band = document.createElement('div')
-    band.dataset.band = ''
     band.style.cssText = `position:fixed;left:0;right:0;top:0;height:200px;z-index:30;background:${c}`
     header.parentElement.insertBefore(band, header)
+
+    const box = header.getBoundingClientRect()
+    const over = document.elementFromPoint(box.x + box.width / 2, box.y + 2)
+    if (!over || !header.contains(over))
+      throw new Error('the band covered the nav instead of sitting behind it')
   }, colour)
 }

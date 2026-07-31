@@ -48,7 +48,7 @@ test('the pane arrives risen when the reader steps back to a restored scroll', a
   page,
 }) => {
   await openLedger(page, 1400)
-  await readerScrollsTo(page, 1400)
+  await readerScrollsTo(page, 1400, 60)
   await expect(nav(page)).toHaveAttribute('data-live', 'true')
   await expect(nav(page)).toHaveAttribute('data-solid', 'true')
 
@@ -82,7 +82,7 @@ test('the pane still fades when the reader scrolls it up themselves', async ({
   await openLedger(page, 800)
   // Let restoration finish having its say at the top, so the fade below is the
   // reader's scroll and nothing else.
-  await readerScrollsTo(page, 0)
+  await readerScrollsTo(page, 0, 60)
 
   await page.mouse.wheel(0, 800)
   const settling = await fillWhileSettling(page)

@@ -2,27 +2,38 @@ import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 import type { InkReading } from './support/contrast'
 import { faultsInInk, readInk } from './support/contrast'
-import { openNav, paneStill, pinUnderNav, readerScrollsTo } from './support/nav'
+import {
+  deepestScroll,
+  openNav,
+  paneStill,
+  pinUnderNav,
+  readerScrollsTo,
+} from './support/nav'
 import { STATE } from './support/states'
 
 /** WCAG 1.4.3 asks nothing of text that is part of a logo or brand name, and
     the wordmark's amber separator is exactly that — a mark, carrying no reading.
-    Everything the nav asks anyone to read is measured. */
+    Everything the nav asks anyone to read is measured. This exempts a subtree,
+    so the tests assert the home link still holds nothing but the wordmark. */
 const WORDMARK = 'a[href="/"]'
 
 /** The pane turns solid after 64px of overlap, so 32 catches the one window
-    where content sits under glass that is still thin. The rest are places a
-    reader stops; 800 is where the failure was first measured. */
+    where content sits under glass that is still thin — and it only lands if the
+    helper's tolerance is tighter than the gap to 0. The rest are places a reader
+    stops; 800 is where the failure was first measured. */
 const DEPTHS = [0, 32, 400, 800, 1200, 1600, 2400]
 
 async function worstDownThePage(page: Page) {
+  await expect(page.locator(`header ${WORDMARK}`)).toHaveCount(1)
+  const floor = await deepestScroll(page)
   const worst = new Map<string, InkReading>()
-  for (const depth of DEPTHS) {
+  for (const depth of DEPTHS.filter((d) => d <= floor)) {
     await readerScrollsTo(page, depth)
     await paneStill(page)
     for (const r of await readInk(page, 'header', WORDMARK)) {
       const seen = worst.get(r.label)
-      if (!seen || r.ratio < seen.ratio)
+      // By margin, not by ratio: a large-text 3:1 floor is a different bar.
+      if (!seen || r.ratio - r.needs < seen.ratio - seen.needs)
         worst.set(r.label, { ...r, label: `${r.label} — at ${depth}px` })
     }
   }
@@ -52,9 +63,10 @@ for (const theme of ['dark', 'light'] as const) {
       expect(await worstDownThePage(page)).toEqual([])
     })
 
-    /* Six depths on two routes prove those pages today. A flat band pinned under
-       the pane is the worst backdrop any page could ever produce, so clearing it
-       bounds every route the site will ever have. */
+    /* Depths on real routes only prove those pages today. A flat band pinned
+       behind the pane bounds the extremes instead — which holds for the nav's
+       current ink, all of it far lighter or darker than the range the veil
+       leaves reachable. A mid-luminance ink would need its own band. */
     for (const colour of ['#fff', '#000']) {
       test(`no page can beat the risen nav under ${colour}`, async ({
         page,
