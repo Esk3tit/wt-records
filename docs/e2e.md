@@ -1,6 +1,6 @@
 # E2E runbook (Playwright)
 
-A thin suite — the flows worth driving end to end, not a second copy of the unit tests — driving the **built SSR server** against a **disposable Supabase stack**. Lives in [`e2e/`](../e2e), configured by [`playwright.config.ts`](../playwright.config.ts).
+A thin suite — the flows worth driving end to end, not a second copy of the unit tests — driving, by default, the **built SSR server** against a **disposable Supabase stack**. (`PLAYWRIGHT_BASE_URL` points it at a server someone else is running instead; see below.) Lives in [`e2e/`](../e2e), configured by [`playwright.config.ts`](../playwright.config.ts).
 
 | Spec                        | Covers                                                                  |
 | --------------------------- | ----------------------------------------------------------------------- |
