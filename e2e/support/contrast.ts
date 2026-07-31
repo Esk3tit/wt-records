@@ -151,7 +151,14 @@ function collectTargets({
     const weight = Number(style.fontWeight)
     const large = size >= 24 || (size >= 18.66 && weight >= 700)
     targets.push({
-      label: (el.getAttribute('aria-label') ?? el.textContent)
+      /* An icon has neither text nor a label of its own, so it borrows the
+         control's — otherwise every icon on the page answers to "". */
+      label: (
+        el.getAttribute('aria-label') ??
+        (el.textContent ||
+          el.closest('[aria-label]')?.getAttribute('aria-label')) ??
+        el.tagName.toLowerCase()
+      )
         .trim()
         .slice(0, 40),
       ink: parse(style.color),
