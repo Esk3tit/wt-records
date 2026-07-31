@@ -35,7 +35,6 @@
   --row-hover: rgba(255, 255, 255, 0.05);
   --pill-track: rgba(0, 0, 0, 0.2);
   --pill-active: rgba(255, 255, 255, 0.14);
-
   /* Where a pinned ledger head parks: the nav's own sticky inset, its measured
      height (SiteNav publishes --nav-h), and a hairline of air. The fallback
      covers the first paint before the observer reports. */
@@ -101,7 +100,10 @@
   --ink-faint: rgba(10, 12, 16, 0.58);
   --hairline: rgba(10, 12, 16, 0.12);
   --hairline-soft: rgba(10, 12, 16, 0.07);
-  --accent-text: #8a6410;
+  /* Medal Amber Deep, calibrated on glass rather than on the Hall itself: a
+     pane is a shade darker than the base it floats over, and clearing 4.5:1 on
+     the base is no promise about the panes this ink actually sits on. */
+  --accent-text: #7a580d;
   --gold: #7a6200;
   --silver: #57606c;
   --bronze: #8a5220;
@@ -123,8 +125,8 @@
   --row-hover: rgba(10, 12, 16, 0.04);
   --pill-track: rgba(10, 12, 16, 0.06);
   --pill-active: rgba(255, 255, 255, 0.9);
-
-  /* Status ink, day forms — dark enough for 4.5:1 on Daylight Hall. */
+  /* Status ink, day forms. Unlike the accent these are only ever set on the
+     base, so the Hall is the right surface to calibrate them against. */
   --status-verified: #1d6b47;
   --status-warn: #8a6410;
   --status-danger: #9f3428;
@@ -284,11 +286,12 @@
 }
 
 /* The floating nav rests as near-clear thin glass over the scene, and gains a
-   veil once content slides under it. The veil stays light on purpose: the pane
-   is meant to read as glass with the hall refracting through it, so separation
-   comes from the lit edge and the shadow, not from hiding what is behind.
-   (Frost alone cannot do it — backdrop-filter samples the scene but not the
-   content the pane overlays, the same limit .menu-glass answers.)
+   veil once content slides under it. The veil is what the nav's own labels are
+   read against: backdrop-filter samples the scene but not the content the pane
+   overlays (the same limit .menu-glass answers), so without it a bright line of
+   type passing beneath sets the luminance the ink has to clear 4.5:1 on — and
+   past a point no ink clears it. Separation is still the lit edge and the
+   shadow's job; this is legibility's.
    The veil lives on a layer of its own because a flat colour cannot
    interpolate into a gradient — cross-fading its opacity is the only way this
    reads as a pane rising rather than a swap. */
@@ -299,7 +302,7 @@
   z-index: -1;
   border-radius: inherit;
   background:
-    var(--glass-thick-bg), color-mix(in srgb, var(--base) 35%, transparent);
+    var(--glass-thick-bg), color-mix(in srgb, var(--base) 75%, transparent);
   box-shadow:
     inset 0 1.5px 0 var(--glass-highlight-strong),
     inset 0 -0.5px 0 var(--glass-edge);
@@ -329,14 +332,6 @@
     inset 0 1.5px 0 var(--glass-highlight),
     inset 0 -0.5px 0 var(--glass-edge),
     var(--ambient-nav-solid);
-}
-/* A phone's nav wraps to ~100px and overlaps far more content than the
-   desktop pane does, so the veil there carries more of the load. */
-@media (max-width: 40rem) {
-  .nav-pane::before {
-    background:
-      var(--glass-thick-bg), color-mix(in srgb, var(--base) 62%, transparent);
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   .nav-pane[data-live],

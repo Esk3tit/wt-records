@@ -3,7 +3,7 @@ name: WT Records
 description: Frosted-glass world-record registry for War Thunder — depth-parallax battle scenes behind, verified feats under lit glass in front, in dark and light.
 colors:
   medal-amber: "#F0B94A"
-  medal-amber-deep: "#8A6410"
+  medal-amber-deep: "#7A580D"
   night-hangar: "#0A0C10"
   daylight-hall: "#F2F3F6"
   ink: "#FFFFFFF5"
@@ -156,7 +156,7 @@ One committed base per lighting state, mirrored ink ramps, one warm accent with 
 
 ### Primary
 - **Medal Amber** (#F0B94A): the single accent. Fills (buttons) carry black text and work in both modes. As *text or active-state color it belongs to dark mode only.*
-- **Medal Amber Deep** (#8A6410): the same voice by daylight — amber as text/active-state on light surfaces (≥4.5:1 on Daylight Hall). Fills stay #F0B94A in both modes.
+- **Medal Amber Deep** (#7A580D): the same voice by daylight — amber as text/active-state on light surfaces (≥4.5:1 on the *glass*, not merely on Daylight Hall). A pane floating over the day scene is a shade darker than the base, so the base is the wrong thing to calibrate a day ink against. Fills stay #F0B94A in both modes.
 
 ### Neutral
 - **Night Hangar** (#0A0C10): dark-mode body base — the hall at night.
@@ -258,6 +258,7 @@ The identity layer. A small, curated, fixed set of battle scenes, each processed
 ### Navigation
 - **Mode switcher is the primary nav:** GRB/GAB/ARB/AAB as text links in the floating glass header (thin material when parked) — active mode in Medal Amber / Medal Amber Deep, inactive in muted ink; 4px-radius hover surface. Nav links are not underlined (chrome opts out); content links keep underlines with 2px offset as a non-color affordance.
 - **The nav rests clear, then turns solid.** Parked at the top of a page it is thin glass and the Spatial Scene reads through it. Once content slides under it the pane cross-fades to the thick fill over a near-opaque base, gains the hover hairline as a lit edge, and drops the deep ambient shadow — the overlap must read as one pane above another, never two transparent panes colliding. Frost alone cannot do this: `backdrop-filter` does not sample the sibling content a sticky pane overlays, the same limit that gives the floating menus and the pinned ledger head their near-opacity. The turn-solid and clear-again lines are measured off the nav's own bottom edge and sit 40px apart, so scroll jitter at the boundary cannot strobe the state.
+- **The risen veil is a legibility floor, not a mood.** It is the only thing standing between the nav's own labels and whatever is scrolling beneath them, and a bright line of type passing under a thin pane will beat *any* ink — there is no colour that reads at 4.5:1 over an unbounded backdrop. So the veil is sized to what its labels need, not to taste: measured against the worst backdrop a page can produce (a pure white or pure black band), 75% is the floor at which every label still clears 4.5:1, and one value serves every width. Day sets that floor, not night. The nav's utility ink — search, theme, Admin — is full-strength for the same reason, and marks its hover with the pill track rather than with more ink: a fill of its own would only lighten the surface it has to be read on. Only the risen pane veils; parked, the nav is thin glass and its ink clears the floor without help.
 - **Theme toggle:** lives in the nav; follows `prefers-color-scheme` by default, persists a manual override. It flips tokens only (The Same Hall Rule).
 - **Wordmark:** styled text `WT·RECORDS`, semibold, wide tracking — typography-only branding until identity is finalized.
 - **Every control reaches 44px, and none of them grows to do it.** `.tap-reach` hands the hit area a 44px square as a pseudo-element, so a thumb gets its target while the ink keeps the size the type scale gave it and the pane keeps its height — which matters most on the phone nav, already a tenth of the screen once it wraps. Two reaches must be kept 44px apart centre to centre, or the later one takes the overlap: that is why the search and theme icons sit a gap apart rather than shoulder to shoulder, and why the mode pills wear `.tap-reach--low`, hanging their reach into the pane's foot instead of contesting the row above.

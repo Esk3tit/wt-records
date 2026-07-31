@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
+import { readerScrollsTo } from './support/nav'
 import { STATE } from './support/states'
 
 test.use({ storageState: STATE.anon })
@@ -43,32 +44,11 @@ async function openLedger(page: Page, deepEnoughFor: number) {
   )
 }
 
-/** Scrolls the way a reader does, and holds there. It has to be a real wheel:
-    motion is armed by genuine input, and only a real scroll is recorded for
-    restoration — a scripted `scrollTo` is undone the moment the router restores
-    the entry. Restoration also settles after hydration and will yank the page
-    back once, so the target is re-asserted until it stays put. */
-async function readerScrollsTo(page: Page, top: number) {
-  await page.mouse.move(640, 400)
-  const where = () => page.evaluate(() => Math.round(window.scrollY))
-  for (let attempt = 0; attempt < 12; attempt++) {
-    const y = await where()
-    if (Math.abs(y - top) < 60) {
-      await page.waitForTimeout(250)
-      if (Math.abs((await where()) - top) < 60) return
-      continue
-    }
-    await page.mouse.wheel(0, top - y)
-    await page.waitForTimeout(200)
-  }
-  throw new Error(`the page would not hold at ${top}px`)
-}
-
 test('the pane arrives risen when the reader steps back to a restored scroll', async ({
   page,
 }) => {
   await openLedger(page, 1400)
-  await readerScrollsTo(page, 1400)
+  await readerScrollsTo(page, 1400, 60)
   await expect(nav(page)).toHaveAttribute('data-live', 'true')
   await expect(nav(page)).toHaveAttribute('data-solid', 'true')
 
@@ -102,7 +82,7 @@ test('the pane still fades when the reader scrolls it up themselves', async ({
   await openLedger(page, 800)
   // Let restoration finish having its say at the top, so the fade below is the
   // reader's scroll and nothing else.
-  await readerScrollsTo(page, 0)
+  await readerScrollsTo(page, 0, 60)
 
   await page.mouse.wheel(0, 800)
   const settling = await fillWhileSettling(page)
