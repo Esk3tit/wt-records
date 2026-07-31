@@ -42,7 +42,7 @@ export function ThemeToggle() {
       aria-label={
         theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'
       }
-      className="rounded-[10px] p-2 text-fg-muted transition-colors duration-200 hover:text-fg"
+      className="tap-reach rounded-[10px] p-2 text-fg-muted transition-colors duration-200 hover:text-fg"
     >
       {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
     </button>

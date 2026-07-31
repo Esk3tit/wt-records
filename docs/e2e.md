@@ -1,13 +1,19 @@
 # E2E runbook (Playwright)
 
-A thin suite — four flows, not a second copy of the unit tests — driving the **built SSR server** against a **disposable Supabase stack**. Lives in [`e2e/`](../e2e), configured by [`playwright.config.ts`](../playwright.config.ts).
+A thin suite — the flows worth driving end to end, not a second copy of the unit tests — driving the **built SSR server** against a **disposable Supabase stack**. Lives in [`e2e/`](../e2e), configured by [`playwright.config.ts`](../playwright.config.ts).
 
-| Spec                    | Covers                                                                       |
-| ----------------------- | ---------------------------------------------------------------------------- |
-| `public-browse.spec.ts` | `/` → `/grb`, the catalogue, a vehicle page, the coming-soon shell            |
-| `search.spec.ts`        | search → result → detail page, and the empty state                            |
-| `admin-gate.spec.ts`    | the CMS refuses signed-out visitors and signed-in non-moderators              |
-| `admin-cms.spec.ts`     | a moderator edit persists across a reload **and** lands in the audit log      |
+| Spec                        | Covers                                                                  |
+| --------------------------- | ----------------------------------------------------------------------- |
+| `public-browse.spec.ts`     | `/` → `/grb`, the catalogue, a vehicle page, the coming-soon shell       |
+| `search.spec.ts`            | search → result → detail page, and the empty state                      |
+| `admin-gate.spec.ts`        | the CMS refuses signed-out visitors and signed-in non-moderators         |
+| `admin-cms.spec.ts`         | a moderator edit persists across a reload **and** lands in the audit log |
+| `admin-players.spec.ts`     | a moderator resets a reported avatar                                     |
+| `avatar-owner.spec.ts`      | only the owner sees the avatar controls                                  |
+| `og-cards.spec.ts`          | every page unfurls, and the card routes serve real PNGs                  |
+| `nav-pane.spec.ts`          | the nav pane rises with the reader's own scroll, not with a restored one |
+| `nav-touch-targets.spec.ts` | every nav control reaches 44px, and the pane is no taller for it         |
+| `catalog-status.spec.ts`    | the sync status endpoint answers the watchdog probe                      |
 
 ## Auth: SDK sign-in, no Discord OAuth
 
