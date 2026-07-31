@@ -154,7 +154,7 @@ export function SiteNav({
           {isModerator && (
             <Link
               to="/admin"
-              className="tap-reach rounded bg-tint-strong px-1.5 py-0.5 text-xs tracking-wide text-fg-muted uppercase transition-colors duration-200 hover:text-fg"
+              className="tap-reach rounded px-1.5 py-0.5 text-xs tracking-wide uppercase transition-colors duration-200 hover:bg-[var(--pill-track)]"
             >
               Admin
             </Link>
@@ -162,7 +162,7 @@ export function SiteNav({
           <Link
             to="/search"
             aria-label="Search"
-            className="tap-reach rounded-[10px] p-2 text-fg-muted transition-colors duration-200 hover:text-fg"
+            className="tap-reach rounded-[10px] p-2 transition-colors duration-200 hover:bg-[var(--pill-track)]"
           >
             <Search size={16} />
           </Link>

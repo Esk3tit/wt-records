@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
+import { openNav } from './support/nav'
 import { STATE } from './support/states'
 
 test.use({ storageState: STATE.anon })
@@ -106,13 +107,6 @@ async function faultsInReach(page: Page) {
   })
 }
 
-async function openNav(page: Page, theme: 'dark' | 'light' = 'dark') {
-  await page.addInitScript((t) => localStorage.setItem('theme', t), theme)
-  await page.goto('/grb')
-  // The toggle mounts client-side, so it is the last control to exist.
-  await expect(page.getByRole('button', { name: /Switch to/ })).toBeVisible()
-}
-
 async function navHeight(page: Page) {
   return page
     .locator('header')
@@ -141,7 +135,7 @@ for (const width of WIDTHS) {
 for (const theme of ['dark', 'light'] as const) {
   test(`every nav control can be tapped in ${theme}`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
-    await openNav(page, theme)
+    await openNav(page, { theme })
 
     expect(await faultsInReach(page)).toEqual([])
   })
