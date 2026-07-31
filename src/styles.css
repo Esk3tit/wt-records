@@ -395,6 +395,31 @@
     var(--ambient-mid);
 }
 
+/* A control small enough to read well is rarely large enough to hit, so the
+   reach is a pseudo-element: a thumb's 44px costs the ink and the row nothing.
+   It only grows into empty space — two of these must be kept 44px apart, centre
+   to centre, or the later one takes the overlap. A negative z-index looks like
+   free hardening and is not: sent behind its ancestors, the parent's box takes
+   every point outside the ink and the reach collapses back to it. */
+.tap-reach {
+  position: relative;
+}
+.tap-reach::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% calc(-50% + var(--tap-reach-drop, 0px));
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+}
+/* Stacked rows sit closer than a thumb is wide, so their reaches would fight
+   over the gap. The lower row hangs its own into the pane's foot instead, by
+   the 4px that splits the slack evenly between that foot and the row above. */
+.tap-reach--low::after {
+  --tap-reach-drop: 4px;
+}
+
 .pane-lift {
   transition:
     transform 350ms cubic-bezier(0.2, 0.8, 0.2, 1),
