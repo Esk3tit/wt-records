@@ -36,13 +36,20 @@ if (
   )
 }
 
-const configuredToken = process.env.CATALOG_GITHUB_TOKEN?.trim()
-const githubToken = headerSafeGitHubToken(configuredToken)
+const rawToken = process.env.CATALOG_GITHUB_TOKEN
+const githubToken = headerSafeGitHubToken(rawToken)
 if (!githubToken) {
+  // "set but empty" is its own state: telling an operator who did set the
+  // variable that it is unset sends them looking in the wrong place.
+  const state =
+    rawToken === undefined
+      ? 'not set'
+      : rawToken.trim() === ''
+        ? 'set but empty'
+        : 'not a usable header value'
   console.warn(
-    `⚠ CATALOG_GITHUB_TOKEN is ${configuredToken ? 'not a usable header value' : 'not set'}` +
-      ' — reading GitHub anonymously, on a 60 requests/hour budget shared with' +
-      ' everything else on this IP.',
+    `⚠ CATALOG_GITHUB_TOKEN is ${state} — reading GitHub anonymously, on a` +
+      ' 60 requests/hour budget shared with everything else on this IP.',
   )
 }
 
