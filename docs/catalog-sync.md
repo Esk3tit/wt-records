@@ -105,12 +105,11 @@ so run daily. Create a second Railway service on this repo:
   `R2_*` vars (same values as the web service) so the cron mirrors images, and
   `CATALOG_GITHUB_TOKEN`
 
-The token is not optional in practice. A cron host's egress IP is shared, so
-the anonymous 60/hour budget can already be exhausted by other tenants before
-the run starts — that is how the 2026-08-01 run died, on its very first
-request. A scopeless classic token is the durable choice here: it can read
-only public data, and unlike a fine-grained token it does not expire and
-silently restore the failure.
+The token is not optional in practice: a cron host's egress IP is shared, so
+the anonymous budget can already be spent by other tenants before the run
+starts — that is how the 2026-08-01 run died, on its very first request.
+`docs/deploy.md` covers which kind to mint and how each way of getting it
+wrong behaves.
 
 ## Data source & licensing
 

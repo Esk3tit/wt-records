@@ -226,6 +226,8 @@ describe('fetchUpstream GitHub authentication', () => {
     ['a subdomain lookalike', 'https://api.github.com.evil.test/repos/o/r'],
     ['a subdomain of a real GitHub host', 'https://x.api.github.com/repos/o/r'],
     ['a substring of a real GitHub host', 'https://hub.com/repos/o/r'],
+    ['userinfo naming a GitHub host', 'https://api.github.com@evil.test/x'],
+    ['a trailing dot on a real GitHub host', 'https://api.github.com./repos'],
   ])('treats %s as foreign', async (_label, url) => {
     const { fetchImpl, inits } = stub(reply(200, '{}'))
 
@@ -247,7 +249,7 @@ describe('fetchUpstream GitHub authentication', () => {
 
   // A Headers rejection quotes the offending value, and that message reaches a
   // public issue via catalog_sync_runs.detail — so it must never hold a token.
-  it('drops a token no header could carry, rather than throwing it', async () => {
+  it('refuses a token outside the printable range, not throws it', async () => {
     const { fetchImpl, inits } = stub(reply(200, '{}'))
 
     await fetchUpstream('https://api.github.com/repos/o/r', {

@@ -62,9 +62,11 @@ export async function fetchUpstream(
   throw lastError
 }
 
-/** The token as a header may carry it, or undefined. A rejected header quotes
-    the offending value, and that message reaches a public issue via the watchdog. */
-export function usableGitHubToken(raw: string | undefined): string | undefined {
+/** The token if a header can safely carry it, else undefined — a Headers
+    rejection quotes the value, and that message reaches a public issue. */
+export function headerSafeGitHubToken(
+  raw: string | undefined,
+): string | undefined {
   const token = raw?.trim()
   return token && HEADER_SAFE.test(token) ? token : undefined
 }
@@ -75,7 +77,7 @@ function githubAuthHeaders(
   url: string,
   token: string | undefined,
 ): Record<string, string> {
-  const bearer = usableGitHubToken(token)
+  const bearer = headerSafeGitHubToken(token)
   if (!bearer) return {}
   let target: URL
   try {
