@@ -3,6 +3,8 @@ const MAX_ATTEMPTS = 3
 const REASON_MAX = 200
 const REASON_MAX_READS = 16
 const REASON_READ_TIMEOUT_MS = 2000
+// Exact hosts, never a suffix match: "api.github.com.evil.test" must not pass.
+const GITHUB_HOSTS = new Set(['api.github.com', 'raw.githubusercontent.com'])
 
 export interface UpstreamFetchOptions {
   fetchImpl?: typeof fetch
@@ -13,6 +15,8 @@ export interface UpstreamFetchOptions {
   timeoutMs?: number
   /** Redirect policy; default follows. 'error' hardens SSRF-sensitive fetches. */
   redirect?: RequestRedirect
+  /** Lifts GitHub's 60/hr per-IP anonymous budget to the token's 5,000/hr. */
+  githubToken?: string
 }
 
 /** GET with the catalog user-agent and backoff retries on 429/5xx/network
@@ -31,7 +35,10 @@ export async function fetchUpstream(
     let response: Response
     try {
       response = await fetchImpl(url, {
-        headers: { 'user-agent': USER_AGENT },
+        headers: {
+          'user-agent': USER_AGENT,
+          ...githubAuth(url, options.githubToken),
+        },
         redirect: options.redirect,
         signal:
           options.timeoutMs == null
@@ -52,6 +59,23 @@ export async function fetchUpstream(
     lastError = error
   }
   throw lastError
+}
+
+/** fetchUpstream also fetches Imgur, avatar CDNs and a configurable locale URL,
+    so the credential is scoped to the hosts it belongs to rather than sent
+    wherever the caller happens to point. */
+function githubAuth(
+  url: string,
+  token: string | undefined,
+): Record<string, string> {
+  if (!token) return {}
+  let hostname: string
+  try {
+    hostname = new URL(url).hostname
+  } catch {
+    return {}
+  }
+  return GITHUB_HOSTS.has(hostname) ? { authorization: `Bearer ${token}` } : {}
 }
 
 /** An upstream's own reason ("SQLITE_CORRUPT…") is what makes a 500 actionable;

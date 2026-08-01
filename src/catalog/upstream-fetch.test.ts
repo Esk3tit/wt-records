@@ -44,12 +44,17 @@ const stalling = (status: number, contentType = 'application/json') =>
 
 const stub = (...responses: Array<Response>) => {
   const calls: Array<string> = []
-  const fetchImpl = ((url: string) => {
+  const inits: Array<RequestInit | undefined> = []
+  const fetchImpl = ((url: string, init?: RequestInit) => {
     calls.push(url)
+    inits.push(init)
     return Promise.resolve(responses[calls.length - 1] ?? responses.at(-1)!)
   }) as unknown as typeof fetch
-  return { fetchImpl, calls }
+  return { fetchImpl, calls, inits }
 }
+
+const authHeader = (init: RequestInit | undefined) =>
+  new Headers(init?.headers).get('authorization')
 
 async function failureMessage(...responses: Array<Response>): Promise<string> {
   const { fetchImpl } = stub(...responses)
@@ -177,5 +182,65 @@ describe('fetchUpstream error context', () => {
 
     expect(await response.json()).toEqual({ ok: true })
     expect(calls).toHaveLength(2)
+  })
+})
+
+describe('fetchUpstream GitHub authentication', () => {
+  it('authenticates a GitHub API request when given a token', async () => {
+    const { fetchImpl, inits } = stub(reply(200, '{"sha":"abc"}'))
+
+    await fetchUpstream(
+      'https://api.github.com/repos/gszabi99/War-Thunder-Datamine/commits/master',
+      { fetchImpl, githubToken: 'ghp_secret' },
+    )
+
+    expect(authHeader(inits[0])).toBe('Bearer ghp_secret')
+  })
+
+  it('authenticates a raw.githubusercontent.com request', async () => {
+    const { fetchImpl, inits } = stub(reply(200, '2.57.0.8', 'text/plain'))
+
+    await fetchUpstream(
+      'https://raw.githubusercontent.com/gszabi99/War-Thunder-Datamine/master/version',
+      { fetchImpl, githubToken: 'ghp_secret' },
+    )
+
+    expect(authHeader(inits[0])).toBe('Bearer ghp_secret')
+  })
+
+  // fetchUpstream is shared with the Imgur migration, avatar CDNs and a
+  // WT_UNITS_CSV_URL that points anywhere — the token must not follow it there.
+  it('never sends the token to a non-GitHub host', async () => {
+    const { fetchImpl, inits } = stub(reply(200, 'name;English'))
+
+    await fetchUpstream('https://i.imgur.com/abc.png', {
+      fetchImpl,
+      githubToken: 'ghp_secret',
+    })
+
+    expect(authHeader(inits[0])).toBeNull()
+  })
+
+  it.each([
+    ['a suffix lookalike', 'https://evilgithub.com/repos/o/r'],
+    ['a subdomain lookalike', 'https://api.github.com.evil.test/repos/o/r'],
+    ['a subdomain of a real GitHub host', 'https://x.api.github.com/repos/o/r'],
+    ['a substring of a real GitHub host', 'https://hub.com/repos/o/r'],
+  ])('treats %s as foreign', async (_label, url) => {
+    const { fetchImpl, inits } = stub(reply(200, '{}'))
+
+    await fetchUpstream(url, { fetchImpl, githubToken: 'ghp_secret' })
+
+    expect(authHeader(inits[0])).toBeNull()
+  })
+
+  it('sends no Authorization when no token is configured', async () => {
+    const { fetchImpl, inits } = stub(reply(200, '{"sha":"abc"}'))
+
+    await fetchUpstream('https://api.github.com/repos/o/r/commits/master', {
+      fetchImpl,
+    })
+
+    expect(authHeader(inits[0])).toBeNull()
   })
 })

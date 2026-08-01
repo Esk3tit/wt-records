@@ -89,6 +89,7 @@ warning in the summary, never a failed sync.
 | --- | --- | --- |
 | `DATABASE_URL` | — (required) | Target Postgres |
 | `CATALOG_SYNC_REMOTE` | unset | A real (non-dry) sync against a non-local DB refuses to run unless this is `1`. Slugs are first-run-wins, so accidental remote syncs are irreversible; `Dockerfile.sync` sets it for the cron service. |
+| `CATALOG_GITHUB_TOKEN` | unset (anonymous, and the run warns) | Read-only GitHub token. Anonymous reads get 60 requests/hour keyed on the *IP*, which on shared hosting is spent by strangers — a token gets 5,000/hour of its own. Needs no scopes; the sync sends it only to `api.github.com` and `raw.githubusercontent.com` |
 | `WT_UNITS_CSV_URL` | gszabi99 `units.csv` on the pinned revision | English display names. Setting it opts that one file out of revision pinning, so the run warns — a shop name the override lacks makes an ownable unit look scripted |
 | `R2_*` | unset (mirroring skipped) | Assets-bucket credentials for image mirroring — see `.env.example` |
 
@@ -100,8 +101,16 @@ so run daily. Create a second Railway service on this repo:
 - **Dockerfile path:** `Dockerfile.sync` (a short-lived Bun process — no
   server; it syncs and exits)
 - **Cron schedule:** `0 6 * * *`
-- **Variables:** `DATABASE_URL` (same reference the web service uses) and the
-  `R2_*` vars (same values as the web service) so the cron mirrors images
+- **Variables:** `DATABASE_URL` (same reference the web service uses), the
+  `R2_*` vars (same values as the web service) so the cron mirrors images, and
+  `CATALOG_GITHUB_TOKEN`
+
+The token is not optional in practice. A cron host's egress IP is shared, so
+the anonymous 60/hour budget can already be exhausted by other tenants before
+the run starts — that is how the 2026-08-01 run died, on its very first
+request. A scopeless classic token is the durable choice here: it can read
+only public data, and unlike a fine-grained token it does not expire and
+silently restore the failure.
 
 ## Data source & licensing
 

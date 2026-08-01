@@ -35,8 +35,19 @@ if (
   )
 }
 
+// Anonymous GitHub reads are 60/hr keyed on IP, and a shared host's egress IP
+// is spent by strangers — a token moves the run onto a budget only it draws on.
+const githubToken = process.env.CATALOG_GITHUB_TOKEN
+if (!githubToken) {
+  console.warn(
+    '⚠ CATALOG_GITHUB_TOKEN is not set — reading GitHub anonymously, which ' +
+      'shares a 60 requests/hour budget with everything else on this IP.',
+  )
+}
+
 const source = new DatamineSource({
   unitsCsvUrl: process.env.WT_UNITS_CSV_URL,
+  githubToken,
 })
 
 // The DB handle is opened before the fetch (postgres-js connects lazily) so an
@@ -79,6 +90,7 @@ try {
     try {
       const mirror = await mirrorVehicleImages(db, storage, {
         limit: mirrorLimit,
+        githubToken,
       })
       for (const warning of mirror.warnings) console.warn(`⚠ ${warning}`)
       console.log(

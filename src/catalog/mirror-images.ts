@@ -20,6 +20,8 @@ export interface MirrorOptions {
   /** Total fetch attempts per image, including the first. */
   maxAttempts?: number
   retryDelayMs?: number
+  /** Lifts GitHub's anonymous per-IP budget to the token's own. */
+  githubToken?: string
 }
 
 export interface MirrorSummary {
@@ -102,6 +104,7 @@ export async function mirrorVehicleImages(
         timeoutMs: 30_000,
         maxAttempts: options.maxAttempts,
         retryDelayMs: options.retryDelayMs,
+        githubToken: options.githubToken,
       })
       const contentType =
         res.headers.get('content-type')?.split(';')[0].trim().toLowerCase() ??
