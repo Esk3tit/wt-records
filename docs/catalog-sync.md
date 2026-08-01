@@ -89,7 +89,7 @@ warning in the summary, never a failed sync.
 | --- | --- | --- |
 | `DATABASE_URL` | — (required) | Target Postgres |
 | `CATALOG_SYNC_REMOTE` | unset | A real (non-dry) sync against a non-local DB refuses to run unless this is `1`. Slugs are first-run-wins, so accidental remote syncs are irreversible; `Dockerfile.sync` sets it for the cron service. |
-| `CATALOG_GITHUB_TOKEN` | unset (anonymous, and the run warns) | Read-only GitHub token. Anonymous reads get 60 requests/hour keyed on the *IP*, which on shared hosting is spent by strangers — a token gets 5,000/hour of its own. Needs no scopes; the sync sends it only to `api.github.com` and `raw.githubusercontent.com` |
+| `CATALOG_GITHUB_TOKEN` | unset (anonymous, and the run warns) | Read-only GitHub token. Anonymous reads get 60 requests/hour keyed on the *IP*, which on shared hosting is spent by strangers — authenticating raises it to the 5,000/hour that belongs to the token's *account*. Needs only public-repository read; the sync sends it only to `api.github.com` and `raw.githubusercontent.com` |
 | `WT_UNITS_CSV_URL` | gszabi99 `units.csv` on the pinned revision | English display names. Setting it opts that one file out of revision pinning, so the run warns — a shop name the override lacks makes an ownable unit look scripted |
 | `R2_*` | unset (mirroring skipped) | Assets-bucket credentials for image mirroring — see `.env.example` |
 
