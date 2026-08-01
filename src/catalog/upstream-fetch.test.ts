@@ -260,6 +260,19 @@ describe('fetchUpstream GitHub authentication', () => {
     expect(authHeader(inits[0])).toBeNull()
   })
 
+  // Judging a token is GitHub's job; recognising its shape here would only
+  // fail differently the next time the formats change.
+  it('sends a header-safe token GitHub will reject anyway', async () => {
+    const { fetchImpl, inits } = stub(reply(200, '{}'))
+
+    await fetchUpstream('https://api.github.com/repos/o/r', {
+      fetchImpl,
+      githubToken: 'changeme',
+    })
+
+    expect(authHeader(inits[0])).toBe('Bearer changeme')
+  })
+
   it('tolerates whitespace around the token', async () => {
     const { fetchImpl, inits } = stub(reply(200, '{}'))
 
