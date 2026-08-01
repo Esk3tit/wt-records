@@ -234,6 +234,41 @@ describe('fetchUpstream GitHub authentication', () => {
     expect(authHeader(inits[0])).toBeNull()
   })
 
+  it('treats a plaintext GitHub URL as foreign', async () => {
+    const { fetchImpl, inits } = stub(reply(200, '{}'))
+
+    await fetchUpstream('http://raw.githubusercontent.com/o/r/master/version', {
+      fetchImpl,
+      githubToken: 'ghp_secret',
+    })
+
+    expect(authHeader(inits[0])).toBeNull()
+  })
+
+  // A Headers rejection quotes the offending value, and that message reaches a
+  // public issue via catalog_sync_runs.detail — so it must never hold a token.
+  it('drops a token no header could carry, rather than throwing it', async () => {
+    const { fetchImpl, inits } = stub(reply(200, '{}'))
+
+    await fetchUpstream('https://api.github.com/repos/o/r', {
+      fetchImpl,
+      githubToken: 'ghp_secret value',
+    })
+
+    expect(authHeader(inits[0])).toBeNull()
+  })
+
+  it('tolerates whitespace around the token', async () => {
+    const { fetchImpl, inits } = stub(reply(200, '{}'))
+
+    await fetchUpstream('https://api.github.com/repos/o/r', {
+      fetchImpl,
+      githubToken: '  ghp_secret\n',
+    })
+
+    expect(authHeader(inits[0])).toBe('Bearer ghp_secret')
+  })
+
   it('sends no Authorization when no token is configured', async () => {
     const { fetchImpl, inits } = stub(reply(200, '{"sha":"abc"}'))
 

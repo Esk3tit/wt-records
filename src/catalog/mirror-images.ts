@@ -20,7 +20,6 @@ export interface MirrorOptions {
   /** Total fetch attempts per image, including the first. */
   maxAttempts?: number
   retryDelayMs?: number
-  /** Lifts GitHub's anonymous per-IP budget to the token's own. */
   githubToken?: string
 }
 

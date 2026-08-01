@@ -22,7 +22,6 @@ export interface DatamineOptions {
   unitsCsvUrl?: string
   fetchImpl?: typeof fetch
   retryDelayMs?: number
-  /** Lifts GitHub's 60/hr per-IP anonymous budget to the token's 5,000/hr. */
   githubToken?: string
 }
 

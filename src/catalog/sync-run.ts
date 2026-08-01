@@ -3,6 +3,7 @@ import { isLocalDatabaseUrl, openCliDb } from '#/db/cli'
 import { DatamineSource } from '#/catalog/datamine'
 import { syncCatalog } from '#/catalog/sync'
 import { mirrorVehicleImages } from '#/catalog/mirror-images'
+import { usableGitHubToken } from '#/catalog/upstream-fetch'
 import { recordCatalogSyncRun } from '#/catalog/sync-status'
 import { storageFromEnvIfConfigured } from '#/storage/r2'
 
@@ -37,11 +38,12 @@ if (
 
 // Anonymous GitHub reads are 60/hr keyed on IP, and a shared host's egress IP
 // is spent by strangers — a token moves the run onto a budget only it draws on.
-const githubToken = process.env.CATALOG_GITHUB_TOKEN
+const githubToken = usableGitHubToken(process.env.CATALOG_GITHUB_TOKEN)
 if (!githubToken) {
   console.warn(
-    '⚠ CATALOG_GITHUB_TOKEN is not set — reading GitHub anonymously, which ' +
-      'shares a 60 requests/hour budget with everything else on this IP.',
+    `⚠ CATALOG_GITHUB_TOKEN is ${process.env.CATALOG_GITHUB_TOKEN ? 'not a usable header value' : 'not set'}` +
+      ' — reading GitHub anonymously, on a 60 requests/hour budget shared with' +
+      ' everything else on this IP.',
   )
 }
 

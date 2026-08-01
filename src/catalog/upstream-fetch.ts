@@ -5,6 +5,7 @@ const REASON_MAX_READS = 16
 const REASON_READ_TIMEOUT_MS = 2000
 // Exact hosts, never a suffix match: "api.github.com.evil.test" must not pass.
 const GITHUB_HOSTS = new Set(['api.github.com', 'raw.githubusercontent.com'])
+const HEADER_SAFE = /^[\x21-\x7e]+$/
 
 export interface UpstreamFetchOptions {
   fetchImpl?: typeof fetch
@@ -37,7 +38,7 @@ export async function fetchUpstream(
       response = await fetchImpl(url, {
         headers: {
           'user-agent': USER_AGENT,
-          ...githubAuth(url, options.githubToken),
+          ...githubAuthHeaders(url, options.githubToken),
         },
         redirect: options.redirect,
         signal:
@@ -61,21 +62,30 @@ export async function fetchUpstream(
   throw lastError
 }
 
-/** fetchUpstream also fetches Imgur, avatar CDNs and a configurable locale URL,
-    so the credential is scoped to the hosts it belongs to rather than sent
-    wherever the caller happens to point. */
-function githubAuth(
+/** The token as a header may carry it, or undefined. A rejected header quotes
+    the offending value, and that message reaches a public issue via the watchdog. */
+export function usableGitHubToken(raw: string | undefined): string | undefined {
+  const token = raw?.trim()
+  return token && HEADER_SAFE.test(token) ? token : undefined
+}
+
+/** Imgur, avatar CDNs and a configurable locale URL share this fetch, so the
+    credential goes to the hosts it belongs to rather than wherever a caller aims. */
+function githubAuthHeaders(
   url: string,
   token: string | undefined,
 ): Record<string, string> {
-  if (!token) return {}
-  let hostname: string
+  const bearer = usableGitHubToken(token)
+  if (!bearer) return {}
+  let target: URL
   try {
-    hostname = new URL(url).hostname
+    target = new URL(url)
   } catch {
     return {}
   }
-  return GITHUB_HOSTS.has(hostname) ? { authorization: `Bearer ${token}` } : {}
+  return target.protocol === 'https:' && GITHUB_HOSTS.has(target.hostname)
+    ? { authorization: `Bearer ${bearer}` }
+    : {}
 }
 
 /** An upstream's own reason ("SQLITE_CORRUPT…") is what makes a 500 actionable;
