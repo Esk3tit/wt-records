@@ -12,9 +12,10 @@ const FLOOR = 44
 
 const WIDTHS = [320, 390, 639, 640, 1280]
 
-/** 344 is where the pane used to snap back to two rows, and 640 is where the
-    cluster loses its `ml-auto` and closes on the mode pills. */
-const MODERATOR_WIDTHS = [320, 344, 390, 640, 1280]
+/** 344 is where the pane used to snap back to two rows, 360 is where it leaves
+    its compact regime, and 640 is where the cluster loses its `ml-auto` and
+    closes on the mode pills. */
+const MODERATOR_WIDTHS = [320, 344, 360, 390, 640, 1280]
 
 /** Asks the page who would receive a tap at each point around a control, and
     reports the box it actually owns. Measuring the reach beats probing a square
@@ -203,6 +204,42 @@ test.describe('with the moderator nav', () => {
       await expect(admin).toBeHidden()
 
       expect(seated).toEqual(await navSeats(page))
+    })
+  }
+
+  /* Row one is a width race, and the wordmark's side of it belongs to whatever
+     the system font stack resolves to — this fitted on macOS and wrapped on
+     CI's Linux stack with the same markup. Measuring the pane a test already
+     renders cannot see that, so the guard is headroom: room for a wordmark a
+     tenth wider than the one in front of us, expressed against that wordmark
+     so it scales with the font instead of rotting into a constant. */
+  for (const width of [320, 360]) {
+    test(`row one has room for a wider system font at ${width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 844 })
+      await openNav(page)
+      await expect(page.getByRole('link', { name: 'Admin' })).toBeVisible()
+
+      const { wordmark, slack } = await page.evaluate(() => {
+        const header = document.querySelector('header')!
+        const style = getComputedStyle(header)
+        const seats =
+          header.getBoundingClientRect().width -
+          parseFloat(style.paddingLeft) -
+          parseFloat(style.paddingRight) -
+          parseFloat(style.borderLeftWidth) -
+          parseFloat(style.borderRightWidth)
+        const kids = [...header.children] as Array<HTMLElement>
+        const brand = kids[0].getBoundingClientRect().width
+        const cluster = kids[kids.length - 1].getBoundingClientRect().width
+        return {
+          wordmark: brand,
+          slack: seats - (brand + parseFloat(style.columnGap) + cluster),
+        }
+      })
+
+      expect(slack).toBeGreaterThanOrEqual(wordmark * 0.1)
     })
   }
 })

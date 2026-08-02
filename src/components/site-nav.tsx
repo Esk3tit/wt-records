@@ -116,15 +116,19 @@ export function SiteNav({
 
   return (
     <>
-      {/* The row gap is 12px, not 16: at 320px a wordmark beside three icons
-          needs all but four pixels of what row one has to give. */}
+      {/* Below 360px the pane draws in — tighter inset and row gap, wordmark a
+          step down — so row one can seat the wordmark beside three icons in a
+          system font wider than the one it was measured in. */}
       <header
         ref={navRef}
         data-solid={solid || undefined}
         data-live={live || undefined}
-        className="nav-pane glass-thin sticky top-4 z-40 mx-auto mt-4 flex w-full max-w-[67.5rem] flex-wrap items-center gap-x-3 gap-y-2 rounded-[20px] py-2.5 pr-3 pl-5 [&_a]:no-underline"
+        className="nav-pane glass-thin sticky top-4 z-40 mx-auto mt-4 flex w-full max-w-[67.5rem] flex-wrap items-center gap-x-3 gap-y-2 rounded-[20px] py-2.5 pr-3 pl-3 min-[22.5rem]:gap-x-4 min-[22.5rem]:pl-5 [&_a]:no-underline"
       >
-        <Link to="/" className="tap-reach text-[0.9375rem]">
+        <Link
+          to="/"
+          className="tap-reach text-[0.8125rem] min-[22.5rem]:text-[0.9375rem]"
+        >
           <Brand />
         </Link>
         <nav
