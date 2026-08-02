@@ -8,7 +8,7 @@ import {
   unreadable,
   worstDownThePage,
 } from './support/contrast'
-import { openNav, readerScrollsTo } from './support/nav'
+import { deepestScroll, openNav, readerScrollsTo } from './support/nav'
 import { STATE } from './support/states'
 
 /* The nav has its own guard; this one owns everything the nav floats over.
@@ -131,7 +131,10 @@ for (const theme of ['dark', 'light'] as const) {
         page,
       }) => {
         await openNav(page, { path, theme })
-        await readerScrollsTo(page, 600)
+        /* Clamped: a thin corpus makes some of these pages shorter than the
+           scroll they are asked for, and the point is to read the panes past
+           the top of the scene, not to reach an exact offset. */
+        await readerScrollsTo(page, Math.min(600, await deepestScroll(page)))
         await pinScene(page, EDGE)
 
         expect(faultsInInk(await readInk(page, 'main', ''))).toEqual([])
