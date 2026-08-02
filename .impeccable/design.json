@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-07-24T19:20:00.000000Z",
+  "generatedAt": "2026-08-02T07:34:11.000000Z",
   "title": "Design System: WT Records",
   "extensions": {
     "colorMeta": {
@@ -72,12 +72,12 @@
       "ink-muted": {
         "role": "neutral",
         "displayName": "Ink Muted (night)",
-        "canonical": "rgba(255,255,255,0.6)"
+        "canonical": "rgba(255,255,255,0.75)"
       },
       "ink-faint": {
         "role": "neutral",
         "displayName": "Ink Faint (night)",
-        "canonical": "rgba(255,255,255,0.5)"
+        "canonical": "rgba(255,255,255,0.68)"
       },
       "day-ink": {
         "role": "neutral",
@@ -87,12 +87,12 @@
       "day-ink-muted": {
         "role": "neutral",
         "displayName": "Day Ink Muted",
-        "canonical": "rgba(10,12,16,0.66)"
+        "canonical": "rgba(10,12,16,0.74)"
       },
       "day-ink-faint": {
         "role": "neutral",
         "displayName": "Day Ink Faint",
-        "canonical": "rgba(10,12,16,0.58)"
+        "canonical": "rgba(10,12,16,0.68)"
       },
       "hairline": {
         "role": "neutral",
@@ -117,12 +117,14 @@
       "night-scrim": {
         "role": "neutral",
         "displayName": "Night Scrim",
-        "canonical": "rgba(8,10,14,0.5)"
+        "canonical": "rgba(8,10,14,0.5)",
+        "note": "Outer stop of the gradient; beneath it a flat floor of rgba(8,10,14,0.42) carries the legibility guarantee where the gradient clears."
       },
       "day-veil": {
         "role": "neutral",
         "displayName": "Day Veil",
-        "canonical": "rgba(242,243,246,0.6)"
+        "canonical": "rgba(242,243,246,0.6)",
+        "note": "Outer stop of the gradient; beneath it a flat floor of rgba(242,243,246,0.44) carries the legibility guarantee where the gradient clears."
       },
       "ace-gold": {
         "role": "tertiary",
@@ -147,22 +149,22 @@
       "veteran-bronze": {
         "role": "tertiary",
         "displayName": "Veteran Bronze",
-        "canonical": "#E0995A"
+        "canonical": "#E3A36A"
       },
       "day-gold": {
         "role": "tertiary",
         "displayName": "Day Gold",
-        "canonical": "#7A6200"
+        "canonical": "#6E5800"
       },
       "day-silver": {
         "role": "tertiary",
         "displayName": "Day Silver",
-        "canonical": "#57606C"
+        "canonical": "#4F5863"
       },
       "day-bronze": {
         "role": "tertiary",
         "displayName": "Day Bronze",
-        "canonical": "#8A5220"
+        "canonical": "#7E4B1D"
       },
       "scene-night": {
         "role": "neutral",
@@ -191,6 +193,24 @@
           "#E2E8F0",
           "#E9EDF2"
         ]
+      },
+      "tint-well": {
+        "role": "neutral",
+        "displayName": "Tint Well",
+        "canonical": "rgba(0,0,0,0.3)",
+        "note": "The fill that recesses rather than lightens, for a surface laying its own fill under its own ink. Day form: rgba(10,12,16,0.08)."
+      },
+      "status-warn": {
+        "role": "tertiary",
+        "displayName": "Status Warn",
+        "canonical": "#FCD34D",
+        "note": "Day form #825E0F, measured on the glass admin panels it is set on rather than on the base."
+      },
+      "veteran-bronze-material": {
+        "role": "tertiary",
+        "displayName": "Veteran Bronze (material)",
+        "canonical": "#E0995A",
+        "note": "The tint a bronze pane wears. Bronze is the one metal whose ink and material forms diverge, being near the glass’s own luminance."
       }
     },
     "typographyMeta": {
@@ -318,15 +338,15 @@
       "refersTo": "button-primary",
       "description": "The one amber action on a screen; amber fill + black text in both modes.",
       "html": "<button class=\"ds-btn-primary\">Accept</button>",
-      "css": ".ds-btn-primary { background: #F0B94A; color: #000; padding: 6px 12px; border: none; border-radius: 4px; font-weight: 500; font-size: 0.875rem; font-variant-numeric: tabular-nums; transition: opacity 180ms cubic-bezier(0.25, 1, 0.5, 1); cursor: pointer; } .ds-btn-primary:hover { opacity: 0.9; } .ds-btn-primary:focus-visible { outline: 2px solid #F0B94A; outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }"
+      "css": ".ds-btn-primary { background: var(--accent-text, #F0B94A); color: #000; padding: 6px 12px; border: none; border-radius: 4px; font-weight: 500; font-size: 0.875rem; font-variant-numeric: tabular-nums; transition: opacity 180ms cubic-bezier(0.25, 1, 0.5, 1); cursor: pointer; } .ds-btn-primary:hover { opacity: 0.9; } .ds-btn-primary:focus-visible { outline: 2px solid var(--accent-text, #F0B94A); outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }"
     },
     {
       "name": "Ghost Button",
       "kind": "button",
       "refersTo": "button-ghost",
-      "description": "Secondary action; hairline border, mode's muted ink (night form shown).",
+      "description": "Secondary action; hairline border, mode's muted ink.",
       "html": "<button class=\"ds-btn-ghost\">Decline</button>",
-      "css": ".ds-btn-ghost { background: transparent; color: rgba(255,255,255,0.6); padding: 6px 12px; border: 1px solid rgba(255,255,255,0.16); border-radius: 4px; font-weight: 400; font-size: 0.875rem; transition: color 180ms cubic-bezier(0.25, 1, 0.5, 1); cursor: pointer; } .ds-btn-ghost:hover { color: rgba(255,255,255,0.96); } .ds-btn-ghost:focus-visible { outline: 2px solid #F0B94A; outline-offset: 2px; }"
+      "css": ".ds-btn-ghost { background: transparent; color: var(--ink-muted, rgba(255,255,255,0.75)); padding: 6px 12px; border: 1px solid var(--hairline, rgba(255,255,255,0.16)); border-radius: 4px; font-weight: 400; font-size: 0.875rem; transition: color 180ms cubic-bezier(0.25, 1, 0.5, 1); cursor: pointer; } .ds-btn-ghost:hover { color: var(--ink, rgba(255,255,255,0.96)); } .ds-btn-ghost:focus-visible { outline: 2px solid var(--accent-text, #F0B94A); outline-offset: 2px; }"
     },
     {
       "name": "Glass Panel",
@@ -334,7 +354,7 @@
       "refersTo": "glass-panel",
       "description": "Ultra-clear liquid glass card (live-accepted frost 0.10 / blur 50): the scene reads through the pane; hairline border, specular top edge, deep ambient float.",
       "html": "<div class=\"ds-glass-panel\"><h3 class=\"ds-glass-title\">Ground Realistic</h3><p class=\"ds-glass-body\">4 records · 3 holders · 57% complete</p></div>",
-      "css": ".ds-glass-panel { background: rgba(255, 255, 255, 0.10); backdrop-filter: blur(50px) saturate(190%); -webkit-backdrop-filter: blur(50px) saturate(190%); border: 1px solid rgba(255,255,255,0.16); border-radius: 22px; padding: 24px; color: rgba(255,255,255,0.96); box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.2), inset 0 -0.5px 0 rgba(255,255,255,0.1), 0 30px 60px -30px rgba(0,0,0,0.8); transition: box-shadow 220ms cubic-bezier(0.34, 1.3, 0.64, 1), transform 220ms cubic-bezier(0.34, 1.3, 0.64, 1); } .ds-glass-panel:hover { transform: translateY(-2px); box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.2), inset 0 -0.5px 0 rgba(255,255,255,0.1), 0 34px 64px -30px rgba(0,0,0,0.95); }"
+      "css": ".ds-glass-panel { background: rgba(255, 255, 255, 0.10); backdrop-filter: blur(50px) saturate(190%); -webkit-backdrop-filter: blur(50px) saturate(190%); border: 1px solid var(--hairline, rgba(255,255,255,0.16)); border-radius: 22px; padding: 24px; color: var(--ink, rgba(255,255,255,0.96)); box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.2), inset 0 -0.5px 0 rgba(255,255,255,0.1), 0 30px 60px -30px rgba(0,0,0,0.8); transition: box-shadow 220ms cubic-bezier(0.34, 1.3, 0.64, 1), transform 220ms cubic-bezier(0.34, 1.3, 0.64, 1); } .ds-glass-panel:hover { transform: translateY(-2px); box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.2), inset 0 -0.5px 0 rgba(255,255,255,0.1), 0 34px 64px -30px rgba(0,0,0,0.95); }"
     },
     {
       "name": "Leaderboard Row",
@@ -342,15 +362,15 @@
       "refersTo": "leaderboard-row",
       "description": "Signature: rank in metal (top 3 only; Day Gold/Silver/Bronze by day), holder link, tabular count pushed right.",
       "html": "<ol class=\"ds-lb\"><li class=\"ds-lb-row\"><span class=\"ds-lb-rank ds-lb-rank-gold\">1</span><a class=\"ds-lb-name\" href=\"#\">Ace</a><span class=\"ds-lb-count\">2</span></li><li class=\"ds-lb-row\"><span class=\"ds-lb-rank ds-lb-rank-silver\">2</span><a class=\"ds-lb-name\" href=\"#\">Floppa</a><span class=\"ds-lb-count\">1</span></li><li class=\"ds-lb-row\"><span class=\"ds-lb-rank\">4</span><a class=\"ds-lb-name\" href=\"#\">Maverick</a><span class=\"ds-lb-count\">1</span></li></ol>",
-      "css": ".ds-lb { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; color: rgba(255,255,255,0.96); } .ds-lb-row { display: flex; align-items: baseline; gap: 12px; font-variant-numeric: tabular-nums; } .ds-lb-rank { width: 1.5rem; text-align: right; color: rgba(255,255,255,0.4); } .ds-lb-rank-gold { color: #FFD75E; } .ds-lb-rank-silver { color: #D6DBE2; } .ds-lb-name { color: rgba(255,255,255,0.96); text-decoration: underline; text-underline-offset: 2px; } .ds-lb-name:hover { color: #F0B94A; } .ds-lb-count { margin-left: auto; color: rgba(255,255,255,0.6); }"
+      "css": ".ds-lb { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; color: var(--ink, rgba(255,255,255,0.96)); } .ds-lb-row { display: flex; align-items: baseline; gap: 12px; font-variant-numeric: tabular-nums; } .ds-lb-rank { width: 1.5rem; text-align: right; color: var(--ink-faint, rgba(255,255,255,0.68)); } .ds-lb-rank-gold { color: var(--gold, #FFD75E); } .ds-lb-rank-silver { color: var(--silver, #D6DBE2); } .ds-lb-name { color: var(--ink, rgba(255,255,255,0.96)); text-decoration: underline; text-underline-offset: 2px; } .ds-lb-name:hover { color: var(--accent-text, #F0B94A); } .ds-lb-count { margin-left: auto; color: var(--ink-muted, rgba(255,255,255,0.75)); }"
     },
     {
       "name": "Removed Chip",
       "kind": "chip",
       "refersTo": "chip-removed",
-      "description": "Metadata tag for vehicles no longer obtainable; informative, never alarming.",
+      "description": "Metadata tag for vehicles no longer obtainable; informative, never alarming. Its fill recesses rather than lightens, because it sits under the chip’s own ink, and it takes full ink for the same reason.",
       "html": "<span class=\"ds-chip-removed\" title=\"Removed from the game — records still count\">removed</span>",
-      "css": ".ds-chip-removed { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.4); font-size: 0.75rem; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; border-radius: 4px; padding: 2px 6px; }"
+      "css": ".ds-chip-removed { background: var(--tint-well, rgba(0,0,0,0.3)); color: var(--ink, rgba(255,255,255,0.96)); font-size: 0.75rem; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; border-radius: 4px; padding: 2px 6px; }"
     },
     {
       "name": "Mode Switcher Nav",
@@ -358,7 +378,7 @@
       "refersTo": "nav-mode-active",
       "description": "Primary navigation with theme toggle slot; active mode in Medal Amber (Deep form by day).",
       "html": "<header class=\"ds-nav\"><span class=\"ds-nav-brand\">WT·RECORDS</span><nav class=\"ds-nav-modes\"><a class=\"ds-nav-mode ds-nav-mode-active\" href=\"#\">GRB</a><a class=\"ds-nav-mode\" href=\"#\">GAB</a><a class=\"ds-nav-mode\" href=\"#\">ARB</a><a class=\"ds-nav-mode\" href=\"#\">AAB</a></nav><button class=\"ds-nav-theme\" aria-label=\"Toggle theme\">◐</button></header>",
-      "css": ".ds-nav { display: flex; align-items: center; gap: 16px; padding: 12px 24px; background: rgba(255, 255, 255, 0.06); backdrop-filter: blur(12px) saturate(1.3); -webkit-backdrop-filter: blur(12px) saturate(1.3); border-bottom: 1px solid rgba(255,255,255,0.16); color: rgba(255,255,255,0.96); } .ds-nav-brand { font-weight: 600; letter-spacing: 0.025em; } .ds-nav-modes { display: flex; gap: 4px; } .ds-nav-mode { color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.875rem; padding: 4px 8px; border-radius: 4px; transition: color 180ms cubic-bezier(0.25, 1, 0.5, 1); } .ds-nav-mode:hover { color: rgba(255,255,255,0.96); } .ds-nav-mode:focus-visible { outline: 2px solid #F0B94A; outline-offset: 2px; } .ds-nav-mode-active { color: #F0B94A; } .ds-nav-theme { margin-left: auto; background: transparent; color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.16); border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.875rem; } .ds-nav-theme:hover { color: rgba(255,255,255,0.96); } .ds-nav-theme:focus-visible { outline: 2px solid #F0B94A; outline-offset: 2px; }"
+      "css": ".ds-nav { display: flex; align-items: center; gap: 16px; padding: 12px 24px; background: rgba(255, 255, 255, 0.06); backdrop-filter: blur(12px) saturate(1.3); -webkit-backdrop-filter: blur(12px) saturate(1.3); border-bottom: 1px solid var(--hairline, rgba(255,255,255,0.16)); color: var(--ink, rgba(255,255,255,0.96)); } .ds-nav-brand { font-weight: 600; letter-spacing: 0.025em; } .ds-nav-modes { display: flex; gap: 4px; } .ds-nav-mode { color: var(--ink-muted, rgba(255,255,255,0.75)); text-decoration: none; font-size: 0.875rem; padding: 4px 8px; border-radius: 4px; transition: color 180ms cubic-bezier(0.25, 1, 0.5, 1); } .ds-nav-mode:hover { color: var(--ink, rgba(255,255,255,0.96)); } .ds-nav-mode:focus-visible { outline: 2px solid var(--accent-text, #F0B94A); outline-offset: 2px; } .ds-nav-mode-active { color: var(--accent-text, #F0B94A); } .ds-nav-theme { margin-left: auto; background: transparent; color: var(--ink-muted, rgba(255,255,255,0.75)); border: 1px solid var(--hairline, rgba(255,255,255,0.16)); border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.875rem; } .ds-nav-theme:hover { color: var(--ink, rgba(255,255,255,0.96)); } .ds-nav-theme:focus-visible { outline: 2px solid var(--accent-text, #F0B94A); outline-offset: 2px; }"
     },
     {
       "name": "Search Input",
@@ -366,7 +386,7 @@
       "refersTo": "input-search",
       "description": "Front-of-house search field (hero lookup, Browse filter, /search); 10px media radius, hairline border, amber focus (Deep form by day). Admin fields stay at the 4px control radius.",
       "html": "<input class=\"ds-input\" type=\"search\" placeholder=\"Search players or vehicles\" aria-label=\"Search\" />",
-      "css": ".ds-input { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.96); border: 1px solid rgba(255,255,255,0.16); border-radius: 10px; padding: 6px 12px; font-size: 1rem; width: 100%; max-width: 28rem; transition: border-color 180ms cubic-bezier(0.25, 1, 0.5, 1); } .ds-input::placeholder { color: rgba(255,255,255,0.6); } .ds-input:focus-visible { outline: none; border-color: #F0B94A; box-shadow: 0 0 0 1px #F0B94A; }"
+      "css": ".ds-input { background: rgba(255,255,255,0.06); color: var(--ink, rgba(255,255,255,0.96)); border: 1px solid var(--hairline, rgba(255,255,255,0.16)); border-radius: 10px; padding: 6px 12px; font-size: 1rem; width: 100%; max-width: 28rem; transition: border-color 180ms cubic-bezier(0.25, 1, 0.5, 1); } .ds-input::placeholder { color: var(--ink-muted, rgba(255,255,255,0.75)); } .ds-input:focus-visible { outline: none; border-color: var(--accent-text, #F0B94A); box-shadow: 0 0 0 1px var(--accent-text, #F0B94A); }"
     },
     {
       "name": "Glass Pill",
@@ -374,7 +394,7 @@
       "refersTo": "glass-pill",
       "description": "Section-nav capsule as a small liquid-glass pane (live-accepted frost .12 / float .2): important navigation never mutes into the background.",
       "html": "<a href=\"#\" class=\"ds-glass-pill\">Leaderboard</a>",
-      "css": ".ds-glass-pill { display: inline-block; background: rgba(255,255,255,0.12); backdrop-filter: blur(36px) saturate(180%); -webkit-backdrop-filter: blur(36px) saturate(180%); border: 1px solid rgba(255,255,255,0.16); border-radius: 999px; padding: 8px 18px; color: rgba(255,255,255,0.96); font-weight: 550; font-size: 0.9375rem; text-decoration: none; box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.3), inset 0 -0.5px 0 rgba(255,255,255,0.1), 0 3px 10px -4px rgba(0,0,0,0.6); transition: transform 220ms cubic-bezier(0.34, 1.3, 0.64, 1), box-shadow 220ms cubic-bezier(0.34, 1.3, 0.64, 1); } .ds-glass-pill:hover { transform: translateY(-2px); box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.3), inset 0 -0.5px 0 rgba(255,255,255,0.1), 0 5px 14px -4px rgba(0,0,0,0.7); } .ds-glass-pill:focus-visible { outline: 2px solid #F0B94A; outline-offset: 2px; }"
+      "css": ".ds-glass-pill { display: inline-block; background: rgba(255,255,255,0.12); backdrop-filter: blur(36px) saturate(180%); -webkit-backdrop-filter: blur(36px) saturate(180%); border: 1px solid var(--hairline, rgba(255,255,255,0.16)); border-radius: 999px; padding: 8px 18px; color: var(--ink, rgba(255,255,255,0.96)); font-weight: 550; font-size: 0.9375rem; text-decoration: none; box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.3), inset 0 -0.5px 0 rgba(255,255,255,0.1), 0 3px 10px -4px rgba(0,0,0,0.6); transition: transform 220ms cubic-bezier(0.34, 1.3, 0.64, 1), box-shadow 220ms cubic-bezier(0.34, 1.3, 0.64, 1); } .ds-glass-pill:hover { transform: translateY(-2px); box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.3), inset 0 -0.5px 0 rgba(255,255,255,0.1), 0 5px 14px -4px rgba(0,0,0,0.7); } .ds-glass-pill:focus-visible { outline: 2px solid var(--accent-text, #F0B94A); outline-offset: 2px; }"
     },
     {
       "name": "Filter Chip",
@@ -382,7 +402,7 @@
       "refersTo": "filter-chip",
       "description": "Catalog filter toggle; active state swaps the hairline for the bright pill-active fill at constant weight so nothing shifts.",
       "html": "<span><button class=\"ds-filter-chip\" aria-pressed=\"false\">Germany</button> <button class=\"ds-filter-chip ds-filter-chip--active\" aria-pressed=\"true\">USSR</button></span>",
-      "css": ".ds-filter-chip { background: transparent; color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.16); border-radius: 10px; padding: 4px 10px; font-size: 0.8125rem; font-weight: 500; transition: color 200ms cubic-bezier(0.25,1,0.5,1), border-color 200ms cubic-bezier(0.25,1,0.5,1); } .ds-filter-chip:hover { color: rgba(255,255,255,0.96); border-color: rgba(255,255,255,0.28); } .ds-filter-chip:focus-visible { outline: 2px solid #F0B94A; outline-offset: 2px; } .ds-filter-chip--active { background: rgba(255,255,255,0.14); border-color: transparent; color: rgba(255,255,255,0.96); }"
+      "css": ".ds-filter-chip { background: transparent; color: var(--ink-muted, rgba(255,255,255,0.75)); border: 1px solid var(--hairline, rgba(255,255,255,0.16)); border-radius: 10px; padding: 4px 10px; font-size: 0.8125rem; font-weight: 500; transition: color 200ms cubic-bezier(0.25,1,0.5,1), border-color 200ms cubic-bezier(0.25,1,0.5,1); } .ds-filter-chip:hover { color: var(--ink, rgba(255,255,255,0.96)); border-color: rgba(255,255,255,0.28); } .ds-filter-chip:focus-visible { outline: 2px solid var(--accent-text, #F0B94A); outline-offset: 2px; } .ds-filter-chip--active { background: rgba(255,255,255,0.14); border-color: transparent; color: var(--ink, rgba(255,255,255,0.96)); }"
     }
   ],
   "narrative": {

@@ -8,7 +8,9 @@ export function AcquisitionWash({
   tags: { isPremium: boolean; isSquadron: boolean }
   className?: string
   /** `pane` carries the same hue at a quieter strength, because a title sheet
-      wears it over an order of magnitude more surface than a card does. */
+      wears it over an order of magnitude more surface than a card does. Either
+      way the material pools where the art is: a wash lightens the glass beneath
+      it, and the ink ramp has no contrast margin to spend on a full-pane veil. */
   scale?: 'card' | 'pane'
 }) {
   const material = tags.isPremium
@@ -20,7 +22,7 @@ export function AcquisitionWash({
   return (
     <span
       aria-hidden="true"
-      className={`pointer-events-none absolute inset-0 rounded-[inherit] ${material} ${scale === 'pane' ? 'acq-pane' : ''} ${className}`}
+      className={`pointer-events-none absolute inset-0 rounded-[inherit] ${material} ${scale === 'pane' ? 'acq-pane' : 'acq-card'} ${className}`}
     />
   )
 }
