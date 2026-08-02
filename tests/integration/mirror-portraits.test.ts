@@ -58,7 +58,7 @@ afterEach(async () => {
   await t.client.close()
 })
 
-function fakeStore() {
+function fakeStore(failDeletes = false) {
   const puts: Array<{ role: string; key: string; contentType: string }> = []
   const deletes: Array<{ role: string; key: string }> = []
   return {
@@ -75,6 +75,7 @@ function fakeStore() {
     },
     async delete(role: 'assets', key: string) {
       assertValidObjectKey(key)
+      if (failDeletes) throw new Error('bucket unavailable')
       deletes.push({ role, key })
     },
   }
@@ -194,6 +195,56 @@ describe('mirrorVehiclePortraits', () => {
     const newKey = portraitObjectKey('us_m1_abrams', ABRAMS_V2, ABRAMS_URL)
     expect(newKey).not.toBe(oldKey)
     expect(rowKey(await mirroredRows(t.db), 'us_m1_abrams')).toBe(newKey)
+  })
+
+  it('does not record its key when another run advanced the row mid-download', async () => {
+    const store = fakeStore()
+    const raced = fakeFetch()
+    // The overlapping run lands while this one is between fetch and update.
+    raced.impl = async () => {
+      await t.db
+        .update(vehicles)
+        .set({
+          portraitContentId: ABRAMS_V2,
+          portraitKey: 'vehicles/newer.png',
+        })
+        .where(eq(vehicles.externalId, 'us_m1_abrams'))
+      return new Response(new Uint8Array([1, 2, 3]), {
+        headers: { 'content-type': 'image/png' },
+      })
+    }
+
+    const summary = await mirrorVehiclePortraits(t.db, store, {
+      fetchImpl: raced.impl,
+      concurrency: 1,
+    })
+
+    expect(rowKey(await mirroredRows(t.db), 'us_m1_abrams')).toBe(
+      'vehicles/newer.png',
+    )
+    expect(store.deletes).toHaveLength(0)
+    expect(summary.warnings).toEqual([
+      expect.stringContaining('another run advanced us_m1_abrams'),
+    ])
+  })
+
+  it('reports a superseded object it could not delete instead of losing it silently', async () => {
+    const store = fakeStore(true)
+    await mirrorVehiclePortraits(t.db, store, { fetchImpl: fakeFetch().impl })
+    const oldKey = portraitObjectKey('us_m1_abrams', ABRAMS_V1, ABRAMS_URL)
+
+    await t.db
+      .update(vehicles)
+      .set({ portraitContentId: ABRAMS_V2 })
+      .where(eq(vehicles.externalId, 'us_m1_abrams'))
+    const summary = await mirrorVehiclePortraits(t.db, store, {
+      fetchImpl: fakeFetch().impl,
+    })
+
+    expect(summary).toMatchObject({ mirrored: 1, failed: 0 })
+    expect(summary.warnings).toEqual([
+      expect.stringContaining(`superseded object ${oldKey} left in the bucket`),
+    ])
   })
 
   it('a failed download is a warning, not a run failure, and other portraits still mirror', async () => {

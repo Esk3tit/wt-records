@@ -36,6 +36,7 @@ interface Candidate {
   id: number
   externalId: string
   portraitUrl: string
+  portraitContentId: string | null
   portraitKey: string | null
   wantKey: string
 }
@@ -124,16 +125,33 @@ export async function mirrorVehiclePortraits(
       }
       const bytes = new Uint8Array(await res.arrayBuffer())
       await store.put('assets', v.wantKey, bytes, contentType)
-      await db
+      // Only claim the key if the row still wants these bytes: a run overlapping
+      // this download may already have recorded newer artwork.
+      const recorded = await db
         .update(schema.vehicles)
         .set({ portraitKey: v.wantKey })
-        .where(eq(schema.vehicles.id, v.id))
+        .where(
+          and(
+            eq(schema.vehicles.id, v.id),
+            eq(schema.vehicles.portraitContentId, v.portraitContentId!),
+          ),
+        )
+        .returning({ id: schema.vehicles.id })
+      consecutiveFailures = 0
+      if (recorded.length === 0) {
+        summary.warnings.push(
+          `another run advanced ${v.externalId} mid-download; its key stands`,
+        )
+        return
+      }
       if (v.portraitKey) {
-        // superseded artwork under the old content id; removal is tidy-up only
-        await store.delete('assets', v.portraitKey).catch(() => {})
+        await store.delete('assets', v.portraitKey).catch((error: unknown) => {
+          summary.warnings.push(
+            `superseded object ${v.portraitKey} left in the bucket: ${error instanceof Error ? error.message : error}`,
+          )
+        })
       }
       summary.mirrored += 1
-      consecutiveFailures = 0
     } catch (error) {
       summary.failed += 1
       consecutiveFailures += 1
