@@ -93,9 +93,13 @@ export async function readInk(
      loaded machine the art is still arriving and nearly every pixel disagrees,
      which would return a full set of readings that measured nothing at all.
      One retry, then say so — a sweep that quietly measures nothing is the one
-     failure this whole harness exists to not have. */
-  const took = readings.filter((r) => isFinite(r.ratio)).length
-  if (took * 2 >= readings.length) return readings
+     failure this whole harness exists to not have.
+
+     Nothing at all, rather than some fraction: a run left unmeasured because
+     the nav is over it is doing exactly what it should, and at a depth where a
+     lot of copy sits under the pane those legitimate skips would otherwise read
+     as a page that never settled. */
+  if (readings.some((r) => isFinite(r.ratio))) return readings
   if (again) throw new Error(`${root} would not hold still long enough to read`)
   return readInk(page, root, exempt, sites, true)
 }
