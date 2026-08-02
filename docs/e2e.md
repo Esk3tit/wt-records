@@ -2,18 +2,21 @@
 
 A thin suite — the flows worth driving end to end, not a second copy of the unit tests — driving, by default, the **built SSR server** against a **disposable Supabase stack**. (`PLAYWRIGHT_BASE_URL` points it at a server someone else is running instead; see below.) Lives in [`e2e/`](../e2e), configured by [`playwright.config.ts`](../playwright.config.ts).
 
-| Spec                        | Covers                                                                  |
-| --------------------------- | ----------------------------------------------------------------------- |
-| `public-browse.spec.ts`     | `/` → `/grb`, the catalogue, a vehicle page, the coming-soon shell       |
-| `search.spec.ts`            | search → result → detail page, and the empty state                      |
-| `admin-gate.spec.ts`        | the CMS refuses signed-out visitors and signed-in non-moderators         |
-| `admin-cms.spec.ts`         | a moderator edit persists across a reload **and** lands in the audit log |
-| `admin-players.spec.ts`     | a moderator resets a reported avatar                                     |
-| `avatar-owner.spec.ts`      | only the owner sees the avatar controls                                  |
-| `og-cards.spec.ts`          | every page unfurls, and the card routes serve real PNGs                  |
-| `nav-pane.spec.ts`          | the nav pane rises with the reader's own scroll, not with a restored one |
-| `nav-touch-targets.spec.ts` | every nav control reaches 44px, and the pane is no taller for it         |
-| `catalog-status.spec.ts`    | the sync status endpoint answers the watchdog probe                      |
+| Spec                            | Covers                                                                    |
+| ------------------------------- | ------------------------------------------------------------------------- |
+| `public-browse.spec.ts`         | `/` → `/grb`, the catalogue, a vehicle page, the coming-soon shell        |
+| `search.spec.ts`                | search → result → detail page, and the empty state                        |
+| `admin-gate.spec.ts`            | the CMS refuses signed-out visitors and signed-in non-moderators          |
+| `admin-cms.spec.ts`             | a moderator edit persists across a reload **and** lands in the audit log  |
+| `admin-players.spec.ts`         | a moderator resets a reported avatar                                      |
+| `avatar-owner.spec.ts`          | only the owner sees the avatar controls                                   |
+| `og-cards.spec.ts`              | every page unfurls, and the card routes serve real PNGs                   |
+| `nav-pane.spec.ts`              | the nav pane rises with the reader's own scroll, not with a restored one  |
+| `nav-touch-targets.spec.ts`     | every nav control reaches 44px, and the pane is no taller for it          |
+| `nav-contrast.spec.ts`          | every ink in the nav clears 4.5:1 over the worst backdrop a page can give |
+| `catalog-touch-targets.spec.ts` | every filter, sort and pager control on Browse reaches 44px               |
+| `reach-helper.spec.ts`          | the reach measurement itself, against markup built to break it            |
+| `catalog-status.spec.ts`        | the sync status endpoint answers the watchdog probe                       |
 
 ## Auth: SDK sign-in, no Discord OAuth
 

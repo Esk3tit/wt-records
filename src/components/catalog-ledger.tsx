@@ -32,9 +32,11 @@ export interface IllustratedRow extends VehicleArtRow {
   holderAvatar: string | null
 }
 
-/* Right padding stays per-column (pr-4 between, pr-5 at the pane edge). */
+/* Right padding stays per-column (pr-4 between, pr-5 at the pane edge). The
+   vertical padding is a thumb's: the head carries the sort controls, and their
+   reach has to land inside it rather than over the first row. */
 export const LEDGER_TH =
-  'py-3 text-left text-xs font-semibold tracking-[0.05em] text-fg-muted uppercase'
+  'py-4 text-left text-xs font-semibold tracking-[0.05em] text-fg-muted uppercase'
 export const LEDGER_ROW =
   'border-t border-hairline-soft transition-colors duration-200 hover:bg-[var(--row-hover)]'
 
