@@ -24,8 +24,8 @@ bun run catalog:sync             # the real thing, against DATABASE_URL
    BRs are computed from the economic ranks — 1.0 upward in thirds.
    Portraits come from the Git Trees API rather than a guessed path: root →
    `tex.vromfs.bin_u` → one tree per branch, five responses and ~949 KB, which
-   yields each file's real path *and* its blob SHA. A vehicle upstream ships no
-   artwork for gets no portrait URL at all instead of one that 404s (34 today,
+   yields each file's real path *and* its blob SHA. A vehicle that upstream ships no
+   artwork for gets no portrait URL at all, instead of one that 404s (34 today,
    mostly `nt_*` units), counted in a summary warning.
 2. Upserts the current patch (`2.57.0.8` → `patches.version = '2.57'`), so
    record entry never blocks on a missing patch.

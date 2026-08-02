@@ -32,6 +32,10 @@ export interface DatamineOptions {
   baseUrl?: string
   /** Git Trees API root, for reading the image index. */
   treeApiUrl?: string
+  /** Ref the image index is read at; defaults to the revision `baseUrl` pins.
+      Overriding `baseUrl` means naming this too, or the index and the URLs
+      built from it describe different revisions. */
+  treeRef?: string
   /** Locale file, separately configurable — it is the one file with a mirror. */
   unitsCsvUrl?: string
   fetchImpl?: typeof fetch
@@ -114,6 +118,7 @@ interface UnittagsUnit {
 export class DatamineSource implements CatalogSource {
   readonly name = 'gszabi99-datamine'
   private readonly configuredBaseUrl: string | undefined
+  private readonly configuredTreeRef: string | undefined
   private readonly treeApiUrl: string
   private readonly configuredUnitsCsvUrl: string | undefined
   private readonly fetchImpl: typeof fetch
@@ -122,10 +127,13 @@ export class DatamineSource implements CatalogSource {
 
   constructor(options: DatamineOptions = {}) {
     this.configuredBaseUrl = options.baseUrl?.replace(/\/+$/, '')
-    // Half-configured would read files from the fixture and the image index
-    // from the real API, then abort on a coverage guard that isn't the reason.
-    if (options.baseUrl && !options.treeApiUrl) {
-      throw new Error('baseUrl needs a treeApiUrl: the image index is read too')
+    this.configuredTreeRef = options.treeRef
+    // Half-configured reads the files from one revision and the image index
+    // from another, so every content id describes bytes nobody fetched.
+    if (options.baseUrl && !(options.treeApiUrl && options.treeRef)) {
+      throw new Error(
+        'baseUrl needs treeApiUrl and treeRef: the image index is read too',
+      )
     }
     this.treeApiUrl = (options.treeApiUrl ?? DEFAULT_TREE_API).replace(
       /\/+$/,
@@ -140,7 +148,7 @@ export class DatamineSource implements CatalogSource {
   async fetchSnapshot(): Promise<CatalogSnapshot> {
     // One revision for everything: read off a moving branch, a push landing
     // mid-flight yields a units.csv not covering its wpcost, read as removals.
-    const revision = this.configuredBaseUrl ? 'master' : await this.headSha()
+    const revision = this.configuredTreeRef ?? (await this.headSha())
     const dataUrl = this.configuredBaseUrl ?? `${DEFAULT_REPO_URL}/${revision}`
 
     const [wpcost, unittags, names, version, portraits] = await Promise.all([

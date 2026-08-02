@@ -149,6 +149,7 @@ function source(overrides: Overrides = {}) {
     source: new DatamineSource({
       baseUrl: BASE,
       treeApiUrl: TREE,
+      treeRef: 'master',
       fetchImpl,
       retryDelayMs: 0,
     }),
@@ -433,6 +434,15 @@ describe('DatamineSource', () => {
     await expect(snapshot({ folderPad: 5 })).rejects.toThrow(
       /upstream restructured/,
     )
+  })
+
+  // Half-configured, the files come from one revision and the index another,
+  // so every content id would describe bytes nobody fetched.
+  it('refuses a baseUrl that does not say which revision the index is', () => {
+    expect(() => new DatamineSource({ baseUrl: BASE })).toThrow(/treeRef/)
+    expect(
+      () => new DatamineSource({ baseUrl: BASE, treeApiUrl: TREE }),
+    ).toThrow(/treeRef/)
   })
 
   it('aborts on a truncated tree rather than reading it as missing artwork', async () => {
