@@ -25,6 +25,8 @@ The app never self-migrates. Committed migrations reach production via the **`mi
 
 Railway deploys the same merge in parallel and does **not** wait for the migration, so approve promptly — especially when new code depends on the new schema.
 
+Additive migrations only skew one way: new code against the old schema fails, so approving late is the only risk. A migration that **renames or drops** a column read by content queries skews both ways — old code against the new schema fails too — so there is no ordering that avoids a window, only a shortest one. Approve those the moment Railway reports the new container live, and expect seconds of 5xx on vehicle pages either side of it. Where that is unacceptable, split the change into expand (add and backfill the new columns) and contract (drop the old ones) across two releases instead.
+
 As a local last resort, migrate **through the Session pooler or Direct connection** — *not* the transaction pooler, because `drizzle-kit` uses prepared statements the transaction pooler rejects:
 
 ```bash

@@ -510,7 +510,7 @@ const catalogIllustratedShape = {
 }
 
 // Both serving URLs computed server-side; neither raw key ever ships.
-function withRowImagery<
+function withPortraitAndAvatar<
   T extends {
     portraitKey: string | null
     holderUserId: string | null
@@ -697,7 +697,7 @@ export async function browseVehicles(
     .limit(BROWSE_PAGE_SIZE)
     .offset((page - 1) * BROWSE_PAGE_SIZE)
 
-  return { rows: rows.map(withRowImagery), total, page, pageCount }
+  return { rows: rows.map(withPortraitAndAvatar), total, page, pageCount }
 }
 
 /** The Spotlight's candidates, over the whole filtered set so the ledger's sort
@@ -733,7 +733,7 @@ export async function browseSpotlight(
     .orderBy(desc(records.kills), asc(vehicles.name))
     .limit(limit)
 
-  return rows.map(withRowImagery)
+  return rows.map(withPortraitAndAvatar)
 }
 
 export async function getNationSheet(

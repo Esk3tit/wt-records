@@ -63,7 +63,7 @@ describe('ledger row imagery', () => {
     expect(img?.getAttribute('alt')).toBe('')
   })
 
-  it('keeps the art slot when the catalog has no image yet', async () => {
+  it('keeps the art slot when the catalog has no portrait yet', async () => {
     const { container, findByRole } = renderRow(row())
     await findByRole('link', { name: 'M4A1' })
     expect(container.querySelector('.vehicle-icon-ledger')).toBeTruthy()

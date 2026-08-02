@@ -89,9 +89,11 @@ try {
 
   const storage = dryRun ? undefined : storageFromEnvIfConfigured()
   if (dryRun) {
-    console.log('Dry run — transaction rolled back; image mirroring skipped.')
+    console.log(
+      'Dry run — transaction rolled back; portrait mirroring skipped.',
+    )
   } else if (!storage) {
-    console.log('Image mirroring skipped (R2_* env not configured).')
+    console.log('Portrait mirroring skipped (R2_* env not configured).')
   } else {
     // Best-effort by contract: the sync committed, so nothing from the mirror
     // pass may turn this run into a failure.

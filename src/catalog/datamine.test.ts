@@ -16,9 +16,7 @@ import {
 const BASE = 'https://datamine.test/repo'
 const TREE = 'https://trees.test/git/trees'
 
-/* The image index the adapter walks: master -> tex.vromfs.bin_u -> a folder per
-   branch. Padded past the adapter's per-folder floor, which exists to catch an
-   upstream restructure. */
+/* The index the adapter walks, padded past its per-folder floor. */
 const FOLDER_SHA = {
   tanks: 'sha-tanks',
   aircrafts: 'sha-air',
@@ -422,8 +420,6 @@ describe('DatamineSource', () => {
     )
   })
 
-  // The old adapter assumed a path existed and emitted a URL that 404'd on
-  // every run forever; the index is what decides now.
   it('emits no portrait for a vehicle the index does not list', async () => {
     const snap = await snapshot()
 
@@ -586,9 +582,8 @@ describe('DatamineSource', () => {
   })
 })
 
-/* Thresholds are checked against the numbers upstream has actually produced:
-   71 samples over 19 months, worst artless rates 26/1166 ground and 30/1423
-   air. The fixture catalog is far too small to exercise a share-based floor. */
+/* Real upstream numbers: 71 samples, worst 26/1166 ground and 30/1423 air.
+   The fixture catalog is far too small to exercise a share-based floor. */
 describe('assertPortraitCoverage', () => {
   const ok = { emitted: 500, artless: 5 }
 
@@ -600,6 +595,23 @@ describe('assertPortraitCoverage', () => {
         naval: { emitted: 544, artless: 7 },
       }),
     ).not.toThrow()
+  })
+
+  it('allows exactly the count it says it allows', () => {
+    expect(() =>
+      assertPortraitCoverage({
+        ground: { emitted: 500, artless: 50 },
+        air: ok,
+        naval: ok,
+      }),
+    ).not.toThrow()
+    expect(() =>
+      assertPortraitCoverage({
+        ground: { emitted: 500, artless: 51 },
+        air: ok,
+        naval: ok,
+      }),
+    ).toThrow()
   })
 
   it('aborts when a branch loses its folder entirely', () => {

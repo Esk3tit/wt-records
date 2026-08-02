@@ -3,9 +3,8 @@ import { assertValidObjectKey } from '#/storage/urls'
 
 const HEX = /^[0-9a-f]+$/
 
-/** Assets-bucket key for a vehicle Portrait, addressed by the upstream content
-    id — replaced artwork lands on a new key, so caches never serve stale bytes
-    under a URL that was reused. */
+/** Assets-bucket key for a Portrait, addressed by the upstream content id so
+    replaced artwork lands on a new key rather than under a reused one. */
 export function portraitObjectKey(
   externalId: string,
   contentId: string,

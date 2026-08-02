@@ -1,4 +1,4 @@
-import { eq, isNotNull, sql } from 'drizzle-orm'
+import { and, eq, isNotNull, sql } from 'drizzle-orm'
 import type { Db } from '#/db'
 import * as schema from '#/db/schema'
 import { portraitObjectKey } from '#/catalog/portrait-key'
@@ -69,7 +69,14 @@ export async function mirrorVehiclePortraits(
       portraitKey: schema.vehicles.portraitKey,
     })
     .from(schema.vehicles)
-    .where(isNotNull(schema.vehicles.portraitUrl))
+    // A url without a content id is a vehicle the snapshot no longer carries,
+    // so upstream's current bytes are unknowable — leave the copy we hold.
+    .where(
+      and(
+        isNotNull(schema.vehicles.portraitUrl),
+        isNotNull(schema.vehicles.portraitContentId),
+      ),
+    )
     .orderBy(sql`${schema.vehicles.branch} = 'ground' desc`, schema.vehicles.id)
 
   const stale: Array<Candidate> = []
@@ -79,7 +86,7 @@ export async function mirrorVehiclePortraits(
     try {
       wantKey = portraitObjectKey(
         v.externalId,
-        v.portraitContentId ?? '',
+        v.portraitContentId!,
         portraitUrl,
       )
     } catch {
@@ -152,9 +159,6 @@ export async function mirrorVehiclePortraits(
     )
   }
 
-  // A Portrait upstream stops publishing is deliberately kept: the registry
-  // does not lose imagery it already holds, so a null url beside a live key is
-  // a resting state, not an orphan. It also makes a bad upstream read unable to
-  // do worse than withhold artwork.
+  // Nothing collects a key whose url went away — retention is the point.
   return summary
 }

@@ -65,8 +65,9 @@ mapping drift (a renamed type vocabulary, a new country) must not mass-remove
 live vehicles from an unattended cron; and a branch with more than
 max(50, 10%) artless vehicles aborts the snapshot, so a renamed or moved image
 folder upstream reads as the restructure it is rather than as artwork that
-vanished. That last one is sized against 71 samples over 19 months, in which
-the worst branch ran 26 artless of 1,166 (2.2%). A tree that comes back
+vanished. That last one is sized against 71 samples over 19 months, across which
+the worst share a branch reached was 2.23% (26 of 1,166 ground) and the worst
+count 30 (of 1,423 air). A tree that comes back
 truncated, or a folder under 100 entries, aborts on the same reasoning.
 
 ## Portrait mirroring
@@ -90,10 +91,13 @@ warning in the summary, never a failed sync.
   every cache serving the old artwork. Changing the key format re-mirrors the
   whole catalog on the next run; that costs ~2,650 images and 246 MB, measured
   at roughly two minutes.
-- A Portrait upstream stops publishing is **kept**, not deleted: a null
+- A Portrait the source stops publishing is **kept**, not deleted: a null
   `portrait_url` beside a live `portrait_key` is a resting state, not an
   orphan. The registry does not lose imagery it already holds, and a bad
-  upstream read can then only withhold artwork, never destroy it.
+  upstream read can then only withhold artwork, never destroy it. A row with a
+  `portrait_url` but no `portrait_content_id` — a vehicle the snapshot stopped
+  carrying before this column existed — is skipped for the same reason: what
+  upstream holds now is unknowable, so the mirrored copy stands.
 - Mirroring is skipped with a note when the `R2_*` vars are absent, so local
   dev without R2 credentials still syncs.
 - `--mirror-limit=N` caps a run's uploads. Steady state needs ~1 per day, and a

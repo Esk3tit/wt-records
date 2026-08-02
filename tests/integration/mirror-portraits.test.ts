@@ -255,20 +255,29 @@ describe('mirrorVehiclePortraits', () => {
     expect(rows.map((r) => r.externalId)).toEqual(['us_m4_sherman'])
   })
 
-  it('a portrait with no content id fails that row only', async () => {
+  // Rows the snapshot stopped carrying keep a url but never gain a content id.
+  // Retrying them would reinstate the permanent per-run noise this replaced.
+  it('leaves a row alone when its content id is unknown, run after run', async () => {
+    const store = fakeStore()
+    await mirrorVehiclePortraits(t.db, store, { fetchImpl: fakeFetch().impl })
+    const keptKey = portraitObjectKey('us_m1_abrams', ABRAMS_V1, ABRAMS_URL)
+
     await t.db
       .update(vehicles)
       .set({ portraitContentId: null })
       .where(eq(vehicles.externalId, 'us_m1_abrams'))
-    const store = fakeStore()
 
-    const summary = await mirrorVehiclePortraits(t.db, store, {
-      fetchImpl: fakeFetch().impl,
-    })
-
-    expect(summary).toMatchObject({ mirrored: 1, failed: 1 })
-    const rows = await mirroredRows(t.db)
-    expect(rows.map((r) => r.externalId)).toEqual(['us_m4_sherman'])
+    for (const _ of [1, 2]) {
+      const second = fakeFetch()
+      const summary = await mirrorVehiclePortraits(t.db, store, {
+        fetchImpl: second.impl,
+      })
+      expect(summary).toMatchObject({ mirrored: 0, upToDate: 1, failed: 0 })
+      expect(summary.warnings).toEqual([])
+      expect(second.calls).toHaveLength(0)
+    }
+    expect(store.deletes).toHaveLength(0)
+    expect(rowKey(await mirroredRows(t.db), 'us_m1_abrams')).toBe(keptKey)
   })
 
   // The registry does not lose imagery it already holds: a null url beside a

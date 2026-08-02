@@ -19,12 +19,8 @@ const DEFAULT_TREE_API =
   'https://api.github.com/repos/gszabi99/War-Thunder-Datamine/git/trees'
 const IMAGE_ROOT = 'tex.vromfs.bin_u'
 
-/* Measured over 19 months of upstream history: the artless share of a branch
-   peaks at 2.2% (ground, 2025-09-05) and averages ~1.3%, and the worst absolute
-   count is 30. A folder that moved or was renamed reads as 100%, so this range
-   is a structural break rather than news. Both terms are load-bearing: the
-   share is what scales, the count is what keeps a small catalog from tripping
-   on a handful of missing portraits. */
+/* Worst a branch has managed over 19 months is 2.23% and 30 vehicles; a moved
+   folder reads as 100%. Both terms bind — see ADR 0011. */
 const MAX_ARTLESS_SHARE = 0.1
 const MAX_ARTLESS_COUNT = 50
 /* A folder this small is a restructure, not a purge; the smallest real one
@@ -126,6 +122,11 @@ export class DatamineSource implements CatalogSource {
 
   constructor(options: DatamineOptions = {}) {
     this.configuredBaseUrl = options.baseUrl?.replace(/\/+$/, '')
+    // Half-configured would read files from the fixture and the image index
+    // from the real API, then abort on a coverage guard that isn't the reason.
+    if (options.baseUrl && !options.treeApiUrl) {
+      throw new Error('baseUrl needs a treeApiUrl: the image index is read too')
+    }
     this.treeApiUrl = (options.treeApiUrl ?? DEFAULT_TREE_API).replace(
       /\/+$/,
       '',
@@ -137,12 +138,8 @@ export class DatamineSource implements CatalogSource {
   }
 
   async fetchSnapshot(): Promise<CatalogSnapshot> {
-    // Everything must come from one revision: read off a moving branch, a push
-    // landing mid-flight yields a snapshot whose units.csv doesn't cover its
-    // wpcost, and the missing units read as removed. Imagery is pinned to that
-    // same revision, so a recorded URL always re-fetches the exact bytes
-    // mirrored under it — the key is content-addressed, not URL-derived, so a
-    // per-run revision costs nothing.
+    // One revision for everything: read off a moving branch, a push landing
+    // mid-flight yields a units.csv not covering its wpcost, read as removals.
     const revision = this.configuredBaseUrl ? 'master' : await this.headSha()
     const dataUrl = this.configuredBaseUrl ?? `${DEFAULT_REPO_URL}/${revision}`
 
@@ -258,9 +255,7 @@ export class DatamineSource implements CatalogSource {
       }
       const [era, arcade, historical, simulation] = ranks as Array<number>
 
-      // The upstream index decides, rather than a path we assume exists: 34
-      // units carry no artwork at all, and guessing one produced a URL that
-      // 404'd on every run forever.
+      // The index decides, not a path we assume: 34 units carry no artwork.
       const file = `${externalId.toLowerCase()}.png`
       const contentId = portraits[branch].get(file)
       const portrait: SourcePortrait | null = contentId
@@ -317,10 +312,8 @@ export class DatamineSource implements CatalogSource {
     return { gameVersion, vehicles, warnings }
   }
 
-  /** Portrait filename → blob SHA per branch, walked targeted rather than
-      recursively: five responses and 949 KB against 19.6 MB and 57% of the
-      100,000-entry truncation cap for `?recursive=1`, which also carries no
-      ETag. */
+  /** Portrait filename → blob SHA per branch. Targeted rather than
+      `?recursive=1`: 949 KB over five responses against 19.6 MB, and no cap. */
   private async fetchPortraitIndex(
     revision: string,
   ): Promise<Record<Branch, Map<string, string>>> {
@@ -363,8 +356,7 @@ export class DatamineSource implements CatalogSource {
     if (!Array.isArray(tree)) {
       throw new Error(`No tree at ${this.treeApiUrl}/${sha}`)
     }
-    // A truncated listing is silently short, which reads downstream as artwork
-    // that vanished. The walk is targeted precisely so this cannot happen.
+    // Silently short, and downstream that reads as artwork having vanished.
     if (truncated === true) {
       throw new Error(`Truncated tree at ${this.treeApiUrl}/${sha}`)
     }
@@ -422,9 +414,8 @@ export class DatamineSource implements CatalogSource {
   }
 }
 
-/** Portraits are the one field read from a second upstream file tree, so a
-    restructure there would blank the catalog's imagery without failing
-    anything. Abort the snapshot instead — nothing has been written yet. */
+/** A restructure upstream blanks a branch's artwork without failing anything,
+    so abort the snapshot here — nothing has been written yet. */
 export function assertPortraitCoverage(
   coverage: Record<Branch, { emitted: number; artless: number }>,
 ): void {
