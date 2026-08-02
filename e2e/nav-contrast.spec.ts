@@ -68,8 +68,8 @@ for (const theme of ['dark', 'light'] as const) {
       })
     }
 
-    /* Hover paints a fill under ink that is already at its floor, and a fill of
-       its own is exactly how the Admin chip failed. */
+    /* Hover paints a fill under ink that is already at its floor, which is why
+       these controls mark it with the pill track and never with a fill. */
     for (const name of ['Search', 'Switch to']) {
       test(`the nav stays legible with ${name} hovered`, async ({ page }) => {
         await openNav(page, { theme })
@@ -94,9 +94,8 @@ for (const theme of ['dark', 'light'] as const) {
     })
   })
 
-  /* The Admin chip is ink most readers never see, so nothing else would catch
-     it drifting — and it wore a fill of its own, on a surface already at its
-     floor. */
+  /* A moderator carries one more control than anyone else, so the nav they see
+     is a composition — and an ink — no other test on this page renders. */
   test.describe(`in ${theme}, for a moderator`, () => {
     test.use({ storageState: STATE.admin })
 
