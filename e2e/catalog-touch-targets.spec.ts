@@ -46,6 +46,11 @@ async function openBrowse(
   // The panel, not the ledger: a nation sheet mounts the same filters over a
   // card wall rather than a table.
   await expect(page.locator(PANEL)).toBeVisible()
+  /* The panel is server-rendered, so waiting for it proves nothing about its
+     handlers — a disclosure clicked before hydration swallows the click and
+     stays folded. The theme toggle mounts client-side, so it is the page's
+     signal that React has taken the markup over. */
+  await expect(page.getByRole('button', { name: /Switch to/ })).toBeVisible()
 }
 
 /** The groups fold behind one disclosure on phones; nothing in them can be
@@ -150,9 +155,8 @@ for (const width of PHONES) {
   test(`the folded panel still fits its share of a ${width}px screen`, async ({
     page,
   }) => {
+    await openBrowse(page, { width })
     await page.setViewportSize({ width, height: 844 })
-    await page.goto('/grb/vehicles')
-    await expect(page.locator(PANEL)).toBeVisible()
 
     expect((await heightOf(page, PANEL)) / 844).toBeLessThanOrEqual(0.14)
   })
@@ -187,14 +191,21 @@ for (const width of PHONES) {
 }
 
 /* The rank chips are the narrowest ink on the surface and the ones the reach
-   had to widen most. */
+   had to widen most. Which ranks exist is the corpus's business — a seed holds
+   a handful and production holds them all — so the fixture is whichever chip
+   the group leads with rather than a numeral this catalogue may not stock. */
 test('a tap at the far edge of a rank chip still filters', async ({ page }) => {
   await openBrowse(page, { width: 390 })
   await openFilters(page)
 
-  const chip = page.getByRole('button', { name: 'I', exact: true })
+  const chip = page
+    .locator('#vehicle-filter-groups fieldset', { hasText: 'Rank' })
+    .getByRole('button')
+    .first()
+  await expect(chip).toHaveAttribute('aria-pressed', 'false')
+
   await tapFarEdge(page, chip)
 
   await expect(chip).toHaveAttribute('aria-pressed', 'true')
-  await expect(page).toHaveURL(/[?&]rank=1\b/)
+  await expect(page).toHaveURL(/[?&]rank=\d/)
 })
