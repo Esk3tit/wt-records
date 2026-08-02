@@ -12,6 +12,10 @@ const FLOOR = 44
 
 const WIDTHS = [320, 390, 639, 640, 1280]
 
+/** 344 is where the pane used to snap back to two rows, and 640 is where the
+    cluster loses its `ml-auto` and closes on the mode pills. */
+const MODERATOR_WIDTHS = [320, 344, 390, 640, 1280]
+
 /** Asks the page who would receive a tap at each point around a control, and
     reports the box it actually owns. Measuring the reach beats probing a square
     centred on the ink: a target is no less reachable for sitting off-centre. */
@@ -114,6 +118,24 @@ async function navHeight(page: Page) {
     .evaluate((el) => el.getBoundingClientRect().height)
 }
 
+/** The pane's height and the row each shared control sits on. Height alone
+    would let every control slide a row together and still pass, and the harm
+    here was the controls moving, not the pane growing. */
+async function navSeats(page: Page) {
+  return page.evaluate(() => {
+    const rowOf = (selector: string) => {
+      const el = document.querySelector(selector)
+      if (!el) throw new Error(`${selector} is not in the nav`)
+      return Math.round(el.getBoundingClientRect().top)
+    }
+    return {
+      height: document.querySelector('header')!.getBoundingClientRect().height,
+      search: rowOf('header a[aria-label="Search"]'),
+      modes: rowOf('header nav[aria-label="Game modes"]'),
+    }
+  })
+}
+
 /** Re-measures with the reach withdrawn, so the nav is compared against itself
     rather than against a number that rots the next time the pane is tuned. */
 async function heightWithoutReach(page: Page) {
@@ -146,9 +168,7 @@ for (const theme of ['dark', 'light'] as const) {
 test.describe('with the moderator nav', () => {
   test.use({ storageState: STATE.admin })
 
-  /* 344 is where the pane used to snap back to two rows, and 640 is where the
-     cluster loses its `ml-auto` and closes on the mode pills. */
-  for (const width of [320, 344, 390, 640]) {
+  for (const width of MODERATOR_WIDTHS) {
     test(`every nav control can be tapped at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 844 })
       await openNav(page)
@@ -168,22 +188,21 @@ test.describe('with the moderator nav', () => {
     expect(await navHeight(page)).toBe(await heightWithoutReach(page))
   })
 
-  /* The moderator's nav is the reader's nav. Compared against this same pane
-     with the entry taken out, so the bar is what every other visitor sees
-     rather than a constant that rots the next time the nav is tuned. */
-  for (const width of [320, 344, 390, 640]) {
-    test(`the nav is no taller for the Admin entry at ${width}px`, async ({
-      page,
-    }) => {
+  /* The moderator's nav is the reader's nav. Measured against this same pane
+     with the entry hidden, so the bar is what every other visitor sees rather
+     than a constant that rots the next time the nav is tuned. */
+  for (const width of MODERATOR_WIDTHS) {
+    test(`the Admin entry moves nothing at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 844 })
       await openNav(page)
       const admin = page.getByRole('link', { name: 'Admin' })
       await expect(admin).toBeVisible()
 
-      const withAdmin = await navHeight(page)
-      await admin.evaluate((el) => el.remove())
+      const seated = await navSeats(page)
+      await page.addStyleTag({ content: '[href="/admin"] { display: none }' })
+      await expect(admin).toBeHidden()
 
-      expect(withAdmin).toBe(await navHeight(page))
+      expect(seated).toEqual(await navSeats(page))
     })
   }
 })
