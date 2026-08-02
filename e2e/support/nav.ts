@@ -1,16 +1,15 @@
 import type { Page } from '@playwright/test'
 import { expect } from '@playwright/test'
+import type { Lighting } from './theme'
+import { stampTheme } from './theme'
 
 /** The toggle mounts client-side, so it is the last ink in the nav to exist.
     Theme is stamped first because the pane wears a different fill in each. */
 export async function openNav(
   page: Page,
-  {
-    path = '/grb',
-    theme = 'dark',
-  }: { path?: string; theme?: 'dark' | 'light' } = {},
+  { path = '/grb', theme = 'dark' }: { path?: string; theme?: Lighting } = {},
 ) {
-  await page.addInitScript((t) => localStorage.setItem('theme', t), theme)
+  await stampTheme(page, theme)
   await page.goto(path)
   await expect(page.getByRole('button', { name: /Switch to/ })).toBeVisible()
 }
