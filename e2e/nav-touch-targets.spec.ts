@@ -141,13 +141,14 @@ for (const theme of ['dark', 'light'] as const) {
   })
 }
 
-/* The Admin link only exists for moderators, and it is the smallest ink in the
-   nav — the one most likely to be left behind by a fix aimed at the rest. It
-   also wraps the nav to a third row, where a fix paid for in spacing tells. */
+/* The Admin entry exists only for moderators, so no other test renders this
+   composition — and a fix aimed at the rest of the nav will leave it behind. */
 test.describe('with the moderator nav', () => {
   test.use({ storageState: STATE.admin })
 
-  for (const width of [320, 390]) {
+  /* 344 is where the pane used to snap back to two rows, and 640 is where the
+     cluster loses its `ml-auto` and closes on the mode pills. */
+  for (const width of [320, 344, 390, 640]) {
     test(`every nav control can be tapped at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 844 })
       await openNav(page)
@@ -157,7 +158,7 @@ test.describe('with the moderator nav', () => {
     })
   }
 
-  test('the nav is no taller for the reach on its third row', async ({
+  test('the nav is no taller for the reach with the Admin entry', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 320, height: 844 })
@@ -166,6 +167,25 @@ test.describe('with the moderator nav', () => {
 
     expect(await navHeight(page)).toBe(await heightWithoutReach(page))
   })
+
+  /* The moderator's nav is the reader's nav. Compared against this same pane
+     with the entry taken out, so the bar is what every other visitor sees
+     rather than a constant that rots the next time the nav is tuned. */
+  for (const width of [320, 344, 390, 640]) {
+    test(`the nav is no taller for the Admin entry at ${width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 844 })
+      await openNav(page)
+      const admin = page.getByRole('link', { name: 'Admin' })
+      await expect(admin).toBeVisible()
+
+      const withAdmin = await navHeight(page)
+      await admin.evaluate((el) => el.remove())
+
+      expect(withAdmin).toBe(await navHeight(page))
+    })
+  }
 })
 
 /* elementFromPoint says who owns the pixel; only a real tap proves the widened
