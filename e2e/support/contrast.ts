@@ -285,8 +285,14 @@ export async function worstDownThePage(
   },
 ): Promise<InkReading[]> {
   const floor = await deepestScroll(page)
+  /* The floor itself, always: a page whose scroll ends between two configured
+     depths would otherwise never have its last screen read, and the bottom of
+     a ledger is where the rows this guard is for actually are. */
+  const stops = [...new Set([...depths.filter((d) => d <= floor), floor])].sort(
+    (a, b) => a - b,
+  )
   const worst = new Map<string, InkReading>()
-  for (const depth of depths.filter((d) => d <= floor)) {
+  for (const depth of stops) {
     await readerScrollsTo(page, depth)
     await settle?.()
     for (const r of await readInk(page, root, exempt, sites)) {
@@ -339,6 +345,15 @@ function collectTargets({
     const style = getComputedStyle(el)
     if (style.visibility === 'hidden') continue
     if (exempt && el.closest(exempt)) continue
+    /* 1.4.3 and 1.4.11 ask nothing of an inactive component, which is why a
+       pager's spent arrow is allowed to go faint. Measuring them anyway turns
+       every disabled control on the site into a failure nobody can act on. */
+    if (
+      el.closest(
+        ':disabled, fieldset:disabled *, [aria-disabled="true"], [aria-disabled="true"] *',
+      )
+    )
+      continue
     /* Opacity compounds down the tree, and a run dimmed by a wrapper is still a
        run someone has to read. Left out, it would paint below solid everywhere
        and be dropped as occluded — the one way real ink could go unmeasured
