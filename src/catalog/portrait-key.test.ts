@@ -8,7 +8,7 @@ const URL = 'https://raw.example/repo/abc123/tex/tanks/us_m1_abrams.png'
 describe('portraitObjectKey', () => {
   it('derives a stable key from external id and content id', () => {
     const key = portraitObjectKey('us_m1_abrams', SHA, URL)
-    expect(key).toMatch(/^vehicles\/us_m1_abrams-[0-9a-f]{8}\.png$/)
+    expect(key).toMatch(/^vehicles\/us_m1_abrams-[0-9a-f]{12}\.png$/)
     expect(portraitObjectKey('us_m1_abrams', SHA, URL)).toBe(key)
   })
 
@@ -36,7 +36,7 @@ describe('portraitObjectKey', () => {
     )
     expect(
       portraitObjectKey('x', SHA, 'https://a.example/download?id=7'),
-    ).toMatch(/^vehicles\/x-[0-9a-f]{8}$/)
+    ).toMatch(/^vehicles\/x-[0-9a-f]{12}$/)
   })
 
   it('rejects a content id that is not a usable hash', () => {
