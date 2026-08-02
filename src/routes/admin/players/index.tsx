@@ -4,6 +4,7 @@ import {
   useNavigate,
   useRouterState,
 } from '@tanstack/react-router'
+import { Chip } from '#/components/chip'
 import { Panel, inputClass } from '#/components/admin/ui'
 import { ADMIN_PAGE_SIZE, Pager, pageParam } from '#/components/admin/pager'
 import { adminPlayerList } from '#/admin/api'
@@ -79,12 +80,12 @@ function PlayersIndex() {
         <div
           className={
             'overflow-x-auto transition-opacity' +
-            (pending ? ' opacity-50' : '')
+            (pending ? ' opacity-90' : '')
           }
         >
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs tracking-wide text-fg-faint uppercase">
+              <tr className="text-left text-xs tracking-wide text-fg-muted uppercase">
                 <th className="py-1.5 pr-3 font-normal">Player</th>
                 <th className="py-1.5 pr-3 text-right font-normal">Records</th>
                 <th className="py-1.5 text-right font-normal">Aliases</th>
@@ -102,8 +103,10 @@ function PlayersIndex() {
                       {p.displayName}
                     </Link>
                     {p.userId && (
-                      <span className="chip-well ml-2 rounded px-1.5 py-0.5 text-xs tracking-wide text-fg uppercase">
-                        claimed
+                      <span className="ml-2">
+                        <Chip title="This Player has been claimed by a User">
+                          claimed
+                        </Chip>
                       </span>
                     )}
                   </td>

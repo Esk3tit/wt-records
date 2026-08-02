@@ -182,14 +182,18 @@ function RecordsIndex() {
         </p>
       ) : (
         <div
+          aria-busy={pending}
+          /* The rows still showing are the previous result, and a moderator
+             reads them while the next one loads — so the pending dim is set at
+             what the faint ink can still spend, not at what reads as busiest. */
           className={
             'overflow-x-auto transition-opacity' +
-            (pending ? ' opacity-50' : '')
+            (pending ? ' opacity-90' : '')
           }
         >
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs tracking-wide text-fg-faint uppercase">
+              <tr className="text-left text-xs tracking-wide text-fg-muted uppercase">
                 <th scope="col" className="py-1.5 pr-3 font-normal">
                   Vehicle
                 </th>

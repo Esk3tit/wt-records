@@ -21,24 +21,28 @@ import { STATE } from './support/states'
     that a ledger's later rows and a wall's lower ranks are read too. */
 const DEPTHS = [0, 600, 1400, 2400, 3600]
 
-/** Each route, and the sites it is visited *for* — asserted to have produced a
-    reading, so a renamed class cannot quietly empty a sweep that goes on
-    passing. Named by the fragment their `where` carries. */
+/** Each route, and the surfaces it is visited *for* — asserted to have produced
+    a reading, so deleting a component or renaming its class cannot quietly
+    empty a sweep that goes on passing. These name components, not utility
+    classes: `text-fg-faint` is satisfied by any element anywhere on the page,
+    which is no assertion at all. */
 const ROUTES: { path: string; sites: string[] }[] = [
-  // The podium's metal panes, its rank chips, and the monument's own labels.
-  { path: '/grb', sites: ['section-label', 'stat-unit', 'chip-well'] },
-  // Standings rows: metal tint and flag wash under a row that is ink throughout.
-  { path: '/grb/nations', sites: ['stat-unit', 'stat-label'] },
+  // The podium's metal panes and rank chips, and the monument's own labels.
+  {
+    path: '/grb',
+    sites: ['.podium-card', '.section-label', '.stat-unit', '.chip-well'],
+  },
+  // A row that is ink the whole way down, under a metal tint and a flag wash.
+  { path: '/grb/nations', sites: ['.standings-row', '.stat-unit'] },
   // The record wall, where the acquisition material meets the card's own ink.
-  { path: '/grb/nation/usa', sites: ['text-fg-faint', 'stat-unit'] },
-  { path: '/grb/vehicles', sites: ['text-fg-muted'] },
-  { path: '/grb/leaderboard', sites: ['text-fg-faint'] },
-  { path: '/search?q=a', sites: ['section-label'] },
+  { path: '/grb/nation/usa', sites: ['.record-card', '.chip-well'] },
+  // The ledger closes every row on a Medallion — the one ink on the site
+  // painted with `fill` rather than `color`, and so the one the probe had to
+  // learn to reach at all.
+  { path: '/grb/vehicles', sites: ['.medallion', '.chip-well'] },
+  { path: '/grb/leaderboard', sites: ['.leaderboard-row'] },
+  { path: '/search?q=a', sites: ['.section-label', '.chip-well'] },
 ]
-
-async function open(page: Page, path: string, theme: 'dark' | 'light') {
-  await openNav(page, { path, theme })
-}
 
 /** The first link matching a route shape, so fixtures come from live data and
     these hold against the seed and a real corpus alike. */
@@ -62,9 +66,9 @@ for (const theme of ['dark', 'light'] as const) {
 
     for (const { path, sites } of ROUTES) {
       test(`every ink on ${path} is legible`, async ({ page }) => {
-        await open(page, path, theme)
+        await openNav(page, { path, theme })
 
-        const readings = await worstDownThePage(page, { depths: DEPTHS })
+        const readings = await worstDownThePage(page, { depths: DEPTHS, sites })
         expect(unmeasured(readings, sites)).toEqual([])
         expect(faultsInInk(readings)).toEqual([])
       })
@@ -75,22 +79,27 @@ for (const theme of ['dark', 'light'] as const) {
        Medallion — a monogram struck into its own lit disc, and the one piece of
        ink on the site painted with `fill` rather than `color`. */
     test('every ink on a vehicle sheet is legible', async ({ page }) => {
-      await open(page, '/grb/vehicles', theme)
+      await openNav(page, { path: '/grb/vehicles', theme })
       const sheet = await firstPath(page, /^\/grb\/vehicle\//)
-      await open(page, sheet, theme)
+      await openNav(page, { path: sheet, theme })
 
-      const readings = await worstDownThePage(page, { depths: DEPTHS })
-      expect(unmeasured(readings, ['stat-unit'])).toEqual([])
+      /* Not the Medallion here: this sheet shows one holder, and whether that
+         holder set an avatar is the state of the data. The ledger asserts it,
+         where every row carries one. */
+      const sites = ['.stat-unit']
+      const readings = await worstDownThePage(page, { depths: DEPTHS, sites })
+      expect(unmeasured(readings, sites)).toEqual([])
       expect(faultsInInk(readings)).toEqual([])
     })
 
     test('every ink on a player profile is legible', async ({ page }) => {
-      await open(page, '/grb/leaderboard', theme)
+      await openNav(page, { path: '/grb/leaderboard', theme })
       const profile = await firstPath(page, /^\/player\//)
-      await open(page, profile, theme)
+      await openNav(page, { path: profile, theme })
 
-      const readings = await worstDownThePage(page, { depths: DEPTHS })
-      expect(unmeasured(readings, ['section-label'])).toEqual([])
+      const sites = ['.section-label']
+      const readings = await worstDownThePage(page, { depths: DEPTHS, sites })
+      expect(unmeasured(readings, sites)).toEqual([])
       expect(faultsInInk(readings)).toEqual([])
     })
 
@@ -113,7 +122,7 @@ for (const theme of ['dark', 'light'] as const) {
       test(`no scene at ${EDGE} beats the panes on ${path}`, async ({
         page,
       }) => {
-        await open(page, path, theme)
+        await openNav(page, { path, theme })
         await readerScrollsTo(page, 600)
         await pinScene(page, EDGE)
 
@@ -121,11 +130,26 @@ for (const theme of ['dark', 'light'] as const) {
       })
     }
 
+    /* The washes are masked in proportions, not pixels, so the narrowest
+       viewport is where a pool can slide off the art it was cut for and back
+       under the ink. The record wall folds hardest here. */
+    test('every ink on the record wall is legible at 320px', async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 320, height: 720 })
+      await openNav(page, { path: '/grb/nation/usa', theme })
+
+      const sites = ['.record-card']
+      const readings = await worstDownThePage(page, { depths: DEPTHS, sites })
+      expect(unmeasured(readings, sites)).toEqual([])
+      expect(faultsInInk(readings)).toEqual([])
+    })
+
     /* Answering the pointer lays a brighter wash under ink that is already at
        its floor — the way the nav's Admin chip failed, and the standings row is
        the one place a whole row of ink lights up at once. */
     test('a standings row stays legible while pointed at', async ({ page }) => {
-      await open(page, '/grb/nations', theme)
+      await openNav(page, { path: '/grb/nations', theme })
       await page.locator('.standings-row').first().hover()
 
       const readings = await readInk(page, '.standings-row', '')
@@ -134,24 +158,28 @@ for (const theme of ['dark', 'light'] as const) {
     })
 
     /* Both panes that answer backdrop-filter's blind spot with near-opacity,
-       and so lay their own fill under their own ink. */
+       and so lay their own fill under their own ink — read against the band
+       rather than today's scene, since a pane that near-opaque is exactly the
+       one whose margin a brighter plate would eat. */
     test('the floating lookup menu is legible', async ({ page }) => {
-      await open(page, '/grb', theme)
+      await openNav(page, { path: '/grb', theme })
       await page.getByRole('combobox').fill('a')
       await expect(page.locator('.menu-glass')).toBeVisible()
 
+      await pinScene(page, EDGE)
       const readings = await readInk(page, '.menu-glass', '')
       expect(faultsInInk(readings)).toEqual([])
       expect(unreadable(readings)).toEqual([])
     })
 
     test('the pinned ledger head is legible', async ({ page }) => {
-      await open(page, '/grb/vehicles', theme)
+      await openNav(page, { path: '/grb/vehicles', theme })
       await readerScrollsTo(page, 900)
       await expect(
         page.locator('.ledger-sticky[data-head-stuck="true"]'),
       ).toBeVisible()
 
+      await pinScene(page, EDGE)
       const readings = await readInk(page, '.ledger-sticky thead', '')
       expect(faultsInInk(readings)).toEqual([])
       expect(unreadable(readings)).toEqual([])
@@ -164,13 +192,23 @@ for (const theme of ['dark', 'light'] as const) {
   test.describe(`in ${theme}, for a moderator`, () => {
     test.use({ storageState: STATE.admin })
 
-    for (const path of ['/admin', '/admin/players']) {
+    /* `.glass-thin` is the admin panel itself, so it stands for the whole
+       surface. The claimed chip is not named here: it paints only for a Player
+       someone has claimed, and a seed without one would fail this for the state
+       of the data rather than the state of the ink. */
+    for (const [path, sites] of [
+      ['/admin', ['.section-label', '.glass-thin']],
+      ['/admin/players', ['.glass-thin']],
+    ] as const) {
       test(`every ink on ${path} is legible`, async ({ page }) => {
-        await open(page, path, theme)
+        await openNav(page, { path, theme })
 
-        expect(
-          faultsInInk(await worstDownThePage(page, { depths: DEPTHS })),
-        ).toEqual([])
+        const readings = await worstDownThePage(page, {
+          depths: DEPTHS,
+          sites: [...sites],
+        })
+        expect(unmeasured(readings, [...sites])).toEqual([])
+        expect(faultsInInk(readings)).toEqual([])
       })
     }
 
@@ -183,7 +221,7 @@ for (const theme of ['dark', 'light'] as const) {
     test('status-warn can be read on the pane it is set on', async ({
       page,
     }) => {
-      await open(page, '/admin', theme)
+      await openNav(page, { path: '/admin', theme })
       const chip = page.locator('.glass-thin .section-label').first()
       await expect(chip).toBeVisible()
       await chip.evaluate((el: HTMLElement) => {

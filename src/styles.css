@@ -547,32 +547,6 @@
   }
 }
 
-/* The lead (all-time-high) record card wears the one amber moment per page. */
-.record-lead {
-  background: linear-gradient(
-    135deg,
-    rgba(240, 185, 74, 0.2),
-    rgba(240, 185, 74, 0.04)
-  );
-}
-.record-lead::after {
-  content: '';
-  position: absolute;
-  right: -30%;
-  top: -40%;
-  width: 80%;
-  height: 120%;
-  pointer-events: none;
-  /* Pulled back off the card's own ink: the glow bleeds through the glass, and
-     a lit pane under a chip that already lays its own fill leaves nothing for
-     the type — this is the one amber moment, not a second surface. */
-  background: radial-gradient(
-    circle,
-    rgba(240, 185, 74, 0.16),
-    transparent 55%
-  );
-}
-
 /* ── Spatial Scene placeholder: layered CSS until the depth-parallax imagery
      lands. Same slot, same layering contract (scene → scrim → glass). ────── */
 .scene {

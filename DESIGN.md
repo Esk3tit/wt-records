@@ -170,7 +170,7 @@ One committed base per lighting state, mirrored ink ramps, one warm accent with 
 
 ### Tertiary
 - **Ace Gold** (#FFD75E), **Squadron Silver** (#D6DBE2), **Veteran Bronze** (#E3A36A): rank metals by night. Each has an **ink form and a material form**, the way amber has Medal Amber and Medal Amber Deep, and they are deliberately not the same value: the material is the tint a rank's pane wears (#FFD75E / #D6DBE2 / #E0995A as fills, washes and badges in both modes), while the ink is what a rank is *written* in on that pane. Only bronze's two forms diverge, because it is the one metal near enough the glass's own luminance for the tint and the type to read as two mid-luminance layers meeting.
-- **Day Gold** (#7A6200), **Day Silver** (#57606C), **Day Bronze** (#8A5220): rank metals as text by day, contrast-safe on Daylight Hall.
+- **Day Gold** (#6E5800), **Day Silver** (#4F5863), **Day Bronze** (#7E4B1D): rank metals as text by day, measured on the tinted pane a rank is actually written on rather than on Daylight Hall itself.
 
 ### Acquisition materials
 Not ink and not accent — two gradient washes laid over a glass fill, so acquisition reads as what the surface is *made of*. **Medal Amber** gilds premium; **Service Green** (#6FA05C) is squadron's, the only hue in the system that exists solely as a material and never as text, border, or icon. Each ships at two strengths from one vocabulary: card (`.acq-premium` / `.acq-squadron`) and pane (`.acq-pane`), the latter quieter because a title sheet wears it over an order of magnitude more surface. Event and removed take no material — their chips carry them.

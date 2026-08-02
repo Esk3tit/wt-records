@@ -22,7 +22,7 @@ export function LeaderboardList({
       {rows.map((row, i) => (
         <li
           key={row.slug}
-          className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-3.5 border-b border-hairline-soft px-5 py-3.5 transition-colors duration-200 last:border-b-0 hover:bg-[var(--row-hover)]"
+          className="leaderboard-row grid grid-cols-[2.5rem_1fr_auto] items-center gap-3.5 border-b border-hairline-soft px-5 py-3.5 transition-colors duration-200 last:border-b-0 hover:bg-[var(--row-hover)]"
         >
           <span
             className={

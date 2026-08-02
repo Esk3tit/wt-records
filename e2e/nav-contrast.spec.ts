@@ -16,7 +16,7 @@ const WORDMARK = 'a[href="/"]'
     stops; 800 is where the failure was first measured. */
 const DEPTHS = [0, 32, 400, 800, 1200, 1600, 2400]
 
-async function worstNavDownThePage(page: Page) {
+async function navFaultsDownThePage(page: Page) {
   await expect(page.locator(`header ${WORDMARK}`)).toHaveCount(1)
   return faultsInInk(
     await worstDownThePage(page, {
@@ -38,7 +38,7 @@ for (const theme of ['dark', 'light'] as const) {
       test(`every ink in the nav is legible on ${path}`, async ({ page }) => {
         await openNav(page, { path, theme })
 
-        expect(await worstNavDownThePage(page)).toEqual([])
+        expect(await navFaultsDownThePage(page)).toEqual([])
       })
     }
 
@@ -48,7 +48,7 @@ for (const theme of ['dark', 'light'] as const) {
       await page.setViewportSize({ width: 390, height: 844 })
       await openNav(page, { theme })
 
-      expect(await worstNavDownThePage(page)).toEqual([])
+      expect(await navFaultsDownThePage(page)).toEqual([])
     })
 
     /* Depths on real routes only prove those pages today. A flat band pinned
@@ -104,7 +104,7 @@ for (const theme of ['dark', 'light'] as const) {
       await openNav(page, { theme })
       await expect(page.getByRole('link', { name: 'Admin' })).toBeVisible()
 
-      expect(await worstNavDownThePage(page)).toEqual([])
+      expect(await navFaultsDownThePage(page)).toEqual([])
     })
   })
 }

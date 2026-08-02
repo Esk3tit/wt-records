@@ -9,7 +9,7 @@ export function Medallion({ name }: { name: string }) {
   return (
     <svg
       viewBox="0 0 100 100"
-      className="h-full w-full"
+      className="medallion h-full w-full"
       role="img"
       aria-label={`${name} — no avatar set`}
     >

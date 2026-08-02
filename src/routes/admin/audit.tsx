@@ -88,7 +88,7 @@ function AuditView() {
       ) : (
         <ul
           className={
-            'space-y-2 transition-opacity' + (pending ? ' opacity-50' : '')
+            'space-y-2 transition-opacity' + (pending ? ' opacity-90' : '')
           }
         >
           {result.rows.map((row) => (

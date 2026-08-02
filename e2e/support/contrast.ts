@@ -6,6 +6,8 @@ export interface InkReading {
   label: string
   /** Enough of the element to go and find it — a label alone repeats. */
   where: string
+  /** The sweep's named surfaces this run sits inside. */
+  inside: string[]
   /** The ink's own contrast against its worst pixel of backdrop. */
   ratio: number
   /** The AA floor this size and weight has to clear: 4.5, or 3 when large. */
@@ -23,6 +25,10 @@ type Rgba = [r: number, g: number, b: number, a: number]
 interface Target {
   label: string
   where: string
+  /** Compounded ancestor opacity: what the ink actually renders at. */
+  dim: number
+  /** The sweep's named surfaces this run sits inside. */
+  inside: string[]
   ink: Rgba
   needs: number
   font: string
@@ -43,10 +49,14 @@ export async function readInk(
   root: string,
   /** Anything WCAG asks nothing of — a logotype under 1.4.3, say. */
   exempt: string,
+  /** Selectors for the surfaces this sweep is accountable for; each reading
+      records which it sits inside, so `unmeasured` can prove they were read. */
+  sites: string[] = [],
+  again = false,
 ): Promise<InkReading[]> {
   await probe(page, root, 'ink')
   await quiesced(page)
-  const targets = await page.evaluate(collectTargets, { root, exempt })
+  const targets = await page.evaluate(collectTargets, { root, exempt, sites })
   if (!targets.length) throw new Error(`no ink to measure under ${root}`)
 
   /* Only the ground the type stands on is worth photographing. A whole viewport
@@ -72,7 +82,22 @@ export async function readInk(
   const steady = await shot()
   await probe(page, root, 'release')
 
-  return page.evaluate(sampleBackdrops, { targets, shots, steady, box })
+  const readings = await page.evaluate(sampleBackdrops, {
+    targets,
+    shots,
+    steady,
+    box,
+  })
+
+  /* Dropping unstable pixels is right per pixel and wrong per page: under a
+     loaded machine the art is still arriving and nearly every pixel disagrees,
+     which would return a full set of readings that measured nothing at all.
+     One retry, then say so — a sweep that quietly measures nothing is the one
+     failure this whole harness exists to not have. */
+  const took = readings.filter((r) => isFinite(r.ratio)).length
+  if (took * 2 >= readings.length) return readings
+  if (again) throw new Error(`${root} would not hold still long enough to read`)
+  return readInk(page, root, exempt, sites, true)
 }
 
 /** The one rectangle every glyph box fits inside, in CSS pixels. */
@@ -201,6 +226,8 @@ export async function pinScene(page: Page, colour: string) {
   const corner = await page.screenshot({
     clip: { x: 0, y: 0, width: 4, height: 4 },
   })
+  /* Decoding is repeated rather than shared with `sampleBackdrops`: both halves
+     run inside the page, where an evaluate cannot close over module scope. */
   const rendered = await page.evaluate(async (shot: string) => {
     const image = new Image()
     image.src = `data:image/png;base64,${shot}`
@@ -235,7 +262,7 @@ export function unreadable(readings: InkReading[]): string[] {
     notices. */
 export function unmeasured(readings: InkReading[], sites: string[]): string[] {
   const took = readings.filter((r) => isFinite(r.ratio))
-  return sites.filter((s) => !took.some((r) => r.where.includes(s)))
+  return sites.filter((s) => !took.some((r) => r.inside.includes(s)))
 }
 
 /** Walks a page the way a reader does, keeping each run's least-margin reading.
@@ -248,11 +275,13 @@ export async function worstDownThePage(
     exempt = '',
     depths,
     settle,
+    sites = [],
   }: {
     root?: string
     exempt?: string
     depths: number[]
     settle?: () => Promise<void>
+    sites?: string[]
   },
 ): Promise<InkReading[]> {
   const floor = await deepestScroll(page)
@@ -260,7 +289,7 @@ export async function worstDownThePage(
   for (const depth of depths.filter((d) => d <= floor)) {
     await readerScrollsTo(page, depth)
     await settle?.()
-    for (const r of await readInk(page, root, exempt)) {
+    for (const r of await readInk(page, root, exempt, sites)) {
       const seen = worst.get(r.label + r.where)
       // By margin, not by ratio: a large-text 3:1 floor is a different bar.
       if (!seen || r.ratio - r.needs < seen.ratio - seen.needs)
@@ -279,9 +308,11 @@ export async function worstDownThePage(
 function collectTargets({
   root,
   exempt,
+  sites,
 }: {
   root: string
   exempt: string
+  sites: string[]
 }): Target[] {
   /* `rgb(…)` carries three numbers and `rgba(…)` four, so the alpha is read
      off the length rather than assumed. */
@@ -306,8 +337,17 @@ function collectTargets({
     ...scope.querySelectorAll<HTMLElement>('*'),
   ]) {
     const style = getComputedStyle(el)
-    if (style.visibility === 'hidden' || Number(style.opacity) === 0) continue
+    if (style.visibility === 'hidden') continue
     if (exempt && el.closest(exempt)) continue
+    /* Opacity compounds down the tree, and a run dimmed by a wrapper is still a
+       run someone has to read. Left out, it would paint below solid everywhere
+       and be dropped as occluded — the one way real ink could go unmeasured
+       while the suite stayed green. Carried instead, so the ratio is taken
+       against the strength the ink actually renders at. */
+    let dim = 1
+    for (let n: Element | null = el; n; n = n.parentElement)
+      dim *= Number(getComputedStyle(n).opacity)
+    if (dim === 0) continue
     /* Screen-reader-only copy is clipped to a pixel and painted nowhere, and
        WCAG asks nothing of what is not rendered — but a Range still reports the
        full untruncated width of the text inside it, so it has to be dropped
@@ -335,6 +375,20 @@ function collectTargets({
 
     const rects = runs
       .map(clip)
+      /* A Range reports the text's full laid-out width, which for a truncated
+         cell runs past the clip and over its neighbour — where it would claim
+         that neighbour's solid pixels for this ink. Held to the element's own
+         box, which is what the overflow actually shows. */
+      .map((r) => {
+        const x = Math.max(r.x, own.left)
+        const y = Math.max(r.y, own.top)
+        return {
+          x,
+          y,
+          w: Math.min(r.x + r.w, own.right) - x,
+          h: Math.min(r.y + r.h, own.bottom) - y,
+        }
+      })
       /* Inset, so a glyph box that ends on a hairline does not sample it. */
       .map((r) => ({ x: r.x + 1, y: r.y + 1, w: r.w - 2, h: r.h - 2 }))
       .filter((r) => r.w >= 1 && r.h >= 1)
@@ -344,9 +398,16 @@ function collectTargets({
     const weight = Number(style.fontWeight)
     const large = size >= 24 || (size >= 18.66 && weight >= 700)
     /* An icon is a graphical object under 1.4.11, which asks 3:1 — not the
-       4.5:1 its pixel height would imply if it were read as type. */
-    const icon = el instanceof SVGElement
+       4.5:1 its pixel height would imply if it were read as type. SVG *type*
+       is type: a monogram is read, not looked at. */
+    const icon = el instanceof SVGElement && el.tagName === 'svg'
     targets.push({
+      dim,
+      /* Which of the surfaces this sweep is accountable for the run sits in.
+         Answered with the DOM rather than by matching class strings, so a site
+         means the component it names and not any element that happens to share
+         a utility class with it. */
+      inside: sites.filter((s) => el.closest(s)),
       /* An icon has neither text nor a label of its own, so it borrows the
          control's — otherwise every icon on the page answers to "". */
       label: (
@@ -453,7 +514,12 @@ async function sampleBackdrops({
   const SOLID = 0.9
 
   return targets.map((t) => {
-    const [ir, ig, ib, ia] = t.ink
+    const [ir, ig, ib, a] = t.ink
+    /* A dimmed run paints its own geometry at `dim` strength, so the coverage
+       read back is scaled by it and the ink lands that much weaker. Divide the
+       one out to recover the glyph, multiply the other in to keep the ratio
+       honest — at dim 1, both are no-ops. */
+    const ia = a * t.dim
     const sweep = (visit: (i: number) => void) => {
       for (const rect of t.rects) {
         const left = rect.x - box.x
@@ -469,14 +535,14 @@ async function sampleBackdrops({
     let coverage = 0
     sweep((i) => {
       if (!held(i)) return
-      const c = cover(i)
+      const c = cover(i) / t.dim
       if (c > coverage) coverage = c
     })
 
     let worst = { ratio: Infinity, ink: '', backdrop: '' }
     if (coverage >= SOLID) {
       sweep((i) => {
-        if (!held(i) || cover(i) < SOLID) return
+        if (!held(i) || cover(i) / t.dim < SOLID) return
         const bg = [blank.data[i], blank.data[i + 1], blank.data[i + 2]]
         const over = [ir, ig, ib].map((c, k) => c * ia + bg[k] * (1 - ia))
         const ratio = contrast(over, bg)
@@ -487,6 +553,7 @@ async function sampleBackdrops({
     return {
       label: t.label,
       where: t.where,
+      inside: t.inside,
       needs: t.needs,
       font: t.font,
       coverage,
