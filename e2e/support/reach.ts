@@ -80,14 +80,28 @@ export async function reachOf(
           const hit = document.elementFromPoint(x, y)
           return !!hit && (hit === el || el.contains(hit))
         }
+        /* How far an arm must look to prove a reach has not escaped its pane: a
+           pane edge further out than the arm bothers to probe would report
+           every reach as contained, however far past it they actually run. Two
+           past the edge, not one, because one is the slack `inPane` allows —
+           an arm that stopped there could never report an escape. */
+        const escape = bounds
+          ? {
+              left: cx - bounds.left + 2,
+              right: bounds.right - cx + 2,
+              up: cy - bounds.top + 2,
+              down: bounds.bottom - cy + 2,
+            }
+          : { left: 0, right: 0, up: 0, down: 0 }
+
         /* Ownership runs contiguously out from the ink, so where it stops can
-           be bisected rather than walked. Reaching past the widest control
-           means an arm measures the true edge, not the bound. */
-        const arm = (dx: number, dy: number) => {
+           be bisected rather than walked. Bisecting to a fixed precision rather
+           than a fixed count keeps a long look from coarsening the answer. */
+        const arm = (dx: number, dy: number, reach: number) => {
           let held = 0
-          let lost = floor * 2
+          let lost = Math.max(floor * 2, reach)
           if (owns(cx + dx * lost, cy + dy * lost)) return lost
-          for (let i = 0; i < 10; i++) {
+          for (let i = 0; i < 24 && lost - held > 0.05; i++) {
             const mid = (held + lost) / 2
             if (owns(cx + dx * mid, cy + dy * mid)) held = mid
             else lost = mid
@@ -95,10 +109,10 @@ export async function reachOf(
           return held
         }
 
-        const left = arm(-1, 0)
-        const right = arm(1, 0)
-        const up = arm(0, -1)
-        const down = arm(0, 1)
+        const left = arm(-1, 0, escape.left)
+        const right = arm(1, 0, escape.right)
+        const up = arm(0, -1, escape.up)
+        const down = arm(0, 1, escape.down)
         /* The arms only prove a cross. Slide the widest square they allow into
            that cross and check its corners, so an L-shaped reach cannot pass. */
         const x0 = Math.min(
@@ -118,13 +132,17 @@ export async function reachOf(
         /* Walks the ink's own perimeter a pixel inside it, so a neighbour
            overlapping any edge shows up and not only one taking the middle.
            Stepped in by the radius at the corners: a rounded control does not
-           own the square its box reports. */
-        const r =
-          Math.min(
-            parseFloat(getComputedStyle(el).borderRadius) || 0,
-            ink.width / 2 - 1,
-            ink.height / 2 - 1,
-          ) + 1
+           own the square its box reports. Read per corner, since the shorthand
+           reports only the first and a control rounded at its other end would
+           be probed square. */
+        const edges = getComputedStyle(el)
+        const corner = Math.max(
+          parseFloat(edges.borderTopLeftRadius) || 0,
+          parseFloat(edges.borderTopRightRadius) || 0,
+          parseFloat(edges.borderBottomRightRadius) || 0,
+          parseFloat(edges.borderBottomLeftRadius) || 0,
+        )
+        const r = Math.min(corner, ink.width / 2 - 1, ink.height / 2 - 1) + 1
         const xs = [ink.left + r, cx, ink.right - r]
         const ys = [ink.top + r, cy, ink.bottom - r]
         const inkHeld = [

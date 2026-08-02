@@ -15,6 +15,7 @@ A thin suite — the flows worth driving end to end, not a second copy of the un
 | `nav-touch-targets.spec.ts`     | every nav control reaches 44px, and the pane is no taller for it          |
 | `nav-contrast.spec.ts`          | every ink in the nav clears 4.5:1 over the worst backdrop a page can give |
 | `catalog-touch-targets.spec.ts` | every filter, sort and pager control on Browse reaches 44px               |
+| `reach-helper.spec.ts`          | the reach measurement itself, against markup built to break it            |
 | `catalog-status.spec.ts`        | the sync status endpoint answers the watchdog probe                       |
 
 ## Auth: SDK sign-in, no Discord OAuth
