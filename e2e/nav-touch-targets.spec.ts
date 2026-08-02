@@ -207,39 +207,34 @@ test.describe('with the moderator nav', () => {
     })
   }
 
-  /* Row one is a width race, and the wordmark's side of it belongs to whatever
-     the system font stack resolves to — this fitted on macOS and wrapped on
-     CI's Linux stack with the same markup. Measuring the pane a test already
-     renders cannot see that, so the guard is headroom: room for a wordmark a
-     tenth wider than the one in front of us, expressed against that wordmark
-     so it scales with the font instead of rotting into a constant. */
+  /* The wordmark's width belongs to whatever `ui-sans-serif` resolves to, and
+     that is a different face on every platform: this fitted at 320px on macOS
+     and wrapped on CI's Linux stack, where the mark drew 11% wider. A test
+     cannot render a face the machine does not have, so it grows the wordmark
+     past that delta instead and asks the question the face would have asked —
+     is the cluster still beside it, or has it dropped below? */
+  const WIDER_FACE = 1.15
+
   for (const width of [320, 360]) {
-    test(`row one has room for a wider system font at ${width}px`, async ({
-      page,
-    }) => {
+    test(`row one seats a wider wordmark at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 844 })
       await openNav(page)
       await expect(page.getByRole('link', { name: 'Admin' })).toBeVisible()
 
-      const { wordmark, slack } = await page.evaluate(() => {
+      const apart = await page.evaluate((grow) => {
         const header = document.querySelector('header')!
-        const style = getComputedStyle(header)
-        const seats =
-          header.getBoundingClientRect().width -
-          parseFloat(style.paddingLeft) -
-          parseFloat(style.paddingRight) -
-          parseFloat(style.borderLeftWidth) -
-          parseFloat(style.borderRightWidth)
-        const kids = [...header.children] as Array<HTMLElement>
-        const brand = kids[0].getBoundingClientRect().width
-        const cluster = kids[kids.length - 1].getBoundingClientRect().width
-        return {
-          wordmark: brand,
-          slack: seats - (brand + parseFloat(style.columnGap) + cluster),
+        const brand = header.firstElementChild as HTMLElement
+        const cluster = header.lastElementChild as HTMLElement
+        const size = parseFloat(getComputedStyle(brand).fontSize)
+        brand.style.fontSize = `${size * grow}px`
+        const middle = (el: Element) => {
+          const box = el.getBoundingClientRect()
+          return box.top + box.height / 2
         }
-      })
+        return Math.abs(middle(brand) - middle(cluster))
+      }, WIDER_FACE)
 
-      expect(slack).toBeGreaterThanOrEqual(wordmark * 0.1)
+      expect(apart, 'the cluster left the wordmark’s row').toBeLessThan(8)
     })
   }
 })
