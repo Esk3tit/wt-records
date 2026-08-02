@@ -169,121 +169,118 @@ function RecordsIndex() {
         {result.total === 1 ? '' : 's'}
         {page > 1 ? ` · page ${page}` : ''}
       </p>
-      {result.rows.length === 0 ? (
-        <p className="text-sm text-fg-faint">
-          No records match.{' '}
-          <button
-            type="button"
-            className="text-fg-muted underline hover:text-fg"
-            onClick={() => navigate({ search: {} })}
-          >
-            Clear filters
-          </button>
-        </p>
-      ) : (
-        <div
-          className={
-            'overflow-x-auto transition-opacity' +
-            (pending ? ' opacity-50' : '')
-          }
-        >
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs tracking-wide text-fg-faint uppercase">
-                <th scope="col" className="py-1.5 pr-3 font-normal">
-                  Vehicle
-                </th>
-                <th scope="col" className="py-1.5 pr-3 font-normal">
-                  Mode
-                </th>
-                <th scope="col" className="py-1.5 pr-3 font-normal">
-                  Player
-                </th>
-                <th
-                  scope="col"
-                  aria-sort={ariaSort('kills')}
-                  className="py-1.5 pr-3 text-right font-normal"
-                >
-                  <button
-                    type="button"
-                    className="hover:text-fg"
-                    onClick={() => toggleSort('kills')}
+      <div aria-busy={pending}>
+        {result.rows.length === 0 ? (
+          <p className="text-sm text-fg-faint">
+            No records match.{' '}
+            <button
+              type="button"
+              className="text-fg-muted underline hover:text-fg"
+              onClick={() => navigate({ search: {} })}
+            >
+              Clear filters
+            </button>
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs tracking-wide text-fg-muted uppercase">
+                  <th scope="col" className="py-1.5 pr-3 font-normal">
+                    Vehicle
+                  </th>
+                  <th scope="col" className="py-1.5 pr-3 font-normal">
+                    Mode
+                  </th>
+                  <th scope="col" className="py-1.5 pr-3 font-normal">
+                    Player
+                  </th>
+                  <th
+                    scope="col"
+                    aria-sort={ariaSort('kills')}
+                    className="py-1.5 pr-3 text-right font-normal"
                   >
-                    Kills{sortMark('kills')}
-                  </button>
-                </th>
-                <th
-                  scope="col"
-                  className="hidden py-1.5 pr-3 font-normal md:table-cell"
-                >
-                  Patch
-                </th>
-                <th scope="col" className="py-1.5 pr-3 font-normal">
-                  Status
-                </th>
-                <th
-                  scope="col"
-                  aria-sort={ariaSort('verified')}
-                  className="py-1.5 pr-3 font-normal"
-                >
-                  <button
-                    type="button"
-                    className="hover:text-fg"
-                    onClick={() => toggleSort('verified')}
-                  >
-                    Verified{sortMark('verified')}
-                  </button>
-                </th>
-                <th
-                  scope="col"
-                  className="hidden py-1.5 font-normal md:table-cell"
-                >
-                  Verifier
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {result.rows.map((r) => (
-                <tr key={r.id} className="border-t border-hairline-soft">
-                  <td className="py-2 pr-3">
-                    <Link
-                      to="/admin/records/$id"
-                      params={{ id: String(r.id) }}
-                      className="font-medium"
+                    <button
+                      type="button"
+                      className="hover:text-fg"
+                      onClick={() => toggleSort('kills')}
                     >
-                      {displayVehicleName(r.vehicleName)}
-                    </Link>
-                  </td>
-                  <td className="py-2 pr-3 text-fg-muted">
-                    {r.mode.toUpperCase()}
-                  </td>
-                  <td className="py-2 pr-3">{r.playerName}</td>
-                  <td className="py-2 pr-3 text-right font-semibold">
-                    {r.kills}
-                  </td>
-                  <td className="hidden py-2 pr-3 text-fg-muted md:table-cell">
-                    {r.patch}
-                  </td>
-                  <td className="py-2 pr-3">
-                    <StatusChip status={r.status} isCurrent={r.isCurrent} />
-                  </td>
-                  <td className="py-2 pr-3 text-fg-muted">
-                    {r.verifiedAt ? formatDayYear(r.verifiedAt) : '—'}
-                  </td>
-                  <td className="hidden py-2 text-fg-muted md:table-cell">
-                    {r.verifierHandle ??
-                      (r.importedFrom === 'sheet' ? (
-                        <span className="text-fg-faint">migrated</span>
-                      ) : (
-                        '—'
-                      ))}
-                  </td>
+                      Kills{sortMark('kills')}
+                    </button>
+                  </th>
+                  <th
+                    scope="col"
+                    className="hidden py-1.5 pr-3 font-normal md:table-cell"
+                  >
+                    Patch
+                  </th>
+                  <th scope="col" className="py-1.5 pr-3 font-normal">
+                    Status
+                  </th>
+                  <th
+                    scope="col"
+                    aria-sort={ariaSort('verified')}
+                    className="py-1.5 pr-3 font-normal"
+                  >
+                    <button
+                      type="button"
+                      className="hover:text-fg"
+                      onClick={() => toggleSort('verified')}
+                    >
+                      Verified{sortMark('verified')}
+                    </button>
+                  </th>
+                  <th
+                    scope="col"
+                    className="hidden py-1.5 font-normal md:table-cell"
+                  >
+                    Verifier
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {result.rows.map((r) => (
+                  <tr key={r.id} className="border-t border-hairline-soft">
+                    <td className="py-2 pr-3">
+                      <Link
+                        to="/admin/records/$id"
+                        params={{ id: String(r.id) }}
+                        className="font-medium"
+                      >
+                        {displayVehicleName(r.vehicleName)}
+                      </Link>
+                    </td>
+                    <td className="py-2 pr-3 text-fg-muted">
+                      {r.mode.toUpperCase()}
+                    </td>
+                    <td className="py-2 pr-3">{r.playerName}</td>
+                    <td className="py-2 pr-3 text-right font-semibold">
+                      {r.kills}
+                    </td>
+                    <td className="hidden py-2 pr-3 text-fg-muted md:table-cell">
+                      {r.patch}
+                    </td>
+                    <td className="py-2 pr-3">
+                      <StatusChip status={r.status} isCurrent={r.isCurrent} />
+                    </td>
+                    <td className="py-2 pr-3 text-fg-muted">
+                      {r.verifiedAt ? formatDayYear(r.verifiedAt) : '—'}
+                    </td>
+                    <td className="hidden py-2 text-fg-muted md:table-cell">
+                      {r.verifierHandle ??
+                        (r.importedFrom === 'sheet' ? (
+                          <span className="text-fg-faint">migrated</span>
+                        ) : (
+                          '—'
+                        ))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       <Pager
         page={page}

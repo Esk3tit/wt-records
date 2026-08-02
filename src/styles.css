@@ -6,9 +6,12 @@
 :root {
   --base: #0a0c10;
   --ink: rgba(255, 255, 255, 0.96);
-  --ink-muted: rgba(255, 255, 255, 0.6);
-  /* Floor: ≥4.5:1 on base AND on the lightened glass fills (AA small text). */
-  --ink-faint: rgba(255, 255, 255, 0.5);
+  /* Measured on the panes these actually sit on, not on the base: a pane is
+     glass over a lit scene, so the ink meets whatever the scene puts under it,
+     and the steps that read fine on `--base` were the ones failing. Anything
+     below these is a step the ramp cannot afford at small sizes. */
+  --ink-muted: rgba(255, 255, 255, 0.75);
+  --ink-faint: rgba(255, 255, 255, 0.68);
   --hairline: rgba(255, 255, 255, 0.16);
   --hairline-soft: rgba(255, 255, 255, 0.08);
   --accent-text: #f0b94a;
@@ -16,7 +19,8 @@
   --service-green: #6fa05c;
   --gold: #ffd75e;
   --silver: #d6dbe2;
-  --bronze: #e0995a;
+  /* The one night metal near enough the pane's own luminance to need it. */
+  --bronze: #e3a36a;
 
   /* luminous frost: white-alpha fills so the scene bleeds through the panes */
   --glass-thin-bg: rgba(255, 255, 255, 0.06);
@@ -32,6 +36,10 @@
   --hairline-hover: rgba(255, 255, 255, 0.28);
   --tint: rgba(255, 255, 255, 0.06);
   --tint-strong: rgba(255, 255, 255, 0.1);
+  /* The fill that recesses rather than lightens — for a surface that lays it
+     under its own ink, where the lightening one spends the contrast the ink
+     still needs. Day's tint already darkens; this is night's. */
+  --tint-well: rgba(0, 0, 0, 0.3);
   --row-hover: rgba(255, 255, 255, 0.05);
   --pill-track: rgba(0, 0, 0, 0.2);
   --pill-active: rgba(255, 255, 255, 0.14);
@@ -78,6 +86,10 @@
   --ridge-near: #141c26;
   /* Interior glow of the not-found hangar's open doorway. */
   --hangar-glow: rgba(191, 213, 240, 0.8);
+  /* Shape, then floor. Both gradients pass through transparent partway down —
+     which is where the content column sits, so on their own they veil the scene
+     everywhere except where the reading happens. The flat layer underneath is
+     what makes the Sandwich Rule true: it is the guarantee, they are the mood. */
   --scrim:
     radial-gradient(
       120% 100% at 50% 0%,
@@ -89,24 +101,28 @@
       rgba(8, 10, 14, 0.3),
       transparent 30%,
       rgba(8, 10, 14, 0.22)
-    );
+    ),
+    linear-gradient(rgba(8, 10, 14, 0.42), rgba(8, 10, 14, 0.42));
   --grain-ink: #fff;
 }
 
 :root[data-theme='light'] {
   --base: #f2f3f6;
   --ink: rgba(10, 12, 16, 0.92);
-  --ink-muted: rgba(10, 12, 16, 0.66);
-  --ink-faint: rgba(10, 12, 16, 0.58);
+  --ink-muted: rgba(10, 12, 16, 0.74);
+  --ink-faint: rgba(10, 12, 16, 0.68);
   --hairline: rgba(10, 12, 16, 0.12);
   --hairline-soft: rgba(10, 12, 16, 0.07);
   /* Medal Amber Deep, calibrated on glass rather than on the Hall itself: a
      pane is a shade darker than the base it floats over, and clearing 4.5:1 on
      the base is no promise about the panes this ink actually sits on. */
   --accent-text: #7a580d;
-  --gold: #7a6200;
-  --silver: #57606c;
-  --bronze: #8a5220;
+  /* Same calibration, and the panes that matter are the tinted ones: a rank is
+     set in its own metal on glass wearing that metal, so these are measured on
+     the podium's gilded pane rather than on a plain one. */
+  --gold: #6e5800;
+  --silver: #4f5863;
+  --bronze: #7e4b1d;
 
   /* Ultra-clear liquid glass (live-accepted): the day scene reads through. */
   --glass-thin-bg: rgba(255, 255, 255, 0.08);
@@ -122,13 +138,14 @@
   --hairline-hover: rgba(10, 12, 16, 0.24);
   --tint: rgba(10, 12, 16, 0.05);
   --tint-strong: rgba(10, 12, 16, 0.08);
+  --tint-well: rgba(10, 12, 16, 0.08);
   --row-hover: rgba(10, 12, 16, 0.04);
   --pill-track: rgba(10, 12, 16, 0.06);
   --pill-active: rgba(255, 255, 255, 0.9);
-  /* Status ink, day forms. Unlike the accent these are only ever set on the
-     base, so the Hall is the right surface to calibrate them against. */
+  /* Status ink, day forms — set inside the admin panels, which are glass, so
+     these are calibrated on a pane like everything else and measured there. */
   --status-verified: #1d6b47;
-  --status-warn: #8a6410;
+  --status-warn: #825e0f;
   --status-danger: #9f3428;
   --status-danger-border: rgba(159, 52, 40, 0.5);
 
@@ -170,7 +187,8 @@
       rgba(242, 243, 246, 0.4),
       transparent 30%,
       rgba(242, 243, 246, 0.3)
-    );
+    ),
+    linear-gradient(rgba(242, 243, 246, 0.44), rgba(242, 243, 246, 0.44));
   --grain-ink: #0a0c10;
 }
 
@@ -377,6 +395,12 @@
   }
 }
 
+/* A chip's fill sits under the chip's own ink, so it recesses instead of
+   lightening — one token, flipped per mode like every other material. */
+.chip-well {
+  background: var(--tint-well);
+}
+
 /* Floating menus overlay sibling content that backdrop-filter can't sample
    (it only blurs below the nearest backdrop root), so they need near-opacity
    instead of frost — else the content beneath reads straight through. */
@@ -521,29 +545,6 @@
     letter-spacing: 0.06em;
     color: var(--ink-muted);
   }
-}
-
-/* The lead (all-time-high) record card wears the one amber moment per page. */
-.record-lead {
-  background: linear-gradient(
-    135deg,
-    rgba(240, 185, 74, 0.2),
-    rgba(240, 185, 74, 0.04)
-  );
-}
-.record-lead::after {
-  content: '';
-  position: absolute;
-  right: -30%;
-  top: -40%;
-  width: 80%;
-  height: 120%;
-  pointer-events: none;
-  background: radial-gradient(
-    circle,
-    rgba(240, 185, 74, 0.25),
-    transparent 65%
-  );
 }
 
 /* ── Spatial Scene placeholder: layered CSS until the depth-parallax imagery
@@ -865,10 +866,14 @@
   border-radius: inherit;
   pointer-events: none;
 }
+/* The tint clears the pane's top band, where the rank line is set in the metal
+   itself — tinted glass under metal ink is two mid-luminance layers meeting,
+   and the specular edge is left on the shadow so the material still reads. */
 .pane-gold::after {
   background: linear-gradient(
     180deg,
-    rgba(255, 215, 94, 0.16),
+    transparent 22%,
+    rgba(255, 215, 94, 0.16) 42%,
     rgba(255, 215, 94, 0.1)
   );
   box-shadow:
@@ -878,7 +883,8 @@
 .pane-silver::after {
   background: linear-gradient(
     180deg,
-    rgba(214, 219, 226, 0.14),
+    transparent 22%,
+    rgba(214, 219, 226, 0.14) 42%,
     rgba(214, 219, 226, 0.08)
   );
   box-shadow:
@@ -888,7 +894,8 @@
 .pane-bronze::after {
   background: linear-gradient(
     180deg,
-    rgba(224, 153, 90, 0.15),
+    transparent 22%,
+    rgba(224, 153, 90, 0.15) 42%,
     rgba(224, 153, 90, 0.09)
   );
   box-shadow:
@@ -1108,12 +1115,22 @@
   aspect-ratio: var(--flag-aspect);
   max-width: 100%;
   z-index: 1;
-  opacity: 0.19;
+  opacity: 0.13;
   pointer-events: none;
-  mask-image: linear-gradient(to left, #000 40%, transparent 92%);
+  /* Blurred into colour for the same reason the sheet's is: a podium card
+     carries ink across its whole face, so there is no ink-free region to pool
+     into, and unblurred it is the flag's own geometry — a white stripe is a
+     bright patch landing under whatever line of type crosses it, which is what
+     a worst-pixel reading answers for. Pooled low as well, since the rank line
+     runs along the top edge in the metal itself. */
+  filter: blur(14px);
+  mask-image:
+    linear-gradient(to left, #000 40%, transparent 92%),
+    linear-gradient(to bottom, transparent 24%, #000 60%);
+  mask-composite: intersect;
 }
 :root[data-theme='light'] .flag-wash {
-  opacity: 0.22;
+  opacity: 0.17;
 }
 
 /* Row-scale wash: full row height at a fixed width so every row carries the
@@ -1128,6 +1145,9 @@
   z-index: 1;
   opacity: 0.09;
   pointer-events: none;
+  /* Blurred like the card's and the sheet's — at any scale a legible flag is a
+     banner, and its stripes are bright patches under whatever crosses them. */
+  filter: blur(10px);
   mask-image: linear-gradient(to left, #000 30%, transparent 95%);
 }
 :root[data-theme='light'] .flag-wash-row {
@@ -1199,6 +1219,19 @@
       transparent 78%
     );
   }
+}
+/* The same rule at card scale. A record card is a header of ink, the art, then
+   a footer of ink, so the material pools across the art's band and clears both
+   — proportional, because a card's height is its content's. One soft peak and
+   no plateau: a card whose art is missing still wears this, and a flat band
+   with edges reads as a stripe across it. */
+.acq-card {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 12%,
+    #000 46%,
+    transparent 84%
+  );
 }
 .acq-pane.acq-premium {
   background-image: linear-gradient(to bottom, #f0b94a33, #f0b94a5c);
@@ -1298,25 +1331,40 @@
 /* Narrow cards (week marquee) show far more of the wash's opaque zone than
    wide panes do — soften so the perceived strength matches the podium. */
 .flag-wash--soft {
-  opacity: 0.12;
-  mask-image: linear-gradient(to left, #000 22%, transparent 88%);
+  opacity: 0.07;
+  /* Overriding the mask drops the pooling with it, and these rows carry their
+     count along the very edge the wash is strongest at. */
+  mask-image:
+    linear-gradient(to left, #000 22%, transparent 88%),
+    linear-gradient(to bottom, transparent 18%, #000 55%);
+  mask-composite: intersect;
 }
 :root[data-theme='light'] .flag-wash--soft {
-  opacity: 0.15;
+  opacity: 0.1;
 }
 
 /* Pointing at a standings row brings that nation's colors up — the row
    answers with its own identity rather than a neutral wash. */
+/* A card can clear a band for its rank line; a row is ink the whole way down,
+   so the metal thins here instead of pooling. */
+.standings-row.pane-gold::after,
+.standings-row.pane-silver::after,
+.standings-row.pane-bronze::after {
+  opacity: 0.5;
+}
+
 .standings-row .flag-wash--soft {
   transition: opacity 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
+/* Answering the pointer still costs the ink sitting on it, so the lift is the
+   same multiple of a quieter resting wash rather than a fixed brighter one. */
 .standings-row:hover .flag-wash--soft,
 .standings-row:focus-visible .flag-wash--soft {
-  opacity: 0.22;
+  opacity: 0.17;
 }
 :root[data-theme='light'] .standings-row:hover .flag-wash--soft,
 :root[data-theme='light'] .standings-row:focus-visible .flag-wash--soft {
-  opacity: 0.26;
+  opacity: 0.21;
 }
 @media (prefers-reduced-motion: reduce) {
   .standings-row .flag-wash--soft {

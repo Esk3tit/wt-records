@@ -1,14 +1,7 @@
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
-import type { InkReading } from './support/contrast'
-import { faultsInInk, readInk } from './support/contrast'
-import {
-  deepestScroll,
-  openNav,
-  paneStill,
-  pinUnderNav,
-  readerScrollsTo,
-} from './support/nav'
+import { faultsInInk, readInk, worstDownThePage } from './support/contrast'
+import { openNav, paneStill, pinUnderNav, readerScrollsTo } from './support/nav'
 import { STATE } from './support/states'
 
 /** WCAG 1.4.3 asks nothing of text that is part of a logo or brand name, and
@@ -23,21 +16,16 @@ const WORDMARK = 'a[href="/"]'
     stops; 800 is where the failure was first measured. */
 const DEPTHS = [0, 32, 400, 800, 1200, 1600, 2400]
 
-async function worstDownThePage(page: Page) {
+async function navFaultsDownThePage(page: Page) {
   await expect(page.locator(`header ${WORDMARK}`)).toHaveCount(1)
-  const floor = await deepestScroll(page)
-  const worst = new Map<string, InkReading>()
-  for (const depth of DEPTHS.filter((d) => d <= floor)) {
-    await readerScrollsTo(page, depth)
-    await paneStill(page)
-    for (const r of await readInk(page, 'header', WORDMARK)) {
-      const seen = worst.get(r.label)
-      // By margin, not by ratio: a large-text 3:1 floor is a different bar.
-      if (!seen || r.ratio - r.needs < seen.ratio - seen.needs)
-        worst.set(r.label, { ...r, label: `${r.label} — at ${depth}px` })
-    }
-  }
-  return faultsInInk([...worst.values()])
+  return faultsInInk(
+    await worstDownThePage(page, {
+      root: 'header',
+      exempt: WORDMARK,
+      depths: DEPTHS,
+      settle: () => paneStill(page),
+    }),
+  )
 }
 
 for (const theme of ['dark', 'light'] as const) {
@@ -50,7 +38,7 @@ for (const theme of ['dark', 'light'] as const) {
       test(`every ink in the nav is legible on ${path}`, async ({ page }) => {
         await openNav(page, { path, theme })
 
-        expect(await worstDownThePage(page)).toEqual([])
+        expect(await navFaultsDownThePage(page)).toEqual([])
       })
     }
 
@@ -60,7 +48,7 @@ for (const theme of ['dark', 'light'] as const) {
       await page.setViewportSize({ width: 390, height: 844 })
       await openNav(page, { theme })
 
-      expect(await worstDownThePage(page)).toEqual([])
+      expect(await navFaultsDownThePage(page)).toEqual([])
     })
 
     /* Depths on real routes only prove those pages today. A flat band pinned
@@ -80,8 +68,8 @@ for (const theme of ['dark', 'light'] as const) {
       })
     }
 
-    /* Hover paints a fill under ink that is already at its floor, and a fill of
-       its own is exactly how the Admin chip failed. */
+    /* Hover paints a fill under ink that is already at its floor, which is why
+       these controls mark it with the pill track and never with a fill. */
     for (const name of ['Search', 'Switch to']) {
       test(`the nav stays legible with ${name} hovered`, async ({ page }) => {
         await openNav(page, { theme })
@@ -106,9 +94,8 @@ for (const theme of ['dark', 'light'] as const) {
     })
   })
 
-  /* The Admin chip is ink most readers never see, so nothing else would catch
-     it drifting — and it wore a fill of its own, on a surface already at its
-     floor. */
+  /* A moderator carries one more control than anyone else, so the nav they see
+     is a composition — and an ink — no other test on this page renders. */
   test.describe(`in ${theme}, for a moderator`, () => {
     test.use({ storageState: STATE.admin })
 
@@ -116,7 +103,7 @@ for (const theme of ['dark', 'light'] as const) {
       await openNav(page, { theme })
       await expect(page.getByRole('link', { name: 'Admin' })).toBeVisible()
 
-      expect(await worstDownThePage(page)).toEqual([])
+      expect(await navFaultsDownThePage(page)).toEqual([])
     })
   })
 }

@@ -7,11 +7,11 @@ colors:
   night-hangar: "#0A0C10"
   daylight-hall: "#F2F3F6"
   ink: "#FFFFFFF5"
-  ink-muted: "#FFFFFF99"
-  ink-faint: "#FFFFFF80"
+  ink-muted: "#FFFFFFBF"
+  ink-faint: "#FFFFFFAD"
   day-ink: "#0A0C10EB"
-  day-ink-muted: "#0A0C10A8"
-  day-ink-faint: "#0A0C1094"
+  day-ink-muted: "#0A0C10BD"
+  day-ink-faint: "#0A0C10AD"
   hairline: "#FFFFFF29"
   day-hairline: "#0A0C101F"
   glass-highlight: "#FFFFFF38"
@@ -20,10 +20,10 @@ colors:
   day-veil: "#F2F3F699"
   ace-gold: "#FFD75E"
   squadron-silver: "#D6DBE2"
-  veteran-bronze: "#E0995A"
-  day-gold: "#7A6200"
-  day-silver: "#57606C"
-  day-bronze: "#8A5220"
+  veteran-bronze: "#E3A36A"
+  day-gold: "#6E5800"
+  day-silver: "#4F5863"
+  day-bronze: "#7E4B1D"
   service-green: "#6FA05C"
 typography:
   display:
@@ -161,15 +161,16 @@ One committed base per lighting state, mirrored ink ramps, one warm accent with 
 ### Neutral
 - **Night Hangar** (#0A0C10): dark-mode body base — the hall at night.
 - **Daylight Hall** (#F2F3F6): light-mode body base — cool, chroma-neutral off-white. Deliberately not cream, sand, or beige.
-- **Ink ramp, night** — Ink (#FFFFFFF5 · rgba(255,255,255,.96)) primary text; Ink Muted (#FFFFFF99 · .6) secondary; Ink Faint (#FFFFFF80 · .5) tertiary/metadata. The faint step is held at the ≥4.5:1 floor against the base *and* against the lightened glass fills — metadata is quiet, never unreadable.
-- **Ink ramp, day** — Day Ink (#0A0C10EB · rgba(10,12,16,.92)); Day Ink Muted (#0A0C10A8 · .66); Day Ink Faint (#0A0C1094 · .58, tertiary/metadata, same AA floor as its night twin).
+- **Ink ramp, night** — Ink (#FFFFFFF5 · rgba(255,255,255,.96)) primary text; Ink Muted (#FFFFFFBF · .75) secondary; Ink Faint (#FFFFFFAD · .68) tertiary/metadata.
+- **Ink ramp, day** — Day Ink (#0A0C10EB · rgba(10,12,16,.92)); Day Ink Muted (#0A0C10BD · .74); Day Ink Faint (#0A0C10AD · .68, tertiary/metadata).
+- **The secondary steps are set on the panes, not on the base.** A pane is glass over a lit scene, so its ink meets whatever the scene puts under it — the base is the one surface the number does not depend on, and a step calibrated there is calibrated against nothing it will ever sit on. These are the measured floor; `e2e/ink-contrast.spec.ts` is what keeps them honest. The gap between muted and faint is deliberately narrow, because that is what the panes leave: metadata is quiet by size, case and tracking, never by being unreadable.
 - **Hairline** (#FFFFFF29 · rgba(255,255,255,.16)) / **Day Hairline** (#0A0C101F · rgba(10,12,16,.12)): the 1px border on every glass surface, per mode. (Some early components ship rgba(255,255,255,.10); normalize to Hairline when touched.)
 - **Glass Highlight** (#FFFFFF38 · rgba(255,255,255,.22) night / #FFFFFFE6 · .9 day): the inset top edge that makes glass read lit. White in both modes — light catches the top of glass regardless of room lighting — but daylight needs a near-opaque edge to read against a bright veil, where night needs only a whisper.
-- **Night Scrim** (#080A0E80 · rgba(8,10,14,.5)) / **Day Veil** (#F2F3F699 · rgba(242,243,246,.6)): the legibility layer between the Spatial Scene and the glass, per mode. Each ships as a gradient, not a flat fill — the quoted value is the outer stop, where the scrim closes at the frame edges and clears toward the center so the scene still breathes.
+- **Night Scrim** (#080A0E80 · rgba(8,10,14,.5)) / **Day Veil** (#F2F3F699 · rgba(242,243,246,.6)): the legibility layer between the Spatial Scene and the glass, per mode. The quoted value is the outer stop of the gradients, which close at the frame edges and clear toward the centre so the scene still breathes. Under them each mode lays a flat floor of its own colour — Night Scrim at .42, Day Veil at .44 — because the centre they clear toward is where the content column sits, and a layer that guarantees nothing where the reading happens guarantees nothing.
 
 ### Tertiary
-- **Ace Gold** (#FFD75E), **Squadron Silver** (#D6DBE2), **Veteran Bronze** (#E0995A): rank metals by night (and as fills/badges in both modes).
-- **Day Gold** (#7A6200), **Day Silver** (#57606C), **Day Bronze** (#8A5220): rank metals as text by day, contrast-safe on Daylight Hall.
+- **Ace Gold** (#FFD75E), **Squadron Silver** (#D6DBE2), **Veteran Bronze** (#E3A36A): rank metals by night. Each has an **ink form and a material form**, the way amber has Medal Amber and Medal Amber Deep, and they are deliberately not the same value: the material is the tint a rank's pane wears (#FFD75E / #D6DBE2 / #E0995A as fills, washes and badges in both modes), while the ink is what a rank is *written* in on that pane. Only bronze's two forms diverge, because it is the one metal near enough the glass's own luminance for the tint and the type to read as two mid-luminance layers meeting.
+- **Day Gold** (#6E5800), **Day Silver** (#4F5863), **Day Bronze** (#7E4B1D): rank metals as text by day, measured on the tinted pane a rank is actually written on rather than on Daylight Hall itself.
 
 ### Acquisition materials
 Not ink and not accent — two gradient washes laid over a glass fill, so acquisition reads as what the surface is *made of*. **Medal Amber** gilds premium; **Service Green** (#6FA05C) is squadron's, the only hue in the system that exists solely as a material and never as text, border, or icon. Each ships at two strengths from one vocabulary: card (`.acq-premium` / `.acq-squadron`) and pane (`.acq-pane`), the latter quieter because a title sheet wears it over an order of magnitude more surface. Event and removed take no material — their chips carry them.
@@ -225,6 +226,8 @@ The page is a strict three-layer sandwich: **Spatial Scene** (WebGL canvas, dept
 
 **The Sandwich Rule.** Text never sits directly on the Spatial Scene. Between any scene and any text there is always the mode's scrim/veil, a glass surface, or both. Contrast (≥4.5:1 body text) is enforced by the layer stack, not hoped for from whatever the screenshot happens to be.
 
+**The scrim is shape over a floor.** The gradients are the mood; the flat layer beneath them is the guarantee. What that floor buys is finite and measured: the night stack bounds a scene to #202020 and the day stack to #E0E0E0, and `e2e/ink-contrast.spec.ts` floods the scene layer at exactly those edges. Beyond them no ink on any pane clears, and closing the gap would take a scrim opaque enough to erase the scene. **So the band is a constraint on scene art, not a free parameter** — a brighter night plate is a legibility change and fails a test before it ships. It floods flat, so it bounds a plate's exposure and not a local specular: a scene is still something to look at before shipping, not only to test.
+
 ## 5. Components
 
 Instrument-precise; celebration only where earned. Controls feel like a machined instrument panel — quiet, exact, state-complete (default, hover, focus, active, disabled). Warmth appears only on records, ranks, and verified moments. Every component swaps tokens per mode and changes nothing else.
@@ -238,9 +241,10 @@ The identity layer. A small, curated, fixed set of battle scenes, each processed
 - **Ghost:** transparent with the mode's hairline border; muted ink brightening to full ink on hover.
 - **Back of house (/admin):** the amber primary marks only the single commit action per view (form submit, dialog confirm); every other admin control stays in the ghost/grey register. Status ink uses the semantic tokens (verified/warn/danger) with day-safe forms, mirroring the accent's Deep pattern.
 - **Glass pill** (live-accepted at frost .12 / float .2): section-nav capsule that is a small liquid-glass pane in its own right — 999px radius, full ink at weight 550, 12% white-alpha fill with blur 36/saturate 180%, specular edges, a subtle 3px anchor shadow rising 2px on hover. Important navigation is never muted into the background.
+- **Every control reaches 44px, and the ink grows only where it must.** `.tap-reach` hands the hit area a 44px square as a pseudo-element, so a thumb gets its target while the ink keeps the size the type scale gave it and the pane keeps its height. It buys reach, never room: two reaches must be kept 44px apart centre to centre, or the later one silently takes the overlap. In a row that stack is a gap to widen; in a wrapping grid of chips it is a pitch to hold — chip height plus row gap, and chip width plus column gap, both at 44 or more, which is why filter chips carry a 44px minimum width and never sit closer than that on either axis. Two things the pseudo-element cannot serve: `input` and `select` are replaced elements and take no `::after` at all, so a field's 44px is real height; and a wrapper is not a substitute, since a tap it receives never reaches the control inside. A reach is only ever proven by measuring the box a control actually owns, never the one its CSS claims.
 
 ### Chips
-- **Removed tag:** faint fill (white .10 night / dark .08 day), the mode's **full** ink, uppercase Label type, 4px radius, 2px 6px padding. Metadata register — informative, never alarming; removed vehicles are first-class citizens. Full ink is the one place metadata takes the primary step, because the chip lays its own lightening fill under the text: on an untinted glass pane the muted step measures 3.84 night, under the AA floor the rest of the system holds (and the faint step, being lighter still, sits below that). Size, case and tracking are what keep a chip quiet here, not ink.
+- **Removed tag:** a fill that **recesses** (`--tint-well`: black .30 night / Night Hangar .08 day), the mode's **full** ink, uppercase Label type, 4px radius, 2px 6px padding. Metadata register — informative, never alarming; removed vehicles are first-class citizens. Full ink is the one place metadata takes the primary step, because a chip lays its own fill under its own text. That fill has to darken in both modes, which is the correction day already had and night did not: measured on a lit pane, full ink over a white .10 night fill still came back 4.08, and there is no ink above full to answer with. Size, case and tracking are what keep a chip quiet here, not ink.
 
 ### Cards / Containers (Glass Panels)
 - **Corner Style:** continuous radii from the locked band — 22px on mid-weight cards, 26px on thick panels (hero); 10px on embedded media (proof thumbnails), 2px micro-radius on chip-scale marks (flag chips).
@@ -254,14 +258,18 @@ The identity layer. A small, curated, fixed set of battle scenes, each processed
 - **Style:** faint fill, the mode's hairline border, full ink text.
 - **Focus:** visible ring in Medal Amber (night) / Medal Amber Deep (day) — keyboard focus is part of the WCAG 2.1 AA floor, never suppressed.
 - **Placeholder:** must meet 4.5:1 like any body text.
+- **A field's 44px is real height.** `input` and `select` are replaced elements and hold no pseudo-element, so they cannot borrow the reach every other control gets — they carry the floor in their own box (see Buttons).
 
 ### Navigation
 - **Mode switcher is the primary nav:** GRB/GAB/ARB/AAB as text links in the floating glass header (thin material when parked) — active mode in Medal Amber / Medal Amber Deep, inactive in muted ink; 4px-radius hover surface. Nav links are not underlined (chrome opts out); content links keep underlines with 2px offset as a non-color affordance.
 - **The nav rests clear, then turns solid.** Parked at the top of a page it is thin glass and the Spatial Scene reads through it. Once content slides under it the pane cross-fades to the thick fill over a near-opaque base, gains the hover hairline as a lit edge, and drops the deep ambient shadow — the overlap must read as one pane above another, never two transparent panes colliding. Frost alone cannot do this: `backdrop-filter` does not sample the sibling content a sticky pane overlays, the same limit that gives the floating menus and the pinned ledger head their near-opacity. The turn-solid and clear-again lines are measured off the nav's own bottom edge and sit 40px apart, so scroll jitter at the boundary cannot strobe the state.
 - **The risen veil is a legibility floor, not a mood.** It is the only thing standing between the nav's own labels and whatever is scrolling beneath them, and a bright line of type passing under a thin pane will beat *any* ink — there is no colour that reads at 4.5:1 over an unbounded backdrop. So the veil is sized to what its labels need, not to taste: measured against the worst backdrop a page can produce (a pure white or pure black band), 75% is the floor at which every label still clears 4.5:1, and one value serves every width. Day sets that floor, not night. The nav's utility ink — search, theme, Admin — is full-strength for the same reason, and marks its hover with the pill track rather than with more ink: a fill of its own would only lighten the surface it has to be read on. Only the risen pane veils; parked, the nav is thin glass and its ink clears the floor without help.
+- **The utility cluster speaks one vocabulary.** Search, Admin and the theme toggle are all 16px icons on a 32px ink box (the reach comes separately — see Buttons), because each is a destination or a control and none of them is the page's subject. A word among them costs more than it explains: `ADMIN` was the widest ink in the cluster and the reason the pane wrapped to a third row on a 320px phone, moving every control a moderator uses at exactly one width. An icon only moderators ever see is not there to teach a stranger — it is there to sit still, so it carries its name in `aria-label` and no tooltip its neighbours lack.
+- **Below 360px the pane draws in.** Row one has to seat the wordmark beside three 32px icons, and the cluster cannot yield — three 44px reaches fix its width at roughly one icon plus 92px, so shrinking an icon buys back its own pixel and nothing more. Everything else gives instead: the pane's inset goes symmetric at 12px, the row gap to 12px, and the wordmark one step down the scale to meet the mode pills at 0.8125rem. Above 360px all three return, because there the full wordmark fits with room to spare.
+- **Size the phone nav for a font you cannot see.** `ui-sans-serif` resolves to a different face on every platform, and the wordmark is the widest thing whose width the site does not control — the same markup that fitted at 320px on macOS wrapped to three rows on Linux, where the mark rendered 11% wider. So row one is built to seat a wordmark wider than the one any single machine renders, and the test that guards it grows the mark 15% — past that delta — and asks whether the cluster is still beside it, rather than asserting a pixel count only the measuring machine would recognise.
 - **Theme toggle:** lives in the nav; follows `prefers-color-scheme` by default, persists a manual override. It flips tokens only (The Same Hall Rule).
 - **Wordmark:** styled text `WT·RECORDS`, semibold, wide tracking — typography-only branding until identity is finalized.
-- **Every control reaches 44px, and none of them grows to do it.** `.tap-reach` hands the hit area a 44px square as a pseudo-element, so a thumb gets its target while the ink keeps the size the type scale gave it and the pane keeps its height — which matters most on the phone nav, already a tenth of the screen once it wraps. Two reaches must be kept 44px apart centre to centre, or the later one takes the overlap: that is why the search and theme icons sit a gap apart rather than shoulder to shoulder, and why the mode pills wear `.tap-reach--low`, hanging their reach into the pane's foot instead of contesting the row above.
+- **The nav pays for its 44px entirely in reach.** It is already a tenth of the screen once it wraps, so no control here grows: the utility icons sit a gap apart rather than shoulder to shoulder, and the mode pills wear `.tap-reach--low`, hanging their reach into the pane's foot instead of contesting the row above. The pane's own row gap is the one spacing here that answers to width rather than to reach, because whatever sits either side of it is wider than the 44px its reach claims — the wordmark, or a 55px mode pill above `sm`. The cluster's own 14px is the one that cannot move.
 
 ### Record Monument (signature)
 The mode's all-time high as a lock-screen moment inside the hero: a monumental amber numeral (clamp to ≤6rem) with an engraved plaque line (vehicle · holder · nation), an amber radial glow bleeding through the glass behind it, and the page's only count-up. With zero records it inverts — the count of open titles becomes the feat. This is the page's single amber moment (The One Amber Rule).
@@ -270,7 +278,7 @@ The mode's all-time high as a lock-screen moment inside the hero: a monumental a
 Rank number right-aligned in a fixed 1.5rem column — faint ink, or the mode's metal forms for 1/2/3 where medals are on — holder name as link, record count pushed to the row's end in muted ink, tabular numerals aligning every row into a ledger.
 
 ### Catalog Ledger
-The registry's table voice (Browse, /search results): a mid-weight glass pane wrapping the whole table, never per-row cards. Header row in the uppercase muted label register; soft hairline row dividers with the row-hover wash; vehicle names as quiet links (underline on hover only), flag chips beside nations, and the kills column bold in full ink — the number is the hero of every row. Empty ledgers teach: they state what happened and offer "Reset filters" only when filters are active. Pagination continues the nav's pill vocabulary: 10px-radius hairline pills, the current page in the bright pill-active fill, windowed with ellipses, arrows disabled in faint ink.
+The registry's table voice (Browse, /search results): a mid-weight glass pane wrapping the whole table, never per-row cards. Header row in the uppercase muted label register; soft hairline row dividers with the row-hover wash; vehicle names as quiet links (underline on hover only), flag chips beside nations, and the kills column bold in full ink — the number is the hero of every row. Empty ledgers teach: they state what happened and offer "Reset filters" only when filters are active. Pagination continues the nav's pill vocabulary: 10px-radius hairline pills at a thumb's 44px minimum width, the current page in the bright pill-active fill, windowed with ellipses, arrows disabled in faint ink. The head row carries the sort controls, so its own padding is what keeps their reach off the first row rather than over it.
 
 **Every row is illustrated.** The vehicle's silhouette leads the row in a fixed slot (4.75rem wide, narrowing to 3rem when the pane is under 30rem) and the Holder's face closes it — the Avatar when claimed, the Medallion otherwise, since the Medallion is a first-class state and not a gap. Both slots hold their width when the image is missing, so names and numerals keep one edge down the page; a key whose object has gone (a catalog sync can rename one ahead of the asset job) hides its image rather than showing a broken frame.
 
@@ -291,8 +299,12 @@ One title stated as a document. A thick-glass pane holds the deed on the left �
 
 **The washes follow the machine, never the ink.** Both the nation's colours (`.flag-wash-sheet`) and the acquisition material (`.acq-pane`) are masked off `--deed-art-h`, the art's height published by the pane, so they pool where the art is and clear the deed entirely — a wash lightens the glass beneath it, and the ink ramp's secondary steps have no contrast margin to spend on a full-pane veil. At sheet scale the flag is blurred into colour: unblurred, its own geometry (the Union Jack's diagonals worst of all) reads as a banner rather than a watermark.
 
+**This is a rule at every scale, and it was only ever applied here.** The record card pools its acquisition material across the art (`.acq-card`, one soft peak rather than a band — a card whose art is missing still has to wear it); the podium's metal tint clears the pane's top band, where the rank line is set in that same metal; and **every** flag wash is blurred, not just the sheet's, because a white stripe is a bright patch under whatever line of type crosses it at any size. Where a pane is ink the whole way down — a standings row — there is no band to pool into, so the material thins instead. Answering the pointer is the same problem again: a hover wash is laid under ink already sitting at its floor, so it is a multiple of a quieter resting wash rather than a fixed brighter one.
+
 ### Filter Panel
 Catalog filtering lives in one thin-glass instrument panel above the ledger: a fixed 6.5rem uppercase label column (Nation / Class / Rank / BR / Acquisition / Title) with 10px-radius chip rows beside it. Active chips drop their hairline for the bright pill-active fill at constant weight — selection reads as light, not as bold, so nothing shifts. The name search, where a page mounts one, is part of the panel, not separate chrome. On phones the group stack folds behind a "Filters" disclosure carrying an active-count badge; the name search stays visible.
+
+**Density is set by the thumb, not by the type.** The chip grid is where the 44px pitch costs the most room, and it is paid honestly: chips take 8px of vertical padding and a 44px minimum width, rows sit 8px apart, and the reach covers the rest. A single-glyph rank chip is therefore as wide as an eight-glyph one — the ranks read as a scale rather than as ink of eight different sizes, which is the better shape anyway. The BR selects and the name search are the panel's only real 44px boxes, because a form control cannot borrow a pseudo-element's reach. Opened on a phone the panel is nearly a fifth taller for all of it, behind a disclosure a reader has to ask for; folded — the state they meet first — it is eight pixels taller.
 
 ### Page Eyebrow
 List pages introduce themselves with a mode eyebrow above the h1 — kicker-size (0.6875rem), semibold, uppercase, tracked at the section-label's 0.2em, muted ink: `GRB · GROUND REALISTIC BATTLES`. It is context, never a link, and never amber.

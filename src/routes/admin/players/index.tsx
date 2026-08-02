@@ -4,6 +4,7 @@ import {
   useNavigate,
   useRouterState,
 } from '@tanstack/react-router'
+import { Chip } from '#/components/chip'
 import { Panel, inputClass } from '#/components/admin/ui'
 import { ADMIN_PAGE_SIZE, Pager, pageParam } from '#/components/admin/pager'
 import { adminPlayerList } from '#/admin/api'
@@ -64,57 +65,58 @@ function PlayersIndex() {
         />
       </div>
 
-      {result.rows.length === 0 ? (
-        <p className="text-sm text-fg-faint">
-          No players match.{' '}
-          <button
-            type="button"
-            className="text-fg-muted underline hover:text-fg"
-            onClick={() => navigate({ search: {} })}
-          >
-            Clear search
-          </button>
-        </p>
-      ) : (
-        <div
-          className={
-            'overflow-x-auto transition-opacity' +
-            (pending ? ' opacity-50' : '')
-          }
-        >
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs tracking-wide text-fg-faint uppercase">
-                <th className="py-1.5 pr-3 font-normal">Player</th>
-                <th className="py-1.5 pr-3 text-right font-normal">Records</th>
-                <th className="py-1.5 text-right font-normal">Aliases</th>
-              </tr>
-            </thead>
-            <tbody>
-              {result.rows.map((p) => (
-                <tr key={p.id} className="border-t border-hairline-soft">
-                  <td className="py-2 pr-3">
-                    <Link
-                      to="/admin/players/$id"
-                      params={{ id: String(p.id) }}
-                      className="font-medium"
-                    >
-                      {p.displayName}
-                    </Link>
-                    {p.userId && (
-                      <span className="ml-2 rounded bg-tint-strong px-1.5 py-0.5 text-xs tracking-wide text-fg-faint uppercase">
-                        claimed
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-2 pr-3 text-right">{p.recordCount}</td>
-                  <td className="py-2 text-right">{p.aliasCount}</td>
+      <div aria-busy={pending}>
+        {result.rows.length === 0 ? (
+          <p className="text-sm text-fg-faint">
+            No players match.{' '}
+            <button
+              type="button"
+              className="text-fg-muted underline hover:text-fg"
+              onClick={() => navigate({ search: {} })}
+            >
+              Clear search
+            </button>
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs tracking-wide text-fg-muted uppercase">
+                  <th className="py-1.5 pr-3 font-normal">Player</th>
+                  <th className="py-1.5 pr-3 text-right font-normal">
+                    Records
+                  </th>
+                  <th className="py-1.5 text-right font-normal">Aliases</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {result.rows.map((p) => (
+                  <tr key={p.id} className="border-t border-hairline-soft">
+                    <td className="py-2 pr-3">
+                      <Link
+                        to="/admin/players/$id"
+                        params={{ id: String(p.id) }}
+                        className="font-medium"
+                      >
+                        {p.displayName}
+                      </Link>
+                      {p.userId && (
+                        <span className="ml-2">
+                          <Chip title="This Player has been claimed by a User">
+                            claimed
+                          </Chip>
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-2 pr-3 text-right">{p.recordCount}</td>
+                    <td className="py-2 text-right">{p.aliasCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       <Pager
         page={page}

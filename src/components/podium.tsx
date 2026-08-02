@@ -43,7 +43,7 @@ function PodiumCard({
 }) {
   return (
     <article
-      className={`glass-mid pane-lift ${METAL_PANE[metal]} overflow-hidden ${big ? 'p-7' : 'p-5'}`}
+      className={`podium-card glass-mid pane-lift ${METAL_PANE[metal]} overflow-hidden ${big ? 'p-7' : 'p-5'}`}
     >
       <NationFlag slug={record.nationSlug} variant="wash" />
       <div className="relative z-[1]">
