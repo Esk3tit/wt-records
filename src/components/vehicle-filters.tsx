@@ -83,7 +83,9 @@ function FilterGroup({
 }) {
   return (
     <fieldset className="flex flex-wrap items-center gap-x-1.5 gap-y-2">
-      <legend className="float-left mb-1 w-full text-[0.6875rem] font-semibold tracking-[0.12em] text-fg-muted uppercase sm:mb-0 sm:w-[6.5rem] sm:pr-3">
+      {/* No margin under the label: the row gap the chips need for a thumb is
+          already wider than the one the label used to buy itself. */}
+      <legend className="float-left w-full text-[0.6875rem] font-semibold tracking-[0.12em] text-fg-muted uppercase sm:w-[6.5rem] sm:pr-3">
         {label}
       </legend>
       {children}
