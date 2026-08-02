@@ -1,25 +1,20 @@
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
-import {
-  FLOOR,
-  bringIntoView,
-  heightOf,
-  heightWithoutReach,
-  reachFaults,
-} from './support/reach'
+import { FLOOR, bringIntoView, heightOf, reachFaults } from './support/reach'
 import { STATE } from './support/states'
 
 test.use({ storageState: STATE.anon })
 
-/** Filtering the catalogue is the main thing a reader does at the hangar
-    screen, so every control in the panel holds itself to the same 44px the nav
-    does. The ledger's head and pager are the rest of that reader's reach. */
+/** Filtering is the main thing a reader does at the hangar screen, so every
+    control in the panel holds itself to the same 44px the nav does. The
+    ledger's head and pager are the rest of that reader's reach. */
 const PANEL = '.glass-thin:has(#vehicle-filter-groups)'
-/* The panel is its own pane with the ledger just below it, so a reach past its
-   edge would take taps meant for the table. The pager sits in open margin and
-   has nothing to take, so it is held only to its neighbours. */
+/* The panel is its own pane with the ledger just below it, and the head is
+   sticky over its own rows — a reach past either edge would take taps meant for
+   the table. The pager sits in open margin and has nothing to take, so it is
+   held only to its neighbours. */
 const FILTERS = { root: PANEL, pane: PANEL }
-const HEAD = { root: 'thead', pane: '.glass-mid' }
+const HEAD = { root: 'thead', pane: 'thead' }
 const PAGER = { root: 'nav[aria-label="Pages"]' }
 
 /* Wrapping is decided by width alone, so the panel is measured on a screen tall
@@ -28,15 +23,22 @@ const PAGER = { root: 'nav[aria-label="Pages"]' }
 const TALL = 2400
 
 const PHONES = [320, 390]
+const LIGHTING = ['dark', 'light'] as const
 
-async function openCatalogue(
+async function openBrowse(
   page: Page,
-  { width, theme = 'dark' }: { width: number; theme?: 'dark' | 'light' },
+  {
+    width,
+    theme = 'dark',
+    path = '/grb/vehicles',
+  }: { width: number; theme?: 'dark' | 'light'; path?: string },
 ) {
   await page.addInitScript((t) => localStorage.setItem('theme', t), theme)
   await page.setViewportSize({ width, height: TALL })
-  await page.goto('/grb/vehicles')
-  await expect(page.getByRole('table')).toBeVisible()
+  await page.goto(path)
+  // The panel, not the ledger: a nation sheet mounts the same filters over a
+  // card wall rather than a table.
+  await expect(page.locator(PANEL)).toBeVisible()
 }
 
 /** The groups fold behind one disclosure on phones; nothing in them can be
@@ -50,36 +52,47 @@ async function openFilters(page: Page) {
   await expect(page.locator('#vehicle-filter-groups')).toBeVisible()
 }
 
-for (const width of [...PHONES, 640, 1280]) {
-  test(`every filter control can be tapped at ${width}px`, async ({ page }) => {
-    await openCatalogue(page, { width })
-    await openFilters(page)
-
-    expect(await reachFaults(page, FILTERS)).toEqual([])
-  })
-}
-
 /* Lighting cannot move a hit box, but the panel is worn both ways and its two
    fills are separate rules — a hit box lost to one of them would hide here. */
-for (const theme of ['dark', 'light'] as const) {
-  test(`every filter control can be tapped in ${theme}`, async ({ page }) => {
-    await openCatalogue(page, { width: 390, theme })
-    await openFilters(page)
+for (const width of [...PHONES, 640, 1280]) {
+  for (const theme of LIGHTING) {
+    test(`every filter control can be tapped at ${width}px in ${theme}`, async ({
+      page,
+    }) => {
+      await openBrowse(page, { width, theme })
+      await openFilters(page)
 
-    expect(await reachFaults(page, FILTERS)).toEqual([])
-  })
+      expect(await reachFaults(page, FILTERS)).toEqual([])
+    })
+  }
 }
 
-/* Folded, the panel is two controls and 40px of its own padding — the state
-   every phone reader meets first, and the one where the disclosure is the only
-   door to any filter at all. */
+/* Folded, the panel is two controls and its own padding — the state every phone
+   reader meets first, and the one where the disclosure is the only door to any
+   filter at all. */
 for (const width of PHONES) {
-  test(`the folded panel can be tapped at ${width}px`, async ({ page }) => {
-    await openCatalogue(page, { width })
-    await expect(page.getByRole('button', { name: /Filters/ })).toHaveAttribute(
-      'aria-expanded',
-      'false',
-    )
+  for (const theme of LIGHTING) {
+    test(`the folded panel can be tapped at ${width}px in ${theme}`, async ({
+      page,
+    }) => {
+      await openBrowse(page, { width, theme })
+      await expect(
+        page.getByRole('button', { name: /Filters/ }),
+      ).toHaveAttribute('aria-expanded', 'false')
+
+      expect(await reachFaults(page, FILTERS)).toEqual([])
+    })
+  }
+}
+
+/* The nation sheet mounts the same panel without a name search, so its
+   disclosure sits at the panel's own top edge rather than under a field. */
+for (const width of PHONES) {
+  test(`the nation sheet's filters can be tapped at ${width}px`, async ({
+    page,
+  }) => {
+    await openBrowse(page, { width, path: '/grb/nation/germany' })
+    await openFilters(page)
 
     expect(await reachFaults(page, FILTERS)).toEqual([])
   })
@@ -89,7 +102,7 @@ for (const width of [...PHONES, 1280]) {
   test(`the ledger head can be sorted by thumb at ${width}px`, async ({
     page,
   }) => {
-    await openCatalogue(page, { width })
+    await openBrowse(page, { width })
     await bringIntoView(page, 'thead')
 
     expect(await reachFaults(page, HEAD)).toEqual([])
@@ -98,7 +111,7 @@ for (const width of [...PHONES, 1280]) {
 
 for (const width of PHONES) {
   test(`the pager can be tapped at ${width}px`, async ({ page }) => {
-    await openCatalogue(page, { width })
+    await openBrowse(page, { width })
     const pager = page.locator(PAGER.root)
     await expect(pager, 'the catalogue fits on one page').toBeVisible()
     await bringIntoView(page, PAGER.root)
@@ -107,19 +120,19 @@ for (const width of PHONES) {
   })
 }
 
-/* The reach is a pseudo-element so it can cost the layout nothing. Re-measured
-   with it withdrawn, so the panel is compared against itself rather than
-   against a number that rots the next time its density is tuned. */
+/* A reach withdrawn cannot see height bought with padding — an absolute
+   pseudo-element never held any to begin with. So the folded panel is held to
+   its share of the screen outright: 13.2% of an 844px phone today, which two
+   44px controls and 40px of panel padding just fit. */
 for (const width of PHONES) {
-  test(`the panel is no taller for the reach at ${width}px`, async ({
+  test(`the folded panel still fits its share of a ${width}px screen`, async ({
     page,
   }) => {
-    await openCatalogue(page, { width })
-    await openFilters(page)
+    await page.setViewportSize({ width, height: 844 })
+    await page.goto('/grb/vehicles')
+    await expect(page.locator(PANEL)).toBeVisible()
 
-    expect(await heightOf(page, PANEL)).toBe(
-      await heightWithoutReach(page, PANEL),
-    )
+    expect((await heightOf(page, PANEL)) / 844).toBeLessThanOrEqual(0.14)
   })
 }
 
@@ -127,7 +140,7 @@ for (const width of PHONES) {
    reach carries the control's own behaviour with it. The rank chips are the
    narrowest ink on the surface and the ones the reach had to widen most. */
 test('a tap at the far edge of a rank chip still filters', async ({ page }) => {
-  await openCatalogue(page, { width: 390 })
+  await openBrowse(page, { width: 390 })
   await openFilters(page)
 
   const chip = page.getByRole('button', { name: 'I', exact: true })

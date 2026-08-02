@@ -1,4 +1,3 @@
-import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 import { openNav } from './support/nav'
 import {
@@ -15,22 +14,14 @@ const WIDTHS = [320, 390, 639, 640, 1280]
 
 /* The pane is sticky, so a reach past its edge would take taps meant for the
    content scrolling under it. */
-const NAV = { root: 'header', controls: 'a, button', pane: 'header' } as const
-
-async function faultsInReach(page: Page) {
-  return reachFaults(page, NAV)
-}
-
-async function navHeight(page: Page) {
-  return heightOf(page, 'header')
-}
+const NAV = { root: 'header', pane: 'header' } as const
 
 for (const width of WIDTHS) {
   test(`every nav control can be tapped at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 })
     await openNav(page)
 
-    expect(await faultsInReach(page)).toEqual([])
+    expect(await reachFaults(page, NAV)).toEqual([])
   })
 }
 
@@ -41,7 +32,7 @@ for (const theme of ['dark', 'light'] as const) {
     await page.setViewportSize({ width: 390, height: 844 })
     await openNav(page, { theme })
 
-    expect(await faultsInReach(page)).toEqual([])
+    expect(await reachFaults(page, NAV)).toEqual([])
   })
 }
 
@@ -57,7 +48,7 @@ test.describe('with the moderator nav', () => {
       await openNav(page)
       await expect(page.getByRole('link', { name: 'Admin' })).toBeVisible()
 
-      expect(await faultsInReach(page)).toEqual([])
+      expect(await reachFaults(page, NAV)).toEqual([])
     })
   }
 
@@ -68,7 +59,9 @@ test.describe('with the moderator nav', () => {
     await openNav(page)
     await expect(page.getByRole('link', { name: 'Admin' })).toBeVisible()
 
-    expect(await navHeight(page)).toBe(await heightWithoutReach(page, 'header'))
+    expect(await heightOf(page, 'header')).toBe(
+      await heightWithoutReach(page, 'header'),
+    )
   })
 })
 
@@ -95,7 +88,9 @@ for (const width of [320, 390, 1280]) {
     await page.setViewportSize({ width, height: 844 })
     await openNav(page)
 
-    expect(await navHeight(page)).toBe(await heightWithoutReach(page, 'header'))
+    expect(await heightOf(page, 'header')).toBe(
+      await heightWithoutReach(page, 'header'),
+    )
   })
 }
 
@@ -109,6 +104,6 @@ for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: 844 })
     await openNav(page)
 
-    expect((await navHeight(page)) / 844).toBeLessThanOrEqual(0.12)
+    expect((await heightOf(page, 'header')) / 844).toBeLessThanOrEqual(0.12)
   })
 }

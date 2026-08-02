@@ -109,24 +109,24 @@ export async function reachOf(
           [x0, y0 + floor],
           [x0 + floor, y0 + floor],
         ].every(([x, y]) => owns(x, y))
-        /* Inset, because right and bottom are the first pixel past the ink —
-           and the corners by the radius too, since a rounded control does not
-           own the square its box reports. */
+        /* Walks the ink's own perimeter, a pixel inside it, so a neighbour
+           overlapping any edge or corner shows up rather than only one that
+           takes the middle. Stepped in by the corner radius where the corners
+           are: a rounded control does not own the square its box reports, and
+           probing the literal corner would fail every chip on the page. */
         const r =
           Math.min(
             parseFloat(getComputedStyle(el).borderRadius) || 0,
-            ink.width / 2,
-            ink.height / 2,
+            ink.width / 2 - 1,
+            ink.height / 2 - 1,
           ) + 1
+        const xs = [ink.left + r, cx, ink.right - r]
+        const ys = [ink.top + r, cy, ink.bottom - r]
         const inkHeld = [
-          [ink.left + r, ink.top + r],
-          [ink.right - r, ink.top + r],
-          [ink.left + r, ink.bottom - r],
-          [ink.right - r, ink.bottom - r],
-          [cx, ink.top + 1],
-          [cx, ink.bottom - 1],
-          [ink.left + 1, cy],
-          [ink.right - 1, cy],
+          ...xs.map((x) => [x, ink.top + 1]),
+          ...xs.map((x) => [x, ink.bottom - 1]),
+          ...ys.map((y) => [ink.left + 1, y]),
+          ...ys.map((y) => [ink.right - 1, y]),
         ].every(([x, y]) => owns(x, y))
 
         /* A reach that hangs outside the pane would take taps meant for the

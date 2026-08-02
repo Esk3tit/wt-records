@@ -13,6 +13,8 @@ A thin suite — the flows worth driving end to end, not a second copy of the un
 | `og-cards.spec.ts`          | every page unfurls, and the card routes serve real PNGs                  |
 | `nav-pane.spec.ts`          | the nav pane rises with the reader's own scroll, not with a restored one |
 | `nav-touch-targets.spec.ts` | every nav control reaches 44px, and the pane is no taller for it         |
+| `nav-contrast.spec.ts`      | every ink in the nav clears 4.5:1 over the worst backdrop a page can give |
+| `catalog-touch-targets.spec.ts` | every filter, sort and pager control on Browse reaches 44px          |
 | `catalog-status.spec.ts`    | the sync status endpoint answers the watchdog probe                      |
 
 ## Auth: SDK sign-in, no Discord OAuth
