@@ -14,6 +14,12 @@ A thin suite — the flows worth driving end to end, not a second copy of the un
 | `nav-pane.spec.ts`          | the nav pane rises with the reader's own scroll, not with a restored one |
 | `nav-touch-targets.spec.ts` | every nav control reaches 44px, and the pane is no taller for it         |
 | `catalog-status.spec.ts`    | the sync status endpoint answers the watchdog probe                      |
+| `nav-contrast.spec.ts`      | every ink in the nav clears AA over whatever scrolls beneath it          |
+| `ink-contrast.spec.ts`      | every ink on the panes the nav floats over clears AA, in both modes      |
+
+### Measuring contrast
+
+`e2e/support/contrast.ts` is the only way this repo can answer "does that read?", because a pane is translucent glass over a lit scene and the ink carries its own alpha — neither side of the ratio exists until it renders, so no token and no stylesheet review can tell you. `readInk` screenshots a clip three times, forcing the type transparent, then black, then white: the blank shot is the backdrop beneath each glyph, and black-against-white is the coverage each pixel actually receives, so only pixels the type really paints set the reading. Text sliding under the nav or a pinned head paints nothing solid and is left unmeasured rather than guessed at — which is why the sweeps also assert, per route, that the sites they were run *for* produced a reading at all.
 
 ## Auth: SDK sign-in, no Discord OAuth
 

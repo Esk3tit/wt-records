@@ -102,7 +102,7 @@ function PlayersIndex() {
                       {p.displayName}
                     </Link>
                     {p.userId && (
-                      <span className="ml-2 rounded bg-tint-strong px-1.5 py-0.5 text-xs tracking-wide text-fg-faint uppercase">
+                      <span className="chip-well ml-2 rounded px-1.5 py-0.5 text-xs tracking-wide text-fg uppercase">
                         claimed
                       </span>
                     )}
