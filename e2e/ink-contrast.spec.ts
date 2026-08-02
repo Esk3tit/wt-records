@@ -41,6 +41,15 @@ const ROUTES: { path: string; sites: string[] }[] = [
   { path: '/search?q=a', sites: ['.section-label'] },
 ]
 
+/** Walk the page, prove the surfaces it was visited *for* produced a reading,
+    then prove every ink on it clears. The three always travel together: without
+    the middle one the last is satisfied by a sweep that measured nothing. */
+async function sweepReads(page: Page, sites: string[]) {
+  const readings = await worstDownThePage(page, { depths: DEPTHS, sites })
+  expect(unmeasured(readings, sites)).toEqual([])
+  expect(faultsInInk(readings)).toEqual([])
+}
+
 /** The first link matching a route shape, so fixtures come from live data and
     these hold against the seed and a real corpus alike. */
 async function firstPath(page: Page, shape: RegExp) {
@@ -65,9 +74,7 @@ for (const theme of ['dark', 'light'] as const) {
       test(`every ink on ${path} is legible`, async ({ page }) => {
         await openNav(page, { path, theme })
 
-        const readings = await worstDownThePage(page, { depths: DEPTHS, sites })
-        expect(unmeasured(readings, sites)).toEqual([])
-        expect(faultsInInk(readings)).toEqual([])
+        await sweepReads(page, sites)
       })
     }
 
@@ -80,10 +87,7 @@ for (const theme of ['dark', 'light'] as const) {
       /* Not the Medallion here: this sheet shows one holder, and whether that
          holder set an avatar is the state of the data. The ledger asserts it,
          where every row carries one. */
-      const sites = ['.stat-unit']
-      const readings = await worstDownThePage(page, { depths: DEPTHS, sites })
-      expect(unmeasured(readings, sites)).toEqual([])
-      expect(faultsInInk(readings)).toEqual([])
+      await sweepReads(page, ['.stat-unit'])
     })
 
     /* The record wall, where the acquisition material meets the card's own ink.
@@ -94,10 +98,7 @@ for (const theme of ['dark', 'light'] as const) {
       const nation = await firstPath(page, /^\/grb\/nation\//)
       await openNav(page, { path: nation, theme })
 
-      const sites = ['.record-card']
-      const readings = await worstDownThePage(page, { depths: DEPTHS, sites })
-      expect(unmeasured(readings, sites)).toEqual([])
-      expect(faultsInInk(readings)).toEqual([])
+      await sweepReads(page, ['.record-card'])
     })
 
     test('every ink on a player profile is legible', async ({ page }) => {
@@ -105,10 +106,7 @@ for (const theme of ['dark', 'light'] as const) {
       const profile = await firstPath(page, /^\/player\//)
       await openNav(page, { path: profile, theme })
 
-      const sites = ['.section-label']
-      const readings = await worstDownThePage(page, { depths: DEPTHS, sites })
-      expect(unmeasured(readings, sites)).toEqual([])
-      expect(faultsInInk(readings)).toEqual([])
+      await sweepReads(page, ['.section-label'])
     })
 
     /* A flat band under the glass, so the panes are proved against something
@@ -152,10 +150,7 @@ for (const theme of ['dark', 'light'] as const) {
       const nation = await firstPath(page, /^\/grb\/nation\//)
       await openNav(page, { path: nation, theme })
 
-      const sites = ['.record-card']
-      const readings = await worstDownThePage(page, { depths: DEPTHS, sites })
-      expect(unmeasured(readings, sites)).toEqual([])
-      expect(faultsInInk(readings)).toEqual([])
+      await sweepReads(page, ['.record-card'])
     })
 
     /* Answering the pointer lays a brighter wash under ink that is already at
@@ -216,12 +211,7 @@ for (const theme of ['dark', 'light'] as const) {
       test(`every ink on ${path} is legible`, async ({ page }) => {
         await openNav(page, { path, theme })
 
-        const readings = await worstDownThePage(page, {
-          depths: DEPTHS,
-          sites: [...sites],
-        })
-        expect(unmeasured(readings, [...sites])).toEqual([])
-        expect(faultsInInk(readings)).toEqual([])
+        await sweepReads(page, [...sites])
       })
     }
 
@@ -237,13 +227,20 @@ for (const theme of ['dark', 'light'] as const) {
       await openNav(page, { path: '/admin', theme })
       const chip = page.locator('.glass-thin .section-label').first()
       await expect(chip).toBeVisible()
+      /* The class is replaced rather than added to, so what gets measured is a
+         status chip and not a section label wearing a status colour. The marker
+         is what the reading is then taken from: `.text-status-warn` alone would
+         resolve to whichever element carries it first, which on a queue that
+         does have something pending is a different chip entirely. */
       await chip.evaluate((el: HTMLElement) => {
-        el.setAttribute('class', 'text-xs tracking-wide uppercase')
-        el.classList.add('text-status-warn')
+        el.setAttribute(
+          'class',
+          'status-warn-probe text-xs tracking-wide uppercase text-status-warn',
+        )
         el.textContent = 'pending'
       })
 
-      const readings = await readInk(page, '.text-status-warn', '')
+      const readings = await readInk(page, '.status-warn-probe', '')
       expect(faultsInInk(readings)).toEqual([])
       expect(unreadable(readings)).toEqual([])
     })

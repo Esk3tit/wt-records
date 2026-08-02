@@ -21,7 +21,15 @@ A thin suite — the flows worth driving end to end, not a second copy of the un
 
 ### Measuring contrast
 
-`e2e/support/contrast.ts` is the only way this repo can answer "does that read?", because a pane is translucent glass over a lit scene and the ink carries its own alpha — neither side of the ratio exists until it renders, so no token and no stylesheet review can tell you. `readInk` screenshots a clip three times, forcing the type transparent, then black, then white: the blank shot is the backdrop beneath each glyph, and black-against-white is the coverage each pixel actually receives, so only pixels the type really paints set the reading. Text sliding under the nav or a pinned head paints nothing solid and is left unmeasured rather than guessed at — which is why the sweeps also assert, per route, that the sites they were run *for* produced a reading at all.
+`e2e/support/contrast.ts` is the only way this repo can answer "does that read?", because a pane is translucent glass over a lit scene and the ink carries its own alpha — neither side of the ratio exists until it renders, so no token and no stylesheet review can tell you.
+
+`readInk` screenshots a clip **four** times, forcing the type transparent, then black, then white, then transparent again:
+
+- the **transparent** shot is the backdrop beneath each glyph, which a shot with the type still painted could never show;
+- **black against white** is the coverage each pixel actually receives, so only pixels the type really paints set the reading;
+- the **second transparent** shot is the same frame as the first, and any pixel the two disagree on is dropped rather than believed. Vehicle art decoding mid-sequence would otherwise move the ground under the type and mark pixels no glyph ever touched. If that leaves nothing measured at all, the read is retried once and then fails with `would not hold still long enough to read`.
+
+Text sliding under the nav or a pinned head paints nothing solid and is left unmeasured rather than guessed at — which is why the sweeps also assert, per route, that the sites they were run *for* produced a reading at all.
 
 ## Auth: SDK sign-in, no Discord OAuth
 

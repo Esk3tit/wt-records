@@ -489,6 +489,7 @@ async function sampleBackdrops({
   const white = await load(shots.white)
   const again = await load(steady)
   const width = blank.width
+  const height = blank.height
   /* The shots are of the clip, not the viewport, so a glyph's page coordinates
      have to come back to the crop's own origin before they index a pixel. */
   const dpr = width / box.width
@@ -539,14 +540,18 @@ async function sampleBackdrops({
        one out to recover the glyph, multiply the other in to keep the ratio
        honest — at dim 1, both are no-ops. */
     const ia = a * t.dim
+    /* Held to the decoded image: the clip is rounded to whole CSS pixels and
+       scaled by a device ratio, so a rect's last column can land a pixel past
+       the bitmap — where the index quietly wraps onto the next row and reads a
+       neighbour's colour as this glyph's backdrop. */
     const sweep = (visit: (i: number) => void) => {
       for (const rect of t.rects) {
         const left = rect.x - box.x
         const top = rect.y - box.y
-        const x1 = Math.ceil((left + rect.w) * dpr)
-        const y1 = Math.ceil((top + rect.h) * dpr)
-        for (let y = Math.floor(top * dpr); y < y1; y++)
-          for (let x = Math.floor(left * dpr); x < x1; x++)
+        const x1 = Math.min(Math.ceil((left + rect.w) * dpr), width)
+        const y1 = Math.min(Math.ceil((top + rect.h) * dpr), height)
+        for (let y = Math.max(Math.floor(top * dpr), 0); y < y1; y++)
+          for (let x = Math.max(Math.floor(left * dpr), 0); x < x1; x++)
             visit((y * width + x) * 4)
       }
     }
