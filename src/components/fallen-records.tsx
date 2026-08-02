@@ -9,7 +9,7 @@ export interface FallenRow extends VehicleTagFlags {
   vehicleSlug: string
   vehicleName: string
   nationSlug: string
-  vehicleImage: string | null
+  vehiclePortrait: string | null
   oldKills: number
   oldHolder: string
   oldHolderSlug: string
@@ -36,7 +36,7 @@ export function FallenRecords({
           >
             <NationFlag slug={f.nationSlug} variant="wash-row" />
             <div className="relative z-[1] grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 px-5 py-4 @[30rem]:grid-cols-[auto_minmax(0,1fr)_auto] @[30rem]:gap-x-5">
-              <VehicleIcon src={f.vehicleImage} variant="row" />
+              <VehicleIcon src={f.vehiclePortrait} variant="row" />
               <span className="min-w-0">
                 <span className="font-semibold text-fg">
                   <NationFlag slug={f.nationSlug} className="mr-1" />

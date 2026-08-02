@@ -41,7 +41,7 @@ function WeekCard({
           <span className="ml-1 stat-unit text-xs">kills</span>
         </p>
         <p className="mt-3 truncate text-[0.9375rem] font-semibold text-fg">
-          <VehicleIcon src={record.vehicleImage} className="mr-1" />
+          <VehicleIcon src={record.vehiclePortrait} className="mr-1" />
           <Link
             to="/$mode/vehicle/$slug"
             params={{ mode, slug: record.vehicleSlug }}

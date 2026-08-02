@@ -2,7 +2,7 @@ import process from 'node:process'
 import { isLocalDatabaseUrl, openCliDb } from '#/db/cli'
 import { DatamineSource } from '#/catalog/datamine'
 import { syncCatalog } from '#/catalog/sync'
-import { mirrorVehicleImages } from '#/catalog/mirror-images'
+import { mirrorVehiclePortraits } from '#/catalog/mirror-portraits'
 import { headerSafeGitHubToken } from '#/catalog/upstream-fetch'
 import { recordCatalogSyncRun } from '#/catalog/sync-status'
 import { storageFromEnvIfConfigured } from '#/storage/r2'
@@ -96,19 +96,18 @@ try {
     // Best-effort by contract: the sync committed, so nothing from the mirror
     // pass may turn this run into a failure.
     try {
-      const mirror = await mirrorVehicleImages(db, storage, {
+      const mirror = await mirrorVehiclePortraits(db, storage, {
         limit: mirrorLimit,
         githubToken,
       })
       for (const warning of mirror.warnings) console.warn(`⚠ ${warning}`)
       console.log(
-        `Images: ${mirror.mirrored} mirrored, ${mirror.upToDate} up to date, ` +
-          `${mirror.failed} failed, ${mirror.deferred} deferred, ` +
-          `${mirror.cleaned} cleaned.`,
+        `Portraits: ${mirror.mirrored} mirrored, ${mirror.upToDate} up to date, ` +
+          `${mirror.failed} failed, ${mirror.deferred} deferred.`,
       )
     } catch (error) {
       console.warn(
-        `⚠ image mirroring failed: ${error instanceof Error ? error.message : error}`,
+        `⚠ portrait mirroring failed: ${error instanceof Error ? error.message : error}`,
       )
     }
   }

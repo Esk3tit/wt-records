@@ -25,7 +25,7 @@ function entry(id: number, vehicleName: string): FeedEntry {
     playerSlug: `player-${id}`,
     displayName: `Player ${id}`,
     nationSlug: 'usa',
-    vehicleImage: null,
+    vehiclePortrait: null,
     ignSnapshot: null,
     displayNameSnapshot: null,
   }

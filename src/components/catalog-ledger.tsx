@@ -24,7 +24,7 @@ export interface LedgerVehicleRow extends VehicleTagFlags {
 
 /** A row whose vehicle art is resolved to a serving URL. */
 export interface VehicleArtRow extends LedgerVehicleRow {
-  vehicleImage: string | null
+  vehiclePortrait: string | null
 }
 
 /** A ledger row carrying the Holder's face as well as the vehicle's. */
@@ -174,7 +174,7 @@ export function VehicleCell({
     // past the viewport instead of truncating.
     <td className="w-full max-w-0 py-2.5 pr-4 pl-5">
       <div className="flex items-center gap-2.5">
-        <VehicleIcon src={row.vehicleImage} variant="ledger" />
+        <VehicleIcon src={row.vehiclePortrait} variant="ledger" />
         <div className="min-w-0 flex-1">
           <div className="truncate">
             {/* Wrapper span, not a utility on the chip: the unlayered

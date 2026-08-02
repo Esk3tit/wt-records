@@ -131,7 +131,7 @@ function countedRecordRows(db: Db) {
       vehicleSlug: vehicles.slug,
       vehicleName: vehicles.name,
       ...vehicleTagFlags,
-      imageKey: vehicles.imageKey,
+      portraitKey: vehicles.portraitKey,
       nationName: nations.name,
       nationSlug: nations.slug,
       playerSlug: players.slug,
@@ -161,13 +161,13 @@ function withHolderAvatar<
 
 // Serving URL beside the row (computed server-side: env stays off the client);
 // the raw key never ships.
-function withVehicleImage<T extends { imageKey: string | null }>({
-  imageKey,
+function withVehiclePortrait<T extends { portraitKey: string | null }>({
+  portraitKey,
   ...row
-}: T): Omit<T, 'imageKey'> & { vehicleImage: string | null } {
+}: T): Omit<T, 'portraitKey'> & { vehiclePortrait: string | null } {
   return {
     ...row,
-    vehicleImage: imageKey ? assetUrlIfConfigured(imageKey) : null,
+    vehiclePortrait: portraitKey ? assetUrlIfConfigured(portraitKey) : null,
   }
 }
 
@@ -240,7 +240,7 @@ export async function getModeLanding(db: Db, mode: string) {
         vehicleSlug: vehicles.slug,
         vehicleName: vehicles.name,
         ...vehicleTagFlags,
-        imageKey: vehicles.imageKey,
+        portraitKey: vehicles.portraitKey,
         nationName: nations.name,
         nationSlug: nations.slug,
         contests: contestCount,
@@ -338,7 +338,7 @@ export async function getModeLanding(db: Db, mode: string) {
 
   const beatenBySlug = new Map(predecessors.map((p) => [p.vehicleId, p]))
   const fallen = recentCurrent
-    .map(withVehicleImage)
+    .map(withVehiclePortrait)
     .flatMap((r) => {
       const prev = beatenBySlug.get(r.vehicleId)
       if (!prev) return []
@@ -347,7 +347,7 @@ export async function getModeLanding(db: Db, mode: string) {
           vehicleSlug: r.vehicleSlug,
           vehicleName: r.vehicleName,
           nationSlug: r.nationSlug,
-          vehicleImage: r.vehicleImage,
+          vehiclePortrait: r.vehiclePortrait,
           ...pickVehicleTags(r),
           oldKills: prev.kills,
           oldHolder: prev.displayName,
@@ -366,9 +366,9 @@ export async function getModeLanding(db: Db, mode: string) {
     modeName: m ? m.name : null,
     stats,
     leaders,
-    topRecords: topRecords.map(withVehicleImage),
-    latestFeed: latestFeed.map(withVehicleImage),
-    weekTop: weekTop.map(withVehicleImage),
+    topRecords: topRecords.map(withVehiclePortrait),
+    latestFeed: latestFeed.map(withVehiclePortrait),
+    weekTop: weekTop.map(withVehiclePortrait),
     verifyQueue: queue
       ? {
           pending: queue.pending,
@@ -379,7 +379,7 @@ export async function getModeLanding(db: Db, mode: string) {
               : Number(queue.medianReviewSecs),
         }
       : { pending: 0, verifiedThisWeek: 0, medianReviewSecs: null },
-    contestedTitles: contestedTitles.map(withVehicleImage),
+    contestedTitles: contestedTitles.map(withVehiclePortrait),
     nations: nationRows ?? [],
     // The chart needs a progression; a single point is not a story.
     historySteps: (() => {
@@ -387,7 +387,7 @@ export async function getModeLanding(db: Db, mode: string) {
       return frontier.length >= 2 ? frontier : []
     })(),
     fallen,
-    longestStanding: longestStanding.map(withVehicleImage),
+    longestStanding: longestStanding.map(withVehiclePortrait),
   }
 }
 
@@ -504,7 +504,7 @@ const catalogRowShape = {
 
 const catalogIllustratedShape = {
   ...catalogRowShape,
-  imageKey: vehicles.imageKey,
+  portraitKey: vehicles.portraitKey,
   holderUserId: players.userId,
   holderAvatarKey: players.avatarKey,
 }
@@ -512,18 +512,18 @@ const catalogIllustratedShape = {
 // Both serving URLs computed server-side; neither raw key ever ships.
 function withRowImagery<
   T extends {
-    imageKey: string | null
+    portraitKey: string | null
     holderUserId: string | null
     holderAvatarKey: string | null
   },
->({ imageKey, holderUserId, holderAvatarKey, ...row }: T) {
+>({ portraitKey, holderUserId, holderAvatarKey, ...row }: T) {
   const avatarKey = effectiveAvatarKey({
     userId: holderUserId,
     avatarKey: holderAvatarKey,
   })
   return {
     ...row,
-    vehicleImage: imageKey ? assetUrlIfConfigured(imageKey) : null,
+    vehiclePortrait: portraitKey ? assetUrlIfConfigured(portraitKey) : null,
     holderAvatar: avatarKey ? assetUrlIfConfigured(avatarKey) : null,
   }
 }
@@ -752,7 +752,7 @@ export async function getNationSheet(
   if (!m) return null
 
   const rows = await db
-    .select({ ...catalogRowShape, imageKey: vehicles.imageKey })
+    .select({ ...catalogRowShape, portraitKey: vehicles.portraitKey })
     .from(vehicles)
     .innerJoin(nations, eq(nations.id, vehicles.nationId))
     .leftJoin(
@@ -771,7 +771,7 @@ export async function getNationSheet(
     .where(catalogConditions(m.branch, filters, nation.id))
     .orderBy(asc(vehicles.rank), asc(vehicles.name))
 
-  return { nation, rows: rows.map(withVehicleImage) }
+  return { nation, rows: rows.map(withVehiclePortrait) }
 }
 
 export async function getVehicle(db: Db, mode: string, slug: string) {
@@ -790,7 +790,7 @@ export async function getVehicle(db: Db, mode: string, slug: string) {
         rank: vehicles.rank,
         isDifficult: vehicles.isDifficult,
         ...vehicleTagFlags,
-        imageKey: vehicles.imageKey,
+        portraitKey: vehicles.portraitKey,
         nationSlug: nations.slug,
         nationName: nations.name,
       })
@@ -889,11 +889,11 @@ export async function getVehicle(db: Db, mode: string, slug: string) {
       (p.storagePath && proofUrlIfConfigured(p.storagePath)) || p.originalUrl,
   }))
 
-  const { imageKey, ...vehicleRow } = vehicle
+  const { portraitKey, ...vehicleRow } = vehicle
   return {
     vehicle: {
       ...vehicleRow,
-      image: imageKey ? assetUrlIfConfigured(imageKey) : null,
+      portrait: portraitKey ? assetUrlIfConfigured(portraitKey) : null,
     },
     br: brRow ? brRow.br : null,
     current,

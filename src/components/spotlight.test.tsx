@@ -31,7 +31,7 @@ function row(overrides: Partial<RecordCardRow> = {}): RecordCardRow {
     displayName: 'Koalkiest',
     ignSnapshot: null,
     displayNameSnapshot: null,
-    vehicleImage: null,
+    vehiclePortrait: null,
     ...overrides,
   }
 }

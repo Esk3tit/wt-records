@@ -54,9 +54,9 @@ export function RecordCard({
           {row.br != null ? formatBr(row.br) : '—'}
         </span>
       </header>
-      {row.vehicleImage ? (
+      {row.vehiclePortrait ? (
         <img
-          src={row.vehicleImage}
+          src={row.vehiclePortrait}
           alt=""
           loading="lazy"
           draggable={false}

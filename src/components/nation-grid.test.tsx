@@ -28,7 +28,7 @@ function row(overrides: Partial<NationGridRow> = {}): NationGridRow {
     displayNameSnapshot: null,
     rank: 1,
     class: 'light_tank',
-    vehicleImage: null,
+    vehiclePortrait: null,
     ...overrides,
   }
 }

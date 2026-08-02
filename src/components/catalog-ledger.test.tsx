@@ -26,7 +26,7 @@ function row(overrides: Partial<IllustratedRow> = {}): IllustratedRow {
     displayName: 'Koalkiest',
     ignSnapshot: null,
     displayNameSnapshot: null,
-    vehicleImage: null,
+    vehiclePortrait: null,
     holderAvatar: null,
     ...overrides,
   }
@@ -55,7 +55,7 @@ function renderRow(r: IllustratedRow) {
 describe('ledger row imagery', () => {
   it('renders the vehicle art decoratively — the name already says which one', async () => {
     const { container, findByRole } = renderRow(
-      row({ vehicleImage: 'https://assets.example/m4a1.png' }),
+      row({ vehiclePortrait: 'https://assets.example/m4a1.png' }),
     )
     await findByRole('link', { name: 'M4A1' })
     const img = container.querySelector('img[src*="m4a1"]')

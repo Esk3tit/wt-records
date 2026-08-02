@@ -2,10 +2,16 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { asc, eq, inArray, isNotNull } from 'drizzle-orm'
 import type { TestDb } from './pglite'
 import { freshDb } from './pglite'
-import { mirrorVehicleImages } from '#/catalog/mirror-images'
-import { vehicleImageKey } from '#/catalog/image-key'
+import { mirrorVehiclePortraits } from '#/catalog/mirror-portraits'
+import { portraitObjectKey } from '#/catalog/portrait-key'
 import { assertValidObjectKey } from '#/storage/urls'
 import { nations, vehicles } from '#/db/schema'
+
+const ABRAMS_URL = 'https://api.test/assets/us_m1_abrams.png'
+const SHERMAN_URL = 'https://api.test/assets/us_m4_sherman.png'
+const ABRAMS_V1 = '1111111111111111111111111111111111111111'
+const ABRAMS_V2 = '2222222222222222222222222222222222222222'
+const SHERMAN_V1 = '3333333333333333333333333333333333333333'
 
 let t: TestDb
 
@@ -23,7 +29,8 @@ beforeEach(async () => {
       nationId: nation.id,
       branch: 'ground',
       class: 'medium',
-      imageUrl: 'https://api.test/assets/us_m1_abrams.png',
+      portraitUrl: ABRAMS_URL,
+      portraitContentId: ABRAMS_V1,
     },
     {
       externalId: 'us_m4_sherman',
@@ -32,16 +39,18 @@ beforeEach(async () => {
       nationId: nation.id,
       branch: 'ground',
       class: 'medium',
-      imageUrl: 'https://api.test/assets/us_m4_sherman.png',
+      portraitUrl: SHERMAN_URL,
+      portraitContentId: SHERMAN_V1,
     },
     {
-      externalId: 'us_no_image',
-      name: 'No Image',
-      slug: 'no-image',
+      externalId: 'us_no_portrait',
+      name: 'No Portrait',
+      slug: 'no-portrait',
       nationId: nation.id,
       branch: 'ground',
       class: 'medium',
-      imageUrl: null,
+      portraitUrl: null,
+      portraitContentId: null,
     },
   ])
 })
@@ -91,19 +100,21 @@ async function mirroredRows(db: TestDb['db']) {
   return db
     .select({
       externalId: vehicles.externalId,
-      imageKey: vehicles.imageKey,
+      portraitKey: vehicles.portraitKey,
     })
     .from(vehicles)
-    .where(isNotNull(vehicles.imageKey))
+    .where(isNotNull(vehicles.portraitKey))
     .orderBy(asc(vehicles.externalId))
 }
 
-describe('mirrorVehicleImages', () => {
-  it('mirrors vehicles with images into the assets store and records the key', async () => {
+describe('mirrorVehiclePortraits', () => {
+  it('mirrors vehicles with portraits into the assets store and records the key', async () => {
     const store = fakeStore()
     const { calls, impl } = fakeFetch()
 
-    const summary = await mirrorVehicleImages(t.db, store, { fetchImpl: impl })
+    const summary = await mirrorVehiclePortraits(t.db, store, {
+      fetchImpl: impl,
+    })
 
     expect(summary).toMatchObject({ mirrored: 2, upToDate: 0, failed: 0 })
     expect(calls).toHaveLength(2)
@@ -117,16 +128,14 @@ describe('mirrorVehicleImages', () => {
     expect(rows).toEqual([
       {
         externalId: 'us_m1_abrams',
-        imageKey: vehicleImageKey(
-          'us_m1_abrams',
-          'https://api.test/assets/us_m1_abrams.png',
-        ),
+        portraitKey: portraitObjectKey('us_m1_abrams', ABRAMS_V1, ABRAMS_URL),
       },
       {
         externalId: 'us_m4_sherman',
-        imageKey: vehicleImageKey(
+        portraitKey: portraitObjectKey(
           'us_m4_sherman',
-          'https://api.test/assets/us_m4_sherman.png',
+          SHERMAN_V1,
+          SHERMAN_URL,
         ),
       },
     ])
@@ -134,10 +143,10 @@ describe('mirrorVehicleImages', () => {
 
   it('is idempotent: a second run fetches and uploads nothing', async () => {
     const store = fakeStore()
-    await mirrorVehicleImages(t.db, store, { fetchImpl: fakeFetch().impl })
+    await mirrorVehiclePortraits(t.db, store, { fetchImpl: fakeFetch().impl })
 
     const second = fakeFetch()
-    const summary = await mirrorVehicleImages(t.db, store, {
+    const summary = await mirrorVehiclePortraits(t.db, store, {
       fetchImpl: second.impl,
     })
 
@@ -146,41 +155,51 @@ describe('mirrorVehicleImages', () => {
     expect(store.puts).toHaveLength(2)
   })
 
-  it('re-mirrors when the source URL changes and tidies the old object', async () => {
+  // Portrait URLs are pinned to the run's revision, so every nightly sync
+  // rewrites them. Keying on content is what stops that re-mirroring the world.
+  it('does not re-mirror when only the source URL changed', async () => {
     const store = fakeStore()
-    await mirrorVehicleImages(t.db, store, { fetchImpl: fakeFetch().impl })
-    const oldKey = vehicleImageKey(
-      'us_m1_abrams',
-      'https://api.test/assets/us_m1_abrams.png',
-    )
+    await mirrorVehiclePortraits(t.db, store, { fetchImpl: fakeFetch().impl })
 
     await t.db
       .update(vehicles)
-      .set({ imageUrl: 'https://api.test/assets/v2/us_m1_abrams.webp' })
+      .set({ portraitUrl: 'https://api.test/assets/rev2/us_m1_abrams.png' })
       .where(eq(vehicles.externalId, 'us_m1_abrams'))
-    const summary = await mirrorVehicleImages(t.db, store, {
-      fetchImpl: fakeFetch({
-        'https://api.test/assets/v2/us_m1_abrams.webp': { type: 'image/webp' },
-      }).impl,
+    const second = fakeFetch()
+    const summary = await mirrorVehiclePortraits(t.db, store, {
+      fetchImpl: second.impl,
+    })
+
+    expect(summary).toMatchObject({ mirrored: 0, upToDate: 2 })
+    expect(second.calls).toHaveLength(0)
+    expect(store.deletes).toHaveLength(0)
+  })
+
+  it('re-mirrors under a new key when the artwork changed, and tidies the old object', async () => {
+    const store = fakeStore()
+    await mirrorVehiclePortraits(t.db, store, { fetchImpl: fakeFetch().impl })
+    const oldKey = portraitObjectKey('us_m1_abrams', ABRAMS_V1, ABRAMS_URL)
+
+    await t.db
+      .update(vehicles)
+      .set({ portraitContentId: ABRAMS_V2 })
+      .where(eq(vehicles.externalId, 'us_m1_abrams'))
+    const summary = await mirrorVehiclePortraits(t.db, store, {
+      fetchImpl: fakeFetch().impl,
     })
 
     expect(summary).toMatchObject({ mirrored: 1, upToDate: 1, failed: 0 })
     expect(store.deletes).toEqual([{ role: 'assets', key: oldKey }])
-    const rows = await mirroredRows(t.db)
-    expect(rows.find((r) => r.externalId === 'us_m1_abrams')?.imageKey).toBe(
-      vehicleImageKey(
-        'us_m1_abrams',
-        'https://api.test/assets/v2/us_m1_abrams.webp',
-      ),
-    )
+    // a new key, so no cache anywhere can still be serving the old artwork
+    const newKey = portraitObjectKey('us_m1_abrams', ABRAMS_V2, ABRAMS_URL)
+    expect(newKey).not.toBe(oldKey)
+    expect(rowKey(await mirroredRows(t.db), 'us_m1_abrams')).toBe(newKey)
   })
 
-  it('a failed download is a warning, not a run failure, and other images still mirror', async () => {
+  it('a failed download is a warning, not a run failure, and other portraits still mirror', async () => {
     const store = fakeStore()
-    const summary = await mirrorVehicleImages(t.db, store, {
-      fetchImpl: fakeFetch({
-        'https://api.test/assets/us_m1_abrams.png': { status: 500 },
-      }).impl,
+    const summary = await mirrorVehiclePortraits(t.db, store, {
+      fetchImpl: fakeFetch({ [ABRAMS_URL]: { status: 500 } }).impl,
       maxAttempts: 1,
     })
 
@@ -192,7 +211,7 @@ describe('mirrorVehicleImages', () => {
 
   it('respects the backfill limit and reports the deferred remainder', async () => {
     const store = fakeStore()
-    const summary = await mirrorVehicleImages(t.db, store, {
+    const summary = await mirrorVehiclePortraits(t.db, store, {
       fetchImpl: fakeFetch().impl,
       limit: 1,
     })
@@ -203,11 +222,9 @@ describe('mirrorVehicleImages', () => {
 
   it('refuses to mirror non-raster content (SVG is active content)', async () => {
     const store = fakeStore()
-    const summary = await mirrorVehicleImages(t.db, store, {
+    const summary = await mirrorVehiclePortraits(t.db, store, {
       fetchImpl: fakeFetch({
-        'https://api.test/assets/us_m1_abrams.png': {
-          type: 'image/svg+xml; charset=utf-8',
-        },
+        [ABRAMS_URL]: { type: 'image/svg+xml; charset=utf-8' },
       }).impl,
       maxAttempts: 1,
     })
@@ -222,42 +239,56 @@ describe('mirrorVehicleImages', () => {
   it('a malformed source URL fails that row only, without crashing the pass', async () => {
     await t.db
       .update(vehicles)
-      .set({ imageUrl: 'assets/relative.png' })
+      .set({ portraitUrl: 'assets/relative.png' })
       .where(eq(vehicles.externalId, 'us_m1_abrams'))
     const store = fakeStore()
 
-    const summary = await mirrorVehicleImages(t.db, store, {
+    const summary = await mirrorVehiclePortraits(t.db, store, {
       fetchImpl: fakeFetch().impl,
     })
 
     expect(summary).toMatchObject({ mirrored: 1, failed: 1 })
     expect(summary.warnings).toEqual([
-      expect.stringContaining('unusable image URL for us_m1_abrams'),
+      expect.stringContaining('unusable portrait for us_m1_abrams'),
     ])
     const rows = await mirroredRows(t.db)
     expect(rows.map((r) => r.externalId)).toEqual(['us_m4_sherman'])
   })
 
-  it('clears the mirror when the upstream image goes away', async () => {
-    const store = fakeStore()
-    await mirrorVehicleImages(t.db, store, { fetchImpl: fakeFetch().impl })
-    const oldKey = vehicleImageKey(
-      'us_m1_abrams',
-      'https://api.test/assets/us_m1_abrams.png',
-    )
-
+  it('a portrait with no content id fails that row only', async () => {
     await t.db
       .update(vehicles)
-      .set({ imageUrl: null })
+      .set({ portraitContentId: null })
       .where(eq(vehicles.externalId, 'us_m1_abrams'))
-    const summary = await mirrorVehicleImages(t.db, store, {
+    const store = fakeStore()
+
+    const summary = await mirrorVehiclePortraits(t.db, store, {
       fetchImpl: fakeFetch().impl,
     })
 
-    expect(summary).toMatchObject({ mirrored: 0, upToDate: 1, cleaned: 1 })
-    expect(store.deletes).toEqual([{ role: 'assets', key: oldKey }])
+    expect(summary).toMatchObject({ mirrored: 1, failed: 1 })
     const rows = await mirroredRows(t.db)
     expect(rows.map((r) => r.externalId)).toEqual(['us_m4_sherman'])
+  })
+
+  // The registry does not lose imagery it already holds: a null url beside a
+  // live key is a resting state, not an orphan to collect.
+  it('keeps the mirrored copy when upstream stops publishing the portrait', async () => {
+    const store = fakeStore()
+    await mirrorVehiclePortraits(t.db, store, { fetchImpl: fakeFetch().impl })
+    const keptKey = portraitObjectKey('us_m1_abrams', ABRAMS_V1, ABRAMS_URL)
+
+    await t.db
+      .update(vehicles)
+      .set({ portraitUrl: null, portraitContentId: null })
+      .where(eq(vehicles.externalId, 'us_m1_abrams'))
+    const summary = await mirrorVehiclePortraits(t.db, store, {
+      fetchImpl: fakeFetch().impl,
+    })
+
+    expect(summary).toMatchObject({ mirrored: 0, upToDate: 1, failed: 0 })
+    expect(store.deletes).toHaveLength(0)
+    expect(rowKey(await mirroredRows(t.db), 'us_m1_abrams')).toBe(keptKey)
   })
 
   it('aborts the run after persistent consecutive failures', async () => {
@@ -270,12 +301,13 @@ describe('mirrorVehicleImages', () => {
         nationId: nation[0].id,
         branch: 'ground' as const,
         class: 'medium' as const,
-        imageUrl: `https://api.test/broken/${i}.png`,
+        portraitUrl: `https://api.test/broken/${i}.png`,
+        portraitContentId: String(i).padStart(40, '0'),
       })),
     )
     await t.db
       .update(vehicles)
-      .set({ imageUrl: null })
+      .set({ portraitUrl: null, portraitContentId: null })
       .where(inArray(vehicles.externalId, ['us_m1_abrams', 'us_m4_sherman']))
     const store = fakeStore()
     const { calls, impl } = fakeFetch(
@@ -287,7 +319,7 @@ describe('mirrorVehicleImages', () => {
       ),
     )
 
-    const summary = await mirrorVehicleImages(t.db, store, {
+    const summary = await mirrorVehiclePortraits(t.db, store, {
       fetchImpl: impl,
       concurrency: 1,
       maxAttempts: 1,
@@ -299,3 +331,10 @@ describe('mirrorVehicleImages', () => {
     expect(store.puts).toHaveLength(0)
   })
 })
+
+function rowKey(
+  rows: Array<{ externalId: string; portraitKey: string | null }>,
+  externalId: string,
+) {
+  return rows.find((r) => r.externalId === externalId)?.portraitKey
+}

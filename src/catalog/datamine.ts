@@ -1,6 +1,7 @@
 import type {
   CatalogSnapshot,
   CatalogSource,
+  SourcePortrait,
   SourceVehicle,
 } from '#/catalog/source'
 import type { Branch } from '#/catalog/mapping'
@@ -14,10 +15,27 @@ const DEFAULT_REPO_URL =
   'https://raw.githubusercontent.com/gszabi99/War-Thunder-Datamine'
 const DEFAULT_COMMIT_API =
   'https://api.github.com/repos/gszabi99/War-Thunder-Datamine/commits/master'
+const DEFAULT_TREE_API =
+  'https://api.github.com/repos/gszabi99/War-Thunder-Datamine/git/trees'
+const IMAGE_ROOT = 'tex.vromfs.bin_u'
+
+/* Measured over 19 months of upstream history: the artless share of a branch
+   peaks at 2.2% (ground, 2025-09-05) and averages ~1.3%, and the worst absolute
+   count is 30. A folder that moved or was renamed reads as 100%, so this range
+   is a structural break rather than news. Both terms are load-bearing: the
+   share is what scales, the count is what keeps a small catalog from tripping
+   on a handful of missing portraits. */
+const MAX_ARTLESS_SHARE = 0.1
+const MAX_ARTLESS_COUNT = 50
+/* A folder this small is a restructure, not a purge; the smallest real one
+   (ships) has held 475+ entries throughout. */
+const MIN_FOLDER_ENTRIES = 100
 
 export interface DatamineOptions {
   /** Read the files from here verbatim instead of pinning a revision. */
   baseUrl?: string
+  /** Git Trees API root, for reading the image index. */
+  treeApiUrl?: string
   /** Locale file, separately configurable — it is the one file with a mirror. */
   unitsCsvUrl?: string
   fetchImpl?: typeof fetch
@@ -100,6 +118,7 @@ interface UnittagsUnit {
 export class DatamineSource implements CatalogSource {
   readonly name = 'gszabi99-datamine'
   private readonly configuredBaseUrl: string | undefined
+  private readonly treeApiUrl: string
   private readonly configuredUnitsCsvUrl: string | undefined
   private readonly fetchImpl: typeof fetch
   private readonly retryDelayMs: number
@@ -107,6 +126,10 @@ export class DatamineSource implements CatalogSource {
 
   constructor(options: DatamineOptions = {}) {
     this.configuredBaseUrl = options.baseUrl?.replace(/\/+$/, '')
+    this.treeApiUrl = (options.treeApiUrl ?? DEFAULT_TREE_API).replace(
+      /\/+$/,
+      '',
+    )
     this.configuredUnitsCsvUrl = options.unitsCsvUrl
     this.fetchImpl = options.fetchImpl ?? fetch
     this.retryDelayMs = options.retryDelayMs ?? 1000
@@ -114,16 +137,16 @@ export class DatamineSource implements CatalogSource {
   }
 
   async fetchSnapshot(): Promise<CatalogSnapshot> {
-    // The four files must come from one revision: read off a moving branch, a
-    // push landing mid-flight yields a snapshot whose units.csv doesn't cover
-    // its wpcost, and the missing units read as removed.
-    const dataUrl =
-      this.configuredBaseUrl ?? `${DEFAULT_REPO_URL}/${await this.headSha()}`
-    // Images stay on the branch: vehicleImageKey hashes the source URL, so a
-    // per-run revision would re-mirror every image every night.
-    const imageUrl = this.configuredBaseUrl ?? `${DEFAULT_REPO_URL}/master`
+    // Everything must come from one revision: read off a moving branch, a push
+    // landing mid-flight yields a snapshot whose units.csv doesn't cover its
+    // wpcost, and the missing units read as removed. Imagery is pinned to that
+    // same revision, so a recorded URL always re-fetches the exact bytes
+    // mirrored under it — the key is content-addressed, not URL-derived, so a
+    // per-run revision costs nothing.
+    const revision = this.configuredBaseUrl ? 'master' : await this.headSha()
+    const dataUrl = this.configuredBaseUrl ?? `${DEFAULT_REPO_URL}/${revision}`
 
-    const [wpcost, unittags, names, version] = await Promise.all([
+    const [wpcost, unittags, names, version, portraits] = await Promise.all([
       this.fetchJson<Record<string, unknown>>(
         `${dataUrl}/char.vromfs.bin_u/config/wpcost.blkx`,
       ),
@@ -135,6 +158,7 @@ export class DatamineSource implements CatalogSource {
           `${dataUrl}/lang.vromfs.bin_u/lang/units.csv`,
       ),
       this.fetchText(`${dataUrl}/version`),
+      this.fetchPortraitIndex(revision),
     ])
 
     const gameVersion = version.trim()
@@ -160,7 +184,13 @@ export class DatamineSource implements CatalogSource {
     const unclassified: Array<string> = []
     const unplaceable: Array<string> = []
     const incomplete: Array<string> = []
+    const artless: Array<string> = []
     const ignoredTags = new Set<string>()
+    const coverage: Record<Branch, { emitted: number; artless: number }> = {
+      ground: { emitted: 0, artless: 0 },
+      air: { emitted: 0, artless: 0 },
+      naval: { emitted: 0, artless: 0 },
+    }
 
     for (const [externalId, entry] of Object.entries(wpcost)) {
       // wpcost carries scalar siblings of the units (economicRankMax); a unit
@@ -228,6 +258,23 @@ export class DatamineSource implements CatalogSource {
       }
       const [era, arcade, historical, simulation] = ranks as Array<number>
 
+      // The upstream index decides, rather than a path we assume exists: 34
+      // units carry no artwork at all, and guessing one produced a URL that
+      // 404'd on every run forever.
+      const file = `${externalId.toLowerCase()}.png`
+      const contentId = portraits[branch].get(file)
+      const portrait: SourcePortrait | null = contentId
+        ? {
+            url: `${dataUrl}/${IMAGE_ROOT}/${IMAGE_FOLDER[branch]}/${file}`,
+            contentId,
+          }
+        : null
+      coverage[branch].emitted += 1
+      if (!portrait) {
+        coverage[branch].artless += 1
+        artless.push(externalId)
+      }
+
       const country = String(unit.country ?? '').replace(/^country_/, '')
       vehicles.push({
         externalId,
@@ -241,11 +288,11 @@ export class DatamineSource implements CatalogSource {
         isPremium: unit.costGold != null,
         isSquadron: unit.researchType === 'clanVehicle',
         event: typeof unit.event === 'string' ? unit.event : null,
-        imageUrl:
-          `${imageUrl}/tex.vromfs.bin_u/${IMAGE_FOLDER[branch]}/` +
-          `${externalId.toLowerCase()}.png`,
+        portrait,
       })
     }
+
+    assertPortraitCoverage(coverage)
 
     const skipped: Array<readonly [Array<string>, string]> = [
       [untagged, 'units missing from unittags — skipped'],
@@ -255,6 +302,7 @@ export class DatamineSource implements CatalogSource {
       [unclassified, 'units with no recognized base class tag skipped'],
       [unplaceable, 'units whose base class the sync engine cannot place'],
       [incomplete, 'units with unusable rank or economic rank skipped'],
+      [artless, 'vehicles with no portrait upstream'],
     ]
     for (const [ids, label] of skipped) {
       if (ids.length > 0) warnings.push(countedList(label, ids))
@@ -267,6 +315,68 @@ export class DatamineSource implements CatalogSource {
     }
 
     return { gameVersion, vehicles, warnings }
+  }
+
+  /** Portrait filename → blob SHA per branch, walked targeted rather than
+      recursively: five responses and 949 KB against 19.6 MB and 57% of the
+      100,000-entry truncation cap for `?recursive=1`, which also carries no
+      ETag. */
+  private async fetchPortraitIndex(
+    revision: string,
+  ): Promise<Record<Branch, Map<string, string>>> {
+    const root = await this.fetchTree(revision)
+    const imageRoot = root.get(IMAGE_ROOT)
+    if (!imageRoot) {
+      throw new Error(`No ${IMAGE_ROOT} in the tree at ${revision}`)
+    }
+    const folders = await this.fetchTree(imageRoot)
+
+    const branches = Object.keys(IMAGE_FOLDER) as Array<Branch>
+    const listings = await Promise.all(
+      branches.map(async (branch) => {
+        const sha = folders.get(IMAGE_FOLDER[branch])
+        if (!sha) {
+          throw new Error(
+            `No ${IMAGE_ROOT}/${IMAGE_FOLDER[branch]} in the tree at ${revision}`,
+          )
+        }
+        const entries = await this.fetchTree(sha)
+        if (entries.size < MIN_FOLDER_ENTRIES) {
+          throw new Error(
+            `Only ${entries.size} entries under ${IMAGE_ROOT}/${IMAGE_FOLDER[branch]} ` +
+              `at ${revision} — upstream restructured, refusing to blank the catalog`,
+          )
+        }
+        return [branch, entries] as const
+      }),
+    )
+    return Object.fromEntries(listings) as Record<Branch, Map<string, string>>
+  }
+
+  /** One tree level: entry name → its own SHA (a subtree's, or a blob's, which
+      is a hash of the file's contents). */
+  private async fetchTree(sha: string): Promise<Map<string, string>> {
+    const { tree, truncated } = await this.fetchJson<{
+      tree?: unknown
+      truncated?: unknown
+    }>(`${this.treeApiUrl}/${sha}`)
+    if (!Array.isArray(tree)) {
+      throw new Error(`No tree at ${this.treeApiUrl}/${sha}`)
+    }
+    // A truncated listing is silently short, which reads downstream as artwork
+    // that vanished. The walk is targeted precisely so this cannot happen.
+    if (truncated === true) {
+      throw new Error(`Truncated tree at ${this.treeApiUrl}/${sha}`)
+    }
+    const entries = new Map<string, string>()
+    for (const entry of tree) {
+      if (entry === null || typeof entry !== 'object') continue
+      const { path, sha: entrySha } = entry as { path?: unknown; sha?: unknown }
+      if (typeof path === 'string' && typeof entrySha === 'string') {
+        entries.set(path, entrySha)
+      }
+    }
+    return entries
   }
 
   /** Commit behind `master`, so all four files come from one revision. */
@@ -309,6 +419,23 @@ export class DatamineSource implements CatalogSource {
       githubToken: this.githubToken,
     })
     return response.text()
+  }
+}
+
+/** Portraits are the one field read from a second upstream file tree, so a
+    restructure there would blank the catalog's imagery without failing
+    anything. Abort the snapshot instead — nothing has been written yet. */
+export function assertPortraitCoverage(
+  coverage: Record<Branch, { emitted: number; artless: number }>,
+): void {
+  for (const [branch, { emitted, artless }] of Object.entries(coverage)) {
+    const allowed = Math.max(MAX_ARTLESS_COUNT, MAX_ARTLESS_SHARE * emitted)
+    if (artless <= allowed) continue
+    throw new Error(
+      `${artless} of ${emitted} ${branch} vehicles have no portrait ` +
+        `(${(100 * (artless / emitted)).toFixed(1)}%), over the ${Math.floor(allowed)} ` +
+        `this run allows — treating it as an upstream restructure rather than news`,
+    )
   }
 }
 

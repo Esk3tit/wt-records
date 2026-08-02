@@ -12,16 +12,21 @@ bun run catalog:sync             # the real thing, against DATABASE_URL
 
 ## What a run does
 
-1. Resolves `master` to a commit and reads every data file from that one
-   revision, so a push landing mid-run can't yield a `units.csv` that doesn't
-   cover its `wpcost`. Image URLs deliberately stay on `master`: their key is a
-   hash of the source URL, so pinning them would re-mirror the catalog nightly.
+1. Resolves `master` to a commit and reads everything from that one revision —
+   data files *and* portraits — so a push landing mid-run can't yield a
+   `units.csv` that doesn't cover its `wpcost`, and a recorded portrait URL
+   always re-fetches the exact bytes mirrored under it.
    Fetches four datamine files over HTTPS (~2.6 MB gzipped, no clone):
    `wpcost.blkx` (economy — rank, economic ranks, country, `costGold`,
    `researchType`, `event`), `unittags.blkx` (class tags, `operatorCountry`),
    `units.csv` (English display names) and `/version`. Hidden, event and
    premium vehicles are all included; scripted units are not (below).
    BRs are computed from the economic ranks — 1.0 upward in thirds.
+   Portraits come from the Git Trees API rather than a guessed path: root →
+   `tex.vromfs.bin_u` → one tree per branch, five responses and ~949 KB, which
+   yields each file's real path *and* its blob SHA. A vehicle upstream ships no
+   artwork for gets no portrait URL at all instead of one that 404s (34 today,
+   mostly `nt_*` units), counted in a summary warning.
 2. Upserts the current patch (`2.57.0.8` → `patches.version = '2.57'`), so
    record entry never blocks on a missing patch.
 3. Upserts `nations` (canonical in-game order) and `vehicles` keyed by
@@ -53,35 +58,47 @@ no meaning. Tags outside that list are capability modifiers (`naval_aircraft`,
 new upstream vocabulary surfaces. A unit with no recognized base class tag is
 skipped with a warning — the sync never guesses a class.
 
-Two guards protect against a bad upstream response: a snapshot under 1,000
-vehicles aborts before writing, and a run that would flag more than
+Three guards protect against a bad upstream response: a snapshot under 1,000
+vehicles aborts before writing; a run that would flag more than
 max(25, 5% of the catalog) vehicles as removed aborts and rolls back —
 mapping drift (a renamed type vocabulary, a new country) must not mass-remove
-live vehicles from an unattended cron.
+live vehicles from an unattended cron; and a branch with more than
+max(50, 10%) artless vehicles aborts the snapshot, so a renamed or moved image
+folder upstream reads as the restructure it is rather than as artwork that
+vanished. That last one is sized against 71 samples over 19 months, in which
+the worst branch ran 26 artless of 1,166 (2.2%). A tree that comes back
+truncated, or a folder under 100 entries, aborts on the same reasoning.
 
-## Image mirroring
+## Portrait mirroring
 
-After a real (non-dry) sync commits, vehicle images are mirrored from the
+After a real (non-dry) sync commits, vehicle Portraits are mirrored from the
 upstream host into the R2 assets bucket so the site never hotlinks third-party
 hosting. Best-effort and outside the sync transaction: a mirror failure is a
 warning in the summary, never a failed sync.
 
-- `vehicles.image_url` keeps the upstream source URL; `vehicles.image_key`
-  holds the mirrored object's key. Read paths build serving URLs with
+- `vehicles.portrait_url` keeps the upstream source URL and
+  `vehicles.portrait_content_id` the blob SHA of those bytes — both what
+  upstream currently offers; `vehicles.portrait_key` holds the mirrored
+  object's key, what we actually hold. Read paths build serving URLs with
   `assetUrl(key)` from `#/storage/urls` (needs only `R2_ASSETS_BASE_URL`, never
-  bucket credentials) — no UI consumes it yet; that lands with the record-sheet
-  work.
-- Keys embed a hash of the source URL (`vehicles/<external_id>-<hash8>.<ext>`),
-  which makes runs idempotent: an unchanged URL is skipped, a changed URL
-  re-mirrors under a new key and deletes the stale object; an upstream image
-  that disappears gets its mirror cleaned up. Changing the key format itself
-  re-mirrors the whole catalog on the next run — deliberate, but pair it with
-  `--mirror-limit`.
+  bucket credentials).
+- Keys are content-addressed (`vehicles/<external_id>-<blobsha8>.<ext>`), which
+  makes runs idempotent and replaced artwork detectable: unchanged content is
+  skipped even though the pinned URL changes every night, and changed content
+  mirrors under a *new* key and deletes the superseded object. The new key
+  matters as much as the detection — overwriting one key in place would leave
+  every cache serving the old artwork. Changing the key format re-mirrors the
+  whole catalog on the next run; that costs ~2,650 images and 246 MB, measured
+  at roughly two minutes.
+- A Portrait upstream stops publishing is **kept**, not deleted: a null
+  `portrait_url` beside a live `portrait_key` is a resting state, not an
+  orphan. The registry does not lose imagery it already holds, and a bad
+  upstream read can then only withhold artwork, never destroy it.
 - Mirroring is skipped with a note when the `R2_*` vars are absent, so local
   dev without R2 credentials still syncs.
-- `--mirror-limit=N` caps a run's uploads — use it to spread the initial
-  ~2,700-image backfill over a few daily runs instead of one burst against the
-  datamine.
+- `--mirror-limit=N` caps a run's uploads. Steady state needs ~1 per day, and a
+  full re-mirror finishes in one run, so this is a manual tool rather than
+  standing config.
 
 ## Environment
 
@@ -91,7 +108,7 @@ warning in the summary, never a failed sync.
 | `CATALOG_SYNC_REMOTE` | unset | A real (non-dry) sync against a non-local DB refuses to run unless this is `1`. Slugs are first-run-wins, so accidental remote syncs are irreversible; `Dockerfile.sync` sets it for the cron service. |
 | `CATALOG_GITHUB_TOKEN` | unset (anonymous, and the run warns) | Read-only GitHub token. Anonymous reads get 60 requests/hour keyed on the *IP*, which on shared hosting is spent by strangers — authenticating raises it to the 5,000/hour that belongs to the token's *account*. Needs only public-repository read; the sync sends it only to `api.github.com` and `raw.githubusercontent.com` |
 | `WT_UNITS_CSV_URL` | gszabi99 `units.csv` on the pinned revision | English display names. Setting it opts that one file out of revision pinning, so the run warns — a shop name the override lacks makes an ownable unit look scripted |
-| `R2_*` | unset (mirroring skipped) | Assets-bucket credentials for image mirroring — see `.env.example` |
+| `R2_*` | unset (mirroring skipped) | Assets-bucket credentials for portrait mirroring — see `.env.example` |
 
 ## Scheduling (Railway cron)
 
