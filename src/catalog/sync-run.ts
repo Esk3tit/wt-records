@@ -3,6 +3,7 @@ import { isLocalDatabaseUrl, openCliDb } from '#/db/cli'
 import { DatamineSource } from '#/catalog/datamine'
 import { syncCatalog } from '#/catalog/sync'
 import { mirrorVehicleImages } from '#/catalog/mirror-images'
+import { headerSafeGitHubToken } from '#/catalog/upstream-fetch'
 import { recordCatalogSyncRun } from '#/catalog/sync-status'
 import { storageFromEnvIfConfigured } from '#/storage/r2'
 
@@ -35,8 +36,26 @@ if (
   )
 }
 
+const rawToken = process.env.CATALOG_GITHUB_TOKEN
+const githubToken = headerSafeGitHubToken(rawToken)
+if (!githubToken) {
+  // "set but empty" is its own state: telling an operator who did set the
+  // variable that it is unset sends them looking in the wrong place.
+  const state =
+    rawToken === undefined
+      ? 'not set'
+      : rawToken.trim() === ''
+        ? 'set but empty'
+        : 'not a usable header value'
+  console.warn(
+    `⚠ CATALOG_GITHUB_TOKEN is ${state} — reading GitHub anonymously, on a` +
+      ' 60 requests/hour budget shared with everything else on this IP.',
+  )
+}
+
 const source = new DatamineSource({
   unitsCsvUrl: process.env.WT_UNITS_CSV_URL,
+  githubToken,
 })
 
 // The DB handle is opened before the fetch (postgres-js connects lazily) so an
@@ -79,6 +98,7 @@ try {
     try {
       const mirror = await mirrorVehicleImages(db, storage, {
         limit: mirrorLimit,
+        githubToken,
       })
       for (const warning of mirror.warnings) console.warn(`⚠ ${warning}`)
       console.log(

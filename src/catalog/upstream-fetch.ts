@@ -3,6 +3,9 @@ const MAX_ATTEMPTS = 3
 const REASON_MAX = 200
 const REASON_MAX_READS = 16
 const REASON_READ_TIMEOUT_MS = 2000
+// Exact hosts, never a suffix match: "api.github.com.evil.test" must not pass.
+const GITHUB_HOSTS = new Set(['api.github.com', 'raw.githubusercontent.com'])
+const HEADER_SAFE = /^[\x21-\x7e]+$/
 
 export interface UpstreamFetchOptions {
   fetchImpl?: typeof fetch
@@ -13,6 +16,8 @@ export interface UpstreamFetchOptions {
   timeoutMs?: number
   /** Redirect policy; default follows. 'error' hardens SSRF-sensitive fetches. */
   redirect?: RequestRedirect
+  /** Lifts GitHub's 60/hr per-IP anonymous budget to the token's 5,000/hr. */
+  githubToken?: string
 }
 
 /** GET with the catalog user-agent and backoff retries on 429/5xx/network
@@ -31,7 +36,10 @@ export async function fetchUpstream(
     let response: Response
     try {
       response = await fetchImpl(url, {
-        headers: { 'user-agent': USER_AGENT },
+        headers: {
+          'user-agent': USER_AGENT,
+          ...githubAuthHeaders(url, options.githubToken),
+        },
         redirect: options.redirect,
         signal:
           options.timeoutMs == null
@@ -52,6 +60,34 @@ export async function fetchUpstream(
     lastError = error
   }
   throw lastError
+}
+
+/** The token if a header can safely carry it, else undefined — a Headers
+    rejection quotes the value, and that message reaches a public issue. */
+export function headerSafeGitHubToken(
+  raw: string | undefined,
+): string | undefined {
+  const token = raw?.trim()
+  return token && HEADER_SAFE.test(token) ? token : undefined
+}
+
+/** Imgur, avatar CDNs and a configurable locale URL share this fetch, so the
+    credential goes to the hosts it belongs to rather than wherever a caller aims. */
+function githubAuthHeaders(
+  url: string,
+  token: string | undefined,
+): Record<string, string> {
+  const bearer = headerSafeGitHubToken(token)
+  if (!bearer) return {}
+  let target: URL
+  try {
+    target = new URL(url)
+  } catch {
+    return {}
+  }
+  return target.protocol === 'https:' && GITHUB_HOSTS.has(target.hostname)
+    ? { authorization: `Bearer ${bearer}` }
+    : {}
 }
 
 /** An upstream's own reason ("SQLITE_CORRUPT…") is what makes a 500 actionable;

@@ -22,6 +22,7 @@ export interface DatamineOptions {
   unitsCsvUrl?: string
   fetchImpl?: typeof fetch
   retryDelayMs?: number
+  githubToken?: string
 }
 
 /* Class comes from this list's order, never from the first tag upstream emits:
@@ -102,12 +103,14 @@ export class DatamineSource implements CatalogSource {
   private readonly configuredUnitsCsvUrl: string | undefined
   private readonly fetchImpl: typeof fetch
   private readonly retryDelayMs: number
+  private readonly githubToken: string | undefined
 
   constructor(options: DatamineOptions = {}) {
     this.configuredBaseUrl = options.baseUrl?.replace(/\/+$/, '')
     this.configuredUnitsCsvUrl = options.unitsCsvUrl
     this.fetchImpl = options.fetchImpl ?? fetch
     this.retryDelayMs = options.retryDelayMs ?? 1000
+    this.githubToken = options.githubToken
   }
 
   async fetchSnapshot(): Promise<CatalogSnapshot> {
@@ -303,6 +306,7 @@ export class DatamineSource implements CatalogSource {
     const response = await fetchUpstream(url, {
       fetchImpl: this.fetchImpl,
       retryDelayMs: this.retryDelayMs,
+      githubToken: this.githubToken,
     })
     return response.text()
   }
