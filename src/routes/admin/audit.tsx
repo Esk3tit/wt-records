@@ -83,40 +83,42 @@ function AuditView() {
         </select>
       </div>
 
-      {result.rows.length === 0 ? (
-        <p className="text-sm text-fg-faint">Nothing audited yet.</p>
-      ) : (
-        <ul aria-busy={pending} className="space-y-2">
-          {result.rows.map((row) => (
-            <li
-              key={row.id}
-              className="rounded-[10px] border border-hairline-soft px-3 py-2 text-sm"
-            >
-              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <code className="font-semibold">{row.action}</code>
-                <span className="text-fg-muted">
-                  {row.entity}
-                  {row.entityId ? ` #${row.entityId}` : ''}
-                </span>
-                <span className="ml-auto text-xs text-fg-faint">
-                  {row.actorHandle ?? row.actorId ?? 'unknown'}
-                  {row.createdAt && ` · ${formatDayTime(row.createdAt)}`}
-                </span>
-              </div>
-              {row.diff && (
-                <details className="mt-1">
-                  <summary className="cursor-pointer text-xs text-fg-muted">
-                    diff
-                  </summary>
-                  <pre className="mt-1 overflow-x-auto rounded bg-black/30 p-2 text-xs">
-                    {JSON.stringify(row.diff, null, 2)}
-                  </pre>
-                </details>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      <div aria-busy={pending}>
+        {result.rows.length === 0 ? (
+          <p className="text-sm text-fg-faint">Nothing audited yet.</p>
+        ) : (
+          <ul className="space-y-2">
+            {result.rows.map((row) => (
+              <li
+                key={row.id}
+                className="rounded-[10px] border border-hairline-soft px-3 py-2 text-sm"
+              >
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <code className="font-semibold">{row.action}</code>
+                  <span className="text-fg-muted">
+                    {row.entity}
+                    {row.entityId ? ` #${row.entityId}` : ''}
+                  </span>
+                  <span className="ml-auto text-xs text-fg-faint">
+                    {row.actorHandle ?? row.actorId ?? 'unknown'}
+                    {row.createdAt && ` · ${formatDayTime(row.createdAt)}`}
+                  </span>
+                </div>
+                {row.diff && (
+                  <details className="mt-1">
+                    <summary className="cursor-pointer text-xs text-fg-muted">
+                      diff
+                    </summary>
+                    <pre className="mt-1 overflow-x-auto rounded bg-black/30 p-2 text-xs">
+                      {JSON.stringify(row.diff, null, 2)}
+                    </pre>
+                  </details>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <Pager
         page={page}

@@ -19,7 +19,7 @@ A thin suite — the flows worth driving end to end, not a second copy of the un
 | `reach-helper.spec.ts`          | the reach measurement itself, against markup built to break it            |
 | `catalog-status.spec.ts`        | the sync status endpoint answers the watchdog probe                       |
 
-### Measuring contrast
+## Measuring contrast
 
 `e2e/support/contrast.ts` is the only way this repo can answer "does that read?", because a pane is translucent glass over a lit scene and the ink carries its own alpha — neither side of the ratio exists until it renders, so no token and no stylesheet review can tell you.
 

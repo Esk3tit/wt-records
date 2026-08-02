@@ -218,6 +218,13 @@ export async function pinScene(page: Page, colour: string) {
       (child as HTMLElement).style.display = 'none'
     scene.style.background = c
 
+    /* The corner has to be showing the stack for the pixel read off it to mean
+       anything: covered by a pane, it differs from the flood whatever the scrim
+       does, and the check below would pass without ever being able to fail. */
+    const top = document.elementFromPoint(2, 2)
+    if (top?.closest('header, main, footer'))
+      throw new Error('the corner the flood is read from is covered')
+
     const swatch = Object.assign(document.createElement('span'), {
       style: `color:${c}`,
     })
@@ -288,7 +295,9 @@ export async function worstDownThePage(
     sites?: string[]
   },
 ): Promise<InkReading[]> {
-  const floor = await deepestScroll(page)
+  /* Floored at zero: a page that fits the viewport reports a negative scroll
+     range, and asking the reader to reach it never succeeds. */
+  const floor = Math.max(await deepestScroll(page), 0)
   /* The floor itself, always: a page whose scroll ends between two configured
      depths would otherwise never have its last screen read, and the bottom of
      a ledger is where the rows this guard is for actually are. */
@@ -326,8 +335,11 @@ function collectTargets({
 }): Target[] {
   /* `rgb(…)` carries three numbers and `rgba(…)` four, so the alpha is read
      off the length rather than assumed. */
-  const parse = (color: string): Rgba => {
-    const parts = color.match(/[\d.]+/g)!.map(Number)
+  /* `none`, a gradient `url(#id)`, a bare keyword: an SVG paint is not always
+     a colour, and a run painted with one carries no ratio to take. */
+  const parse = (color: string): Rgba | null => {
+    const parts = color.match(/[\d.]+/g)?.map(Number)
+    if (!parts || parts.length < 3) return null
     const [r, g, b] = parts
     return [r, g, b, parts.length > 3 ? parts[3] : 1]
   }
@@ -420,6 +432,15 @@ function collectTargets({
        4.5:1 its pixel height would imply if it were read as type. SVG *type*
        is type: a monogram is read, not looked at. */
     const icon = el instanceof SVGElement && el.tagName === 'svg'
+    /* SVG type is painted with `fill`, and `color` on such an element is
+       whatever it happened to inherit — a different colour entirely. */
+    const paint = parse(
+      el instanceof SVGElement && /^(text|tspan)$/.test(el.tagName)
+        ? style.fill
+        : style.color,
+    )
+    if (!paint) continue
+
     targets.push({
       dim,
       /* Which of the surfaces this sweep is accountable for the run sits in.
@@ -441,13 +462,7 @@ function collectTargets({
         .trim()
         .replace(/\s+/g, '.')
         .slice(0, 70),
-      /* SVG type is painted with `fill`, and `color` on such an element is
-         whatever it happened to inherit — a different colour entirely. */
-      ink: parse(
-        el instanceof SVGElement && /^(text|tspan)$/.test(el.tagName)
-          ? style.fill
-          : style.color,
-      ),
+      ink: paint,
       needs: large || icon ? 3 : 4.5,
       font: `${size}px/${weight}`,
       rects,

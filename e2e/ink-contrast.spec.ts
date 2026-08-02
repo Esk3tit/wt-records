@@ -132,7 +132,10 @@ for (const theme of ['dark', 'light'] as const) {
         /* Clamped: a thin corpus makes some of these pages shorter than the
            scroll they are asked for, and the point is to read the panes past
            the top of the scene, not to reach an exact offset. */
-        await readerScrollsTo(page, Math.min(600, await deepestScroll(page)))
+        await readerScrollsTo(
+          page,
+          Math.max(Math.min(600, await deepestScroll(page)), 0),
+        )
         await pinScene(page, EDGE)
 
         expect(faultsInInk(await readInk(page, 'main', ''))).toEqual([])
