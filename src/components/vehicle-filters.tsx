@@ -82,7 +82,7 @@ function FilterGroup({
   children: React.ReactNode
 }) {
   return (
-    <fieldset className="flex flex-wrap items-center gap-1.5">
+    <fieldset className="flex flex-wrap items-center gap-x-1.5 gap-y-2">
       <legend className="float-left mb-1 w-full text-[0.6875rem] font-semibold tracking-[0.12em] text-fg-muted uppercase sm:mb-0 sm:w-[6.5rem] sm:pr-3">
         {label}
       </legend>
@@ -106,7 +106,7 @@ function FilterChip({
       aria-pressed={active}
       onClick={onClick}
       className={
-        'rounded-[10px] border px-2.5 py-1 text-[0.8125rem] font-medium transition-colors duration-200 ' +
+        'tap-reach min-w-11 rounded-[10px] border px-2.5 py-2 text-[0.8125rem] font-medium transition-colors duration-200 ' +
         (active
           ? 'border-transparent bg-[var(--pill-active)] text-fg'
           : 'border-hairline text-fg-muted hover:border-[var(--hairline-hover)] hover:text-fg')
@@ -152,8 +152,9 @@ export function VehicleFilters({
     apply({ br: `${min || first}-${max || last}` })
   }
 
+  // A select takes no pseudo-element, so its 44px has to be real height.
   const brSelectClass =
-    'rounded-[10px] border border-hairline bg-transparent px-2 py-1 text-[0.8125rem] text-fg transition-colors duration-200 hover:border-[var(--hairline-hover)]'
+    'min-h-11 rounded-[10px] border border-hairline bg-transparent px-2 py-1 text-[0.8125rem] text-fg transition-colors duration-200 hover:border-[var(--hairline-hover)]'
 
   // q lives outside the fold (the name input stays visible on phones), so
   // the disclosure badge counts only the folded groups.
@@ -170,7 +171,7 @@ export function VehicleFilters({
         aria-controls="vehicle-filter-groups"
         onClick={() => setExpanded((e) => !e)}
         className={
-          'flex items-center gap-1.5 text-[0.8125rem] font-medium text-fg-muted transition-colors duration-200 hover:text-fg sm:hidden ' +
+          'tap-reach flex items-center gap-1.5 text-[0.8125rem] font-medium text-fg-muted transition-colors duration-200 hover:text-fg sm:hidden ' +
           (nameSlot != null ? 'mt-3.5' : '')
         }
       >

@@ -78,11 +78,15 @@ function SortHeader({
   sort,
   search,
   onChange,
+  align = 'left',
   children,
 }: {
   sort: BrowseSort
   search: BrowseSearch
   onChange: (next: BrowseSearch) => void
+  /** Follows its column, so widening the ink to a thumb never unpins the
+      label from the numbers it heads. */
+  align?: 'left' | 'right'
   children: React.ReactNode
 }) {
   const active = search.sort === sort
@@ -90,7 +94,8 @@ function SortHeader({
     <button
       type="button"
       className={
-        'inline-flex items-center gap-1 text-xs font-semibold tracking-[0.05em] uppercase transition-colors duration-200 ' +
+        'tap-reach inline-flex min-w-11 items-center gap-1 text-xs font-semibold tracking-[0.05em] uppercase transition-colors duration-200 ' +
+        (align === 'right' ? 'justify-end ' : '') +
         (active ? 'text-fg' : 'text-fg-muted hover:text-fg')
       }
       onClick={() => onChange(nextSortSearch(search, sort))}
@@ -117,7 +122,9 @@ function pageWindow(page: number, pageCount: number): Array<number | null> {
 }
 
 const PAGER_PILL =
-  'rounded-[10px] border px-3 py-1.5 text-[0.8125rem] font-medium no-underline transition-colors duration-200 '
+  'min-w-11 rounded-[10px] border px-3 py-2.5 text-center text-[0.8125rem] font-medium no-underline transition-colors duration-200 '
+// Only the live pages are targets; the spent arrows share the shape, not the reach.
+const PAGER_LINK = PAGER_PILL + 'tap-reach '
 const PAGER_IDLE =
   'border-hairline text-fg-muted hover:border-[var(--hairline-hover)] hover:text-fg'
 const PAGER_DISABLED = 'border-hairline-soft text-fg-faint'
@@ -198,7 +205,8 @@ function BrowsePage() {
                   key={search.q ?? ''}
                   defaultValue={search.q ?? ''}
                   placeholder="Vehicle name…"
-                  className="w-full rounded-[10px] border border-hairline bg-[var(--tint)] py-1.5 pr-3 pl-9 text-[0.9375rem] placeholder:text-fg-muted"
+                  // An input takes no pseudo-element, so its 44px is real height.
+                  className="min-h-11 w-full rounded-[10px] border border-hairline bg-[var(--tint)] py-1.5 pr-3 pl-9 text-[0.9375rem] placeholder:text-fg-muted"
                 />
               </div>
             </form>
@@ -227,7 +235,12 @@ function BrowsePage() {
                 className={LEDGER_TH + ' hidden pr-4 text-right sm:table-cell'}
                 aria-sort={sortAriaValue(search, 'br')}
               >
-                <SortHeader sort="br" search={search} onChange={setSearch}>
+                <SortHeader
+                  sort="br"
+                  search={search}
+                  onChange={setSearch}
+                  align="right"
+                >
                   BR
                 </SortHeader>
               </th>
@@ -235,7 +248,12 @@ function BrowsePage() {
                 className={LEDGER_TH + ' pr-4 text-right'}
                 aria-sort={sortAriaValue(search, 'kills')}
               >
-                <SortHeader sort="kills" search={search} onChange={setSearch}>
+                <SortHeader
+                  sort="kills"
+                  search={search}
+                  onChange={setSearch}
+                  align="right"
+                >
                   Kills
                 </SortHeader>
               </th>
@@ -281,7 +299,7 @@ function BrowsePage() {
               }}
               activeOptions={PAGER_ACTIVE}
               aria-label="Previous page"
-              className={PAGER_PILL + PAGER_IDLE}
+              className={PAGER_LINK + PAGER_IDLE}
             >
               ‹
             </Link>
@@ -307,7 +325,7 @@ function BrowsePage() {
                 activeOptions={PAGER_ACTIVE}
                 aria-current={p === page ? 'page' : undefined}
                 className={
-                  PAGER_PILL +
+                  PAGER_LINK +
                   (p === page
                     ? 'border-transparent bg-[var(--pill-active)] text-fg'
                     : PAGER_IDLE)
@@ -323,7 +341,7 @@ function BrowsePage() {
               search={{ ...search, page: page + 1 }}
               activeOptions={PAGER_ACTIVE}
               aria-label="Next page"
-              className={PAGER_PILL + PAGER_IDLE}
+              className={PAGER_LINK + PAGER_IDLE}
             >
               ›
             </Link>
