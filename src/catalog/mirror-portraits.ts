@@ -106,6 +106,16 @@ export async function mirrorVehiclePortraits(
 
   let consecutiveFailures = 0
 
+  /** Drop an object nothing references. Best-effort, but never silent: once the
+      row stops naming a key, no later run can rediscover it to retry. */
+  async function discard(key: string) {
+    await store.delete('assets', key).catch((error: unknown) => {
+      summary.warnings.push(
+        `unreferenced object ${key} left in the bucket: ${error instanceof Error ? error.message : error}`,
+      )
+    })
+  }
+
   async function mirrorOne(v: Candidate) {
     try {
       const res = await fetchUpstream(v.portraitUrl, {
@@ -139,18 +149,14 @@ export async function mirrorVehiclePortraits(
         .returning({ id: schema.vehicles.id })
       consecutiveFailures = 0
       if (recorded.length === 0) {
+        // Nothing references what we just uploaded; the winner's key stands.
+        await discard(v.wantKey)
         summary.warnings.push(
           `another run advanced ${v.externalId} mid-download; its key stands`,
         )
         return
       }
-      if (v.portraitKey) {
-        await store.delete('assets', v.portraitKey).catch((error: unknown) => {
-          summary.warnings.push(
-            `superseded object ${v.portraitKey} left in the bucket: ${error instanceof Error ? error.message : error}`,
-          )
-        })
-      }
+      if (v.portraitKey) await discard(v.portraitKey)
       summary.mirrored += 1
     } catch (error) {
       summary.failed += 1

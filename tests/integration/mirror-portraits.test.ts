@@ -222,7 +222,8 @@ describe('mirrorVehiclePortraits', () => {
     expect(rowKey(await mirroredRows(t.db), 'us_m1_abrams')).toBe(
       'vehicles/newer.png',
     )
-    expect(store.deletes).toHaveLength(0)
+    // the bytes this run uploaded are unreferenced, so they go
+    expect(store.deletes.map((d) => d.key)).toEqual([store.puts[0].key])
     expect(summary.warnings).toEqual([
       expect.stringContaining('another run advanced us_m1_abrams'),
     ])
@@ -243,7 +244,9 @@ describe('mirrorVehiclePortraits', () => {
 
     expect(summary).toMatchObject({ mirrored: 1, failed: 0 })
     expect(summary.warnings).toEqual([
-      expect.stringContaining(`superseded object ${oldKey} left in the bucket`),
+      expect.stringContaining(
+        `unreferenced object ${oldKey} left in the bucket`,
+      ),
     ])
   })
 
