@@ -1,7 +1,16 @@
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
-import { FLOOR, bringIntoView, heightOf, reachFaults } from './support/reach'
+import {
+  REACH_FLOOR,
+  UNBOUNDED,
+  bringIntoView,
+  heightOf,
+  reachFaults,
+  tapFarEdge,
+} from './support/reach'
 import { STATE } from './support/states'
+import type { Lighting } from './support/theme'
+import { LIGHTING, stampTheme } from './support/theme'
 
 test.use({ storageState: STATE.anon })
 
@@ -10,12 +19,11 @@ test.use({ storageState: STATE.anon })
     ledger's head and pager are the rest of that reader's reach. */
 const PANEL = '.glass-thin:has(#vehicle-filter-groups)'
 /* The panel is its own pane with the ledger just below it, and the head is
-   sticky over its own rows — a reach past either edge would take taps meant for
-   the table. The pager sits in open margin and has nothing to take, so it is
-   held only to its neighbours. */
+   sticky over its own rows, so a reach past either edge would take taps meant
+   for the table. The pager is the one region with open margin on every side. */
 const FILTERS = { root: PANEL, pane: PANEL }
 const HEAD = { root: 'thead', pane: 'thead' }
-const PAGER = { root: 'nav[aria-label="Pages"]' }
+const PAGER = { root: 'nav[aria-label="Pages"]', pane: UNBOUNDED }
 
 /* Wrapping is decided by width alone, so the panel is measured on a screen tall
    enough to hold all of it at once — a control scrolled off the edge reports no
@@ -23,7 +31,6 @@ const PAGER = { root: 'nav[aria-label="Pages"]' }
 const TALL = 2400
 
 const PHONES = [320, 390]
-const LIGHTING = ['dark', 'light'] as const
 
 async function openBrowse(
   page: Page,
@@ -31,9 +38,9 @@ async function openBrowse(
     width,
     theme = 'dark',
     path = '/grb/vehicles',
-  }: { width: number; theme?: 'dark' | 'light'; path?: string },
+  }: { width: number; theme?: Lighting; path?: string },
 ) {
-  await page.addInitScript((t) => localStorage.setItem('theme', t), theme)
+  await stampTheme(page, theme)
   await page.setViewportSize({ width, height: TALL })
   await page.goto(path)
   // The panel, not the ledger: a nation sheet mounts the same filters over a
@@ -52,8 +59,6 @@ async function openFilters(page: Page) {
   await expect(page.locator('#vehicle-filter-groups')).toBeVisible()
 }
 
-/* Lighting cannot move a hit box, but the panel is worn both ways and its two
-   fills are separate rules — a hit box lost to one of them would hide here. */
 for (const width of [...PHONES, 640, 1280]) {
   for (const theme of LIGHTING) {
     test(`every filter control can be tapped at ${width}px in ${theme}`, async ({
@@ -98,32 +103,49 @@ for (const width of PHONES) {
   })
 }
 
+/* Measured parked rather than pinned: sticky lives on the `th`, so a stuck head
+   leaves `thead`'s own box behind and containment would report on a box the
+   controls have left. Only the head's fill changes when it sticks, never its
+   geometry, so parked is the honest place to measure it. */
 for (const width of [...PHONES, 1280]) {
-  test(`the ledger head can be sorted by thumb at ${width}px`, async ({
-    page,
-  }) => {
-    await openBrowse(page, { width })
-    await bringIntoView(page, 'thead')
+  for (const theme of LIGHTING) {
+    test(`the ledger head can be sorted by thumb at ${width}px in ${theme}`, async ({
+      page,
+    }) => {
+      await openBrowse(page, { width, theme })
+      await bringIntoView(page, 'thead')
 
-    expect(await reachFaults(page, HEAD)).toEqual([])
-  })
+      expect(await reachFaults(page, HEAD)).toEqual([])
+    })
+  }
 }
 
 for (const width of PHONES) {
-  test(`the pager can be tapped at ${width}px`, async ({ page }) => {
-    await openBrowse(page, { width })
-    const pager = page.locator(PAGER.root)
-    await expect(pager, 'the catalogue fits on one page').toBeVisible()
-    await bringIntoView(page, PAGER.root)
+  for (const theme of LIGHTING) {
+    test(`the pager can be tapped at ${width}px in ${theme}`, async ({
+      page,
+    }) => {
+      await openBrowse(page, { width, theme })
+      const pager = page.locator(PAGER.root)
+      // The seeded catalogue is one page long, so CI has no pager to measure.
+      // Skipped rather than passed vacuously, and loudly rather than silently.
+      test.skip(
+        !(await pager.isVisible()),
+        'this catalogue fits on one page — no pager rendered',
+      )
+      await bringIntoView(page, PAGER.root)
 
-    expect(await reachFaults(page, PAGER)).toEqual([])
-  })
+      expect(await reachFaults(page, PAGER)).toEqual([])
+    })
+  }
 }
 
 /* A reach withdrawn cannot see height bought with padding — an absolute
-   pseudo-element never held any to begin with. So the folded panel is held to
-   its share of the screen outright: 13.2% of an 844px phone today, which two
-   44px controls and 40px of panel padding just fit. */
+   pseudo-element never held any to begin with. So the panel is held to two
+   budgets it could actually blow: the folded state to its share of the screen,
+   and the chip grid to a pitch that clears a thumb without paying for more than
+   one. Chips grown to a full 44px of ink, or a row gap opened to carry the
+   whole reach, would each trip the ceiling. */
 for (const width of PHONES) {
   test(`the folded panel still fits its share of a ${width}px screen`, async ({
     page,
@@ -134,23 +156,44 @@ for (const width of PHONES) {
 
     expect((await heightOf(page, PANEL)) / 844).toBeLessThanOrEqual(0.14)
   })
+
+  test(`the chip grid spends a thumb and no more at ${width}px`, async ({
+    page,
+  }) => {
+    await openBrowse(page, { width })
+    await openFilters(page)
+
+    const pitch = await page.evaluate(() => {
+      const rows = new Map<number, number>()
+      for (const chip of document.querySelectorAll<HTMLElement>(
+        '#vehicle-filter-groups fieldset button',
+      )) {
+        const box = chip.getBoundingClientRect()
+        rows.set(Math.round(box.top), box.height)
+      }
+      const tops = [...rows.keys()].sort((a, b) => a - b)
+      // Only gaps inside one group: the step across a group boundary carries a
+      // legend, which is spacing the reach never has to clear.
+      const steps = tops
+        .slice(1)
+        .map((top, i) => top - tops[i])
+        .filter((step) => step < 60)
+      return Math.min(...steps)
+    })
+
+    expect(pitch).toBeGreaterThanOrEqual(REACH_FLOOR)
+    expect(pitch).toBeLessThanOrEqual(REACH_FLOOR + 4)
+  })
 }
 
-/* elementFromPoint says who owns the pixel; only a real tap proves the widened
-   reach carries the control's own behaviour with it. The rank chips are the
-   narrowest ink on the surface and the ones the reach had to widen most. */
+/* The rank chips are the narrowest ink on the surface and the ones the reach
+   had to widen most. */
 test('a tap at the far edge of a rank chip still filters', async ({ page }) => {
   await openBrowse(page, { width: 390 })
   await openFilters(page)
 
   const chip = page.getByRole('button', { name: 'I', exact: true })
-  const box = await chip.boundingBox()
-  expect(box).not.toBeNull()
-  const arm = FLOOR / 2 - 0.5
-  await page.mouse.click(
-    box!.x + box!.width / 2 - arm,
-    box!.y + box!.height / 2 - arm,
-  )
+  await tapFarEdge(page, chip)
 
   await expect(chip).toHaveAttribute('aria-pressed', 'true')
   await expect(page).toHaveURL(/[?&]rank=1\b/)

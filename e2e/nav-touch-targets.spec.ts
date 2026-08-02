@@ -1,12 +1,13 @@
 import { expect, test } from '@playwright/test'
 import { openNav } from './support/nav'
 import {
-  FLOOR,
   heightOf,
   heightWithoutReach,
   reachFaults,
+  tapFarEdge,
 } from './support/reach'
 import { STATE } from './support/states'
+import { LIGHTING } from './support/theme'
 
 test.use({ storageState: STATE.anon })
 
@@ -27,7 +28,7 @@ for (const width of WIDTHS) {
 
 /* Lighting cannot move a hit box, but the pane is worn both ways and its two
    fills are separate rules — a hit box lost to one of them would hide here. */
-for (const theme of ['dark', 'light'] as const) {
+for (const theme of LIGHTING) {
   test(`every nav control can be tapped in ${theme}`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await openNav(page, { theme })
@@ -65,21 +66,14 @@ test.describe('with the moderator nav', () => {
   })
 })
 
-/* elementFromPoint says who owns the pixel; only a real tap proves the widened
-   reach carries the control's own behaviour with it. */
 test('a tap at the far edge of the search reach still opens search', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await openNav(page)
 
-  const box = await page.getByRole('link', { name: 'Search' }).boundingBox()
-  expect(box).not.toBeNull()
-  const arm = FLOOR / 2 - 0.5
-  await page.mouse.click(
-    box!.x + box!.width / 2 - arm,
-    box!.y + box!.height / 2 - arm,
-  )
+  await tapFarEdge(page, page.getByRole('link', { name: 'Search' }))
+
   await expect(page).toHaveURL(/\/search/)
 })
 

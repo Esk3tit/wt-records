@@ -1,10 +1,15 @@
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 import { expect } from '@playwright/test'
 
 /** 44px is WCAG 2.5.5 Target Size (Enhanced) — level AAA, and what Apple's HIG
     asks for. PRODUCT.md names phones at the hangar screen as a real scene, so
     the controls a reader works there hold themselves to that. */
-export const FLOOR = 44
+export const REACH_FLOOR = 44
+
+/** Turns the containment check off, for a region with nothing close enough to
+    lose ink to an overhang. Spelled out rather than left off, so a call site
+    cannot weaken the proof by forgetting a field. */
+export const UNBOUNDED = 'unbounded'
 
 /** Anything a thumb is meant to land on. Hidden inputs and the search field's
     own clear affordance are not separate controls. */
@@ -25,9 +30,8 @@ export interface ReachQuery {
   /** Narrows which of them count; defaults to every tappable element. */
   controls?: string
   /** The box no reach may escape, because something else owns the pixels past
-      it. Only surfaces that overlay their neighbours need one; a reach that
-      hangs into a margin steals nothing. */
-  pane?: string
+      it, or `UNBOUNDED`. */
+  pane: string | typeof UNBOUNDED
 }
 
 /** Asks the page who would receive a tap at each point around a control, and
@@ -41,8 +45,10 @@ export async function reachOf(
     (q) => {
       const region = document.querySelector(q.root)
       if (!region) throw new Error(`${q.root} never rendered`)
-      const holder = q.pane ? document.querySelector(q.pane) : null
-      if (q.pane && !holder) throw new Error(`${q.pane} never rendered`)
+      const holder =
+        q.pane === q.unbounded ? null : document.querySelector(q.pane)
+      if (q.pane !== q.unbounded && !holder)
+        throw new Error(`${q.pane} never rendered`)
       const bounds = holder?.getBoundingClientRect()
       const floor = q.floor
 
@@ -109,11 +115,10 @@ export async function reachOf(
           [x0, y0 + floor],
           [x0 + floor, y0 + floor],
         ].every(([x, y]) => owns(x, y))
-        /* Walks the ink's own perimeter, a pixel inside it, so a neighbour
-           overlapping any edge or corner shows up rather than only one that
-           takes the middle. Stepped in by the corner radius where the corners
-           are: a rounded control does not own the square its box reports, and
-           probing the literal corner would fail every chip on the page. */
+        /* Walks the ink's own perimeter a pixel inside it, so a neighbour
+           overlapping any edge shows up and not only one taking the middle.
+           Stepped in by the radius at the corners: a rounded control does not
+           own the square its box reports. */
         const r =
           Math.min(
             parseFloat(getComputedStyle(el).borderRadius) || 0,
@@ -150,7 +155,7 @@ export async function reachOf(
         }
       })
     },
-    { floor: FLOOR, root, controls, pane },
+    { floor: REACH_FLOOR, unbounded: UNBOUNDED, root, controls, pane },
   )
 
   expect(found.length, `${root} had no controls to measure`).toBeGreaterThan(0)
@@ -164,13 +169,28 @@ export async function reachFaults(
 ): Promise<string[]> {
   return (await reachOf(page, query)).flatMap((c) => {
     const at = `${c.label} (ink ${c.ink}, reach ${c.reach.w.toFixed(1)}x${c.reach.h.toFixed(1)})`
-    if (c.reach.w < FLOOR || c.reach.h < FLOOR)
-      return [`${at} is under ${FLOOR}`]
+    if (c.reach.w < REACH_FLOOR || c.reach.h < REACH_FLOOR)
+      return [`${at} is under ${REACH_FLOOR}`]
     if (!c.square) return [`${at} reaches in a cross, not a square`]
     if (!c.inkHeld) return [`${at} has its own ink taken by a neighbour`]
     if (!c.inPane) return [`${at} reaches outside the pane`]
     return []
   })
+}
+
+/** Taps the far corner of the box a control owns. elementFromPoint says who
+    owns a pixel; only a real click proves the widened reach carries the
+    control's own behaviour with it. The arm is measured off the reach rather
+    than off the ink, so on an axis the reach had to widen the tap lands outside
+    the ink — and on an axis it did not, it still lands at the ink's own edge. */
+export async function tapFarEdge(page: Page, control: Locator) {
+  const box = await control.boundingBox()
+  expect(box, 'the control never rendered').not.toBeNull()
+  const arm = (side: number) => Math.max(side, REACH_FLOOR) / 2 - 0.5
+  await page.mouse.click(
+    box!.x + box!.width / 2 - arm(box!.width),
+    box!.y + box!.height / 2 - arm(box!.height),
+  )
 }
 
 /** Brings a region fully on screen, because a control scrolled past the edge is
