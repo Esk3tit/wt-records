@@ -86,11 +86,7 @@ function AuditView() {
       {result.rows.length === 0 ? (
         <p className="text-sm text-fg-faint">Nothing audited yet.</p>
       ) : (
-        <ul
-          className={
-            'space-y-2 transition-opacity' + (pending ? ' opacity-90' : '')
-          }
-        >
+        <ul aria-busy={pending} className="space-y-2">
           {result.rows.map((row) => (
             <li
               key={row.id}

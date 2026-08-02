@@ -25,23 +25,20 @@ const DEPTHS = [0, 600, 1400, 2400, 3600]
     a reading, so deleting a component or renaming its class cannot quietly
     empty a sweep that goes on passing. These name components, not utility
     classes: `text-fg-faint` is satisfied by any element anywhere on the page,
-    which is no assertion at all. */
+    which is no assertion at all.
+
+    Only what the *route* guarantees, never what the *data* happens to hold. A
+    chip needs a premium or removed vehicle, a Medallion needs a holder with no
+    avatar — name either and a thinner seed fails this for the state of the
+    corpus rather than the state of the ink. */
 const ROUTES: { path: string; sites: string[] }[] = [
   // The podium's metal panes and rank chips, and the monument's own labels.
-  {
-    path: '/grb',
-    sites: ['.podium-card', '.section-label', '.stat-unit', '.chip-well'],
-  },
+  { path: '/grb', sites: ['.podium-card', '.section-label', '.stat-unit'] },
   // A row that is ink the whole way down, under a metal tint and a flag wash.
   { path: '/grb/nations', sites: ['.standings-row', '.stat-unit'] },
-  // The record wall, where the acquisition material meets the card's own ink.
-  { path: '/grb/nation/usa', sites: ['.record-card', '.chip-well'] },
-  // The ledger closes every row on a Medallion — the one ink on the site
-  // painted with `fill` rather than `color`, and so the one the probe had to
-  // learn to reach at all.
-  { path: '/grb/vehicles', sites: ['.medallion', '.chip-well'] },
+  { path: '/grb/vehicles', sites: ['.ledger-sticky'] },
   { path: '/grb/leaderboard', sites: ['.leaderboard-row'] },
-  { path: '/search?q=a', sites: ['.section-label', '.chip-well'] },
+  { path: '/search?q=a', sites: ['.section-label'] },
 ]
 
 /** The first link matching a route shape, so fixtures come from live data and
@@ -74,10 +71,7 @@ for (const theme of ['dark', 'light'] as const) {
       })
     }
 
-    /* The two sheets, whose fixtures have to come from live data. The vehicle
-       sheet is the surface the wash rule was written for, and both close on a
-       Medallion — a monogram struck into its own lit disc, and the one piece of
-       ink on the site painted with `fill` rather than `color`. */
+    /* The surface the wash rule was written for, reached from live data. */
     test('every ink on a vehicle sheet is legible', async ({ page }) => {
       await openNav(page, { path: '/grb/vehicles', theme })
       const sheet = await firstPath(page, /^\/grb\/vehicle\//)
@@ -87,6 +81,20 @@ for (const theme of ['dark', 'light'] as const) {
          holder set an avatar is the state of the data. The ledger asserts it,
          where every row carries one. */
       const sites = ['.stat-unit']
+      const readings = await worstDownThePage(page, { depths: DEPTHS, sites })
+      expect(unmeasured(readings, sites)).toEqual([])
+      expect(faultsInInk(readings)).toEqual([])
+    })
+
+    /* The record wall, where the acquisition material meets the card's own ink.
+       Reached by following the standings rather than by naming a nation, so a
+       seed that never gave the USA a vehicle still measures a real wall. */
+    test('every ink on a nation record wall is legible', async ({ page }) => {
+      await openNav(page, { path: '/grb/nations', theme })
+      const nation = await firstPath(page, /^\/grb\/nation\//)
+      await openNav(page, { path: nation, theme })
+
+      const sites = ['.record-card']
       const readings = await worstDownThePage(page, { depths: DEPTHS, sites })
       expect(unmeasured(readings, sites)).toEqual([])
       expect(faultsInInk(readings)).toEqual([])
@@ -118,7 +126,7 @@ for (const theme of ['dark', 'light'] as const) {
        plate's overall exposure and not a local specular — a scene is still a
        thing to look at before it ships, not only to test. */
     const EDGE = theme === 'dark' ? '#202020' : '#e0e0e0'
-    for (const path of ['/grb', '/grb/nation/usa', '/grb/vehicles']) {
+    for (const path of ['/grb', '/grb/nations', '/grb/vehicles']) {
       test(`no scene at ${EDGE} beats the panes on ${path}`, async ({
         page,
       }) => {
@@ -137,7 +145,9 @@ for (const theme of ['dark', 'light'] as const) {
       page,
     }) => {
       await page.setViewportSize({ width: 320, height: 720 })
-      await openNav(page, { path: '/grb/nation/usa', theme })
+      await openNav(page, { path: '/grb/nations', theme })
+      const nation = await firstPath(page, /^\/grb\/nation\//)
+      await openNav(page, { path: nation, theme })
 
       const sites = ['.record-card']
       const readings = await worstDownThePage(page, { depths: DEPTHS, sites })

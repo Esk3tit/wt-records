@@ -181,16 +181,12 @@ function RecordsIndex() {
           </button>
         </p>
       ) : (
-        <div
-          aria-busy={pending}
-          /* The rows still showing are the previous result, and a moderator
-             reads them while the next one loads — so the pending dim is set at
-             what the faint ink can still spend, not at what reads as busiest. */
-          className={
-            'overflow-x-auto transition-opacity' +
-            (pending ? ' opacity-90' : '')
-          }
-        >
+        /* The rows still showing are the previous result, and a moderator reads
+           them while the next one loads. Dimming them said "busy" by spending
+           the one thing the ink had none of — it took faint ink, the head, and
+           the warn token below the floor in turn — so the state is announced
+           rather than painted. */
+        <div aria-busy={pending} className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs tracking-wide text-fg-muted uppercase">

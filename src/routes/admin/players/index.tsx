@@ -77,12 +77,7 @@ function PlayersIndex() {
           </button>
         </p>
       ) : (
-        <div
-          className={
-            'overflow-x-auto transition-opacity' +
-            (pending ? ' opacity-90' : '')
-          }
-        >
+        <div aria-busy={pending} className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs tracking-wide text-fg-muted uppercase">
