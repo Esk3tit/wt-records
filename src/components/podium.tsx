@@ -92,9 +92,9 @@ function PodiumCard({
               </p>
             </div>
           )}
-          {record.vehicleImage && (
+          {record.vehiclePortrait && (
             <img
-              src={record.vehicleImage}
+              src={record.vehiclePortrait}
               alt=""
               className={`vehicle-portrait ${big ? 'h-24 md:h-28' : 'h-20 shrink-0 self-end sm:h-24'}`}
               loading="lazy"
@@ -161,7 +161,7 @@ function LedgerRows({
                   name so chips and holder stay whole instead of clipping. */}
               <span className="min-w-0 sm:truncate">
                 <span className="block font-semibold break-words text-fg sm:inline">
-                  <VehicleIcon src={r.vehicleImage} className="mr-1" />
+                  <VehicleIcon src={r.vehiclePortrait} className="mr-1" />
                   <VehicleLink
                     mode={mode}
                     slug={r.vehicleSlug}

@@ -33,9 +33,9 @@ export function RecordMonument({
 
   return (
     <div className="flex flex-col md:items-end md:text-right">
-      {record.vehicleImage && (
+      {record.vehiclePortrait && (
         <img
-          src={record.vehicleImage}
+          src={record.vehiclePortrait}
           alt=""
           className="vehicle-portrait mb-3 h-24 self-start md:h-32 md:self-end"
           loading="eager"

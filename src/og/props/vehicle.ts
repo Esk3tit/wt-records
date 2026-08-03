@@ -14,7 +14,7 @@ export interface VehicleCardData {
     isPremium: boolean
     isSquadron: boolean
     isRemoved: boolean
-    image: string | null
+    portrait: string | null
   }
   br: number | null
   current: {
@@ -67,7 +67,7 @@ export function toVehicleCardModel(
     patchName: current ? current.patchName : null,
     minKills: current == null ? bar.kills : minKills,
     ...(vacated ? { standing } : {}),
-    artUrl: vehicle.image,
+    artUrl: vehicle.portrait,
   }
   return { ...base, version: contentVersion(base) }
 }

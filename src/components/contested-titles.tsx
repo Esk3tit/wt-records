@@ -9,7 +9,7 @@ export interface ContestedTitleRow extends VehicleTagFlags {
   vehicleName: string
   nationName: string
   nationSlug: string
-  vehicleImage: string | null
+  vehiclePortrait: string | null
   contests: number
   kills: number
   playerSlug: string
@@ -36,7 +36,7 @@ export function ContestedTitles({
             <div className="relative z-[1] flex items-center justify-between gap-6 px-5 py-4">
               <span className="min-w-0">
                 <span className="font-semibold text-fg">
-                  <VehicleIcon src={r.vehicleImage} className="mr-1" />
+                  <VehicleIcon src={r.vehiclePortrait} className="mr-1" />
                   <VehicleLink
                     mode={mode}
                     slug={r.vehicleSlug}

@@ -2,7 +2,7 @@ import process from 'node:process'
 import { isLocalDatabaseUrl, openCliDb } from '#/db/cli'
 import { DatamineSource } from '#/catalog/datamine'
 import { syncCatalog } from '#/catalog/sync'
-import { mirrorVehicleImages } from '#/catalog/mirror-images'
+import { mirrorVehiclePortraits } from '#/catalog/mirror-portraits'
 import { headerSafeGitHubToken } from '#/catalog/upstream-fetch'
 import { recordCatalogSyncRun } from '#/catalog/sync-status'
 import { storageFromEnvIfConfigured } from '#/storage/r2'
@@ -89,26 +89,27 @@ try {
 
   const storage = dryRun ? undefined : storageFromEnvIfConfigured()
   if (dryRun) {
-    console.log('Dry run — transaction rolled back; image mirroring skipped.')
+    console.log(
+      'Dry run — transaction rolled back; portrait mirroring skipped.',
+    )
   } else if (!storage) {
-    console.log('Image mirroring skipped (R2_* env not configured).')
+    console.log('Portrait mirroring skipped (R2_* env not configured).')
   } else {
     // Best-effort by contract: the sync committed, so nothing from the mirror
     // pass may turn this run into a failure.
     try {
-      const mirror = await mirrorVehicleImages(db, storage, {
+      const mirror = await mirrorVehiclePortraits(db, storage, {
         limit: mirrorLimit,
         githubToken,
       })
       for (const warning of mirror.warnings) console.warn(`⚠ ${warning}`)
       console.log(
-        `Images: ${mirror.mirrored} mirrored, ${mirror.upToDate} up to date, ` +
-          `${mirror.failed} failed, ${mirror.deferred} deferred, ` +
-          `${mirror.cleaned} cleaned.`,
+        `Portraits: ${mirror.mirrored} mirrored, ${mirror.upToDate} up to date, ` +
+          `${mirror.failed} failed, ${mirror.deferred} deferred.`,
       )
     } catch (error) {
       console.warn(
-        `⚠ image mirroring failed: ${error instanceof Error ? error.message : error}`,
+        `⚠ portrait mirroring failed: ${error instanceof Error ? error.message : error}`,
       )
     }
   }

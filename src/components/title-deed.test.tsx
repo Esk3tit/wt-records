@@ -20,7 +20,7 @@ const vehicle: TitleDeedVehicle = {
   isRemoved: false,
   nationSlug: 'usa',
   nationName: 'USA',
-  image: null,
+  portrait: null,
 }
 
 const current: TitleDeedRecord = {

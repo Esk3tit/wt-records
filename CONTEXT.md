@@ -116,6 +116,10 @@ Datamine units carry several `type_*` tags. A base class tag names what the vehi
 How a vehicle is obtained — independent, overlapping flags (an event vehicle may also be premium). Every applicable flag is shown; a tech-tree vehicle carries none.
 _Avoid_: a single exclusive acquisition "type".
 
+**Portrait**:
+The vehicle's own artwork, shown wherever the vehicle appears. Distinct from a Proof, which is evidence attached to a Record — a Portrait belongs to the vehicle and is never evidence of anything. A vehicle may have no Portrait (test rigs, event props); that is an ordinary permanent state, not a missing asset. A Portrait once held is kept even if the source stops publishing it — the registry does not lose imagery it already holds.
+_Avoid_: image, photo, thumbnail — all ambiguous with Proof.
+
 **Difficult vehicle**:
 A vehicle flagged `isDifficult` that uses the Mode's single difficult threshold instead of its (Mode, Class) minimum.
 

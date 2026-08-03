@@ -17,7 +17,7 @@ export interface TitleDeedVehicle extends VehicleTagFlags {
   isDifficult: boolean
   nationSlug: string
   nationName: string
-  image: string | null
+  portrait: string | null
 }
 
 export interface TitleDeedRecord extends RecordNameProps {
@@ -195,10 +195,10 @@ export function TitleDeed({
           )}
         </div>
 
-        {vehicle.image && (
+        {vehicle.portrait && (
           <div className="-mr-7 -mb-7 mt-3 h-[var(--deed-art-h)] shrink-0 md:-mr-10 md:-mb-10 lg:mt-0 lg:w-[46%]">
             <img
-              src={vehicle.image}
+              src={vehicle.portrait}
               alt=""
               className="title-deed-art"
               loading="eager"

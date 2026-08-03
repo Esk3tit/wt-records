@@ -1,6 +1,11 @@
+import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import type { SourceVehicle } from '#/catalog/source'
-import { DatamineSource, battleRating } from '#/catalog/datamine'
+import {
+  DatamineSource,
+  assertPortraitCoverage,
+  battleRating,
+} from '#/catalog/datamine'
 import {
   DATAMINE_VERSION,
   UNITS_CSV,
@@ -9,22 +14,88 @@ import {
 } from '#/catalog/fixtures/datamine'
 
 const BASE = 'https://datamine.test/repo'
+const TREE = 'https://trees.test/git/trees'
+
+/* The index the adapter walks, padded past its per-folder floor. */
+const FOLDER_SHA = {
+  tanks: 'sha-tanks',
+  aircrafts: 'sha-air',
+  ships: 'sha-ships',
+}
+const DEFAULT_PORTRAITS: Record<keyof typeof FOLDER_SHA, Array<string>> = {
+  tanks: [
+    'us_m1_abrams',
+    'germ_flakpanzer_iv_wirbelwind',
+    'ussr_t_35',
+    'ussr_object_775',
+    'us_m8_scott_snowball',
+  ],
+  // nt_mig_23mld is deliberately absent: upstream ships no artwork for it.
+  aircrafts: [
+    'tiger_uht',
+    'mosquito_f_mk2_norway',
+    'tu_95m',
+    'b5n2',
+    'f-5e_fcu_thailand',
+  ],
+  ships: ['us_sc_497'],
+}
+
+const blobSha = (name: string) => createHash('sha1').update(name).digest('hex')
+
+function folderTree(names: Array<string>, pad = 120) {
+  const tree = names.map((n) => ({
+    path: `${n}.png`,
+    type: 'blob',
+    sha: blobSha(n),
+  }))
+  for (let i = tree.length; i < pad; i++) {
+    tree.push({ path: `pad_${i}.png`, type: 'blob', sha: blobSha(`pad_${i}`) })
+  }
+  return { tree, truncated: false }
+}
+
+/** The five tree responses a walk of `rootSha` expects, for the tests that
+    drive the real GitHub URLs rather than the injected ones. */
+function walkResponses(rootSha: string): Record<string, unknown> {
+  return {
+    [rootSha]: {
+      tree: [{ path: 'tex.vromfs.bin_u', type: 'tree', sha: 'tex' }],
+    },
+    tex: {
+      tree: Object.keys(FOLDER_SHA).map((path) => ({
+        path,
+        type: 'tree',
+        sha: path,
+      })),
+    },
+    tanks: folderTree(DEFAULT_PORTRAITS.tanks),
+    aircrafts: folderTree(DEFAULT_PORTRAITS.aircrafts),
+    ships: folderTree(DEFAULT_PORTRAITS.ships),
+  }
+}
 
 interface Overrides {
   wpcost?: Record<string, unknown>
   unittags?: Record<string, unknown>
   unitsCsv?: string
   version?: string
+  portraits?: Partial<Record<keyof typeof FOLDER_SHA, Array<string>>>
+  /** Entries per folder before padding — drop it to fake a restructure. */
+  folderPad?: number
   /** Replies keyed by the file each URL ends with; overrides the fixture. */
   replies?: Partial<
     Record<
-      'wpcost' | 'unittags' | 'csv' | 'version',
+      'wpcost' | 'unittags' | 'csv' | 'version' | 'tree',
       () => { status?: number; body: string }
     >
   >
 }
 
-function fileOf(url: string): 'wpcost' | 'unittags' | 'csv' | 'version' {
+function fileOf(
+  url: string,
+): 'wpcost' | 'unittags' | 'csv' | 'version' | 'tree' {
+  if (url.startsWith(TREE)) return 'tree'
   if (url.includes('wpcost')) return 'wpcost'
   if (url.includes('unittags')) return 'unittags'
   if (url.includes('units.csv')) return 'csv'
@@ -32,6 +103,26 @@ function fileOf(url: string): 'wpcost' | 'unittags' | 'csv' | 'version' {
 }
 
 function source(overrides: Overrides = {}) {
+  const portraits = { ...DEFAULT_PORTRAITS, ...overrides.portraits }
+  const trees: Record<string, unknown> = {
+    master: {
+      tree: [{ path: 'tex.vromfs.bin_u', type: 'tree', sha: 'sha-tex' }],
+    },
+    'sha-tex': {
+      tree: Object.entries(FOLDER_SHA).map(([path, sha]) => ({
+        path,
+        type: 'tree',
+        sha,
+      })),
+    },
+  }
+  for (const [folder, sha] of Object.entries(FOLDER_SHA)) {
+    trees[sha] = folderTree(
+      portraits[folder as keyof typeof FOLDER_SHA],
+      overrides.folderPad,
+    )
+  }
+
   const bodies = {
     wpcost: () => JSON.stringify(overrides.wpcost ?? WPCOST),
     unittags: () => JSON.stringify(overrides.unittags ?? UNITTAGS),
@@ -44,14 +135,24 @@ function source(overrides: Overrides = {}) {
     requests.push(url)
     const file = fileOf(url)
     const override = overrides.replies?.[file]
-    const { status = 200, body } = override
-      ? override()
-      : { body: bodies[file]() }
-    return new Response(body, { status })
+    if (override) {
+      const { status = 200, body } = override()
+      return new Response(body, { status })
+    }
+    if (file === 'tree') {
+      return new Response(JSON.stringify(trees[url.slice(TREE.length + 1)]))
+    }
+    return new Response(bodies[file]())
   }) as typeof fetch
   return {
     requests,
-    source: new DatamineSource({ baseUrl: BASE, fetchImpl, retryDelayMs: 0 }),
+    source: new DatamineSource({
+      baseUrl: BASE,
+      treeApiUrl: TREE,
+      treeRef: 'master',
+      fetchImpl,
+      retryDelayMs: 0,
+    }),
   }
 }
 
@@ -66,13 +167,19 @@ describe('DatamineSource', () => {
     const snap = await s.fetchSnapshot()
 
     expect(snap.gameVersion).toBe('2.57.1.49')
-    expect(requests).toHaveLength(4)
+    // Four data files plus a targeted five-response walk of the image index.
+    expect(requests).toHaveLength(9)
     expect(requests).toEqual(
       expect.arrayContaining([
         `${BASE}/char.vromfs.bin_u/config/wpcost.blkx`,
         `${BASE}/char.vromfs.bin_u/config/unittags.blkx`,
         `${BASE}/lang.vromfs.bin_u/lang/units.csv`,
         `${BASE}/version`,
+        `${TREE}/master`,
+        `${TREE}/sha-tex`,
+        `${TREE}/sha-tanks`,
+        `${TREE}/sha-air`,
+        `${TREE}/sha-ships`,
       ]),
     )
 
@@ -88,7 +195,10 @@ describe('DatamineSource', () => {
       isPremium: false,
       isSquadron: false,
       event: null,
-      imageUrl: `${BASE}/tex.vromfs.bin_u/tanks/us_m1_abrams.png`,
+      portrait: {
+        url: `${BASE}/tex.vromfs.bin_u/tanks/us_m1_abrams.png`,
+        contentId: blobSha('us_m1_abrams'),
+      },
     })
   })
 
@@ -288,19 +398,63 @@ describe('DatamineSource', () => {
     })
   })
 
-  it('builds image URLs from the lowercased identifier, foldered by branch', async () => {
+  it('resolves portraits by lowercased identifier, foldered by branch', async () => {
     const snap = await snapshot()
 
-    expect(byId(snap.vehicles, 'germ_flakpanzer_IV_Wirbelwind')!.imageUrl).toBe(
-      `${BASE}/tex.vromfs.bin_u/tanks/germ_flakpanzer_iv_wirbelwind.png`,
-    )
+    expect(
+      byId(snap.vehicles, 'germ_flakpanzer_IV_Wirbelwind')!.portrait!.url,
+    ).toBe(`${BASE}/tex.vromfs.bin_u/tanks/germ_flakpanzer_iv_wirbelwind.png`)
     // helicopters live under aircrafts, with the rest of the air branch
-    expect(byId(snap.vehicles, 'tiger_uht')!.imageUrl).toBe(
+    expect(byId(snap.vehicles, 'tiger_uht')!.portrait!.url).toBe(
       `${BASE}/tex.vromfs.bin_u/aircrafts/tiger_uht.png`,
     )
-    expect(byId(snap.vehicles, 'us_sc_497')!.imageUrl).toBe(
+    expect(byId(snap.vehicles, 'us_sc_497')!.portrait!.url).toBe(
       `${BASE}/tex.vromfs.bin_u/ships/us_sc_497.png`,
     )
+  })
+
+  it('carries the upstream content id, so replaced artwork is detectable', async () => {
+    const snap = await snapshot()
+
+    expect(byId(snap.vehicles, 'tiger_uht')!.portrait!.contentId).toBe(
+      blobSha('tiger_uht'),
+    )
+  })
+
+  it('emits no portrait for a vehicle the index does not list', async () => {
+    const snap = await snapshot()
+
+    expect(byId(snap.vehicles, 'nt_mig_23mld')!.portrait).toBeNull()
+    expect(snap.warnings).toEqual(
+      expect.arrayContaining([expect.stringContaining('no portrait upstream')]),
+    )
+  })
+
+  it('aborts when a folder comes back implausibly small', async () => {
+    await expect(snapshot({ folderPad: 5 })).rejects.toThrow(
+      /upstream restructured/,
+    )
+  })
+
+  // Half-configured, the files come from one revision and the index another,
+  // so every content id would describe bytes nobody fetched.
+  it('refuses a baseUrl that does not say which revision the index is', () => {
+    expect(() => new DatamineSource({ baseUrl: BASE })).toThrow(/treeRef/)
+    expect(
+      () => new DatamineSource({ baseUrl: BASE, treeApiUrl: TREE }),
+    ).toThrow(/treeRef/)
+  })
+
+  it('aborts on a truncated tree rather than reading it as missing artwork', async () => {
+    await expect(
+      snapshot({
+        replies: {
+          tree: () => ({
+            body: JSON.stringify({ tree: [], truncated: true }),
+          }),
+        },
+      }),
+    ).rejects.toThrow(/[Tt]runcated tree/)
   })
 
   it('strips the country_ prefix into the sync engine vocabulary', async () => {
@@ -325,12 +479,16 @@ describe('DatamineSource', () => {
     expect(byId(snap.vehicles, 'us_m1_abrams')!.name).toBe('M1; Abrams "Semi"')
   })
 
-  it('pins the data files to one revision, but never the images', async () => {
+  it('pins the data files and the portraits to the same revision', async () => {
     const sha = 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0'
     const requests: Array<string> = []
+    const trees = walkResponses(sha)
     const fetchImpl = (async (input: URL | RequestInfo) => {
       const url = String(input)
       requests.push(url)
+      if (url.includes('/git/trees/')) {
+        return new Response(JSON.stringify(trees[url.split('/').pop()!]))
+      }
       if (url.startsWith('https://api.github.com/')) {
         return new Response(JSON.stringify({ sha }))
       }
@@ -349,16 +507,21 @@ describe('DatamineSource', () => {
     expect(files).toHaveLength(4)
     for (const url of files) expect(url).toContain(`/${sha}/`)
 
-    // images stay on the branch: vehicleImageKey hashes this URL, so pinning it
-    // would re-mirror the whole catalog every single run
-    const image = byId(snap.vehicles, 'us_m1_abrams')!.imageUrl!
-    expect(image).toContain('/master/')
-    expect(image).not.toContain(sha)
+    // and so does the artwork: the key is content-addressed, so a per-run
+    // revision costs no re-mirroring and the URL always refetches these bytes
+    const portrait = byId(snap.vehicles, 'us_m1_abrams')!.portrait!
+    expect(portrait.url).toContain(`/${sha}/`)
+    expect(portrait.url).not.toContain('/master/')
+    expect(portrait.contentId).toBe(blobSha('us_m1_abrams'))
   })
 
   it('says so when an overridden locale file sits outside the pinned revision', async () => {
+    const trees = walkResponses('b'.repeat(40))
     const fetchImpl = (async (input: URL | RequestInfo) => {
       const url = String(input)
+      if (url.includes('/git/trees/')) {
+        return new Response(JSON.stringify(trees[url.split('/').pop()!]))
+      }
       if (url.startsWith('https://api.github.com/')) {
         return new Response(JSON.stringify({ sha: 'b'.repeat(40) }))
       }
@@ -426,5 +589,70 @@ describe('DatamineSource', () => {
         replies: { unittags: () => ({ status: 500, body: 'down' }) },
       }),
     ).rejects.toThrow(/500/)
+  })
+})
+
+/* Real upstream numbers: 71 samples, worst 26/1166 ground and 30/1423 air.
+   The fixture catalog is far too small to exercise a share-based floor. */
+describe('assertPortraitCoverage', () => {
+  const ok = { emitted: 500, artless: 5 }
+
+  it('passes the worst artless counts upstream has ever produced', () => {
+    expect(() =>
+      assertPortraitCoverage({
+        ground: { emitted: 1166, artless: 26 },
+        air: { emitted: 1423, artless: 30 },
+        naval: { emitted: 544, artless: 7 },
+      }),
+    ).not.toThrow()
+  })
+
+  it('allows exactly the count it says it allows', () => {
+    expect(() =>
+      assertPortraitCoverage({
+        ground: { emitted: 500, artless: 50 },
+        air: ok,
+        naval: ok,
+      }),
+    ).not.toThrow()
+    expect(() =>
+      assertPortraitCoverage({
+        ground: { emitted: 500, artless: 51 },
+        air: ok,
+        naval: ok,
+      }),
+    ).toThrow()
+  })
+
+  it('aborts when a branch loses its folder entirely', () => {
+    expect(() =>
+      assertPortraitCoverage({
+        ground: { emitted: 1229, artless: 1229 },
+        air: ok,
+        naval: ok,
+      }),
+    ).toThrow(/upstream restructure/)
+  })
+
+  it('aborts on a share far past normal churn, well before a total loss', () => {
+    expect(() =>
+      assertPortraitCoverage({
+        ground: ok,
+        air: { emitted: 1451, artless: 200 },
+        naval: ok,
+      }),
+    ).toThrow(/13\.8%/)
+  })
+
+  // A count as well as a share: on a small catalog a couple of artless
+  // vehicles is a large percentage and means nothing.
+  it('tolerates a few artless vehicles in a catalog too small for a share', () => {
+    expect(() =>
+      assertPortraitCoverage({
+        ground: { emitted: 5, artless: 5 },
+        air: { emitted: 6, artless: 1 },
+        naval: { emitted: 1, artless: 1 },
+      }),
+    ).not.toThrow()
   })
 })

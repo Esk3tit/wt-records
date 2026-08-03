@@ -88,8 +88,13 @@ export const vehicles = pgTable(
     isSquadron: boolean('is_squadron').notNull().default(false),
     isEvent: boolean('is_event').notNull().default(false),
     isRemoved: boolean('is_removed').notNull().default(false),
-    imageUrl: text('image_url'), // upstream source URL (adapter-provided)
-    imageKey: text('image_key'), // mirrored copy in the R2 assets bucket
+    portraitUrl: text('portrait_url'), // upstream source URL (adapter-provided)
+    portraitContentId: text('portrait_content_id'), // upstream's hash of those bytes
+    portraitKey: text('portrait_key'), // mirrored copy in the R2 assets bucket
+    // Superseded by portrait_*, kept until a contract migration drops them: a
+    // rename would 5xx every content page for the deploy's migration skew.
+    imageUrl: text('image_url'),
+    imageKey: text('image_key'),
     isDifficult: boolean('is_difficult').notNull().default(false), // manual rules overlay
     lastSyncedAt: timestamp('last_synced_at', { withTimezone: true }),
   },

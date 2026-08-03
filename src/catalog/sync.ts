@@ -208,7 +208,8 @@ async function apply(
       isSquadron: source.isSquadron,
       isEvent: source.event != null,
       isRemoved: false,
-      imageUrl: source.imageUrl,
+      portraitUrl: source.portrait?.url ?? null,
+      portraitContentId: source.portrait?.contentId ?? null,
       lastSyncedAt: syncedAt,
     })
   }
@@ -242,7 +243,8 @@ async function apply(
           isSquadron: sql`excluded.is_squadron`,
           isEvent: sql`excluded.is_event`,
           isRemoved: sql`excluded.is_removed`,
-          imageUrl: sql`excluded.image_url`,
+          portraitUrl: sql`excluded.portrait_url`,
+          portraitContentId: sql`excluded.portrait_content_id`,
           lastSyncedAt: sql`excluded.last_synced_at`,
         },
       })

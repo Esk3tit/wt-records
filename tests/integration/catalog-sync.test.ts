@@ -43,7 +43,10 @@ function vehicle(overrides: Partial<SourceVehicle> = {}): SourceVehicle {
     isPremium: false,
     isSquadron: false,
     event: null,
-    imageUrl: 'https://example.test/us_m1_abrams.png',
+    portrait: {
+      url: 'https://example.test/us_m1_abrams.png',
+      contentId: 'a'.repeat(40),
+    },
     ...overrides,
   }
 }
@@ -112,7 +115,8 @@ describe('syncCatalog', () => {
     expect(a20.branch).toBe('air')
     expect(a20.class).toBe('attacker')
     expect(a20.isSquadron).toBe(true)
-    expect(a20.imageUrl).toBe('https://example.test/us_m1_abrams.png')
+    expect(a20.portraitUrl).toBe('https://example.test/us_m1_abrams.png')
+    expect(a20.portraitContentId).toBe('a'.repeat(40))
 
     const nationRows = await t.db
       .select()

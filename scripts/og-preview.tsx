@@ -23,7 +23,7 @@ const vehicleHeld = toVehicleCardModel('grb', {
     isPremium: false,
     isSquadron: false,
     isRemoved: false,
-    image: null,
+    portrait: null,
   },
   br: 5.7,
   current: {
@@ -47,7 +47,7 @@ const vehicleWorst = toVehicleCardModel('grb', {
     isPremium: true,
     isSquadron: false,
     isRemoved: true,
-    image: null,
+    portrait: null,
   },
   br: 8.0,
   current: {
@@ -71,7 +71,7 @@ const vehicleOpen = toVehicleCardModel('grb', {
     isPremium: false,
     isSquadron: false,
     isRemoved: false,
-    image: null,
+    portrait: null,
   },
   br: 8.3,
   current: null,

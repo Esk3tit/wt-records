@@ -1,6 +1,14 @@
 /* The source-adapter seam: adapters emit datamine vocabulary; country/type
    mapping stays in the sync engine so every source shares it. */
 
+/** A vehicle's artwork upstream. One object rather than two nullable fields:
+    a source that knows the URL always knows the content id, and vice versa. */
+export interface SourcePortrait {
+  url: string
+  /** Opaque upstream identifier where equal strings mean identical bytes. */
+  contentId: string
+}
+
 export interface SourceVehicle {
   /** Datamine unit identifier, e.g. "us_m1_abrams" — `vehicles.external_id`. */
   externalId: string
@@ -19,7 +27,9 @@ export interface SourceVehicle {
   isSquadron: boolean
   /** Source event tag (battlepass/craft/summer…), null for non-event. */
   event: string | null
-  imageUrl: string | null
+  /** null when the source publishes no artwork for this vehicle — an ordinary
+      permanent state for test rigs and event props, not a missing asset. */
+  portrait: SourcePortrait | null
 }
 
 export interface CatalogSnapshot {

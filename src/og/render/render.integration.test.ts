@@ -49,7 +49,7 @@ function vehicle(over: Partial<VehicleCardData> = {}): VehicleCardData {
       isPremium: false,
       isSquadron: false,
       isRemoved: false,
-      image: null,
+      portrait: null,
       ...over.vehicle,
     },
     br: 5.7,
@@ -112,7 +112,7 @@ describe('renderCardPng', () => {
             isPremium: true,
             isSquadron: false,
             isRemoved: true,
-            image: null,
+            portrait: null,
           },
           br: 8.0,
           current: {

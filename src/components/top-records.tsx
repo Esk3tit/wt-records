@@ -8,7 +8,7 @@ export interface TopRecordRow extends VehicleTagFlags {
   vehicleName: string
   nationName: string
   nationSlug: string
-  vehicleImage: string | null
+  vehiclePortrait: string | null
   playerSlug: string
   displayName: string
   ignSnapshot: string | null

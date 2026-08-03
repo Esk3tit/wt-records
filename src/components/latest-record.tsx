@@ -10,7 +10,7 @@ export interface LatestRecordData extends VehicleTagFlags {
   vehicleSlug: string
   vehicleName: string
   nationSlug: string
-  vehicleImage: string | null
+  vehiclePortrait: string | null
   playerSlug: string
   displayName: string
   ignSnapshot: string | null
@@ -27,7 +27,7 @@ export function LatestRecord({
   return (
     <span>
       <NationFlag slug={record.nationSlug} className="mr-1.5" />
-      <VehicleIcon src={record.vehicleImage} className="mr-1.5" />
+      <VehicleIcon src={record.vehiclePortrait} className="mr-1.5" />
       <Link
         to="/$mode/vehicle/$slug"
         params={{ mode, slug: record.vehicleSlug }}

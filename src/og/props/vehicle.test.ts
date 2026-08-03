@@ -13,7 +13,7 @@ function data(over: Partial<VehicleCardData> = {}): VehicleCardData {
       isPremium: false,
       isSquadron: false,
       isRemoved: false,
-      image: 'https://cdn.example/usa/sherman.png',
+      portrait: 'https://cdn.example/usa/sherman.png',
       ...over.vehicle,
     },
     br: 5.7,
@@ -120,7 +120,7 @@ describe('toVehicleCardModel', () => {
   it('keeps the card art-less when no image is mirrored', () => {
     const m = toVehicleCardModel(
       'grb',
-      data({ vehicle: { ...data().vehicle, image: null } }),
+      data({ vehicle: { ...data().vehicle, portrait: null } }),
     )
     expect(m.artUrl).toBeNull()
   })
