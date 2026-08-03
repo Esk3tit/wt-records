@@ -195,7 +195,9 @@ export async function seedDemo(db: SeedDb): Promise<void> {
     rec('object-279', 'SteelHunter', 24, 300, { isCurrent: false }),
     rec('object-279', 'KurskPhantom', 27, 210, { isCurrent: false }),
     rec('object-279', 'NightWitch', 35, 150, { isCurrent: false }),
-    rec('object-279', 'KurskPhantom', 42, 0.3),
+    // Dated now, not a fraction of a day back, so it lands today at any seed
+    // hour: the feed's recency accent paints only for a record verified today.
+    rec('object-279', 'KurskPhantom', 42, 0),
 
     // The chasers.
     rec('t-80bvm', 'SteelHunter', 37, 90),
