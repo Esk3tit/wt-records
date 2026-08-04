@@ -201,7 +201,7 @@ for (const theme of ['dark', 'light'] as const) {
      that are glass like every other — and it is ink most readers never see, so
      nothing else would catch it drifting. */
   test.describe(`in ${theme}, for a moderator`, () => {
-    test.use({ storageState: STATE.admin })
+    test.use({ storageState: STATE.moderator })
 
     /* `.glass-thin` is the admin panel itself, so it stands for the whole
        surface. The claimed chip is not named here: it paints only for a Player

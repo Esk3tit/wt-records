@@ -60,6 +60,13 @@ export function hasAuthCookie(): boolean {
 export async function getSessionUser(): Promise<User | null> {
   if (!hasAuthCookie()) return null
   const { data, error } = await supabaseServer().auth.getUser()
-  if (error) return null
+  if (error) {
+    // A cookie was presented and validation still failed — a revoked session
+    // and an auth outage both land here, and both look signed-out to callers.
+    console.error(
+      `[auth] session validation failed: ${error.name} ${error.status ?? ''} ${error.message}`,
+    )
+    return null
+  }
   return data.user
 }

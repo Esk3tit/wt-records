@@ -97,7 +97,7 @@ for (const theme of ['dark', 'light'] as const) {
   /* A moderator carries one more control than anyone else, so the nav they see
      is a composition — and an ink — no other test on this page renders. */
   test.describe(`in ${theme}, for a moderator`, () => {
-    test.use({ storageState: STATE.admin })
+    test.use({ storageState: STATE.moderator })
 
     test('every ink in the nav is legible', async ({ page }) => {
       await openNav(page, { theme })

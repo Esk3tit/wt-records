@@ -35,9 +35,9 @@ Text sliding under the nav or a pinned head paints nothing solid and is left unm
 
 The app keeps its session in **httpOnly** cookies ([`src/auth/supabase-server.ts`](../src/auth/supabase-server.ts)), so a test cannot inject one into `localStorage`. The `setup` project instead:
 
-1. Mints two auth users with the service-role key and pins their `profiles.role` (`e2e/support/users.ts`) — `profiles.id` **is** the Supabase `auth.users.id`.
+1. Creates two auth users with the service-role key and pins their `profiles.role` (`e2e/support/users.ts`) — `profiles.id` **is** the Supabase `auth.users.id`. An existing user is left **untouched**: writing a password, even an identical one, makes GoTrue drop every session that user holds, which signs out any suite already running against the stack. `E2E_RESET_USERS=1` forces a reset when a password has genuinely drifted.
 2. Signs each in through `supabase-js`, capturing the cookies `@supabase/ssr` writes into a recording jar rather than hand-rolling Supabase's cookie naming/chunking/encoding (`e2e/support/session.ts`).
-3. Saves them as `e2e/.auth/{admin,user,anon}.json` — **git-ignored, minted fresh every run**. A stored session is silently invalidated by a signing-key rotation, so it is never committed.
+3. Saves them as `e2e/.auth/{moderator,viewer,anon}.json` — **git-ignored, minted fresh every run**. A stored session is silently invalidated by a signing-key rotation, so it is never committed.
 
 `anon.json` carries no session, only granted analytics consent, so the fixed consent banner never covers the page under test.
 
@@ -54,7 +54,19 @@ bun run e2e:install           # Chromium, pinned to the installed Playwright
 bun run test:e2e              # builds, boots the SSR server, runs the suite
 ```
 
-Playwright boots its own server on **port 3100**, deliberately not the dev server's 3000 — otherwise it would silently reuse a `bun run dev` pointed at different config, and you'd debug phantom failures.
+Playwright boots its own server on **port 3100 + an offset derived from the checkout path**, deliberately not the dev server's 3000 — otherwise it would silently reuse a `bun run dev` pointed at different config, and you'd debug phantom failures. The per-checkout offset extends that: on a machine with several worktrees, a fixed port lets one worktree's suite adopt another's running server and test the wrong branch entirely.
+
+### One suite at a time per database
+
+Worktrees that share a local Supabase stack share its users and its data, so `globalSetup` takes a Postgres **advisory lock** (`e2e/support/stack-lock.ts`) and holds it for the run. A second suite waits, printing a heartbeat every 15s naming the holder:
+
+```
+⏳ waiting for the shared E2E stack — 1m15s (held by wt-records since 20:14)
+```
+
+Silence for minutes therefore means wedged, not queued. The lock is released by the connection dropping, so a killed run cannot strand it, and it gives up after 15 minutes. Give each checkout its own stack and the lock is uncontended — one call, no wait.
+
+Two suites from the **same** checkout are a different matter: they share one port, and the server belongs to whichever run booted it, so the first to finish tears it out from under the second (`webServer` starts *before* `globalSetup`, so the queued run has already adopted it, and its tests then fail with `ERR_CONNECTION_REFUSED`). Run concurrent suites from separate worktrees, or point the second at a server you started yourself via `PLAYWRIGHT_BASE_URL`.
 
 **`.env` must point at the local stack** — `SUPABASE_URL=http://127.0.0.1:54321`, not the hosted project, or the guard rejects the run. To override for a single run without editing `.env`:
 

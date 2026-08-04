@@ -1,8 +1,19 @@
+import { createHash } from 'node:crypto'
+import { join } from 'node:path'
+
 // Read late, not at import time: the config loads .env after this module.
-// Port 3100, not the dev server's 3000 — otherwise Playwright silently reuses
-// a `bun run dev` that may be pointed at entirely different config.
+// Port 3100+, not the dev server's 3000 — otherwise Playwright silently reuses
+// a `bun run dev` that may be pointed at entirely different config. The offset
+// is per checkout, so a run can never adopt a sibling worktree's build either.
 export function baseUrl(): string {
-  return process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3100'
+  return process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${localPort()}`
+}
+
+export function localPort(): number {
+  const root = join(import.meta.dirname, '..', '..')
+  return (
+    3100 + (createHash('sha256').update(root).digest().readUInt16BE(0) % 100)
+  )
 }
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])

@@ -31,7 +31,10 @@ export async function mintStorageState(
 
   const { error } = await client.auth.signInWithPassword({ email, password })
   if (error)
-    throw new Error(`test sign-in failed for ${email}: ${error.message}`)
+    throw new Error(
+      `test sign-in failed for ${email}: ${error.message}. If its password has ` +
+        `drifted, delete the user or re-run with E2E_RESET_USERS=1.`,
+    )
   if (written.length === 0) {
     throw new Error(`sign-in for ${email} produced no session cookies`)
   }

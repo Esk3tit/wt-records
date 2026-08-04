@@ -14,6 +14,17 @@ _Avoid_: account, login.
 The account-level row, 1:1 with a User; carries `role` and convenience handles. Exists only once someone logs in (Phase 2).
 _Avoid_: account, user record.
 
+**Viewer**:
+The default role a Profile carries: signed in, no moderation rights. Distinct from a visitor, who has no Profile at all.
+
+**Moderator**:
+A User whose role grants the moderation surface — entering and verifying Records, approving Claim requests, resetting Avatars. Every Admin is also a Moderator.
+_Avoid_: admin (which is both the role above it and the name of the surface).
+
+**Admin**:
+The elevated role, strictly above Moderator. The moderation surface itself is not "the Admin" — that conflation is why this entry exists.
+_Avoid_: using it for any moderator, or for the surface.
+
 **Player**:
 A record-holder identity — the thing that holds Records. Exists with **no User** by default (accountless is a permanent, valid state for migrated holders); links to a User only when **claimed**.
 _Avoid_: account; "user" (a Player may have no User).
