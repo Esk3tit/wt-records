@@ -54,14 +54,14 @@ bun run e2e:install           # Chromium, pinned to the installed Playwright
 bun run test:e2e              # builds, boots the SSR server, runs the suite
 ```
 
-Playwright boots its own server on **port 3100 + an offset derived from the checkout path**, deliberately not the dev server's 3000 — otherwise it would silently reuse a `bun run dev` pointed at different config, and you'd debug phantom failures. The per-checkout offset extends that: on a machine with several worktrees, a fixed port lets one worktree's suite adopt another's running server and test the wrong branch entirely.
+Playwright boots its own server on **port 3100 + an offset derived from the checkout path**, deliberately not the dev server's 3000. The offset is what keeps worktrees off each other's ports; refusing to adopt an occupied one (below) is what stops a collision going unnoticed.
 
 ### One suite at a time per database
 
 Worktrees that share a local Supabase stack share its users and its data, so `globalSetup` takes a Postgres **advisory lock** (`e2e/support/stack-lock.ts`) and holds it for the run. A second suite waits, printing a heartbeat every 15s naming the holder:
 
 ```
-⏳ waiting for the shared E2E stack — 1m15s (held by wt-records since 20:14)
+⏳ waiting for the shared E2E stack — 1m15s (held by wt-records for 4m02s)
 ```
 
 Silence for minutes therefore means wedged, not queued. The lock is released by the connection dropping, so a killed run cannot strand it, and it gives up after 15 minutes. Give each checkout its own stack and the lock is uncontended — one call, no wait.
