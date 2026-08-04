@@ -14,6 +14,8 @@ colors:
   day-ink-faint: "#0A0C10AD"
   hairline: "#FFFFFF29"
   day-hairline: "#0A0C101F"
+  pill-active: "#FFFFFF24"
+  day-pill-active: "#FFFFFFE6"
   glass-highlight: "#FFFFFF38"
   day-glass-highlight: "#FFFFFFE6"
   night-scrim: "#080A0E80"
@@ -104,10 +106,10 @@ components:
     rounded: "{rounded.control}"
     padding: "2px 6px"
   nav-mode-active:
-    backgroundColor: "transparent"
-    textColor: "{colors.medal-amber}"
-    rounded: "{rounded.control}"
-    padding: "4px 8px"
+    backgroundColor: "{colors.pill-active}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.media}"
+    padding: "6px 14px"
   glass-panel:
     backgroundColor: "#FFFFFF14"
     textColor: "{colors.ink}"
@@ -124,7 +126,7 @@ components:
     rounded: "{rounded.media}"
     padding: "4px 10px"
   filter-chip-active:
-    backgroundColor: "#FFFFFF24"
+    backgroundColor: "{colors.pill-active}"
     textColor: "{colors.ink}"
     rounded: "{rounded.media}"
     padding: "4px 10px"
@@ -136,7 +138,7 @@ components:
 
 **Creative North Star: "The Trophy Hall"**
 
-WT Records is a hall where verified feats hang under lit glass — and the hall has windows. Behind everything sits the system's signature element: the **Spatial Scene**, a curated War Thunder battle scene processed offline with depth AI so the subject — a tank, a plane — separates from its background and parallaxes on pointer and gyro, iOS-spatial-scene style. The scene is the visual identity. It swaps per nation and per branch, so every mode and every nation feels like its own room in the hall. In front of it: frosted-glass surfaces with hairline borders, tabular numerals, and instrument-panel restraint. Celebration is rationed — gold, silver, and bronze exist solely because rank is earned; Medal Amber marks what is active or actionable, never what is merely decorated.
+WT Records is a hall where verified feats hang under lit glass — and the hall has windows. Behind everything sits the system's signature element: the **Spatial Scene**, a curated War Thunder battle scene processed offline with depth AI so the subject — a tank, a plane — separates from its background and parallaxes on pointer and gyro, iOS-spatial-scene style. The scene is the visual identity. It swaps per nation and per branch, so every mode and every nation feels like its own room in the hall. In front of it: frosted-glass surfaces with hairline borders, tabular numerals, and instrument-panel restraint. Celebration is rationed — gold, silver, and bronze exist solely because rank is earned; Medal Amber marks the registry at work, never where you are and never what is merely decorated.
 
 The hall has two lighting states, never two identities. **By night** (dark mode): the Night Hangar base, scenes dimmed behind a dark scrim, white-frost glass, white ink. **By day** (light mode): the Daylight Hall base — cool, chroma-neutral off-white, no cream — scenes brighter under a light veil, milky frost with dark hairlines, dark ink. Structure, spacing, radii, type, and every named rule are identical in both; only the light changes. The theme follows the system preference with a persisted manual toggle.
 
@@ -155,8 +157,8 @@ This is a product surface in register (leaderboards, nation sheets, vehicle page
 One committed base per lighting state, mirrored ink ramps, one warm accent with a day-safe deep form, and earned metals with day-safe deep forms.
 
 ### Primary
-- **Medal Amber** (#F0B94A): the single accent. Fills (buttons) carry black text and work in both modes. As *text or active-state color it belongs to dark mode only.*
-- **Medal Amber Deep** (#7A580D): the same voice by daylight — amber as text/active-state on light surfaces (≥4.5:1 on the *glass*, not merely on Daylight Hall). A pane floating over the day scene is a shade darker than the base, so the base is the wrong thing to calibrate a day ink against. Fills stay #F0B94A in both modes.
+- **Medal Amber** (#F0B94A): the single accent. Fills (buttons) carry black text and work in both modes. As *text color it belongs to dark mode only.*
+- **Medal Amber Deep** (#7A580D): the same voice by daylight — amber as text on light surfaces (≥4.5:1 on the *glass*, not merely on Daylight Hall). A pane floating over the day scene is a shade darker than the base, so the base is the wrong thing to calibrate a day ink against. Fills stay #F0B94A in both modes.
 
 ### Neutral
 - **Night Hangar** (#0A0C10): dark-mode body base — the hall at night.
@@ -180,7 +182,13 @@ Not ink and not accent — two gradient washes laid over a glass fill, so acquis
 
 **The Earned Metal Rule.** Gold, silver, and bronze (and their day forms) color only ranks 1, 2, and 3 — never headings, never icons, never decoration.
 
-**The One Amber Rule.** Medal Amber (or its Deep day form) covers at most 10% of any screen: primary action, active mode, current selection, record emphasis. Two competing amber elements in one view means one of them is wrong. The premium acquisition wash is exempt — it is a *material*, not the accent doing accent work; the amber **ink** on the same screen still counts.
+**The One Amber Rule.** Medal Amber (or its Deep day form) covers at most 10% of any screen and does two jobs. It marks **the registry at work**: the feat (the monument's numeral, an unclaimed title's OPEN BOUNTY kicker, the recency glow on a record that landed today) and the registry's own liveness (the hero kicker that opens a mode landing, the feed's connected dot). And it carries **the primary action**, the single commit a view offers. Amber never marks selection, position, or where you are, and never dresses a surface that is merely present; pill-active carries chosen-state, and the semantic tokens carry status.
+
+Amber that is not doing accent work falls outside this rule rather than breaking it: **material** (the premium acquisition wash, the Spatial Scene's embers), **a mark carrying no reading** (the wordmark's separator), and **a platform affordance** (the focus ring). The amber *ink* on the same screen still counts. Whether a sanctioned amber may rest in a given place is The Rationed Colour Rule's question, not this one.
+
+A view tells its amber subject once, and the primary action is not a second subject — it is the one thing a reader may do about the first. Repeated across peers the subject is still told once (a wall of OPEN BOUNTY kickers), and ranked apart it composes (a landing's small liveness marks sit under its monument, not beside it). Two ambers at the same rank saying different things means one of them is wrong.
+
+**The Rationed Colour Rule.** A colour whose meaning comes from *scarcity* cannot live where recurrence is guaranteed, and recurrence is counted in **resting ink**: the accent work a page paints before anyone touches it. Persistent chrome (the nav, and anything else met on every page and not dismissible) is guaranteed recurrence, so Medal Amber and the rank metals never rest there. Three things fall outside that count rather than being pardoned by it. **Summoned ink spends no ration:** the focus ring stays amber in the nav as everywhere else (see Inputs / Fields, never suppressed), rationed by the platform to one element, on keyboard focus, gone on blur. **Material is not ink**, the carve-out The One Amber Rule already makes for the acquisition wash: the Spatial Scene's embers are night atmosphere, not the accent doing accent work. **A surface with an end does not recur**, which is why the consent banner commits in the amber primary even though it repeats until answered. Only one amber genuinely rests in chrome, exempt on its own ground: the wordmark's separator is a mark and carries no reading, the same subtree `e2e/nav-contrast.spec.ts` exempts by name. A colour whose meaning is *state* is the opposite case and belongs in chrome, because chrome is where state is shown. This rule is why the two above exist, and it adds one bar of its own: being sanctioned by The One Amber Rule does not earn a use the right to rest in chrome, so a primary action in the nav would still be wrong. A ceiling holds only if amber is absent from the surfaces that repeat.
 
 ## 3. Typography
 
@@ -240,7 +248,7 @@ The identity layer. A small, curated, fixed set of battle scenes, each processed
 - **Primary:** Medal Amber fill, black text in both modes (6px 12px padding). Hover dims slightly; focus ring visible in the mode's accent form.
 - **Ghost:** transparent with the mode's hairline border; muted ink brightening to full ink on hover.
 - **Back of house (/admin):** the amber primary marks only the single commit action per view (form submit, dialog confirm); every other admin control stays in the ghost/grey register. Status ink uses the semantic tokens (verified/warn/danger) with day-safe forms, mirroring the accent's Deep pattern.
-- **Glass pill** (live-accepted at frost .12 / float .2): section-nav capsule that is a small liquid-glass pane in its own right — 999px radius, full ink at weight 550, 12% white-alpha fill with blur 36/saturate 180%, specular edges, a subtle 3px anchor shadow rising 2px on hover. Important navigation is never muted into the background.
+- **Glass pill** (live-accepted at frost .12 / float .2): section-nav capsule that is a small liquid-glass pane in its own right — 999px radius, full ink at weight 550, 12% white-alpha fill with blur 36/saturate 180%, specular edges, a subtle 3px anchor shadow rising 2px on hover. **Inside this capsule** navigation is never muted into the background — every item is a peer and ink weight is the only thing that could mark position, so spending it costs the set its legibility. A control that carries position in its own surface instead — a track, an active fill and `aria-current`, as the mode switcher has — is the opposite case, and mutes its inactive items deliberately.
 - **Every control reaches 44px, and the ink grows only where it must.** `.tap-reach` hands the hit area a 44px square as a pseudo-element, so a thumb gets its target while the ink keeps the size the type scale gave it and the pane keeps its height. It buys reach, never room: two reaches must be kept 44px apart centre to centre, or the later one silently takes the overlap. In a row that stack is a gap to widen; in a wrapping grid of chips it is a pitch to hold — chip height plus row gap, and chip width plus column gap, both at 44 or more, which is why filter chips carry a 44px minimum width and never sit closer than that on either axis. Two things the pseudo-element cannot serve: `input` and `select` are replaced elements and take no `::after` at all, so a field's 44px is real height; and a wrapper is not a substitute, since a tap it receives never reaches the control inside. A reach is only ever proven by measuring the box a control actually owns, never the one its CSS claims.
 
 ### Chips
@@ -261,9 +269,9 @@ The identity layer. A small, curated, fixed set of battle scenes, each processed
 - **A field's 44px is real height.** `input` and `select` are replaced elements and hold no pseudo-element, so they cannot borrow the reach every other control gets — they carry the floor in their own box (see Buttons).
 
 ### Navigation
-- **Mode switcher is the primary nav:** GRB/GAB/ARB/AAB as text links in the floating glass header (thin material when parked) — active mode in Medal Amber / Medal Amber Deep, inactive in muted ink; 4px-radius hover surface. Nav links are not underlined (chrome opts out); content links keep underlines with 2px offset as a non-color affordance.
+- **Mode switcher is the primary nav:** GRB/GAB/ARB/AAB as text links in the floating glass header (thin material when parked) — the active mode in the neutral **pill-active** fill at full ink, inactive in muted ink that brightens on hover without taking a surface of its own; the pills carry the 10px media radius, the same one the filter chips use. **Pill-active is the site's one chosen-state vocabulary**, not a nav token: where a set of peers is offered, the fill marks the one in hand. That is a settled choice for a mode, a filter chip, a ledger page or an admin tab, and in a listbox it is the option the keyboard is resting on, which follows the arrows and the cursor and commits nothing until it is picked. The ledger's sort headers are the deliberate exception, marking the chosen column in full ink with a direction glyph, because a sort has to say which way as well as which. Three conveniences borrow the token meaning neither: the admin button register, the admin skip link, and the filter count badge. A remap of this hue has to answer all three cases, because a colour that reads as *committed* will read wrong chasing a cursor down a listbox, and wrong again on a button that chose nothing. The accent is deliberately not spent here — see The Rationed Colour Rule; the switcher sits in chrome, so amber in it would be amber on every page. Nav links are not underlined (chrome opts out); content links keep underlines with 2px offset as a non-color affordance.
 - **The nav rests clear, then turns solid.** Parked at the top of a page it is thin glass and the Spatial Scene reads through it. Once content slides under it the pane cross-fades to the thick fill over a near-opaque base, gains the hover hairline as a lit edge, and drops the deep ambient shadow — the overlap must read as one pane above another, never two transparent panes colliding. Frost alone cannot do this: `backdrop-filter` does not sample the sibling content a sticky pane overlays, the same limit that gives the floating menus and the pinned ledger head their near-opacity. The turn-solid and clear-again lines are measured off the nav's own bottom edge and sit 40px apart, so scroll jitter at the boundary cannot strobe the state.
-- **The risen veil is a legibility floor, not a mood.** It is the only thing standing between the nav's own labels and whatever is scrolling beneath them, and a bright line of type passing under a thin pane will beat *any* ink — there is no colour that reads at 4.5:1 over an unbounded backdrop. So the veil is sized to what its labels need, not to taste: measured against the worst backdrop a page can produce (a pure white or pure black band), 75% is the floor at which every label still clears 4.5:1, and one value serves every width. Day sets that floor, not night. The nav's utility ink — search, theme, Admin — is full-strength for the same reason, and marks its hover with the pill track rather than with more ink: a fill of its own would only lighten the surface it has to be read on. Only the risen pane veils; parked, the nav is thin glass and its ink clears the floor without help.
+- **The risen veil is a legibility floor, not a mood.** It is the only thing standing between the nav's own labels and whatever is scrolling beneath them, and a bright line of type passing under a thin pane will beat *any* ink — there is no colour that reads at 4.5:1 over an unbounded backdrop. So the veil is sized to what its labels need, not to taste: measured against a pure white and a pure black band, 75% is the floor at which every label still clears 4.5:1, and one value serves every width. Day sets that floor, not night. **Those two bands bound the inks the nav carries today, and only those.** Contrast is minimised where the backdrop's luminance equals the ink's — an interior point, not an extreme — so white and black are the worst case only for ink lying outside the range the veil leaves reachable (dark ≈ 0.005–0.09, light ≈ 0.53–0.92). An ink inside that range is bounded by nothing here until a band at its own luminance is pinned under the pane. The nav's utility ink — search, theme, Admin — is full-strength for the same reason, and marks its hover with the pill track rather than with more ink: a fill of its own would only lighten the surface it has to be read on. Only the risen pane veils; parked, the nav is thin glass and its ink clears the floor without help.
 - **The utility cluster speaks one vocabulary.** Search, Admin and the theme toggle are all 16px icons on a 32px ink box (the reach comes separately — see Buttons), because each is a destination or a control and none of them is the page's subject. A word among them costs more than it explains: `ADMIN` was the widest ink in the cluster and the reason the pane wrapped to a third row on a 320px phone, moving every control a moderator uses at exactly one width. An icon only moderators ever see is not there to teach a stranger — it is there to sit still, so it carries its name in `aria-label` and no tooltip its neighbours lack.
 - **Below 360px the pane draws in.** Row one has to seat the wordmark beside three 32px icons, and the cluster cannot yield — three 44px reaches fix its width at roughly one icon plus 92px, so shrinking an icon buys back its own pixel and nothing more. Everything else gives instead: the pane's inset goes symmetric at 12px, the row gap to 12px, and the wordmark one step down the scale to meet the mode pills at 0.8125rem. Above 360px all three return, because there the full wordmark fits with room to spare.
 - **Size the phone nav for a font you cannot see.** `ui-sans-serif` resolves to a different face on every platform, and the wordmark is the widest thing whose width the site does not control — the same markup that fitted at 320px on macOS wrapped to three rows on Linux, where the mark rendered 11% wider. So row one is built to seat a wordmark wider than the one any single machine renders, and the test that guards it grows the mark 15% — past that delta — and asks whether the cluster is still beside it, rather than asserting a pixel count only the measuring machine would recognise.
@@ -317,7 +325,7 @@ List pages introduce themselves with a mode eyebrow above the h1 — kicker-size
 - **Do** flip tokens between modes and nothing else (The Same Hall Rule) — same layout, same spacing, same radii, same rules.
 - **Do** keep all numerals tabular (The Tabular Rule) — kills, counts, BRs, percentages.
 - **Do** give every glass surface the full material: backdrop blur + saturate, the mode's 1px hairline, Glass Highlight inset top edge, and a band radius (22px card / 26px panel).
-- **Do** keep amber ≤10% of any screen (The One Amber Rule), using Medal Amber Deep for text/active states by day; reserve metals for ranks 1/2/3 (The Earned Metal Rule) with Day Gold/Silver/Bronze as their text-safe day forms.
+- **Do** keep amber ≤10% of any screen and out of chrome's resting ink but for the wordmark's separator (The One Amber Rule, The Rationed Colour Rule), using Medal Amber Deep for amber text by day; reserve metals for ranks 1/2/3 (The Earned Metal Rule) with Day Gold/Silver/Bronze as their text-safe day forms.
 - **Do** ship every interactive component state-complete: default, hover, focus-visible, active, disabled.
 - **Do** respect `prefers-reduced-motion` with a real alternative for every animation — parallax, count-ups, lifts.
 
