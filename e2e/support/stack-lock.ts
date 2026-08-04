@@ -15,6 +15,7 @@ export async function acquireStackLock(
   label: string,
 ): Promise<() => Promise<void>> {
   let holding = false
+  let releasing = false
   const sql = postgres(requireEnv('DATABASE_URL'), {
     max: 1,
     prepare: false,
@@ -27,7 +28,19 @@ export async function acquireStackLock(
       if (!holding) return
       holding = false
       void reclaim(sql).then((regained) => {
-        holding = regained
+        // Teardown ends the connection under us, which fails that query for a
+        // reason that says nothing about the lock. Never fail a finished run.
+        if (releasing) return
+        if (regained) {
+          holding = true
+          return
+        }
+        console.error(
+          `✖ lost the shared E2E stack lock and could not take it back — another ` +
+            `suite may now be running against this database, so nothing this run ` +
+            `reports can be trusted.`,
+        )
+        process.exit(1)
       })
     },
   })
@@ -45,6 +58,7 @@ export async function acquireStackLock(
         await assertSessionScoped(sql)
         holding = true
         return async () => {
+          releasing = true
           holding = false
           await sql.end()
         }
@@ -93,18 +107,11 @@ async function assertSessionScoped(sql: Sql): Promise<void> {
 /** A dropped connection releases the lock server-side. Taking it straight back
     is enough unless someone else got in first, and then this run is not alone. */
 async function reclaim(sql: Sql): Promise<boolean> {
-  const regained = await sql<{ locked: boolean }[]>`
+  return sql<{ locked: boolean }[]>`
     select pg_try_advisory_lock(hashtext(${LOCK_NAME})) as locked`.then(
     (rows) => rows.at(0)?.locked === true,
     () => false,
   )
-  if (regained) return true
-  console.error(
-    `✖ lost the shared E2E stack lock and could not take it back — another ` +
-      `suite may now be running against this database, so nothing this run ` +
-      `reports can be trusted.`,
-  )
-  process.exit(1)
 }
 
 /** Which checkout is running. Waiters share the application_name prefix, so the
