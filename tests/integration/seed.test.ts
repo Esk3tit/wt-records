@@ -5,6 +5,7 @@ import { freshDb } from './pglite'
 import { resetFixture, seed } from '#/db/seed'
 import { seedDemo } from '#/db/seed-demo'
 import { records, vehicleSearchTerms, vehicles } from '#/db/schema'
+import { getModeLanding } from '#/db/queries'
 import { isToday } from '#/lib/dates'
 
 let t: TestDb
@@ -51,19 +52,16 @@ describe('seed fixture', () => {
     expect(all.some((v) => v.isEvent && v.isRemoved)).toBe(true)
   })
 
-  // The feed's recency accent renders only for a record verified today, and the
-  // ink sweep on /grb is the only thing measuring it — no such record, no cover.
-  // Dated at the run itself, not merely inside today: a record hours old lands
-  // today or yesterday by the hour the seed happens to run at.
-  it('dates one demo record at the seed run, so today at any hour', async () => {
-    const seededAt = new Date()
+  // The /grb ink sweep only measures the recency accent where the age fade
+  // reaches it, and the newest row never fades — one today-dated record covers
+  // nothing. Newest first here, so index 0 is that bottom row.
+  it('dates demo records today past the row the feed never fades', async () => {
     await seedDemo(t.db)
-    const sinceRun = (await t.db.select().from(records)).filter(
-      (r) =>
-        r.status === 'verified' && r.verifiedAt && r.verifiedAt >= seededAt,
-    )
-    expect(sinceRun).not.toEqual([])
-    expect(sinceRun.every((r) => isToday(r.verifiedAt!))).toBe(true)
+    const { latestFeed } = await getModeLanding(t.db, 'grb')
+    const faded = latestFeed
+      .slice(1)
+      .filter((r) => r.verifiedAt && isToday(r.verifiedAt))
+    expect(faded.length).toBeGreaterThan(0)
   })
 
   it('writes search terms for every fixture and demo vehicle', async () => {

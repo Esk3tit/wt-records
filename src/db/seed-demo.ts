@@ -11,6 +11,19 @@ const verified = (daysAgo: number) => ({
   verifiedAt: new Date(Date.now() - daysAgo * DAY_MS),
 })
 
+// The nth of `of` records spread across the hours already elapsed today (UTC).
+// A fraction of a day back instead lands today or yesterday by the seed hour.
+const todayAt = (nth: number, of: number) => {
+  const now = Date.now()
+  const sinceMidnight = now % DAY_MS
+  const at = now - (sinceMidnight * nth) / (of + 1)
+  return {
+    status: 'verified' as const,
+    submittedAt: new Date(at - 3 * 3_600_000),
+    verifiedAt: new Date(at),
+  }
+}
+
 // Rough patch eras so demo records don't all claim the current version.
 const PATCH_ERAS: Array<[minDaysAgo: number, version: string]> = [
   [1200, '2.29'],
@@ -195,9 +208,7 @@ export async function seedDemo(db: SeedDb): Promise<void> {
     rec('object-279', 'SteelHunter', 24, 300, { isCurrent: false }),
     rec('object-279', 'KurskPhantom', 27, 210, { isCurrent: false }),
     rec('object-279', 'NightWitch', 35, 150, { isCurrent: false }),
-    // Dated now, not a fraction of a day back, so it lands today at any seed
-    // hour: the feed's recency accent paints only for a record verified today.
-    rec('object-279', 'KurskPhantom', 42, 0),
+    rec('object-279', 'KurskPhantom', 42, 0, todayAt(1, 5)),
 
     // The chasers.
     rec('t-80bvm', 'SteelHunter', 37, 90),
@@ -206,14 +217,16 @@ export async function seedDemo(db: SeedDb): Promise<void> {
     rec('is-7', 'BlitzkriegAce', 29, 864),
     rec('object-120', 'TaranDriver', 12, 412),
 
-    // This week's records (fractions of a day keep them inside any week).
+    // This week's records (fractions of a day keep them inside any week). The
+    // newest five are dated today, so the feed's age fade reaches a today-dated
+    // row — on the newest alone, which never fades, the accent goes unmeasured.
     rec('t-34-100', 'VolgaVerdict', 21, 200, { isCurrent: false }),
-    rec('t-34-100', 'KurskPhantom', 24, 0.5),
+    rec('t-34-100', 'KurskPhantom', 24, 0.5, todayAt(3, 5)),
     rec('2s38', 'NightWitch', 26, 45, { isCurrent: false }),
-    rec('2s38', 'VolgaVerdict', 28, 0.6),
+    rec('2s38', 'VolgaVerdict', 28, 0.6, todayAt(4, 5)),
     rec('leopard-2a7v', 'GallicRooster', 17, 30, { isCurrent: false }),
-    rec('leopard-2a7v', 'PanzerLehr', 19, 0.4),
-    rec('strv-122b-plss', 'NorrlandWolf', 21, 0.7),
+    rec('leopard-2a7v', 'PanzerLehr', 19, 0.4, todayAt(2, 5)),
+    rec('strv-122b-plss', 'NorrlandWolf', 21, 0.7, todayAt(5, 5)),
     rec('m1a2-sep-v2', 'AbramsPrime', 18, 0.8),
     rec('amx-40', 'GallicRooster', 17, 0.85),
     rec('type-90-b', 'FujiLancer', 16, 0.9),

@@ -27,10 +27,8 @@ const phaseClass: Record<FeedRowPhase, string> = {
 
 // Age position 0 (oldest) → 1 (newest); CSS maps it to an opacity per
 // breakpoint so the mask fade never stacks the top rows into illegibility.
-// A row from today is not old whatever its position, and fading one takes its
-// recency accent below AA on the pane.
-function ageT(index: number, count: number, landedToday: boolean): number {
-  if (landedToday || count <= 1) return 1
+function ageT(index: number, count: number): number {
+  if (count <= 1) return 1
   return index / (count - 1)
 }
 
@@ -131,7 +129,8 @@ export function LiveFeed({
                   .join(' ')}
                 style={
                   {
-                    '--feed-age-t': ageT(i, rows.length, landedToday),
+                    // Fading a row from today takes its accent below AA.
+                    '--feed-age-t': landedToday ? 1 : ageT(i, rows.length),
                   } as CSSProperties
                 }
               >
