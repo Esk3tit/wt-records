@@ -125,8 +125,9 @@ async function assertSessionScoped(sql: Sql): Promise<void> {
   )
 }
 
-/** A dropped connection releases the lock server-side. Taking it straight back
-    is enough unless someone else got in first, and then this run is not alone. */
+/** A dropped connection releases the lock server-side. Only one session can hold
+    it, and a waiter that takes it keeps it for its whole run — so regaining it
+    proves nobody else did, and failing proves somebody has. */
 async function reclaim(sql: Sql): Promise<boolean> {
   const [row] = await sql<{ locked: boolean }[]>`
     select pg_try_advisory_lock(${LOCK_KEY.classid}::int, ${LOCK_KEY.objid}::int) as locked`
