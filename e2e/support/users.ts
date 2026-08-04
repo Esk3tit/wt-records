@@ -36,9 +36,8 @@ export async function provisionTestUsers(): Promise<void> {
   try {
     for (const user of Object.values(TEST_USERS)) {
       const id = await upsertAuthUser(admin.auth.admin, sql, user)
-      // profiles.id IS the auth user id, and the OAuth upsert deliberately
-      // never sets role — so the fixture pins it the same way a real
-      // promotion does.
+      // profiles.id IS the auth user id, and the OAuth upsert never sets role —
+      // so the fixture pins it the same way a real promotion does.
       await sql`
         insert into profiles (id, handle, role)
         values (${id}, ${user.handle}, ${user.role})

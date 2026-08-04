@@ -20,14 +20,15 @@ export async function acquireStackLock(
     prepare: false,
     connect_timeout: 10,
     connection: { application_name: `${LOCK_NAME}:${label}` },
-    // The lock lives on this connection, so losing it hands the stack to the
-    // next suite. Reconnection is silent; say so rather than run unguarded.
+    // The lock lives on this connection, and the driver reaps idle connections
+    // after ~30 minutes by default — which would release it mid-run.
+    max_lifetime: null,
     onclose: () => {
       if (!holding) return
       holding = false
-      console.error(
-        '⚠ lost the shared E2E stack lock — its connection dropped, so another suite may now be running alongside this one',
-      )
+      void reclaim(sql).then((regained) => {
+        holding = regained
+      })
     },
   })
   const startedAt = Date.now()
@@ -70,13 +71,30 @@ export async function acquireStackLock(
   }
 }
 
+/** A dropped connection releases the lock server-side. Taking it straight back
+    is enough unless someone else got in first, and then this run is not alone. */
+async function reclaim(sql: Sql): Promise<boolean> {
+  const regained = await sql<{ locked: boolean }[]>`
+    select pg_try_advisory_lock(hashtext(${LOCK_NAME})) as locked`.then(
+    (rows) => rows.at(0)?.locked === true,
+    () => false,
+  )
+  if (regained) return true
+  console.error(
+    `✖ lost the shared E2E stack lock and could not take it back — another ` +
+      `suite may now be running against this database, so nothing this run ` +
+      `reports can be trusted.`,
+  )
+  process.exit(1)
+}
+
 /** Which checkout is running. Waiters share the application_name prefix, so the
     granted advisory lock is what separates the holder from the queue. */
 async function describeHolder(sql: Sql): Promise<string> {
   const holder = (
-    await sql<{ who: string; since: string }[]>`
+    await sql<{ who: string; heldMs: number }[]>`
       select a.application_name as who,
-             to_char(a.backend_start, 'HH24:MI') as since
+             (extract(epoch from (now() - a.backend_start)) * 1000)::bigint as "heldMs"
       from pg_locks l
       join pg_stat_activity a on a.pid = l.pid
       where l.locktype = 'advisory'
@@ -86,7 +104,8 @@ async function describeHolder(sql: Sql): Promise<string> {
       limit 1`
   ).at(0)
   if (!holder) return 'holder unknown'
-  return `held by ${holder.who.slice(LOCK_NAME.length + 1)} since ${holder.since}`
+  // A duration, not a clock time: the container runs UTC and the reader doesn't.
+  return `held by ${holder.who.slice(LOCK_NAME.length + 1)} for ${humanize(Number(holder.heldMs))}`
 }
 
 function humanize(ms: number): string {

@@ -68,7 +68,9 @@ Silence for minutes therefore means wedged, not queued. The lock is released by 
 
 The lock covers Playwright runs and nothing else. `db:seed`, `supabase db reset`, `catalog:sync` and a running dev server take no lock, so any of them can still walk over a suite in flight.
 
-Two suites from the **same** checkout are a different matter: they share one port, and the server belongs to whichever run booted it, so the first to finish tears it out from under the second (`webServer` starts *before* `globalSetup`, so the queued run has already adopted it, and its tests then fail with `ERR_CONNECTION_REFUSED`). Run concurrent suites from separate worktrees, or point the second at a server you started yourself via `PLAYWRIGHT_BASE_URL`.
+A `--ui` session holds the lock for as long as the window is open, so a sibling worktree's run will queue behind it and give up after 15 minutes. Close it when you're done.
+
+Playwright never adopts a server already listening on the port (`reuseExistingServer: false`). A second suite in the same checkout, or the rare pair of checkouts whose ports collide, therefore fails loudly at boot instead of silently testing whichever branch got there first. To run a suite against a server you started yourself, point it there with `PLAYWRIGHT_BASE_URL`.
 
 **`.env` must point at the local stack** — `SUPABASE_URL=http://127.0.0.1:54321`, not the hosted project, or the guard rejects the run. To override for a single run without editing `.env`:
 
