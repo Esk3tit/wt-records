@@ -60,13 +60,13 @@ Playwright boots its own server on **port 3100 + an offset derived from the chec
 
 Worktrees that share a local Supabase stack share its users and its data, so `globalSetup` takes a Postgres **advisory lock** (`e2e/support/stack-lock.ts`) and holds it for the run. A second suite waits, printing a heartbeat every 15s naming the holder:
 
-```
+```text
 ⏳ waiting for the shared E2E stack — 1m15s (held by wt-records for 4m02s)
 ```
 
 Silence for minutes therefore means wedged, not queued. The lock is released by the connection dropping, so a killed run cannot strand it, and it gives up after 15 minutes. Give each checkout its own stack and the lock is uncontended — one call, no wait.
 
-That release-on-drop cuts both ways: if the connection dies mid-run the lock is free immediately, and a waiter can take it a poll later, while this run takes a round-trip to notice and stop. Both suites are briefly live in that gap — unavoidable for a lock the server frees on disconnect, and the reason the run ends rather than continuing on a warning. What made overlap destructive was the password write, and that is gone whether or not the lock holds.
+That release-on-drop cuts both ways: if the connection dies mid-run the lock is free immediately, and a waiter can take it a poll later, while this run takes a round-trip to notice and stop. Both suites are briefly live in that gap — unavoidable for a lock the server frees on disconnect, and the reason the run ends rather than continuing on a warning. Losing sessions is no longer one of the risks, since the password write is gone whether or not the lock holds, but shared catalog and profile writes still are.
 
 The lock covers Playwright runs and nothing else. `db:seed`, `supabase db reset`, `catalog:sync` and a running dev server take no lock, so any of them can still walk over a suite in flight.
 

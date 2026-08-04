@@ -18,7 +18,7 @@ _Avoid_: account, user record.
 The default role a Profile carries: signed in, no moderation rights. Distinct from a visitor, who has no Profile at all.
 
 **Moderator**:
-A User whose role grants the moderation surface — entering and verifying Records, approving Claim requests, resetting Avatars. Every Admin is also a Moderator.
+A User whose Profile role grants the moderation surface — entering and verifying Records, approving Claim requests, resetting Avatars. Every Admin is also a Moderator.
 _Avoid_: admin (which is both the role above it and the name of the surface).
 
 **Admin**:
