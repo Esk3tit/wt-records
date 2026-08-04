@@ -30,21 +30,22 @@ export async function acquireStackLock(
     onclose: () => {
       if (!holding) return
       holding = false
-      void reclaim(sql).then((regained) => {
-        // Teardown ends the connection under us, which fails that query for a
-        // reason that says nothing about the lock. Never fail a finished run.
-        if (releasing) return
-        if (regained) {
-          holding = true
-          return
-        }
-        console.error(
-          `✖ lost the shared E2E stack lock and could not take it back — another ` +
-            `suite may now be running against this database, so nothing this run ` +
-            `reports can be trusted.`,
-        )
-        process.exit(1)
-      })
+      // Teardown ends the connection under us, which fails these queries for a
+      // reason that says nothing about the lock. Never fail a finished run.
+      void reclaim(sql).then(
+        (regained) => {
+          if (releasing) return
+          if (regained) {
+            holding = true
+            return
+          }
+          abandon('another suite may now be running against this database')
+        },
+        (cause) => {
+          if (releasing) return
+          abandon(`it could not be checked: ${String(cause)}`)
+        },
+      )
     },
   })
   const startedAt = Date.now()
@@ -92,7 +93,7 @@ export async function acquireStackLock(
 /** Whether THIS backend holds THIS key — not merely some advisory lock, which
     a pooled backend could be holding on someone else's behalf. */
 async function heldHere(sql: Sql): Promise<boolean> {
-  const held = await sql<{ held: boolean }[]>`
+  const rows = await sql<{ held: boolean }[]>`
     select exists (
       select 1 from pg_locks
       where locktype = 'advisory'
@@ -101,11 +102,16 @@ async function heldHere(sql: Sql): Promise<boolean> {
         and classid = ${LOCK_KEY.classid}::oid
         and objid = ${LOCK_KEY.objid}::oid
         and objsubid = 2
-    ) as held`.then(
-    (rows) => rows.at(0)?.held === true,
-    () => false,
+    ) as held`
+  return rows.at(0)?.held === true
+}
+
+function abandon(reason: string): never {
+  console.error(
+    `✖ lost the shared E2E stack lock — ${reason}, so nothing this run ` +
+      `reports can be trusted.`,
   )
-  return held
+  process.exit(1)
 }
 
 /** A transaction pooler gives each statement a different backend, so it reports
@@ -122,11 +128,9 @@ async function assertSessionScoped(sql: Sql): Promise<void> {
 /** A dropped connection releases the lock server-side. Taking it straight back
     is enough unless someone else got in first, and then this run is not alone. */
 async function reclaim(sql: Sql): Promise<boolean> {
-  const regained = await sql<{ locked: boolean }[]>`
-    select pg_try_advisory_lock(${LOCK_KEY.classid}::int, ${LOCK_KEY.objid}::int) as locked`.then(
-    (rows) => rows.at(0)?.locked === true,
-    () => false,
-  )
+  const [row] = await sql<{ locked: boolean }[]>`
+    select pg_try_advisory_lock(${LOCK_KEY.classid}::int, ${LOCK_KEY.objid}::int) as locked`
+  const regained = row.locked
   // Taking it back is only worth anything if this session is the one holding it.
   return regained && (await heldHere(sql))
 }
