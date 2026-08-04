@@ -1,8 +1,25 @@
-// Read late, not at import time: the config loads .env after this module.
-// Port 3100, not the dev server's 3000 — otherwise Playwright silently reuses
-// a `bun run dev` that may be pointed at entirely different config.
+import { createHash } from 'node:crypto'
+import { basename, join } from 'node:path'
+
+/** Which checkout this suite belongs to — it names the stack lock's holder and
+    keeps the server port clear of a sibling worktree's. */
+export function checkoutRoot(): string {
+  return join(import.meta.dirname, '..', '..')
+}
+
+export function checkoutName(): string {
+  return basename(checkoutRoot())
+}
+
+// Read late, not at import time: the config loads .env after this module. The
+// port is per checkout so a run can't reuse a sibling's server, or a dev one.
 export function baseUrl(): string {
-  return process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3100'
+  return process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${localPort()}`
+}
+
+export function localPort(): number {
+  const digest = createHash('sha256').update(checkoutRoot()).digest()
+  return 3100 + (digest.readUInt16BE(0) % 1000)
 }
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])

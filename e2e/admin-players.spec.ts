@@ -4,7 +4,7 @@ import { STATE } from './support/states'
 import { TEST_USERS } from './support/users'
 import { requireEnv } from './support/env'
 
-test.use({ storageState: STATE.admin })
+test.use({ storageState: STATE.moderator })
 
 const SLUG = 'e2e-avatar-reset'
 

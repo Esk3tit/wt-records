@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { STATE } from './support/states'
 import { TEST_USERS } from './support/users'
 
-test.use({ storageState: STATE.admin })
+test.use({ storageState: STATE.moderator })
 
 test('a moderator sees the CMS shell and every section', async ({ page }) => {
   await page.goto('/admin')

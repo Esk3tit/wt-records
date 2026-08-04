@@ -60,6 +60,18 @@ export function hasAuthCookie(): boolean {
 export async function getSessionUser(): Promise<User | null> {
   if (!hasAuthCookie()) return null
   const { data, error } = await supabaseServer().auth.getUser()
-  if (error) return null
+  if (error) {
+    // An expired or revoked session is routine; no status at all, or a 5xx,
+    // means auth is failing and every visitor silently loses their role.
+    // An unreachable auth server reports status 0, which must stay loud.
+    const routine =
+      typeof error.status === 'number' &&
+      error.status >= 400 &&
+      error.status < 500
+    const report = `[auth] session validation failed: ${error.name} ${error.status ?? 'no status'} ${error.message}`
+    if (routine) console.warn(report)
+    else console.error(report)
+    return null
+  }
   return data.user
 }

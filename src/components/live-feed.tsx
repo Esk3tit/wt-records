@@ -115,38 +115,47 @@ export function LiveFeed({
           aria-live="polite"
           className="feed-scroll flex min-h-0 flex-1 flex-col justify-end overflow-hidden px-5 pb-4"
         >
-          {rows.map((row, i) => (
-            <li
-              key={row.entry.id}
-              className={[
-                'feed-row border-b border-hairline-soft py-3 text-[0.8125rem] leading-[1.45] text-fg last:border-b-0',
-                phaseClass[row.phase],
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              style={{ '--feed-age-t': ageT(i, rows.length) } as CSSProperties}
-            >
-              <div className="flex min-h-0 gap-2 overflow-hidden">
-                <span
-                  className={[
-                    'min-w-12 shrink-0 font-medium whitespace-nowrap tabular-nums',
-                    // The newest entries keep a recency glow until the date
-                    // ages out — a glance can tell something landed today.
-                    row.entry.verifiedAt && isToday(row.entry.verifiedAt)
-                      ? 'font-semibold text-accent-text'
-                      : 'text-fg',
-                  ].join(' ')}
-                >
-                  {row.entry.verifiedAt
-                    ? formatFeedDay(row.entry.verifiedAt)
-                    : '—'}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <LatestRecord mode={mode} record={row.entry} />
-                </span>
-              </div>
-            </li>
-          ))}
+          {rows.map((row, i) => {
+            const landedToday =
+              !!row.entry.verifiedAt && isToday(row.entry.verifiedAt)
+            return (
+              <li
+                key={row.entry.id}
+                className={[
+                  'feed-row border-b border-hairline-soft py-3 text-[0.8125rem] leading-[1.45] text-fg last:border-b-0',
+                  phaseClass[row.phase],
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                style={
+                  {
+                    // Fading a row from today takes its accent below AA.
+                    '--feed-age-t': landedToday ? 1 : ageT(i, rows.length),
+                  } as CSSProperties
+                }
+              >
+                <div className="flex min-h-0 gap-2 overflow-hidden">
+                  <span
+                    className={[
+                      'min-w-12 shrink-0 font-medium whitespace-nowrap tabular-nums',
+                      // The newest entries keep a recency glow until the date
+                      // ages out — a glance can tell something landed today.
+                      landedToday
+                        ? 'font-semibold text-accent-text'
+                        : 'text-fg',
+                    ].join(' ')}
+                  >
+                    {row.entry.verifiedAt
+                      ? formatFeedDay(row.entry.verifiedAt)
+                      : '—'}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <LatestRecord mode={mode} record={row.entry} />
+                  </span>
+                </div>
+              </li>
+            )
+          })}
         </ol>
       )}
     </aside>
