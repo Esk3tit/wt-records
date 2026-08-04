@@ -34,6 +34,9 @@ function entry(id: number, vehicleName: string): FeedEntry {
 // Server data is newest-first; the log reads downward into the present.
 const newestFirst = [entry(3, 'Maus'), entry(2, 'IS-7'), entry(1, 'T-34')]
 
+const ageT = (li: HTMLElement) =>
+  Number.parseFloat(li.style.getPropertyValue('--feed-age-t'))
+
 async function renderFeed(initial: FeedEntry[], { live = false } = {}) {
   let push: (entries: FeedEntry[]) => void = () => {}
   function Harness() {
@@ -119,10 +122,29 @@ describe('LiveFeed', () => {
   it('dims rows with age: the oldest rests fainter than the newest', async () => {
     const { getAllByRole } = await renderFeed(newestFirst)
     const items = getAllByRole('listitem')
-    const ageT = (li: HTMLElement) =>
-      Number.parseFloat(li.style.getPropertyValue('--feed-age-t'))
     expect(ageT(items[0])).toBeLessThan(ageT(items[2]))
     expect(ageT(items[2])).toBe(1)
+  })
+
+  it('dims no record from today, so its accent never fades under the floor', async () => {
+    const today = (id: number, name: string) => ({
+      ...entry(id, name),
+      verifiedAt: new Date(),
+    })
+    const { getAllByRole } = await renderFeed([
+      today(9, 'Object 279'),
+      today(8, 'T-80BVM'),
+      ...newestFirst,
+    ])
+    const items = getAllByRole('listitem')
+    expect(items.map(ageT)).toEqual([0, 0.25, 0.5, 1, 1])
+  })
+
+  it('dims nothing at all on a day when every record landed', async () => {
+    const { getAllByRole } = await renderFeed(
+      newestFirst.map((e) => ({ ...e, verifiedAt: new Date() })),
+    )
+    expect(getAllByRole('listitem').map(ageT)).toEqual([1, 1, 1])
   })
 
   it('renders at most seven rows so no entry can hide clipped from view', async () => {
