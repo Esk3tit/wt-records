@@ -321,7 +321,7 @@ List pages introduce themselves with a mode eyebrow above the h1 — kicker-size
 - **Do** flip tokens between modes and nothing else (The Same Hall Rule) — same layout, same spacing, same radii, same rules.
 - **Do** keep all numerals tabular (The Tabular Rule) — kills, counts, BRs, percentages.
 - **Do** give every glass surface the full material: backdrop blur + saturate, the mode's 1px hairline, Glass Highlight inset top edge, and a band radius (22px card / 26px panel).
-- **Do** keep amber ≤10% of any screen and off persistent chrome entirely (The One Amber Rule, The Rationed Colour Rule), using Medal Amber Deep for amber text by day; reserve metals for ranks 1/2/3 (The Earned Metal Rule) with Day Gold/Silver/Bronze as their text-safe day forms.
+- **Do** keep amber ≤10% of any screen and out of chrome's resting ink but for the wordmark's separator (The One Amber Rule, The Rationed Colour Rule), using Medal Amber Deep for amber text by day; reserve metals for ranks 1/2/3 (The Earned Metal Rule) with Day Gold/Silver/Bronze as their text-safe day forms.
 - **Do** ship every interactive component state-complete: default, hover, focus-visible, active, disabled.
 - **Do** respect `prefers-reduced-motion` with a real alternative for every animation — parallax, count-ups, lifts.
 
