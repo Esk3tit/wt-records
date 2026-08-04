@@ -19,8 +19,8 @@ export const TEST_USERS = {
   },
 } as const
 
-/** Creates (or resets) each auth user and pins its profile role. Idempotent so
-    a repeated local run doesn't trip over users the previous run left behind. */
+/** Creates each missing auth user and pins its profile role. Deliberately never
+    rewrites an existing one — see upsertAuthUser for what that costs. */
 export async function provisionTestUsers(): Promise<void> {
   assertDisposableTarget()
   const admin = createClient(
@@ -36,9 +36,8 @@ export async function provisionTestUsers(): Promise<void> {
   try {
     for (const user of Object.values(TEST_USERS)) {
       const id = await upsertAuthUser(admin.auth.admin, sql, user)
-      // profiles.id IS the auth user id, and the OAuth upsert deliberately
-      // never sets role — so the fixture pins it the same way a real
-      // promotion does.
+      // profiles.id IS the auth user id, and the OAuth upsert never sets role —
+      // so the fixture pins it the same way a real promotion does.
       await sql`
         insert into profiles (id, handle, role)
         values (${id}, ${user.handle}, ${user.role})
@@ -78,12 +77,16 @@ async function upsertAuthUser(
       `could not create or find the test user ${email}: ${created.error?.message}`,
     )
   }
-  const updated = await admin.updateUserById(existing, {
-    password,
-    email_confirm: true,
-  })
-  if (updated.error) {
-    throw new Error(`could not reset ${email}: ${updated.error.message}`)
+  // Writing a password — even an identical one — makes GoTrue drop every
+  // session the user holds, signing out any suite already running on this stack.
+  if (process.env.E2E_RESET_USERS === '1') {
+    const reset = await admin.updateUserById(existing, {
+      password,
+      email_confirm: true,
+    })
+    if (reset.error) {
+      throw new Error(`could not reset ${email}: ${reset.error.message}`)
+    }
   }
   return existing
 }

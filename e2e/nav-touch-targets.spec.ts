@@ -64,7 +64,7 @@ for (const theme of LIGHTING) {
 /* The Admin entry exists only for moderators, so no other test renders this
    composition — and a fix aimed at the rest of the nav will leave it behind. */
 test.describe('with the moderator nav', () => {
-  test.use({ storageState: STATE.admin })
+  test.use({ storageState: STATE.moderator })
 
   for (const width of MODERATOR_WIDTHS) {
     test(`every nav control can be tapped at ${width}px`, async ({ page }) => {

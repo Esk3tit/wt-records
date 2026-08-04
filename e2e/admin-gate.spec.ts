@@ -40,7 +40,7 @@ test.describe('signed out', () => {
 })
 
 test.describe('signed in without the moderator role', () => {
-  test.use({ storageState: STATE.user })
+  test.use({ storageState: STATE.viewer })
 
   test('the CMS is refused by name', async ({ page }) => {
     await page.goto('/admin')

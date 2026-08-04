@@ -40,7 +40,7 @@ async function seedOwnedPlayer(sql: Sql, slug: string): Promise<void> {
 }
 
 test.describe('owner avatar controls', () => {
-  test.use({ storageState: STATE.user })
+  test.use({ storageState: STATE.viewer })
 
   test('the owner sees the upload control on their own page', async ({
     page,
@@ -111,7 +111,7 @@ test.describe('a signed-out visitor sees no avatar controls', () => {
 })
 
 test.describe('a signed-in non-owner sees no avatar controls', () => {
-  test.use({ storageState: STATE.admin })
+  test.use({ storageState: STATE.moderator })
 
   test('no controls on someone else’s page, with or without an avatar', async ({
     page,

@@ -35,9 +35,9 @@ Text sliding under the nav or a pinned head paints nothing solid and is left unm
 
 The app keeps its session in **httpOnly** cookies ([`src/auth/supabase-server.ts`](../src/auth/supabase-server.ts)), so a test cannot inject one into `localStorage`. The `setup` project instead:
 
-1. Mints two auth users with the service-role key and pins their `profiles.role` (`e2e/support/users.ts`) — `profiles.id` **is** the Supabase `auth.users.id`.
+1. Creates two auth users with the service-role key and pins their `profiles.role` (`e2e/support/users.ts`) — `profiles.id` **is** the Supabase `auth.users.id`. An existing user is left **untouched**: writing a password, even an identical one, makes GoTrue drop every session that user holds, which signs out any suite already running against the stack. `E2E_RESET_USERS=1` forces a reset when a password has genuinely drifted.
 2. Signs each in through `supabase-js`, capturing the cookies `@supabase/ssr` writes into a recording jar rather than hand-rolling Supabase's cookie naming/chunking/encoding (`e2e/support/session.ts`).
-3. Saves them as `e2e/.auth/{admin,user,anon}.json` — **git-ignored, minted fresh every run**. A stored session is silently invalidated by a signing-key rotation, so it is never committed.
+3. Saves them as `e2e/.auth/{moderator,viewer,anon}.json` — **git-ignored, minted fresh every run**. A stored session is silently invalidated by a signing-key rotation, so it is never committed.
 
 `anon.json` carries no session, only granted analytics consent, so the fixed consent banner never covers the page under test.
 
@@ -54,7 +54,27 @@ bun run e2e:install           # Chromium, pinned to the installed Playwright
 bun run test:e2e              # builds, boots the SSR server, runs the suite
 ```
 
-Playwright boots its own server on **port 3100**, deliberately not the dev server's 3000 — otherwise it would silently reuse a `bun run dev` pointed at different config, and you'd debug phantom failures.
+Playwright boots its own server on **port 3100 + an offset derived from the checkout path**, deliberately not the dev server's 3000. The offset is what keeps worktrees off each other's ports; refusing to adopt an occupied one (below) is what stops a collision going unnoticed.
+
+### One suite at a time per database
+
+Worktrees that share a local Supabase stack share its users and its data, so `globalSetup` takes a Postgres **advisory lock** (`e2e/support/stack-lock.ts`) and holds it for the run. A second suite waits, printing a heartbeat every 15s naming the holder:
+
+```text
+⏳ waiting for the shared E2E stack — 1m15s (held by wt-records for 4m02s)
+```
+
+Silence for minutes therefore means wedged, not queued. The lock is released by the connection dropping, so a killed run cannot strand it, and it gives up after 15 minutes. Give each checkout its own stack and the lock is uncontended — one call, no wait.
+
+That release-on-drop cuts both ways: if the connection dies mid-run the lock is free immediately, so the run takes it straight back. Only one session can hold it, and a waiter that takes it keeps it for the rest of its run — so regaining it proves nobody else got in, and failing to proves somebody did, at which point the run ends rather than reporting results it cannot stand behind. The overlap is bounded by the round-trip it takes to find that out, which no design avoids for a lock the server frees on disconnect: stopping dead on every drop would shorten the gap by one query while killing healthy runs whenever nothing was waiting. Losing sessions is no longer one of the risks, since the password write is gone whether or not the lock holds, but shared catalog and profile writes still are.
+
+The lock is session-scoped, so `DATABASE_URL` must be a direct or session-pooler connection. A transaction pooler routes each statement to a different backend and would report the lock taken while holding nothing — only reachable via `E2E_REMOTE=1`, and the run aborts rather than proceeding unprotected.
+
+The lock covers Playwright runs and nothing else. `db:seed`, `supabase db reset`, `catalog:sync` and a running dev server take no lock, so any of them can still walk over a suite in flight.
+
+A `--ui` session holds the lock for as long as the window is open, so a sibling worktree's run will queue behind it and give up after 15 minutes. Close it when you're done.
+
+Playwright never adopts a server already listening on the port (`reuseExistingServer: false`). A second suite in the same checkout, or the rare pair of checkouts whose ports collide, therefore fails loudly at boot instead of silently testing whichever branch got there first. To run a suite against a server you started yourself, point it there with `PLAYWRIGHT_BASE_URL`.
 
 **`.env` must point at the local stack** — `SUPABASE_URL=http://127.0.0.1:54321`, not the hosted project, or the guard rejects the run. To override for a single run without editing `.env`:
 

@@ -17,6 +17,7 @@ export default defineConfig({
   testDir: './e2e',
   // support/ holds helpers plus their Vitest specs — neither is a Playwright test.
   testIgnore: '**/support/**',
+  globalSetup: './e2e/global-setup.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -49,7 +50,9 @@ export default defineConfig({
         command: 'bun run start',
         url: `${BASE_URL}/healthz`,
         env: { PORT: new URL(BASE_URL).port },
-        reuseExistingServer: !process.env.CI,
+        // Never adopt a server already on this port: two checkouts can hash to
+        // the same one, and adopting it silently tests the wrong branch.
+        reuseExistingServer: false,
         timeout: 120_000,
         stdout: 'pipe',
         stderr: 'pipe',
