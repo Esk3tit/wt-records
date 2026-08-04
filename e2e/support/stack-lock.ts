@@ -1,10 +1,8 @@
 import postgres from 'postgres'
 import { requireEnv } from './env'
 
-/** One suite at a time per database. Worktrees sharing a local Supabase stack
-    otherwise provision over each other's users mid-run, and a password write
-    drops every session the other run is holding. Uncontended — and therefore
-    free — once each checkout has a stack of its own. */
+/** One suite at a time per database — worktrees sharing a local Supabase stack
+    otherwise provision over each other's users mid-run. */
 
 const LOCK_NAME = 'wt-records-e2e'
 const POLL_MS = 2_000
@@ -16,11 +14,21 @@ type Sql = ReturnType<typeof postgres>
 export async function acquireStackLock(
   label: string,
 ): Promise<() => Promise<void>> {
+  let holding = false
   const sql = postgres(requireEnv('DATABASE_URL'), {
     max: 1,
     prepare: false,
     connect_timeout: 10,
     connection: { application_name: `${LOCK_NAME}:${label}` },
+    // The lock lives on this connection, so losing it hands the stack to the
+    // next suite. Reconnection is silent; say so rather than run unguarded.
+    onclose: () => {
+      if (!holding) return
+      holding = false
+      console.error(
+        '⚠ lost the shared E2E stack lock — its connection dropped, so another suite may now be running alongside this one',
+      )
+    },
   })
   const startedAt = Date.now()
   // Beat on the first failed attempt, so a wait is never silent.
@@ -32,7 +40,13 @@ export async function acquireStackLock(
         select pg_try_advisory_lock(hashtext(${LOCK_NAME})) as locked`
       // Dropping the connection releases the lock, so a killed run can't wedge
       // the machine the way an abandoned lock file would.
-      if (row.locked) return async () => void (await sql.end())
+      if (row.locked) {
+        holding = true
+        return async () => {
+          holding = false
+          await sql.end()
+        }
+      }
 
       const waited = Date.now() - startedAt
       if (waited >= TIMEOUT_MS) {

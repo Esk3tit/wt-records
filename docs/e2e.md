@@ -66,6 +66,8 @@ Worktrees that share a local Supabase stack share its users and its data, so `gl
 
 Silence for minutes therefore means wedged, not queued. The lock is released by the connection dropping, so a killed run cannot strand it, and it gives up after 15 minutes. Give each checkout its own stack and the lock is uncontended — one call, no wait.
 
+The lock covers Playwright runs and nothing else. `db:seed`, `supabase db reset`, `catalog:sync` and a running dev server take no lock, so any of them can still walk over a suite in flight.
+
 Two suites from the **same** checkout are a different matter: they share one port, and the server belongs to whichever run booted it, so the first to finish tears it out from under the second (`webServer` starts *before* `globalSetup`, so the queued run has already adopted it, and its tests then fail with `ERR_CONNECTION_REFUSED`). Run concurrent suites from separate worktrees, or point the second at a server you started yourself via `PLAYWRIGHT_BASE_URL`.
 
 **`.env` must point at the local stack** — `SUPABASE_URL=http://127.0.0.1:54321`, not the hosted project, or the guard rejects the run. To override for a single run without editing `.env`:

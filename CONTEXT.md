@@ -22,8 +22,8 @@ A User whose role grants the moderation surface — entering and verifying Recor
 _Avoid_: admin (which is both the role above it and the name of the surface).
 
 **Admin**:
-The elevated role, strictly above Moderator. The moderation surface itself is not "the Admin" — that conflation is why this entry exists.
-_Avoid_: using it for any moderator, or for the surface.
+The elevated role, strictly above Moderator. `/admin` is the moderation surface's route, not this role — what a page is called says nothing about who may open it.
+_Avoid_: using it as a synonym for any moderator.
 
 **Player**:
 A record-holder identity — the thing that holds Records. Exists with **no User** by default (accountless is a permanent, valid state for migrated holders); links to a User only when **claimed**.
