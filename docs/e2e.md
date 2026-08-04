@@ -68,6 +68,8 @@ Silence for minutes therefore means wedged, not queued. The lock is released by 
 
 That release-on-drop cuts both ways: if the connection dies mid-run the lock is free immediately, and a waiter can take it a poll later, while this run takes a round-trip to notice and stop. Both suites are briefly live in that gap — unavoidable for a lock the server frees on disconnect, and the reason the run ends rather than continuing on a warning. Losing sessions is no longer one of the risks, since the password write is gone whether or not the lock holds, but shared catalog and profile writes still are.
 
+The lock is session-scoped, so `DATABASE_URL` must be a direct or session-pooler connection. A transaction pooler routes each statement to a different backend and would report the lock taken while holding nothing — only reachable via `E2E_REMOTE=1`, and the run aborts rather than proceeding unprotected.
+
 The lock covers Playwright runs and nothing else. `db:seed`, `supabase db reset`, `catalog:sync` and a running dev server take no lock, so any of them can still walk over a suite in flight.
 
 A `--ui` session holds the lock for as long as the window is open, so a sibling worktree's run will queue behind it and give up after 15 minutes. Close it when you're done.

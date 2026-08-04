@@ -42,6 +42,7 @@ export async function acquireStackLock(
       // Dropping the connection releases the lock, so a killed run can't wedge
       // the machine the way an abandoned lock file would.
       if (row.locked) {
+        await assertSessionScoped(sql)
         holding = true
         return async () => {
           holding = false
@@ -69,6 +70,24 @@ export async function acquireStackLock(
     await sql.end()
     throw cause
   }
+}
+
+/** A transaction pooler gives each statement a different backend, so it reports
+    the lock taken while holding nothing. Confirm the grant is on this session. */
+async function assertSessionScoped(sql: Sql): Promise<void> {
+  const held = (
+    await sql<{ held: boolean }[]>`
+      select exists (
+        select 1 from pg_locks
+        where locktype = 'advisory' and granted and pid = pg_backend_pid()
+      ) as held`
+  ).at(0)?.held
+  if (held) return
+  throw new Error(
+    'took the E2E stack lock but does not hold it — DATABASE_URL looks like a ' +
+      'transaction pooler, which cannot keep a session-level lock. Point it at ' +
+      'a direct or session-pooler connection.',
+  )
 }
 
 /** A dropped connection releases the lock server-side. Taking it straight back
