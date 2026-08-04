@@ -5,6 +5,9 @@ import { requireEnv } from './env'
     otherwise provision over each other's users mid-run. */
 
 const LOCK_NAME = 'wt-records-e2e'
+// The two-int form, not a hashed name: pg_locks records these verbatim, so the
+// grant can be matched exactly. Arbitrary, positive (pg_locks stores oids).
+const LOCK_KEY = { classid: 0x5754, objid: 0x5245 } as const
 const POLL_MS = 2_000
 const HEARTBEAT_MS = 15_000
 const TIMEOUT_MS = 15 * 60_000
@@ -51,7 +54,7 @@ export async function acquireStackLock(
   try {
     for (;;) {
       const [row] = await sql<{ locked: boolean }[]>`
-        select pg_try_advisory_lock(hashtext(${LOCK_NAME})) as locked`
+        select pg_try_advisory_lock(${LOCK_KEY.classid}::int, ${LOCK_KEY.objid}::int) as locked`
       // Dropping the connection releases the lock, so a killed run can't wedge
       // the machine the way an abandoned lock file would.
       if (row.locked) {
@@ -86,17 +89,29 @@ export async function acquireStackLock(
   }
 }
 
+/** Whether THIS backend holds THIS key — not merely some advisory lock, which
+    a pooled backend could be holding on someone else's behalf. */
+async function heldHere(sql: Sql): Promise<boolean> {
+  const held = await sql<{ held: boolean }[]>`
+    select exists (
+      select 1 from pg_locks
+      where locktype = 'advisory'
+        and granted
+        and pid = pg_backend_pid()
+        and classid = ${LOCK_KEY.classid}::oid
+        and objid = ${LOCK_KEY.objid}::oid
+        and objsubid = 2
+    ) as held`.then(
+    (rows) => rows.at(0)?.held === true,
+    () => false,
+  )
+  return held
+}
+
 /** A transaction pooler gives each statement a different backend, so it reports
     the lock taken while holding nothing. Confirm the grant is on this session. */
 async function assertSessionScoped(sql: Sql): Promise<void> {
-  const held = (
-    await sql<{ held: boolean }[]>`
-      select exists (
-        select 1 from pg_locks
-        where locktype = 'advisory' and granted and pid = pg_backend_pid()
-      ) as held`
-  ).at(0)?.held
-  if (held) return
+  if (await heldHere(sql)) return
   throw new Error(
     'took the E2E stack lock but does not hold it — DATABASE_URL looks like a ' +
       'transaction pooler, which cannot keep a session-level lock. Point it at ' +
@@ -107,11 +122,13 @@ async function assertSessionScoped(sql: Sql): Promise<void> {
 /** A dropped connection releases the lock server-side. Taking it straight back
     is enough unless someone else got in first, and then this run is not alone. */
 async function reclaim(sql: Sql): Promise<boolean> {
-  return sql<{ locked: boolean }[]>`
-    select pg_try_advisory_lock(hashtext(${LOCK_NAME})) as locked`.then(
+  const regained = await sql<{ locked: boolean }[]>`
+    select pg_try_advisory_lock(${LOCK_KEY.classid}::int, ${LOCK_KEY.objid}::int) as locked`.then(
     (rows) => rows.at(0)?.locked === true,
     () => false,
   )
+  // Taking it back is only worth anything if this session is the one holding it.
+  return regained && (await heldHere(sql))
 }
 
 /** Which checkout is running. Waiters share the application_name prefix, so the
