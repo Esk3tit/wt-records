@@ -78,3 +78,7 @@ ds-bundle/
 
 # Local share-card preview renders
 /.og-preview
+
+# throwaway prototype capture dirs (#160)
+.proto-shots/
+.proto-cards/

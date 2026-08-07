@@ -29,6 +29,16 @@ import { CANONICAL_ORIGIN } from '#/lib/canonical'
 import { siteMeta } from '#/og/meta'
 
 const loadShell = createServerFn({ method: 'GET' }).handler(async () => {
+  // THROWAWAY (#160 prototype branch): the design surfaces need no DB.
+  if (process.env.PROTOTYPE_NO_DB) {
+    return {
+      modes: [
+        { mode: 'grb', name: 'Ground RB', isLive: true },
+        { mode: 'arb', name: 'Air RB', isLive: true },
+      ],
+      isModerator: false,
+    }
+  }
   // The mod check short-circuits on the cookie so plain visitors never pay
   // an auth round-trip; an auth outage must never take the public site down,
   // so any gate failure just hides the chip.
