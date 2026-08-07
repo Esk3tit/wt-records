@@ -18,6 +18,7 @@ export interface Case {
   links: LinkItem[]
   isOwner: boolean
   mark: number
+  records: { mode: string; vehicle: string; kills: number }[]
   stats: ProfileEnrichmentData
 }
 

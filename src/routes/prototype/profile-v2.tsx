@@ -4,6 +4,7 @@ import {
   DirectionB,
   DirectionC,
 } from '#/prototype/header-directions'
+import { DirectionD } from '#/prototype/monument-direction'
 import type { Case } from '#/prototype/header-directions'
 
 /* THROWAWAY — profile-v2 prototype (#160). Not shipped, not linked from the
@@ -43,6 +44,13 @@ const LINKS = [
   { platform: 'site', handle: 'zheleznyakov.gg' },
 ]
 
+const RECORDS = [
+  { mode: 'GRB', vehicle: 'IS-2', kills: 34 },
+  { mode: 'GRB', vehicle: 'T-34-85', kills: 21 },
+  { mode: 'ARB', vehicle: 'Bf 109 F-4', kills: 17 },
+]
+const ONE_RECORD = [{ mode: 'GRB', vehicle: 'M4A1 (76) W', kills: 9 }]
+
 const CASES: Record<string, Case> = {
   full: {
     displayName: 'Пётр Железняков-Оболенский',
@@ -53,6 +61,7 @@ const CASES: Record<string, Case> = {
     links: LINKS,
     isOwner: false,
     mark: 40,
+    records: RECORDS,
     stats: STATS,
   },
   empty: {
@@ -64,9 +73,16 @@ const CASES: Record<string, Case> = {
     links: [],
     isOwner: false,
     mark: 40,
+    records: ONE_RECORD,
     stats: {
       nationSpread: [{ slug: 'usa', name: 'USA', records: 1 }],
-      longestHeld: null,
+      longestHeld: {
+        vehicleSlug: 'm4a1-76-w',
+        vehicleName: 'M4A1 (76) W',
+        mode: 'grb',
+        heldSeconds: 12 * 24 * 3600,
+        lostAt: null,
+      },
       lastVerifiedAt: '2026-05-02T00:00:00.000Z',
     },
   },
@@ -79,6 +95,7 @@ const CASES: Record<string, Case> = {
     links: LINKS,
     isOwner: true,
     mark: 40,
+    records: RECORDS,
     stats: STATS,
   },
   // The owner's pending avatar: the ONLY difference from `owner` is the image.
@@ -92,7 +109,20 @@ const CASES: Record<string, Case> = {
     links: LINKS,
     isOwner: true,
     mark: 40,
+    records: RECORDS,
     stats: STATS,
+  },
+  norecords: {
+    displayName: 'Пётр Железняков-Оболенский',
+    formerNames: ['PetrZ'],
+    avatarUrl: APPROVED,
+    isClaimed: true,
+    country: { code: 'FR', name: 'France' },
+    links: LINKS,
+    isOwner: false,
+    mark: 40,
+    records: [],
+    stats: { ...STATS, nationSpread: [] },
   },
   ownerbare: {
     displayName: 'jonno',
@@ -103,31 +133,36 @@ const CASES: Record<string, Case> = {
     links: [],
     isOwner: true,
     mark: 40,
+    records: ONE_RECORD,
     stats: {
       nationSpread: [{ slug: 'usa', name: 'USA', records: 1 }],
-      longestHeld: null,
+      longestHeld: {
+        vehicleSlug: 'm4a1-76-w',
+        vehicleName: 'M4A1 (76) W',
+        mode: 'grb',
+        heldSeconds: 12 * 24 * 3600,
+        lostAt: null,
+      },
       lastVerifiedAt: '2026-05-02T00:00:00.000Z',
     },
   },
 }
 
-const RECORDS = [
-  { mode: 'GRB', vehicle: 'IS-2', kills: 34 },
-  { mode: 'GRB', vehicle: 'T-34-85', kills: 21 },
-  { mode: 'ARB', vehicle: 'Bf 109 F-4', kills: 17 },
-]
+
 
 export const Route = createFileRoute('/prototype/profile-v2')({
   validateSearch: (s: Record<string, unknown>) => ({
     d: (s.d as string) ?? 'a',
     c: (s.c as string) ?? 'full',
     m: Number(s.m ?? 40),
+    w: Number(s.w ?? 1),
+    h: (s.h as string) === 'days' ? 'days' : 'titles',
   }),
   component: Prototype,
 })
 
 function Prototype() {
-  const { d, c, m } = Route.useSearch()
+  const { d, c, m, w, h } = Route.useSearch()
   const base = CASES[c] ?? CASES.full
   // Kick's published 40px floor for the Special K sets the mark for the whole
   // row, or Kick does not ship. `m` is that fork.
@@ -136,16 +171,25 @@ function Prototype() {
     mark: m,
     links: m >= 40 ? base.links : base.links.filter((l) => l.platform !== 'kick'),
   }
-  const Header = d === 'b' ? DirectionB : d === 'c' ? DirectionC : DirectionA
-
   return (
     <section className="mt-6 space-y-5">
-      <Header c={kase} />
+      {d === 'd' ? (
+        <DirectionD c={kase} wash={w === 1} hero={h} />
+      ) : d === 'c' ? (
+        <DirectionC c={kase} />
+      ) : d === 'b' ? (
+        <DirectionB c={kase} />
+      ) : (
+        <DirectionA c={kase} />
+      )}
 
       <div className="glass-mid p-6 sm:p-7">
         <h2 className="section-label mb-4">Current records</h2>
+        {kase.records.length === 0 && (
+          <p className="text-sm text-fg-faint">No current records yet.</p>
+        )}
         <ul className="space-y-0.5">
-          {RECORDS.map((r) => (
+          {kase.records.map((r) => (
             <li
               key={r.vehicle}
               className="flex items-center gap-3 rounded-[10px] px-2 py-1.5"
