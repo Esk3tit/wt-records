@@ -21,6 +21,8 @@ export default [
       'src/og/assets/embedded.ts',
       '.output/**',
       '.nitro/**',
+      // The local Supabase CLI's scratch state, written by `supabase start`.
+      'supabase/.temp/**',
       '.tanstack/**',
       'dist/**',
       '.claude/**',
