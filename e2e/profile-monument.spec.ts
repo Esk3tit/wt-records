@@ -82,6 +82,30 @@ test.describe('the profile monument', () => {
   })
 })
 
+/* Where the ration is actually spent, stated so nobody has to infer it: the
+   resting page gets the monument alone, and the commit a reader summoned is
+   amber's other sanctioned job, ranked far below it. */
+test.describe('the claim form', () => {
+  test.use({ storageState: STATE.viewer })
+
+  test('adds the commit as the one further amber, and nothing else', async ({
+    page,
+  }) => {
+    await openProfile(page)
+    await page.getByRole('button', { name: 'Claim this page' }).click()
+    await expect(
+      page.getByRole('button', { name: 'Request claim' }),
+    ).toBeVisible()
+
+    const moments = await amberMoments(page, 'main')
+
+    expect(moments.map((m) => m.says)).toEqual([
+      expect.stringMatching(/^[\d,]+\s*days?$/),
+      'Request claim',
+    ])
+  })
+})
+
 test.describe('the monument under reduced motion', () => {
   test.use({ storageState: STATE.anon })
 
