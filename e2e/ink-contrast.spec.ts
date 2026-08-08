@@ -8,7 +8,12 @@ import {
   unreadable,
   worstDownThePage,
 } from './support/contrast'
-import { deepestScroll, openNav, readerScrollsTo } from './support/nav'
+import {
+  deepestScroll,
+  firstPath,
+  openNav,
+  readerScrollsTo,
+} from './support/nav'
 import { STATE } from './support/states'
 
 /* The nav has its own guard; this one owns everything the nav floats over.
@@ -48,22 +53,6 @@ async function sweepReads(page: Page, sites: string[]) {
   const readings = await worstDownThePage(page, { depths: DEPTHS, sites })
   expect(unmeasured(readings, sites)).toEqual([])
   expect(faultsInInk(readings)).toEqual([])
-}
-
-/** The first link matching a route shape, so fixtures come from live data and
-    these hold against the seed and a real corpus alike. */
-async function firstPath(page: Page, shape: RegExp) {
-  const href = await page
-    .locator('a[href]')
-    .evaluateAll(
-      (links, source) =>
-        (links as HTMLAnchorElement[])
-          .map((a) => new URL(a.href).pathname)
-          .find((path) => new RegExp(source).test(path)) ?? '',
-      shape.source,
-    )
-  expect(href, `no ${shape} link to follow`).toBeTruthy()
-  return href
 }
 
 for (const theme of ['dark', 'light'] as const) {

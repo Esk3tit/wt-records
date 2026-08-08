@@ -11,6 +11,7 @@ import { PlayerAvatar } from '#/components/player-avatar'
 import { ClaimedChip } from '#/components/claimed-chip'
 import { ClaimPanel } from '#/components/claim-panel'
 import { OwnerAvatarControls } from '#/components/owner-avatar-controls'
+import { PlayerMonument } from '#/components/player-monument'
 import { ProfileEnrichment } from '#/components/profile-enrichment'
 import type { ClaimViewer } from '#/components/claim-panel'
 import { db } from '#/db'
@@ -139,44 +140,64 @@ function PlayerProfile() {
 
   return (
     <section className="mt-6 space-y-5">
-      <div className="glass-mid p-6 sm:p-7">
-        <div className="flex items-center gap-5">
-          <PlayerAvatar
-            avatarUrl={profile.avatarUrl}
-            displayName={profile.displayName}
-            size={84}
-            eager
-          />
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              <h1 className="text-2xl font-semibold text-balance">
-                {profile.displayName}
-              </h1>
-              {profile.isClaimed && <ClaimedChip />}
-            </div>
-            {formerNames.length > 0 && (
-              <p className="mt-1 text-sm text-fg-faint">
-                previously known as {formerNames.join(', ')}
-              </p>
-            )}
-            {viewer.signedIn && viewer.isOwner && (
-              <OwnerAvatarControls
-                playerId={profile.id}
-                hasAvatar={profile.hasAvatar}
-              />
-            )}
-          </div>
+      <div className="glass-mid relative p-6 sm:p-7">
+        {/* Measured: a pane narrower than it is tall cuts the glow's ramp into a
+            hard vertical seam, so it runs only where the pane is wide. */}
+        <div
+          className="absolute inset-0 z-0 hidden overflow-hidden rounded-[inherit] md:block"
+          aria-hidden="true"
+        >
+          <div className="monument-glow" />
         </div>
 
-        <ProfileEnrichment stats={enrichment} />
+        {/* The identity column's desktop air is accepted, not filled: this
+            card's next fact belongs in the strip below, not beside a name. */}
+        <div className="relative grid items-start gap-8 md:grid-cols-[1fr_auto]">
+          <div className="flex items-center gap-5">
+            <PlayerAvatar
+              avatarUrl={profile.avatarUrl}
+              displayName={profile.displayName}
+              size={84}
+              eager
+            />
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                <h1 className="text-2xl font-semibold text-balance">
+                  {profile.displayName}
+                </h1>
+                {profile.isClaimed && <ClaimedChip />}
+              </div>
+              {formerNames.length > 0 && (
+                <p className="mt-1 text-sm text-fg-faint">
+                  previously known as {formerNames.join(', ')}
+                </p>
+              )}
+              {viewer.signedIn && viewer.isOwner && (
+                <OwnerAvatarControls
+                  playerId={profile.id}
+                  hasAvatar={profile.hasAvatar}
+                />
+              )}
+            </div>
+          </div>
 
-        <ClaimPanel
-          key={profile.id}
-          playerId={profile.id}
-          slug={profile.slug}
-          isClaimed={profile.isClaimed}
-          viewer={viewer}
-        />
+          <PlayerMonument
+            titlesHeld={profile.records.length}
+            longestHeld={enrichment.longestHeld}
+          />
+        </div>
+
+        <div className="relative">
+          <ProfileEnrichment stats={enrichment} />
+
+          <ClaimPanel
+            key={profile.id}
+            playerId={profile.id}
+            slug={profile.slug}
+            isClaimed={profile.isClaimed}
+            viewer={viewer}
+          />
+        </div>
       </div>
 
       <div className="glass-mid p-6 sm:p-7">
