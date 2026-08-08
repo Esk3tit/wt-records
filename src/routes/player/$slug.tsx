@@ -23,7 +23,7 @@ import {
   getPlayerEnrichment,
   playerMergeRedirect,
 } from '#/db/queries'
-import { resolveCountryMark } from '#/lib/country-mark'
+import { resolveCountryMark } from '#/lib/country-mark-server'
 import { hasAuthCookie, getSessionUser } from '#/auth/supabase-server'
 import { providerAvatarUrl } from '#/auth/profile'
 import { viewerHasPendingClaim } from '#/claims/claims'
@@ -90,8 +90,9 @@ const loadPlayer = createServerFn({ method: 'GET' })
         // owner's controls reflect the stored state, not the served URL.
         hasAvatar: avatarKey != null,
         avatarKey,
-        countryCode,
-        // The mark resolves server-side: all 250 must never reach the client.
+        // Resolved server-side (all 250 marks must never reach the client), and
+        // the only country the client sees — so a code the list has since
+        // dropped reads as "not set" in the picker rather than as a blank one.
         country: resolveCountryMark(countryCode),
         isClaimed: claimed,
       },
@@ -188,7 +189,7 @@ function PlayerProfile() {
             />
             <OwnerCountryControls
               playerId={profile.id}
-              countryCode={profile.countryCode}
+              countryCode={profile.country?.code ?? null}
             />
           </>
         )}

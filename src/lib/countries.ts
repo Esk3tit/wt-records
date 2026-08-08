@@ -4,7 +4,8 @@ import { COUNTRIES } from '#/lib/countries.generated'
    (the in-game tree). The list is ISO 3166-1 alpha-2 plus XK — home nations
    are not on it, because there is no English or Scottish citizenship, only
    British. Codes are uppercase everywhere: a mixed-case store is how a player
-   drops out of their own country's results. */
+   drops out of their own country's results — `players.country_code` carries the
+   matching CHECK, and normalizeCountryCode is what feeds it. */
 
 export { COUNTRIES }
 

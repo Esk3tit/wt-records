@@ -85,6 +85,26 @@ test.describe('the claim holder states a Country', () => {
     }
   })
 
+  // The stored code outlives the list it came from: CLDR can retire one.
+  test('reads a code the list no longer offers as "Not set"', async ({
+    page,
+  }) => {
+    const slug = 'e2e-country-delisted'
+    const sql = connect()
+    try {
+      await seedOwnedPlayer(sql, slug)
+      await sql`update players set country_code = 'ZZ' where slug = ${slug}`
+      await page.goto(`/player/${slug}`)
+
+      await expect(page.locator('.country-flag')).toHaveCount(0)
+      // Not a blank selection: the picker offers no option for a delisted code.
+      await expect(picker(page)).toHaveValue('')
+    } finally {
+      await sql`delete from players where slug = ${slug}`
+      await sql.end()
+    }
+  })
+
   test('states the rule under the field, and offers no home nation', async ({
     page,
   }) => {

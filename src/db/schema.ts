@@ -158,8 +158,8 @@ export const players = pgTable(
   },
   (t) => [
     index('ply_user_idx').on(t.userId),
-    // Stored uppercase, read uppercase: a "gb" beside a "GB" is how a player
-    // stops appearing in their own country's results.
+    // Shape and case only — membership is the app's, and 250 codes in a CHECK
+    // would rot on the next CLDR bump.
     check('ply_country_upper', sql`${t.countryCode} ~ '^[A-Z]{2}$'`),
   ],
 ).enableRLS()

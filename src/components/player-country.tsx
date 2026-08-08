@@ -1,4 +1,4 @@
-import type { CountryMark } from '#/lib/country-mark'
+import type { CountryMark } from '#/lib/country-mark-server'
 
 /* A claimed Player's stated Country. The mark never appears alone — the full
    name always follows it as text, and that labelling is the entire separation
@@ -16,7 +16,7 @@ export function PlayerCountry({ country }: { country: CountryMark }) {
         focusable="false"
         preserveAspectRatio="xMidYMid slice"
         className="country-flag"
-        dangerouslySetInnerHTML={{ __html: country.flag }}
+        dangerouslySetInnerHTML={{ __html: country.body }}
       />
       {country.name}
     </span>

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { render } from '@testing-library/react'
 import { PlayerCountry } from './player-country'
-import { resolveCountryMark } from '#/lib/country-mark'
+import { resolveCountryMark } from '#/lib/country-mark-server'
 
 const japan = resolveCountryMark('JP')!
 

@@ -19,7 +19,6 @@ export interface GeneratedCountry {
   code: string
   name: string
   viewBox: string
-  /** The flag's drawing instructions, without the <svg> wrapper. */
   body: string
 }
 
