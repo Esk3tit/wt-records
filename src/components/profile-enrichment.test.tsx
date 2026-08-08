@@ -36,7 +36,7 @@ async function renderStrip(stats: ProfileEnrichmentData) {
 }
 
 describe('ProfileEnrichment', () => {
-  it('shows the spread, the longest tenure and the latest verification', async () => {
+  it('shows the spread and the latest verification', async () => {
     const { strip, getByText } = await renderStrip({
       nationSpread: [
         { slug: 'usa', name: 'USA', records: 2 },
@@ -45,12 +45,19 @@ describe('ProfileEnrichment', () => {
       longestHeld: held,
       lastVerifiedAt: new Date(Date.now() - 2 * 86_400_000),
     })
-    expect(getByText('412 days')).toBeDefined()
-    expect(getByText('Panther D')).toBeDefined()
     expect(getByText('2 days ago')).toBeDefined()
     // Flags are decorative; the nation still reaches a screen reader.
     expect(strip.textContent).toContain('USA')
     expect(strip.textContent).toContain('Germany')
+  })
+
+  it('leaves the longest tenure to the monument, which now says it', async () => {
+    const { strip } = await renderStrip({
+      nationSpread: [],
+      longestHeld: { ...held, lostAt: new Date('2026-03-14T00:00:00Z') },
+      lastVerifiedAt: null,
+    })
+    expect(strip.textContent).toBe('')
   })
 
   it('names a nation that has no flag art rather than showing a bare count', async () => {
@@ -60,19 +67,6 @@ describe('ProfileEnrichment', () => {
       lastVerifiedAt: null,
     })
     expect(getByText('Atlantis')).toBeDefined()
-  })
-
-  it('marks a lost title as ended so an ex-holder never reads as current', async () => {
-    const { strip } = await renderStrip({
-      nationSpread: [],
-      longestHeld: {
-        ...held,
-        heldSeconds: 60 * 86_400,
-        lostAt: new Date('2026-03-14T00:00:00Z'),
-      },
-      lastVerifiedAt: null,
-    })
-    expect(strip.textContent).toContain('ended Mar 2026')
   })
 
   it('says nothing at all when there is nothing verified to say', async () => {

@@ -74,14 +74,11 @@ test('a profile introduces its holder with the enrichment stats', async ({
     page.getByRole('heading', { level: 1, name: name! }),
   ).toBeVisible()
 
-  // The top holder holds current, dated titles, so all three stats are real.
+  // The top holder holds current, dated titles, so every stat is real. The
+  // tenure leads as the monument's numeral; the strip carries the rest of it.
+  await expect(page.getByText('Days at the top')).toBeVisible()
   await expect(page.getByText('Titles by nation')).toBeVisible()
-  await expect(page.getByText('Longest held')).toBeVisible()
   await expect(page.getByText('Last verified')).toBeVisible()
-  await expect(
-    page.getByText(/^(under a day|[\d,]+ days?)$/),
-    'the longest-held tenure renders as a real span',
-  ).toBeVisible()
 })
 
 test('a mode that is not live shows the coming-soon shell, not a 404', async ({

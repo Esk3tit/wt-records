@@ -282,6 +282,12 @@ The identity layer. A small, curated, fixed set of battle scenes, each processed
 ### Record Monument (signature)
 The mode's all-time high as a lock-screen moment inside the hero: a monumental amber numeral (clamp to ≤6rem) with an engraved plaque line (vehicle · holder · nation), an amber radial glow bleeding through the glass behind it, and the page's only count-up. With zero records it inverts — the count of open titles becomes the feat. This is the page's single amber moment (The One Amber Rule).
 
+**A player profile runs the same device on its own subject: days at the top.** The numeral is the longest a title of theirs has stood, the plaque is how many they hold now, and the inversion is the plaque's — a player with nothing standing reads *No titles standing* over a tenure that is still real. Titles held is deliberately not the numeral: almost every player holds one to three, and a monumental `1` is ceremony without substance, so the stat with range at every population leads instead. **One shape for every player, with no threshold**, and the strip below drops whatever cell the monument now carries, because a page may not say a number twice. The share card's divergence — it heroes titles held — stays.
+
+**A monument needs a subject, and no tenure with nothing standing is not one.** Where the mode landing inverts by changing its subject — the count of open titles becomes the feat — a player who has never held a title has no second number to offer, so the monument does not render at all and the header falls back to the page that player has always had. A monumental `0` is the failure this rule exists to name: it makes the page's one rationed amber mark the absence of a feat, on the emptiest card the site draws. Withholding it is not a threshold on how much a player has accumulated, which stays forbidden; it is the difference between a small feat and none.
+
+**The glow is sized for a wide pane.** Its circle is measured against the pane's farthest corner, so a pane much taller than it is wide cuts the ramp mid-fade and the glow lands as a hard vertical seam rather than a bleed. It runs where the pane is wide and simply does not run where it is not; the ink carries the monument alone there, which the rule already allows, since material is not ink.
+
 ### Leaderboard Row (signature)
 Rank number right-aligned in a fixed 1.5rem column — faint ink, or the mode's metal forms for 1/2/3 where medals are on — holder name as link, record count pushed to the row's end in muted ink, tabular numerals aligning every row into a ledger.
 

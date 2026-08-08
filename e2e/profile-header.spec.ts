@@ -10,10 +10,12 @@ import { TEST_USERS } from './support/users'
    former names, the enrichment stats, and the one claim affordance. The records
    pane below it is a separate surface with its own reach. */
 const HEADER = '.glass-mid:has(h1)'
-/* The enrichment's vehicle link is a target inside a sentence, which WCAG 2.5.8
-   exempts — and rightly: widening one takes the rest of its own sentence, which
-   wraps a line-height below it. `takes no prose` holds that exemption honest. */
-const CONTROLS = 'button, input:not([type="hidden"]), a:not(dl a)'
+/* The monument names the title it counts, inside a sentence — a target WCAG
+   2.5.8 exempts, and rightly: widening one takes the rest of its own sentence,
+   which wraps a line-height below it. `takes no prose` holds that exemption
+   honest. Scoped to a paragraph, because that is what makes it a sentence; the
+   claim CTA is a sibling of its prose, not inside it. */
+const CONTROLS = 'button, input:not([type="hidden"]), a:not(p a)'
 /* Its own pane, and the records pane sits right under it, so a reach past
    either edge would take taps meant for the surface beyond. */
 const HEADER_REACH = { root: HEADER, controls: CONTROLS, pane: HEADER } as const
@@ -227,8 +229,9 @@ test.describe('every header control answers a thumb at 320px', () => {
        production's — and the stats are really in the tree being measured.
 
        Measured at both widths because the stats change shape between them: one
-       column on a phone, three narrow ones at `sm`, where a stat's own sentence
-       wraps under its link and is close enough for a reach to answer for. */
+       column on a phone, narrow ones side by side at `sm`, where the monument's
+       sentence wraps under its link and is close enough for a reach to answer
+       for. */
     for (const width of [320, 640]) {
       test(`reaches every control on a header carrying the stats at ${width}px`, async ({
         page,
@@ -241,9 +244,9 @@ test.describe('every header control answers a thumb at 320px', () => {
           .getByRole('link')
           .first()
           .click()
-        await expect(page.getByText('Longest held')).toBeVisible()
+        await expect(page.getByText('Titles by nation')).toBeVisible()
         // The exempt link exists, so leaving it out is a decision, not a gap.
-        await expect(page.locator(`${HEADER} dl a`).first()).toBeVisible()
+        await expect(page.locator(`${HEADER} p a`).first()).toBeVisible()
 
         expect(await reachFaults(page, HEADER_REACH)).toEqual([])
         expect(await proseTaken(page, HEADER_REACH)).toEqual([])

@@ -31,7 +31,9 @@ export function CountUp({
 
   return (
     <span>
-      {shown}
+      {/* Grouped, or a four-figure tenure reads differently here than the
+          same number does through formatHeldDays. */}
+      {shown.toLocaleString('en-US')}
       {suffix}
     </span>
   )

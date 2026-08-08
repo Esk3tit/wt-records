@@ -1,25 +1,22 @@
-import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 import { NationFlag, hasNationFlag } from '#/components/nation-flag'
-import {
-  formatDayYear,
-  formatDaysAgo,
-  formatHeldDays,
-  formatMonthYear,
-} from '#/lib/dates'
+import { formatDayYear, formatDaysAgo } from '#/lib/dates'
 
 // Dates arrive as strings once the loader payload crosses the wire.
 type Stamp = Date | string
 
+export interface LongestHeldTitle {
+  vehicleSlug: string
+  vehicleName: string
+  mode: string
+  heldSeconds: number
+  lostAt: Stamp | null
+}
+
 export interface ProfileEnrichmentData {
   nationSpread: { slug: string; name: string; records: number }[]
-  longestHeld: {
-    vehicleSlug: string
-    vehicleName: string
-    mode: string
-    heldSeconds: number
-    lostAt: Stamp | null
-  } | null
+  /** The monument's numeral — the strip would only repeat it. */
+  longestHeld: LongestHeldTitle | null
   lastVerifiedAt: Stamp | null
 }
 
@@ -35,7 +32,7 @@ interface Cell {
 /* What kind of holder this Player is, beside their name. Each stat appears
    only when it has something true to say — never a row of dashes. */
 export function ProfileEnrichment({ stats }: { stats: ProfileEnrichmentData }) {
-  const { nationSpread, longestHeld, lastVerifiedAt } = stats
+  const { nationSpread, lastVerifiedAt } = stats
   const cells: Cell[] = []
 
   if (nationSpread.length > 0) {
@@ -65,29 +62,6 @@ export function ProfileEnrichment({ stats }: { stats: ProfileEnrichmentData }) {
             </span>
           ))}
         </span>
-      ),
-    })
-  }
-
-  if (longestHeld) {
-    cells.push({
-      key: 'held',
-      label: 'Longest held',
-      value: formatHeldDays(longestHeld.heldSeconds),
-      detail: (
-        <>
-          <Link
-            to="/$mode/vehicle/$slug"
-            params={{ mode: longestHeld.mode, slug: longestHeld.vehicleSlug }}
-            className="font-medium text-fg decoration-hairline underline-offset-2 hover:decoration-current"
-          >
-            {longestHeld.vehicleName}
-          </Link>
-          {` · ${longestHeld.mode.toUpperCase()}`}
-          {/* A closed window is history: say so, or an ex-holder reads as current. */}
-          {longestHeld.lostAt != null &&
-            ` · ended ${formatMonthYear(longestHeld.lostAt)}`}
-        </>
       ),
     })
   }
