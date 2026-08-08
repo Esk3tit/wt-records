@@ -3,11 +3,9 @@ import { buildCountries } from '../../scripts/generate-countries'
 import { COUNTRY_FLAGS } from '#/lib/country-flags.generated'
 import { COUNTRIES, countryName, normalizeCountryCode } from '#/lib/countries'
 
-/* The check the whole feature rests on. Steam ships 250 countries with 11
-   having no flag image, start.gg lists Kosovo with no xk.svg, and FACEIT falls
-   through to a fallback for 13 of its 250 — every one of those is a list that
-   drifted from its assets. Here the list, the names and the marks come from one
-   generator, and this fails the build the moment they stop agreeing. */
+/* Steam, start.gg and FACEIT each ship a list that outran its assets. Here the
+   list, the names and the marks share a generator — this fails the build the
+   moment they stop agreeing. */
 
 const marks = new Map(Object.entries(COUNTRY_FLAGS))
 
@@ -73,8 +71,7 @@ describe('what the list refuses', () => {
 })
 
 describe('what the list keeps', () => {
-  // Removing these would be an argument we then own, and "why is my territory
-  // missing" is a worse complaint than a joke flag.
+  // "Why is my territory missing" is a worse complaint than a joke flag.
   it.each(['AQ', 'BV', 'HM', 'TF', 'UM', 'GS'])(
     'keeps the uninhabited %s',
     (code) => {
@@ -97,8 +94,7 @@ describe('codes', () => {
 })
 
 describe('names', () => {
-  // Türkiye, Eswatini, North Macedonia and Czechia all rotted hardcoded lists,
-  // and shipping packages still disagree today — these come from CLDR.
+  // Every one of these rotted a hardcoded list; shipping packages still disagree.
   it.each([
     ['TR', 'Türkiye'],
     ['SZ', 'Eswatini'],
@@ -111,8 +107,8 @@ describe('names', () => {
 })
 
 describe('the marks', () => {
-  // Masks are precisely what the OG renderer is fragile about, and <use>
-  // outside a sprite draws nothing at all.
+  // Masks are what the OG renderer is fragile about; <use> outside a sprite
+  // draws nothing at all.
   it.each(['<mask', 'clipPath', '<use', 'Gradient'])(
     'contain no %s',
     (construct) => {

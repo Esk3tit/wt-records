@@ -68,8 +68,8 @@ describe('setOwnCountry', () => {
     )
   })
 
-  // The check constraint is the last line: a lowercase code stored beside an
-  // uppercase one is how a player drops out of their own country's results.
+  // A lowercase code beside an uppercase one is how a player drops out of
+  // their own country's results.
   it('is refused by the database if a lowercase code ever reaches it', async () => {
     const ace = await claim('ace', USER_A)
     await expect(setOwnCountry(t.db, USER_A, ace.id, 'jp')).rejects.toThrow()

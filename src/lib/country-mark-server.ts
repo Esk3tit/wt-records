@@ -1,12 +1,10 @@
 import { COUNTRY_FLAGS } from '#/lib/country-flags.generated'
 import { countryName } from '#/lib/countries'
 
-/* Server-only, as the filename says — import this from a server-fn handler,
-   never from a component: it pulls all 250 marks in, and the client only ever
-   needs the one the Player actually set. Loaders hand the resolved mark down. */
+/* Import from a server-fn handler, never a component: this pulls all 250 marks
+   in, and the client only ever needs the one the Player set. */
 
-// A Map, so a lookup miss is typed as one — an index signature would claim
-// every one of the 250 codes is present.
+// A Map, so a lookup miss is typed as one.
 const MARKS = new Map(Object.entries(COUNTRY_FLAGS))
 
 export interface CountryMark {
@@ -17,8 +15,7 @@ export interface CountryMark {
   body: string
 }
 
-/** Everything the profile needs to render a stored country code, or null —
-    for no country, and for a code the list no longer offers. */
+/** Null for no country, and for a code the list no longer offers. */
 export function resolveCountryMark(code: string | null): CountryMark | null {
   if (!code) return null
   const name = countryName(code)

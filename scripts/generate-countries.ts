@@ -2,12 +2,9 @@ import { createRequire } from 'node:module'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-/* The one source the selectable list, the display names, and the flag marks
-   all come from — run `bun run countries:generate` after bumping CLDR or
-   country-flag-icons. src/lib/countries.test.ts fails if the committed output
-   has drifted from what this produces, or if any selectable code has lost its
-   asset or its name. Everything is inlined into the generated modules, so
-   none of these packages is a runtime dependency. */
+/* The one source the list, the names and the marks all come from; everything is
+   inlined, so none of these packages is a runtime dependency. Run
+   `bun run countries:generate` — src/lib/countries.test.ts fails on drift. */
 
 const require = createRequire(import.meta.url)
 
@@ -43,11 +40,9 @@ interface Territories {
   }
 }
 
-/* CLDR's UN M.49 world tree, walked to its leaves, asks the membership question
-   structurally: a leaf under 001 is a territory, a branch is a region.
-   Intersecting that with the codes CLDR gives an ISO 3166-1 numeric drops the
-   exceptional reservations (AC, CP, DG, EA, IC, TA) and the groupings (EU), and
-   leaves ISO 3166-1 alpha-2 plus XK — which CLDR numbers 983 — at 250. */
+/* Leaves of the M.49 world tree are territories, branches are regions; keeping
+   only those CLDR gives an ISO 3166-1 numeric drops AC/CP/DG/EA/IC/TA and EU,
+   leaving alpha-2 plus XK (which CLDR numbers 983) at 250. */
 function selectableCodes(): Array<string> {
   const containment = json<Containment>(
     'cldr-core/supplemental/territoryContainment.json',

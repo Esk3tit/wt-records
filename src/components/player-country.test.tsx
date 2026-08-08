@@ -12,9 +12,8 @@ describe('PlayerCountry', () => {
     expect(container.querySelector('svg')).not.toBeNull()
   })
 
-  // Chrome and Edge on Windows render the two regional-indicator letters, and
-  // Firefox on Windows ships its own glyphs — which is how this slips past dev
-  // testing.
+  // Windows renders the regional-indicator letters, which is how this slips
+  // past dev testing on a Mac.
   it('draws the flag, never an emoji', () => {
     const { container } = render(<PlayerCountry country={japan} />)
     expect(container.textContent).not.toMatch(/[\u{1F1E6}-\u{1F1FF}]/u)

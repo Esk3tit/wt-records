@@ -365,9 +365,8 @@ export async function mergePlayers(
       })
     }
 
-    // The survivor keeps or gains the lone/same-user claim (different-user was
-    // refused above). Everything that belongs to a claim rides along with it —
-    // preferring the survivor's own — so identity survives the merge.
+    // Everything belonging to the lone/same-user claim rides along with it,
+    // preferring the survivor's own, so identity survives the merge.
     const carriedUserId = survivor.userId ?? duplicate.userId
     const carried = <T>(ofSurvivor: T | null, ofDuplicate: T | null) =>
       carriedUserId == null

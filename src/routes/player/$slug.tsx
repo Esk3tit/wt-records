@@ -90,9 +90,8 @@ const loadPlayer = createServerFn({ method: 'GET' })
         // owner's controls reflect the stored state, not the served URL.
         hasAvatar: avatarKey != null,
         avatarKey,
-        // Resolved server-side (all 250 marks must never reach the client), and
-        // the only country the client sees — so a code the list has since
-        // dropped reads as "not set" in the picker rather than as a blank one.
+        // Resolved server-side, and the only country the client sees — so a
+        // since-dropped code reads as "Not set" rather than a blank selection.
         country: resolveCountryMark(countryCode),
         isClaimed: claimed,
       },
@@ -163,8 +162,7 @@ function PlayerProfile() {
               </h1>
               {profile.isClaimed && <ClaimedChip />}
             </div>
-            {/* No country renders nothing at all — no placeholder, no globe.
-                Any neutral mark would itself be read as a statement. */}
+            {/* No placeholder, no globe: a neutral mark reads as a statement. */}
             {profile.country && (
               <p className="mt-1">
                 <PlayerCountry country={profile.country} />
@@ -178,9 +176,8 @@ function PlayerProfile() {
           </div>
         </div>
 
-        {/* Below the identity row, not inside it: the controls run the pane's
-            full width, and the avatar stays centred on the name it belongs to
-            instead of drifting down a column they made tall. */}
+        {/* Below the identity row, not inside it: in the column they made tall
+            enough to strand the avatar mid-card, and to squeeze at 320px. */}
         {viewer.signedIn && viewer.isOwner && (
           <>
             <OwnerAvatarControls

@@ -1078,10 +1078,9 @@ export function effectiveAvatarKey(player: {
   return player.userId != null ? player.avatarKey : null
 }
 
-/** The Country that actually renders: a Country is a claimed Player's own
-    statement, so an accountless Player carries none. The sibling gate to
-    effectiveAvatarKey — unclaim() also deletes the value, because this alone
-    would leave it to resurrect on re-claim. */
+/** A Country is a claimed Player's own statement, so an accountless Player
+    carries none. unclaim() deletes it too — this gate alone would let it
+    resurrect on re-claim. */
 export function effectiveCountry(player: {
   userId: string | null
   countryCode: string | null

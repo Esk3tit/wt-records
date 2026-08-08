@@ -7,9 +7,7 @@ import { TEST_USERS } from './support/users'
 import { requireEnv } from './support/env'
 
 /* The Country round-trip against the running app: the holder picks one, it
-   persists, and the flag renders with the country's full name beside it — the
-   one thing separating it from the in-game nation chips a few hundred pixels
-   below on the same card. */
+   persists, and the flag renders with the country's full name beside it. */
 
 function connect(): Sql {
   return postgres(requireEnv('DATABASE_URL'), {
@@ -79,6 +77,27 @@ test.describe('the claim holder states a Country', () => {
       await picker(page).selectOption('')
       await expect(page.locator('.country-flag')).toHaveCount(0)
       expect(await storedCountry(sql, slug)).toBeNull()
+    } finally {
+      await sql`delete from players where slug = ${slug}`
+      await sql.end()
+    }
+  })
+
+  // "Japan" walks through Jamaica, and disabling a focused control mid-save
+  // drops focus to the body — this stored JM and stranded the keyboard.
+  test('typing a country stores only the one landed on', async ({ page }) => {
+    const slug = 'e2e-country-keyboard'
+    const sql = connect()
+    try {
+      await seedOwnedPlayer(sql, slug)
+      await page.goto(`/player/${slug}`)
+
+      await picker(page).focus()
+      await page.keyboard.type('Japan', { delay: 60 })
+      await expect(page.getByText('Saved', { exact: true })).toBeVisible()
+
+      expect(await storedCountry(sql, slug)).toBe('JP')
+      await expect(picker(page)).toBeFocused()
     } finally {
       await sql`delete from players where slug = ${slug}`
       await sql.end()

@@ -392,9 +392,8 @@ export async function removeOwnAvatar(
   if (staleKey && store) await deleteAvatarIfUnreferenced(db, store, staleKey)
 }
 
-/** The owner states (or clears) their own Player's Country. Unlimited and
-    self-serve with no cooldown — the site states the citizenship rule and does
-    not verify it, so a correction costs one action. */
+/** Unlimited and self-serve with no cooldown: the rule is stated, not verified,
+    so a correction costs one action. */
 export async function setOwnCountry(
   db: Db,
   userId: string,
@@ -465,8 +464,7 @@ async function unclaim(
     if (mustBeUserId != null && player.userId !== mustBeUserId) {
       throw new Error('You do not hold this claim')
     }
-    // Deleted, not just read-gated: a value left behind resurrects on re-claim,
-    // restating a citizenship the next holder never claimed.
+    // Deleted, not just read-gated: a value left behind resurrects on re-claim.
     await tx
       .update(players)
       .set({ userId: null, avatarKey: null, countryCode: null })

@@ -13,9 +13,8 @@ export function positiveInt(value: unknown, field: string): number {
   return value
 }
 
-/** Null clears the Country; anything else must be on the selectable list, so
-    the codes that merely ship in the flag package can't be stored. Normalized
-    to uppercase here — the one place a code enters the database. */
+/** Null clears it; anything else must be on the selectable list, so codes that
+    merely ship in the flag package can't be stored. The one place one enters. */
 export function selectableCountryCode(value: unknown): string | null {
   if (value == null) return null
   if (typeof value !== 'string') throw new Error('A country must be a code')

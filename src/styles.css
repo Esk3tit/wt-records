@@ -14,9 +14,8 @@
   --ink-faint: rgba(255, 255, 255, 0.68);
   --hairline: rgba(255, 255, 255, 0.16);
   --hairline-soft: rgba(255, 255, 255, 0.08);
-  /* Heavier than a hairline and always opposite the surface: a flag is a fixed
-     set of official colours, so whichever band meets the pane can be the one
-     that matches it. */
+  /* Heavier than a hairline, and opposite the surface: a flag's colours are
+     fixed, so whichever band meets the pane can be the one that matches it. */
   --flag-edge: rgba(255, 255, 255, 0.3);
   --accent-text: #f0b94a;
   /* Squadron's material. The one hue that is never ink, border, or icon. */
@@ -1057,11 +1056,8 @@
   flex: none;
 }
 
-/* A stated Country's mark, in official colours. The edge is an inset shadow,
-   never a border, so Japan, Poland and Nigeria hold their shape on a light pane
-   without the mark costing a control any hit area. Desaturating instead was
-   rejected: a muted flag reads as disabled, the one state that renders as
-   nothing. */
+/* A stated Country's mark. Inset shadow, never a border, so it costs a control
+   no hit area; desaturating instead would read as disabled. */
 .country-flag {
   display: inline-block;
   width: 1.35em;
