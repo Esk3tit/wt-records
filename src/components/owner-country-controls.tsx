@@ -30,44 +30,60 @@ export function OwnerCountryControls({
   const [draft, setDraft] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const pending = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // The settling pick lives in the ref, not in state: `change` and `blur` can
+  // land before a re-render, and a flush reading stale state would drop it.
+  const settling = useRef<{
+    timer: ReturnType<typeof setTimeout>
+    value: string
+  } | null>(null)
+  const writes = useRef<Promise<unknown>>(Promise.resolve())
+  const newest = useRef(0)
 
-  useEffect(() => () => clearTimeout(pending.current ?? undefined), [])
+  useEffect(() => () => clearTimeout(settling.current?.timer), [])
 
-  const commit = async (next: string) => {
-    setError(null)
-    // Only release the draft if it's still this pick — a later one is already
-    // settling, and snapping back to the prop would flicker the stale country.
-    const release = () => setDraft((held) => (held === next ? null : held))
-    try {
-      await setMyCountry({ data: { playerId, countryCode: next || null } })
-    } catch (e) {
-      setError(errorMessage(e))
-      release()
-      return
-    }
-    // The write committed: reload so the flag (or nothing) renders by the name.
-    await router.invalidate().catch(() => undefined)
-    release()
-    setSaved(true)
+  const commit = (next: string) => {
+    const ticket = ++newest.current
+    // Chained, so two picks are never in flight at once and the server can't
+    // apply them out of order; only the newest one owns what the UI then says.
+    writes.current = writes.current
+      .catch(() => undefined)
+      .then(async () => {
+        try {
+          await setMyCountry({ data: { playerId, countryCode: next || null } })
+        } catch (e) {
+          if (ticket === newest.current) {
+            setError(errorMessage(e))
+            setDraft(null)
+          }
+          return
+        }
+        if (ticket !== newest.current) return
+        // The write committed: reload so the flag renders beside the name.
+        await router.invalidate().catch(() => undefined)
+        setDraft(null)
+        setError(null)
+        setSaved(true)
+      })
   }
 
   const pick = (next: string) => {
     setDraft(next)
     setSaved(false)
-    clearTimeout(pending.current ?? undefined)
-    pending.current = setTimeout(() => {
-      pending.current = null
-      void commit(next)
+    clearTimeout(settling.current?.timer)
+    const timer = setTimeout(() => {
+      settling.current = null
+      commit(next)
     }, SETTLE_MS)
+    settling.current = { timer, value: next }
   }
 
   // Leaving the field is a decision — don't make them wait out the settle.
   const flush = () => {
-    if (!pending.current) return
-    clearTimeout(pending.current)
-    pending.current = null
-    if (draft != null) void commit(draft)
+    const pending = settling.current
+    if (!pending) return
+    clearTimeout(pending.timer)
+    settling.current = null
+    commit(pending.value)
   }
 
   return (
