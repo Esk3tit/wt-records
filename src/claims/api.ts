@@ -15,8 +15,13 @@ import {
   requestClaim,
   revokeClaim,
   setOwnAvatar,
+  setOwnCountry,
 } from '#/claims/claims'
-import { optionalNote, positiveInt } from '#/claims/validate'
+import {
+  optionalNote,
+  positiveInt,
+  selectableCountryCode,
+} from '#/claims/validate'
 
 const avatarStore = () => storageFromEnvIfConfigured() ?? null
 
@@ -79,6 +84,16 @@ export const removeMyAvatar = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const user = await requireSessionUser()
     await removeOwnAvatar(db, avatarStore(), user.id, data.playerId)
+  })
+
+export const setMyCountry = createServerFn({ method: 'POST' })
+  .validator((data: { playerId: number; countryCode: string | null }) => ({
+    playerId: positiveInt(data.playerId, 'playerId'),
+    countryCode: selectableCountryCode(data.countryCode),
+  }))
+  .handler(async ({ data }) => {
+    const user = await requireSessionUser()
+    await setOwnCountry(db, user.id, data.playerId, data.countryCode)
   })
 
 /* ── Moderator ───────────────────────────────────────────────── */

@@ -19,6 +19,8 @@ export default [
       'eslint.config.js',
       'prettier.config.js',
       'src/og/assets/embedded.ts',
+      'src/lib/countries.generated.ts',
+      'src/lib/country-flags.generated.ts',
       '.output/**',
       '.nitro/**',
       '.tanstack/**',

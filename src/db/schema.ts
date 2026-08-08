@@ -145,13 +145,20 @@ export const players = pgTable(
     // first-class state, not a placeholder. Seeded once at claim, then managed
     // by on-site upload; the image is always served from R2, never the provider.
     avatarKey: text('avatar_key'),
+    // Here and not on profiles, which cascade-deletes with the auth User and
+    // would take a country off a ledger row whose Records all remain.
+    countryCode: text('country_code'),
     // Merge tombstone: set = this row is a duplicate collapsed into the
     // survivor; its public slug 301s there and it leaves search.
     mergedInto: integer('merged_into').references(
       (): AnyPgColumn => players.id,
     ),
   },
-  (t) => [index('ply_user_idx').on(t.userId)],
+  (t) => [
+    index('ply_user_idx').on(t.userId),
+    // Shape and case only: 250 codes in a CHECK would rot on the next CLDR bump.
+    check('ply_country_upper', sql`${t.countryCode} ~ '^[A-Z]{2}$'`),
+  ],
 ).enableRLS()
 
 export const playerAliases = pgTable(
