@@ -10,7 +10,7 @@ A thin suite — the flows worth driving end to end, not a second copy of the un
 | `admin-cms.spec.ts`             | a moderator edit persists across a reload **and** lands in the audit log  |
 | `admin-players.spec.ts`         | a moderator resets a reported avatar                                      |
 | `avatar-owner.spec.ts`          | only the owner sees the avatar controls                                   |
-| `profile-header.spec.ts`        | the disc stacks above the name on a phone, and every header control reaches 44px |
+| `profile-header.spec.ts`        | the disc stacks above the name on a phone; header controls reach 44px     |
 | `og-cards.spec.ts`              | every page unfurls, and the card routes serve real PNGs                   |
 | `nav-pane.spec.ts`              | the nav pane rises with the reader's own scroll, not with a restored one  |
 | `nav-touch-targets.spec.ts`     | every nav control reaches 44px, and the pane is no taller for it          |

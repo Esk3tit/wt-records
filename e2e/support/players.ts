@@ -16,7 +16,7 @@ export interface PlayerSeed {
 /* One connection, not the default pool of ten: a fixture runs its statements in
    order, and a suite this parallel can otherwise take every slot the local
    Postgres has — which surfaces as auth 500s, not as a failing fixture. */
-export function connect(): Sql {
+function connect(): Sql {
   return postgres(requireEnv('DATABASE_URL'), {
     prepare: false,
     connect_timeout: 10,
@@ -35,7 +35,7 @@ async function userId(sql: Sql, email: string): Promise<string> {
 }
 
 /** Delete-first, so a slug left behind by a prior failure isn't taken. */
-export async function seedPlayer(
+async function seedPlayer(
   sql: Sql,
   { slug, displayName, aliases = [], ownerEmail, avatarKey }: PlayerSeed,
 ): Promise<number> {
@@ -54,7 +54,7 @@ export async function seedPlayer(
   return player.id
 }
 
-export async function dropPlayer(sql: Sql, slug: string): Promise<void> {
+async function dropPlayer(sql: Sql, slug: string): Promise<void> {
   await sql`
     delete from player_aliases
     where player_id in (select id from players where slug = ${slug})
