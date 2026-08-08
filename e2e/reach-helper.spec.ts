@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
-import { reachFaults } from './support/reach'
+import { proseTaken, reachFaults } from './support/reach'
 
 /* The suite's touch-target specs are only as honest as the helper measuring
    them, and a measurement that quietly answers "fine" is worse than none. So
@@ -60,4 +60,37 @@ test('a control rounded on one corner is not read as stolen', async ({
   })
 
   expect(await reachFaults(page, PANE)).toEqual([])
+})
+
+/** A sentence with a link in it, in a column narrow enough that the rest of the
+    sentence wraps to the line below — where a reach widened to a thumb reaches.
+    `grown` is what `.tap-reach` does to it. */
+async function renderProse(page: Page, { grown }: { grown: boolean }) {
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await page.setContent(`<!doctype html><style>
+    body { margin: 0; font: 14px/20px sans-serif }
+    #pane { position: absolute; left: 100px; top: 100px; width: 170px }
+    a { position: relative }
+    ${grown ? "a::after { content: ''; position: absolute; top: 50%; left: 50%; translate: -50% -50%; width: max(100%, 44px); height: max(100%, 44px) }" : ''}
+  </style>
+  <div id="pane"><p><a href="#">Strv 122B PLSS</a> · GRB · ended May 2024</p></div>`)
+}
+
+/* A reach only grows into what the layout left empty, and `reachFaults` speaks
+   only for controls — so a link widened inside a sentence took the rest of that
+   sentence silently, and a tap on a word navigated. */
+test('a reach that answers for the prose beside it is caught', async ({
+  page,
+}) => {
+  await renderProse(page, { grown: false })
+  expect(
+    await proseTaken(page, PANE),
+    'an inline link at its own size takes nothing',
+  ).toEqual([])
+
+  await renderProse(page, { grown: true })
+
+  expect(await proseTaken(page, PANE)).toEqual([
+    expect.stringContaining('· GRB · ended May 2024'),
+  ])
 })

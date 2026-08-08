@@ -19,9 +19,9 @@ export type ClaimViewer =
 /* The monument is this page's one amber moment, so the resting CTA is ghost
    and amber is spent only on the commit inside the form. */
 const amberButton =
-  'inline-flex items-center justify-center gap-1.5 rounded bg-accent px-3.5 py-2 text-sm font-semibold text-black no-underline transition-[filter] duration-200 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50'
+  'tap-reach inline-flex items-center justify-center gap-1.5 rounded bg-accent px-3.5 py-2 text-sm font-semibold text-black no-underline transition-[filter] duration-200 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50'
 const ghostButton =
-  'inline-flex items-center justify-center gap-1.5 rounded border border-hairline-soft px-3.5 py-2 text-sm font-semibold text-fg-muted no-underline transition-colors duration-200 hover:text-fg disabled:cursor-not-allowed disabled:opacity-50'
+  'tap-reach inline-flex items-center justify-center gap-1.5 rounded border border-hairline-soft px-3.5 py-2 text-sm font-semibold text-fg-muted no-underline transition-colors duration-200 hover:text-fg disabled:cursor-not-allowed disabled:opacity-50'
 
 /* The one claim affordance on a Player page, resolving to exactly one state for
    the viewer: sign-in-to-claim, request a claim, pending review, or "your page"
@@ -313,7 +313,7 @@ function OwnerControls({
           <span className="text-sm text-fg-muted">Release this claim?</span>
           <button
             type="button"
-            className="text-sm font-semibold text-status-danger hover:brightness-110 disabled:opacity-50"
+            className="tap-reach text-sm font-semibold text-status-danger hover:brightness-110 disabled:opacity-50"
             disabled={busy}
             onClick={onRelease}
           >
@@ -321,7 +321,7 @@ function OwnerControls({
           </button>
           <button
             type="button"
-            className="text-sm text-fg-muted hover:text-fg disabled:opacity-50"
+            className="tap-reach text-sm text-fg-muted hover:text-fg disabled:opacity-50"
             disabled={busy}
             onClick={() => setConfirming(false)}
           >
@@ -331,7 +331,7 @@ function OwnerControls({
       ) : (
         <button
           type="button"
-          className="text-sm text-fg-muted underline decoration-hairline underline-offset-2 hover:text-fg"
+          className="tap-reach text-sm text-fg-muted underline decoration-hairline underline-offset-2 hover:text-fg"
           onClick={() => setConfirming(true)}
         >
           Release claim
