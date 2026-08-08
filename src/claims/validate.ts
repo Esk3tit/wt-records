@@ -1,4 +1,5 @@
 import { MAX_NOTE_LENGTH } from '#/claims/limits'
+import { normalizeCountryCode } from '#/lib/countries'
 
 /* Runtime validation for the claim server-fn boundary: the public claim
    endpoints take untrusted network payloads, so ids and notes are checked
@@ -10,6 +11,17 @@ export function positiveInt(value: unknown, field: string): number {
     throw new Error(`${field} must be a positive integer`)
   }
   return value
+}
+
+/** Null clears the Country; anything else must be on the selectable list, so
+    the codes that merely ship in the flag package can't be stored. Normalized
+    to uppercase here — the one place a code enters the database. */
+export function selectableCountryCode(value: unknown): string | null {
+  if (value == null) return null
+  if (typeof value !== 'string') throw new Error('A country must be a code')
+  const code = normalizeCountryCode(value)
+  if (!code) throw new Error('Choose a country from the list')
+  return code
 }
 
 export function optionalNote(value: unknown): string | undefined {

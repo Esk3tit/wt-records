@@ -11,15 +11,19 @@ import { PlayerAvatar } from '#/components/player-avatar'
 import { ClaimedChip } from '#/components/claimed-chip'
 import { ClaimPanel } from '#/components/claim-panel'
 import { OwnerAvatarControls } from '#/components/owner-avatar-controls'
+import { OwnerCountryControls } from '#/components/owner-country-controls'
+import { PlayerCountry } from '#/components/player-country'
 import { ProfileEnrichment } from '#/components/profile-enrichment'
 import type { ClaimViewer } from '#/components/claim-panel'
 import { db } from '#/db'
 import {
   effectiveAvatarKey,
+  effectiveCountry,
   getPlayer,
   getPlayerEnrichment,
   playerMergeRedirect,
 } from '#/db/queries'
+import { resolveCountryMark } from '#/lib/country-mark'
 import { hasAuthCookie, getSessionUser } from '#/auth/supabase-server'
 import { providerAvatarUrl } from '#/auth/profile'
 import { viewerHasPendingClaim } from '#/claims/claims'
@@ -67,6 +71,7 @@ const loadPlayer = createServerFn({ method: 'GET' })
     }
     const claimed = found.player.userId != null
     const avatarKey = effectiveAvatarKey(found.player)
+    const countryCode = effectiveCountry(found.player)
     const [viewer, enrichment] = await Promise.all([
       resolveClaimViewer(found.player),
       getPlayerEnrichment(db, found.player.id),
@@ -85,6 +90,9 @@ const loadPlayer = createServerFn({ method: 'GET' })
         // owner's controls reflect the stored state, not the served URL.
         hasAvatar: avatarKey != null,
         avatarKey,
+        countryCode,
+        // The mark resolves server-side: all 250 must never reach the client.
+        country: resolveCountryMark(countryCode),
         isClaimed: claimed,
       },
       redirectTo: null,
@@ -154,19 +162,36 @@ function PlayerProfile() {
               </h1>
               {profile.isClaimed && <ClaimedChip />}
             </div>
+            {/* No country renders nothing at all — no placeholder, no globe.
+                Any neutral mark would itself be read as a statement. */}
+            {profile.country && (
+              <p className="mt-1">
+                <PlayerCountry country={profile.country} />
+              </p>
+            )}
             {formerNames.length > 0 && (
               <p className="mt-1 text-sm text-fg-faint">
                 previously known as {formerNames.join(', ')}
               </p>
             )}
-            {viewer.signedIn && viewer.isOwner && (
-              <OwnerAvatarControls
-                playerId={profile.id}
-                hasAvatar={profile.hasAvatar}
-              />
-            )}
           </div>
         </div>
+
+        {/* Below the identity row, not inside it: the controls run the pane's
+            full width, and the avatar stays centred on the name it belongs to
+            instead of drifting down a column they made tall. */}
+        {viewer.signedIn && viewer.isOwner && (
+          <>
+            <OwnerAvatarControls
+              playerId={profile.id}
+              hasAvatar={profile.hasAvatar}
+            />
+            <OwnerCountryControls
+              playerId={profile.id}
+              countryCode={profile.countryCode}
+            />
+          </>
+        )}
 
         <ProfileEnrichment stats={enrichment} />
 

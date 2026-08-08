@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { optionalNote, positiveInt } from '#/claims/validate'
+import {
+  optionalNote,
+  positiveInt,
+  selectableCountryCode,
+} from '#/claims/validate'
 import { MAX_NOTE_LENGTH } from '#/claims/limits'
 
 describe('positiveInt', () => {
@@ -21,6 +25,25 @@ describe('positiveInt', () => {
     ]) {
       expect(() => positiveInt(bad, 'playerId')).toThrow(/playerId/)
     }
+  })
+})
+
+describe('selectableCountryCode', () => {
+  it('clears on null and stores uppercase whatever case it arrives in', () => {
+    expect(selectableCountryCode(null)).toBeNull()
+    expect(selectableCountryCode('gb')).toBe('GB')
+    expect(selectableCountryCode('JP')).toBe('JP')
+  })
+
+  it('refuses what ships in the flag package but is not selectable', () => {
+    for (const bad of ['GB-SCT', 'ES-CT', 'EU', 'AC', 'TA', 'IC']) {
+      expect(() => selectableCountryCode(bad)).toThrow(/from the list/)
+    }
+  })
+
+  it('refuses a non-string and an unknown code', () => {
+    expect(() => selectableCountryCode(42)).toThrow(/code/)
+    expect(() => selectableCountryCode('ZZ')).toThrow(/from the list/)
   })
 })
 

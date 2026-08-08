@@ -1078,6 +1078,17 @@ export function effectiveAvatarKey(player: {
   return player.userId != null ? player.avatarKey : null
 }
 
+/** The Country that actually renders: a Country is a claimed Player's own
+    statement, so an accountless Player carries none. The sibling gate to
+    effectiveAvatarKey — unclaim() also deletes the value, because this alone
+    would leave it to resurrect on re-claim. */
+export function effectiveCountry(player: {
+  userId: string | null
+  countryCode: string | null
+}): string | null {
+  return player.userId != null ? player.countryCode : null
+}
+
 /** Survivor slug for a merged player's slug, following later merges of the
     survivor itself, or null when the slug isn't a tombstone. */
 export async function playerMergeRedirect(

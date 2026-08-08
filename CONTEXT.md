@@ -51,6 +51,10 @@ A claimed Player's site-owned picture. Seeded once, at claim, from the login pro
 The designed fallback identity mark for any Player without an Avatar — accountless, claimed without choosing one, or reset by a moderator. A first-class permanent state, not a placeholder.
 _Avoid_: default avatar, placeholder.
 
+**Country**:
+A citizenship a claimed Player states — not where they live, not where their family is from, not where they play. Set and cleared freely by the claim holder alone; the site states the rule and does not verify it, so a dispute is judged against the rule rather than argued on taste. Distinct from a **Nation**, the in-game tree a vehicle belongs to: the two share a page and mean nothing alike. A Country's flag always appears with the country's full name as text, which is what separates it at a glance from a Nation's mark-only chip; no Country renders nothing at all, never a placeholder or a neutral mark. Leaves with the claim.
+_Avoid_: nationality (shares a root with Nation), region, location.
+
 **Alias**:
 A name a Player has gone by — an in-game name or a former display name. Powers "previously known as".
 
