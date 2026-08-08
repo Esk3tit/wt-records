@@ -45,6 +45,11 @@ describe('selectableCountryCode', () => {
     expect(() => selectableCountryCode(42)).toThrow(/code/)
     expect(() => selectableCountryCode('ZZ')).toThrow(/from the list/)
   })
+
+  // An omitted field is a malformed payload, not an instruction to clear.
+  it('refuses an absent value rather than reading it as a clear', () => {
+    expect(() => selectableCountryCode(undefined)).toThrow(/code/)
+  })
 })
 
 describe('optionalNote', () => {

@@ -16,7 +16,8 @@ export function positiveInt(value: unknown, field: string): number {
 /** Null clears it; anything else must be on the selectable list, so codes that
     merely ship in the flag package can't be stored. The one place one enters. */
 export function selectableCountryCode(value: unknown): string | null {
-  if (value == null) return null
+  // Strict: an omitted field is a malformed payload, not an instruction to clear.
+  if (value === null) return null
   if (typeof value !== 'string') throw new Error('A country must be a code')
   const code = normalizeCountryCode(value)
   if (!code) throw new Error('Choose a country from the list')

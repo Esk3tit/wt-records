@@ -230,11 +230,12 @@ export async function approveClaim(
       ).at(0)
       if (!stillPending) throw new Error('This claim was already resolved')
 
-      // A fresh owner gets a fresh identity: set the seed or reset to the
-      // Medallion (null) — never inherit a prior owner's avatar.
+      // A fresh owner gets a fresh identity: seed or Medallion, and no country.
+      // Deleting an auth user nulls user_id by FK without running unclaim(), so
+      // this is the only thing standing between that row and its next claimant.
       await tx
         .update(players)
-        .set({ userId: claim.userId, avatarKey })
+        .set({ userId: claim.userId, avatarKey, countryCode: null })
         .where(eq(players.id, claim.playerId))
       await tx
         .delete(playerClaims)

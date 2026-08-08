@@ -180,11 +180,15 @@ function PlayerProfile() {
             enough to strand the avatar mid-card, and to squeeze at 320px. */}
         {viewer.signedIn && viewer.isOwner && (
           <>
+            {/* Keyed like ClaimPanel: the router keeps this mounted across a
+                slug change, and in-flight control state belongs to one player. */}
             <OwnerAvatarControls
+              key={profile.id}
               playerId={profile.id}
               hasAvatar={profile.hasAvatar}
             />
             <OwnerCountryControls
+              key={profile.id}
               playerId={profile.id}
               countryCode={profile.country?.code ?? null}
             />

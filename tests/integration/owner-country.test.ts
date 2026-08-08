@@ -3,8 +3,8 @@ import { eq } from 'drizzle-orm'
 import { freshDb } from './pglite'
 import type { TestDb } from './pglite'
 import { seed } from '#/db/seed'
-import { players, profiles } from '#/db/schema'
-import { releaseClaim, setOwnCountry } from '#/claims/claims'
+import { playerClaims, players, profiles } from '#/db/schema'
+import { approveClaim, releaseClaim, setOwnCountry } from '#/claims/claims'
 import { effectiveCountry } from '#/db/queries'
 
 const USER_A = '00000000-0000-4000-8000-00000000000a'
@@ -92,5 +92,26 @@ describe('an unclaimed player carries no country', () => {
 
     await claim('ace', USER_B)
     expect((await playerBySlug('ace')).countryCode).toBeNull()
+  })
+
+  // Deleting an auth user nulls user_id by FK without ever running unclaim(),
+  // so approve is the only thing between that row and its next claimant.
+  it('is not inherited by the next claimant when the FK cleared user_id', async () => {
+    const ace = await claim('ace', USER_A)
+    await setOwnCountry(t.db, USER_A, ace.id, 'JP')
+    await t.db
+      .update(players)
+      .set({ userId: null })
+      .where(eq(players.id, ace.id))
+
+    const [pending] = await t.db
+      .insert(playerClaims)
+      .values({ playerId: ace.id, userId: USER_B })
+      .returning({ id: playerClaims.id })
+    await approveClaim(t.db, null, pending.id)
+
+    const claimed = await playerBySlug('ace')
+    expect(claimed.userId).toBe(USER_B)
+    expect(claimed.countryCode).toBeNull()
   })
 })
