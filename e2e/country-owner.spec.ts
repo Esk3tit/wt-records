@@ -1,36 +1,19 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
-import postgres from 'postgres'
 import type { Sql } from 'postgres'
+import { withPlayer } from './support/players'
 import { STATE } from './support/states'
 import { TEST_USERS } from './support/users'
-import { requireEnv } from './support/env'
 
 /* The Country round-trip against the running app: the holder picks one, it
    persists, and the flag renders with the country's full name beside it. */
 
-function connect(): Sql {
-  return postgres(requireEnv('DATABASE_URL'), {
-    prepare: false,
-    connect_timeout: 10,
-  })
-}
-
-/** A player claimed by the E2E viewer, isolated on its own slug so parallel
-    specs never touch each other's row. Delete-first survives a prior failure. */
-async function seedOwnedPlayer(sql: Sql, slug: string): Promise<void> {
-  const ownerId = (
-    await sql<{ id: string }[]>`
-      select id from auth.users where email = ${TEST_USERS.viewer.email}
-    `
-  ).at(0)?.id
-  if (!ownerId) throw new Error('the E2E viewer must be provisioned first')
-  await sql`delete from players where slug = ${slug}`
-  await sql`
-    insert into players (slug, display_name, user_id)
-    values (${slug}, 'E2E Country Owner', ${ownerId})
-  `
-}
+/** Claimed by the E2E viewer, which is what surfaces the owner's controls. */
+const ownedPlayer = (slug: string) => ({
+  slug,
+  displayName: 'E2E Country Owner',
+  ownerEmail: TEST_USERS.viewer.email,
+})
 
 function picker(page: Page) {
   return page.getByLabel('Country', { exact: true })
@@ -59,9 +42,7 @@ test.describe('the claim holder states a Country', () => {
 
   test('picks one, sees it saved, and clears it again', async ({ page }) => {
     const slug = 'e2e-country-owner'
-    const sql = connect()
-    try {
-      await seedOwnedPlayer(sql, slug)
+    await withPlayer(ownedPlayer(slug), async ({ sql }) => {
       await page.goto(`/player/${slug}`)
 
       // No country is the ordinary state: nothing renders, no placeholder mark,
@@ -89,10 +70,7 @@ test.describe('the claim holder states a Country', () => {
       await choose(page, '')
       await expect(page.locator('.country-flag')).toHaveCount(0)
       expect(await storedCountry(sql, slug)).toBeNull()
-    } finally {
-      await sql`delete from players where slug = ${slug}`
-      await sql.end()
-    }
+    })
   })
 
   // "Japan" walks through Jamaica, so an autosaving field stored JM — and the
@@ -100,9 +78,7 @@ test.describe('the claim holder states a Country', () => {
   // Typing writes nothing at all now; only the press does.
   test('typing a country stores only the one landed on', async ({ page }) => {
     const slug = 'e2e-country-keyboard'
-    const sql = connect()
-    try {
-      await seedOwnedPlayer(sql, slug)
+    await withPlayer(ownedPlayer(slug), async ({ sql }) => {
       await page.goto(`/player/${slug}`)
 
       await picker(page).focus()
@@ -123,10 +99,7 @@ test.describe('the claim holder states a Country', () => {
       // field rather than dropped to the top of the document.
       await expect(saveButton(page)).toBeDisabled()
       await expect(picker(page)).toBeFocused()
-    } finally {
-      await sql`delete from players where slug = ${slug}`
-      await sql.end()
-    }
+    })
   })
 
   // The stored code outlives the list it came from: CLDR can retire one.
@@ -134,28 +107,21 @@ test.describe('the claim holder states a Country', () => {
     page,
   }) => {
     const slug = 'e2e-country-delisted'
-    const sql = connect()
-    try {
-      await seedOwnedPlayer(sql, slug)
+    await withPlayer(ownedPlayer(slug), async ({ sql }) => {
       await sql`update players set country_code = 'ZZ' where slug = ${slug}`
       await page.goto(`/player/${slug}`)
 
       await expect(page.locator('.country-flag')).toHaveCount(0)
       // Not a blank selection: the picker offers no option for a delisted code.
       await expect(picker(page)).toHaveValue('')
-    } finally {
-      await sql`delete from players where slug = ${slug}`
-      await sql.end()
-    }
+    })
   })
 
   test('states the rule under the field, and offers no home nation', async ({
     page,
   }) => {
     const slug = 'e2e-country-rule'
-    const sql = connect()
-    try {
-      await seedOwnedPlayer(sql, slug)
+    await withPlayer(ownedPlayer(slug), async () => {
       await page.goto(`/player/${slug}`)
 
       await expect(
@@ -169,10 +135,7 @@ test.describe('the claim holder states a Country', () => {
       for (const home of ['England', 'Scotland', 'Wales', 'Catalonia']) {
         expect(options).not.toContain(home)
       }
-    } finally {
-      await sql`delete from players where slug = ${slug}`
-      await sql.end()
-    }
+    })
   })
 })
 
@@ -191,15 +154,10 @@ test.describe('only the claim holder can set it', () => {
     page,
   }) => {
     const slug = 'e2e-country-nonowner'
-    const sql = connect()
-    try {
-      await seedOwnedPlayer(sql, slug)
+    await withPlayer(ownedPlayer(slug), async ({ sql }) => {
       await sql`update players set country_code = 'JP' where slug = ${slug}`
       await expectReadOnlyCountry(page, slug)
-    } finally {
-      await sql`delete from players where slug = ${slug}`
-      await sql.end()
-    }
+    })
   })
 })
 
@@ -208,14 +166,9 @@ test.describe('a signed-out visitor', () => {
 
   test('sees the country but no picker', async ({ page }) => {
     const slug = 'e2e-country-anon'
-    const sql = connect()
-    try {
-      await seedOwnedPlayer(sql, slug)
+    await withPlayer(ownedPlayer(slug), async ({ sql }) => {
       await sql`update players set country_code = 'JP' where slug = ${slug}`
       await expectReadOnlyCountry(page, slug)
-    } finally {
-      await sql`delete from players where slug = ${slug}`
-      await sql.end()
-    }
+    })
   })
 })

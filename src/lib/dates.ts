@@ -82,10 +82,15 @@ export function formatDaysAgo(d: DateLike): string {
   return `${Math.floor(days / 30)} months ago`
 }
 
-// A title's tenure, in the registry's unit: days, however many. Anything
-// shorter than a day is a real (if brief) reign, not a zero.
+// A title's tenure in the registry's unit: whole days, floored. The one place
+// that arithmetic lives, so two surfaces can never state one reign differently.
+export function heldDays(secs: number): number {
+  return Math.floor(Math.max(0, secs) / (DAY_MS / 1000))
+}
+
+// Anything shorter than a day is a real (if brief) reign, not a zero.
 export function formatHeldDays(secs: number): string {
-  const days = Math.floor(Math.max(0, secs) / (DAY_MS / 1000))
+  const days = heldDays(secs)
   if (days === 0) return 'under a day'
   return `${days.toLocaleString('en-US')} ${days === 1 ? 'day' : 'days'}`
 }

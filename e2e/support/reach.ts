@@ -196,6 +196,58 @@ export async function reachFaults(
   })
 }
 
+/** Every character of prose a control's reach would answer for. A reach grows
+    into what the layout left empty, and `reachFaults` only notices when what it
+    took belonged to another control — so text one line-height below a control
+    is taken silently, and a tap on a word fires something. One line per theft;
+    empty is the pass. */
+export async function proseTaken(
+  page: Page,
+  { root, controls = CONTROLS }: Pick<ReachQuery, 'root' | 'controls'>,
+): Promise<string[]> {
+  return page.evaluate(
+    (q) => {
+      const region = document.querySelector(q.root)
+      if (!region) throw new Error(`${q.root} never rendered`)
+      const isControl = (node: Node | null) =>
+        node instanceof Element ? node.closest(q.controls) : null
+
+      const walker = document.createTreeWalker(region, NodeFilter.SHOW_TEXT)
+      const range = document.createRange()
+      const taken = new Map<string, string>()
+      let node: Node | null
+      while ((node = walker.nextNode())) {
+        const text = node.textContent ?? ''
+        // Text inside a control is its own label, not prose beside it.
+        if (!text.trim() || isControl(node.parentElement)) continue
+        for (let i = 0; i < text.length; i++) {
+          range.setStart(node, i)
+          range.setEnd(node, i + 1)
+          const box = range.getBoundingClientRect()
+          if (!box.width) continue
+          const thief = isControl(
+            document.elementFromPoint(
+              box.left + box.width / 2,
+              box.top + box.height / 2,
+            ),
+          )
+          if (!thief) continue
+          // One line per (thief, prose) pair: a reach that took one character
+          // took a run of them, and listing each says nothing more.
+          const label = (thief.textContent || '').trim().slice(0, 30)
+          taken.set(
+            `${label}|${text.trim()}`,
+            `${label} answers for "${text.trim().slice(0, 40)}"`,
+          )
+          break
+        }
+      }
+      return [...taken.values()]
+    },
+    { root, controls },
+  )
+}
+
 /** Taps the far corner of the box a control owns. elementFromPoint says who
     owns a pixel; only a real click proves the widened reach carries the
     control's own behaviour with it. The arm is measured off the reach rather

@@ -13,6 +13,7 @@ import { ClaimPanel } from '#/components/claim-panel'
 import { OwnerAvatarControls } from '#/components/owner-avatar-controls'
 import { OwnerCountryControls } from '#/components/owner-country-controls'
 import { PlayerCountry } from '#/components/player-country'
+import { PlayerMonument, hasMonument } from '#/components/player-monument'
 import { ProfileEnrichment } from '#/components/profile-enrichment'
 import type { ClaimViewer } from '#/components/claim-panel'
 import { db } from '#/db'
@@ -144,66 +145,94 @@ function PlayerProfile() {
   const formerNames = profile.aliases.filter(
     (name) => name !== profile.displayName,
   )
+  const standing = {
+    titlesHeld: profile.records.length,
+    longestHeld: enrichment.longestHeld,
+  }
 
   return (
     <section className="mt-6 space-y-5">
-      <div className="glass-mid p-6 sm:p-7">
-        <div className="flex items-center gap-5">
-          <PlayerAvatar
-            avatarUrl={profile.avatarUrl}
-            displayName={profile.displayName}
-            size={84}
-            eager
-          />
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              <h1 className="text-2xl font-semibold text-balance">
-                {profile.displayName}
-              </h1>
-              {profile.isClaimed && <ClaimedChip />}
-            </div>
-            {/* No placeholder, no globe: a neutral mark reads as a statement. */}
-            {profile.country && (
-              <p className="mt-1">
-                <PlayerCountry country={profile.country} />
-              </p>
-            )}
-            {formerNames.length > 0 && (
-              <p className="mt-1 text-sm text-fg-faint">
-                previously known as {formerNames.join(', ')}
-              </p>
-            )}
+      <div className="glass-mid relative p-6 sm:p-7">
+        {/* Measured: a pane narrower than it is tall cuts the glow's ramp into a
+            hard vertical seam, so it runs only where the pane is wide. */}
+        {hasMonument(standing) && (
+          <div
+            className="absolute inset-0 z-0 hidden overflow-hidden rounded-[inherit] md:block"
+            aria-hidden="true"
+          >
+            <div className="monument-glow" />
           </div>
-        </div>
-
-        {/* Below the identity row, not inside it: in the column they made tall
-            enough to strand the avatar mid-card, and to squeeze at 320px. */}
-        {viewer.signedIn && viewer.isOwner && (
-          <>
-            {/* Keyed like ClaimPanel: the router keeps this mounted across a
-                slug change, and in-flight control state belongs to one player. */}
-            <OwnerAvatarControls
-              key={profile.id}
-              playerId={profile.id}
-              hasAvatar={profile.hasAvatar}
-            />
-            <OwnerCountryControls
-              key={profile.id}
-              playerId={profile.id}
-              countryCode={profile.country?.code ?? null}
-            />
-          </>
         )}
 
-        <ProfileEnrichment stats={enrichment} />
+        {/* The identity column's desktop air is accepted, not filled: this
+            card's next fact belongs in the strip below, not beside a name. */}
+        <div className="relative grid items-start gap-8 md:grid-cols-[1fr_auto]">
+          {/* Stacked below sm: beside an 84px disc a phone leaves the name
+              ~180px, and a long one shatters rather than wrapping. */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
+            <PlayerAvatar
+              avatarUrl={profile.avatarUrl}
+              displayName={profile.displayName}
+              size={84}
+              eager
+            />
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                {/* A name can be one unbroken token. `anywhere`, not
+                    `break-word`: only the former lets the flex item shrink. */}
+                <h1 className="text-2xl font-semibold wrap-anywhere text-balance">
+                  {profile.displayName}
+                </h1>
+                {profile.isClaimed && <ClaimedChip />}
+              </div>
+              {/* No placeholder, no globe: a neutral mark reads as a statement. */}
+              {profile.country && (
+                <p className="mt-1">
+                  <PlayerCountry country={profile.country} />
+                </p>
+              )}
+              {formerNames.length > 0 && (
+                <p className="mt-1 text-sm text-fg-faint">
+                  previously known as {formerNames.join(', ')}
+                </p>
+              )}
+            </div>
+          </div>
 
-        <ClaimPanel
-          key={profile.id}
-          playerId={profile.id}
-          slug={profile.slug}
-          isClaimed={profile.isClaimed}
-          viewer={viewer}
-        />
+          <PlayerMonument {...standing} />
+        </div>
+
+        <div className="relative">
+          {/* Below the identity row, not in it: that column now shares its own
+              row with the monument, and these would take the name's width as
+              well as the height that strands the avatar beside it. */}
+          {viewer.signedIn && viewer.isOwner && (
+            <>
+              {/* Keyed like ClaimPanel: the router keeps this mounted across a
+                  slug change, and in-flight state belongs to one player. */}
+              <OwnerAvatarControls
+                key={profile.id}
+                playerId={profile.id}
+                hasAvatar={profile.hasAvatar}
+              />
+              <OwnerCountryControls
+                key={profile.id}
+                playerId={profile.id}
+                countryCode={profile.country?.code ?? null}
+              />
+            </>
+          )}
+
+          <ProfileEnrichment stats={enrichment} />
+
+          <ClaimPanel
+            key={profile.id}
+            playerId={profile.id}
+            slug={profile.slug}
+            isClaimed={profile.isClaimed}
+            viewer={viewer}
+          />
+        </div>
       </div>
 
       <div className="glass-mid p-6 sm:p-7">

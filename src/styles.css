@@ -423,7 +423,10 @@
    It only grows into empty space — two of these must be kept 44px apart, centre
    to centre, or the later one takes the overlap. A negative z-index looks like
    free hardening and is not: sent behind its ancestors, the parent's box takes
-   every point outside the ink and the reach collapses back to it. */
+   every point outside the ink and the reach collapses back to it.
+   Never on a link inside a sentence: the next line of that sentence sits one
+   line-height away, which is inside the reach, so it would take taps meant for
+   the prose. WCAG 2.5.8 exempts an inline target for exactly this reason. */
 .tap-reach {
   position: relative;
 }
