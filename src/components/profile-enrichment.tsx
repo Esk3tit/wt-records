@@ -79,7 +79,7 @@ export function ProfileEnrichment({ stats }: { stats: ProfileEnrichmentData }) {
           <Link
             to="/$mode/vehicle/$slug"
             params={{ mode: longestHeld.mode, slug: longestHeld.vehicleSlug }}
-            className="font-medium text-fg decoration-hairline underline-offset-2 hover:decoration-current"
+            className="tap-reach font-medium text-fg decoration-hairline underline-offset-2 hover:decoration-current"
           >
             {longestHeld.vehicleName}
           </Link>
