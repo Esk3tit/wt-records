@@ -74,7 +74,13 @@ export async function withPlayer(
     const id = await seedPlayer(sql, seed)
     await body({ sql, id })
   } finally {
-    await dropPlayer(sql, seed.slug)
+    /* The connection goes back whatever happened: a leaked one holds a slot,
+       and a hundred is all the local Postgres has — spent, they surface as
+       auth 500s rather than as a failing fixture. A drop that fails is left
+       to say nothing, both because it would mask what the case was actually
+       failing on, and because seeding deletes the slug first, so a row left
+       behind is taken by the next run rather than in the way of it. */
+    await dropPlayer(sql, seed.slug).catch(() => undefined)
     await sql.end()
   }
 }
