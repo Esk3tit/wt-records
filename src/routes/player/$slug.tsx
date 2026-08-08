@@ -11,7 +11,7 @@ import { PlayerAvatar } from '#/components/player-avatar'
 import { ClaimedChip } from '#/components/claimed-chip'
 import { ClaimPanel } from '#/components/claim-panel'
 import { OwnerAvatarControls } from '#/components/owner-avatar-controls'
-import { PlayerMonument } from '#/components/player-monument'
+import { PlayerMonument, hasMonument } from '#/components/player-monument'
 import { ProfileEnrichment } from '#/components/profile-enrichment'
 import type { ClaimViewer } from '#/components/claim-panel'
 import { db } from '#/db'
@@ -137,18 +137,24 @@ function PlayerProfile() {
   const formerNames = profile.aliases.filter(
     (name) => name !== profile.displayName,
   )
+  const standing = {
+    titlesHeld: profile.records.length,
+    longestHeld: enrichment.longestHeld,
+  }
 
   return (
     <section className="mt-6 space-y-5">
       <div className="glass-mid relative p-6 sm:p-7">
         {/* Measured: a pane narrower than it is tall cuts the glow's ramp into a
             hard vertical seam, so it runs only where the pane is wide. */}
-        <div
-          className="absolute inset-0 z-0 hidden overflow-hidden rounded-[inherit] md:block"
-          aria-hidden="true"
-        >
-          <div className="monument-glow" />
-        </div>
+        {hasMonument(standing) && (
+          <div
+            className="absolute inset-0 z-0 hidden overflow-hidden rounded-[inherit] md:block"
+            aria-hidden="true"
+          >
+            <div className="monument-glow" />
+          </div>
+        )}
 
         {/* The identity column's desktop air is accepted, not filled: this
             card's next fact belongs in the strip below, not beside a name. */}
@@ -185,10 +191,7 @@ function PlayerProfile() {
             </div>
           </div>
 
-          <PlayerMonument
-            titlesHeld={profile.records.length}
-            longestHeld={enrichment.longestHeld}
-          />
+          <PlayerMonument {...standing} />
         </div>
 
         <div className="relative">

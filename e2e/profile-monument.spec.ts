@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 import { amberMoments } from './support/amber'
 import { firstPath, openNav } from './support/nav'
+import { withPlayer } from './support/players'
 import { STATE } from './support/states'
 import { LIGHTING } from './support/theme'
 import type { Lighting } from './support/theme'
@@ -60,6 +61,31 @@ test.describe('the profile monument', () => {
       expect(moments[0].says).toMatch(/^[\d,]+\s*days?$/)
     })
   }
+
+  /* A Player who never held a title has no tenure and nothing standing, so the
+     monument has no subject. Amber is the assertion that catches both halves:
+     the figure and the glow are the page's only two, and neither may be spent
+     marking the absence of a feat. */
+  test('builds no monument, and no glow, for a player who never held a title', async ({
+    page,
+  }) => {
+    await withPlayer(
+      { slug: 'e2e-monument-nonholder', displayName: 'Never Held' },
+      async () => {
+        await openNav(page, { path: '/player/e2e-monument-nonholder' })
+        await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+
+        await expect(page.getByText('Days at the top')).toHaveCount(0)
+        await expect(page.locator(NUMERAL)).toHaveCount(0)
+        await expect(page.locator('.monument-glow')).toHaveCount(0)
+        expect(await amberMoments(page, 'main')).toEqual([])
+        // The page it has always had, not a hole where a monument would be.
+        await expect(
+          page.getByRole('link', { name: 'Claim this page' }),
+        ).toBeVisible()
+      },
+    )
+  })
 
   test('holds at 320px, with the monument under the name', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 900 })

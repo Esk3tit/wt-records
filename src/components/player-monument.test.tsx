@@ -6,7 +6,7 @@ import {
   createRootRoute,
   createRouter,
 } from '@tanstack/react-router'
-import { PlayerMonument } from './player-monument'
+import { PlayerMonument, hasMonument } from './player-monument'
 import { formatHeldDays } from '#/lib/dates'
 import type { LongestHeldTitle } from './profile-enrichment'
 
@@ -91,14 +91,27 @@ describe('PlayerMonument', () => {
     expect(monument.textContent).toContain('ended Mar 2026')
   })
 
-  it('names no title when the player has never held one', async () => {
+  it('builds nothing for a player who never held a title', async () => {
     prefersReducedMotion(true)
-    const { monument, queryByRole } = await renderMonument({
+    const { monument } = await renderMonument({
       titlesHeld: 0,
       longestHeld: null,
     })
-    expect(monument.textContent).toContain('No titles standing')
-    expect(queryByRole('link')).toBeNull()
+    // Not a zero, not a hole: no tenure and nothing standing is no subject, and
+    // the header falls back to the page this player has always had.
+    expect(monument.textContent).toBe('')
+  })
+
+  it('knows when there is a monument to build, so the glow can ask too', () => {
+    const cases = [
+      { titlesHeld: 3, longestHeld: held, expected: true },
+      { titlesHeld: 0, longestHeld: held, expected: true },
+      { titlesHeld: 3, longestHeld: null, expected: true },
+      { titlesHeld: 0, longestHeld: null, expected: false },
+    ]
+    for (const { expected, ...standing } of cases) {
+      expect(hasMonument(standing), JSON.stringify(standing)).toBe(expected)
+    }
   })
 
   it('counts a brief reign as the day it is, never as a monumental zero', async () => {
@@ -120,16 +133,6 @@ describe('PlayerMonument', () => {
     })
     expect(numeral()).toBe('1')
     expect(formatHeldDays(secs)).toBe('1 day')
-  })
-
-  it('spends no days at the top when no title was ever held', async () => {
-    prefersReducedMotion(true)
-    const { numeral, unit } = await renderMonument({
-      titlesHeld: 0,
-      longestHeld: null,
-    })
-    expect(numeral()).toBe('0')
-    expect(unit()).toBe('days')
   })
 
   /* Undated records keep their place in the counts but stay out of the

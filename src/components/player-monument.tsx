@@ -3,8 +3,18 @@ import { CountUp } from '#/components/count-up'
 import { formatMonthYear, heldDays } from '#/lib/dates'
 import type { LongestHeldTitle } from '#/components/profile-enrichment'
 
-/* A monument cannot say "under a day", so the shortest real reign is its 1.
-   Only a player who never held a title has spent no days at the top. */
+interface Standing {
+  titlesHeld: number
+  longestHeld: LongestHeldTitle | null
+}
+
+/* No tenure and nothing standing is no subject, and a monument to nothing spends
+   the page's one amber on the absence of a feat. The glow answers to this too. */
+export function hasMonument({ titlesHeld, longestHeld }: Standing): boolean {
+  return longestHeld != null || titlesHeld > 0
+}
+
+/* A monument cannot say "under a day", so the shortest real reign is its 1. */
 function daysAtTheTop(longestHeld: LongestHeldTitle | null): number {
   if (!longestHeld) return 0
   return Math.max(1, heldDays(longestHeld.heldSeconds))
@@ -12,13 +22,9 @@ function daysAtTheTop(longestHeld: LongestHeldTitle | null): number {
 
 /* The profile's monument. Days rather than titles held: almost every player
    holds one to three, and a monumental 1 is ceremony without substance. */
-export function PlayerMonument({
-  titlesHeld,
-  longestHeld,
-}: {
-  titlesHeld: number
-  longestHeld: LongestHeldTitle | null
-}) {
+export function PlayerMonument({ titlesHeld, longestHeld }: Standing) {
+  if (!hasMonument({ titlesHeld, longestHeld })) return null
+
   /* Titles can stand with nothing to date them — a migrated record often has
      no date — and "0 days" over "3 titles held now" is a lie, not a feat. */
   const undated = longestHeld == null && titlesHeld > 0
