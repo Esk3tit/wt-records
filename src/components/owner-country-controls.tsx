@@ -43,6 +43,10 @@ export function OwnerCountryControls({
   const selectRef = useRef<HTMLSelectElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const handBackFocus = useRef(false)
+  // The select stays editable while the write is going, so the owner can move
+  // on before it lands; counting edits is how a finished write knows whether
+  // the field still shows what it sent.
+  const edits = useRef(0)
 
   // After the render that disables the button, so the field is focusable and
   // the button is not; guarded by the ref rather than by deps.
@@ -57,6 +61,7 @@ export function OwnerCountryControls({
     // with the new value, which can disable this button — and by then it is no
     // longer the active element to recognise.
     const pressedWhileFocused = document.activeElement === buttonRef.current
+    const sentAt = edits.current
     setBusy(true)
     setError(null)
     setSaved(false)
@@ -71,12 +76,20 @@ export function OwnerCountryControls({
     }
     // The write committed: reload so the flag renders beside the name.
     await router.invalidate().catch(() => undefined)
+    const movedOn = edits.current !== sentAt
     // A saved press leaves nothing to save, so this button disables itself —
     // and a disabled control cannot hold focus. Hand it back to the field
-    // instead of dropping the keyboard to the top of the document.
-    handBackFocus.current = pressedWhileFocused
+    // instead of dropping the keyboard to the top of the document. Not if the
+    // owner has already gone somewhere else with it.
+    const active = document.activeElement
+    handBackFocus.current =
+      pressedWhileFocused &&
+      !movedOn &&
+      (active === buttonRef.current || active === document.body)
     setBusy(false)
-    setSaved(true)
+    // "Saved" names the country in the field, so it can only be said while the
+    // field still shows the one that was sent.
+    setSaved(!movedOn)
   }
 
   return (
@@ -95,6 +108,7 @@ export function OwnerCountryControls({
           className={selectClass}
           value={choice}
           onChange={(e) => {
+            edits.current += 1
             setChoice(e.target.value)
             setSaved(false)
             setError(null)

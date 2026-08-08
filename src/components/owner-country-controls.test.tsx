@@ -196,6 +196,32 @@ describe('a refused write', () => {
 })
 
 describe('"Saved"', () => {
+  // The select stays editable during the write, so the owner can move on
+  // before it lands — and the status names the country in the field.
+  it('is not claimed for a country the owner changed away from mid-write', async () => {
+    const inFlight = deferred()
+    setMyCountry.mockImplementationOnce(() => inFlight.promise)
+
+    render(<OwnerCountryControls playerId={1} countryCode={null} />)
+    fireEvent.change(picker(), { target: { value: 'BR' } })
+    fireEvent.click(saveButton())
+    await flush()
+
+    // Changed while BR is still going.
+    fireEvent.change(picker(), { target: { value: 'JP' } })
+    await act(async () => {
+      inFlight.release()
+      await Promise.resolve()
+    })
+
+    // BR is what was stored, JP is what the field shows — so neither a stale
+    // confirmation nor a claim about a country that was never submitted.
+    expect(sentCodes()).toEqual(['BR'])
+    expect(picker().value).toBe('JP')
+    expect(status()).toBe('')
+    expect(saveButton().disabled).toBe(false)
+  })
+
   it('stops standing for a pick the owner has since changed', async () => {
     render(<OwnerCountryControls playerId={1} countryCode={null} />)
 
