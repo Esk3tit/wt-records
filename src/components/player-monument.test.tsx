@@ -7,7 +7,8 @@ import {
   createRouter,
 } from '@tanstack/react-router'
 import { PlayerMonument } from './player-monument'
-import type { ProfileEnrichmentData } from './profile-enrichment'
+import { formatHeldDays } from '#/lib/dates'
+import type { LongestHeldTitle } from './profile-enrichment'
 
 const held = {
   vehicleSlug: 'panther-d',
@@ -28,7 +29,7 @@ function prefersReducedMotion(reduce: boolean) {
 // The monument links the title it names, so it needs a router.
 async function renderMonument(props: {
   titlesHeld: number
-  longestHeld: ProfileEnrichmentData['longestHeld']
+  longestHeld: LongestHeldTitle | null
 }) {
   const rootRoute = createRootRoute({
     component: () => (
@@ -47,7 +48,7 @@ async function renderMonument(props: {
     ...view,
     monument,
     numeral: () =>
-      monument.querySelector('[data-monument-days]')?.textContent ?? '',
+      monument.querySelector('[data-monument-figure]')?.textContent ?? '',
     unit: () => monument.querySelector('.stat-unit')?.textContent ?? '',
   }
 }
@@ -110,6 +111,17 @@ describe('PlayerMonument', () => {
     expect(unit()).toBe('day')
   })
 
+  it('never states a longer reign than the rest of the site does', async () => {
+    prefersReducedMotion(true)
+    const secs = Math.round(1.6 * 86_400)
+    const { numeral } = await renderMonument({
+      titlesHeld: 1,
+      longestHeld: { ...held, heldSeconds: secs },
+    })
+    expect(numeral()).toBe('1')
+    expect(formatHeldDays(secs)).toBe('1 day')
+  })
+
   it('spends no days at the top when no title was ever held', async () => {
     prefersReducedMotion(true)
     const { numeral, unit } = await renderMonument({
@@ -118,6 +130,32 @@ describe('PlayerMonument', () => {
     })
     expect(numeral()).toBe('0')
     expect(unit()).toBe('days')
+  })
+
+  /* Undated records keep their place in the counts but stay out of the
+     temporal stats, so a holder can have titles and no datable tenure. */
+  it('states the titles it can count when nothing dates the reign', async () => {
+    prefersReducedMotion(true)
+    const { monument, numeral, unit } = await renderMonument({
+      titlesHeld: 3,
+      longestHeld: null,
+    })
+    expect(numeral()).toBe('3')
+    expect(unit()).toBe('records')
+    expect(monument.textContent).toContain('Titles held')
+    // Never a hollow zero over titles that are actually standing.
+    expect(monument.textContent).not.toContain('Days at the top')
+    expect(monument.textContent).not.toContain('0')
+  })
+
+  it('says one undated title in the singular', async () => {
+    prefersReducedMotion(true)
+    const { numeral, unit } = await renderMonument({
+      titlesHeld: 1,
+      longestHeld: null,
+    })
+    expect(numeral()).toBe('1')
+    expect(unit()).toBe('record')
   })
 
   it('tallies the numeral up when motion is welcome', async () => {

@@ -9,7 +9,7 @@ import type { Lighting } from './support/theme'
 /* What the direction was picked for, not its markup: one amber moment, nothing
    said twice, and one shape whether titles stand or not. */
 
-const NUMERAL = '[data-monument-days]'
+const NUMERAL = '[data-monument-figure]'
 
 /** An unclaimed Player, reached from live data so the seed and a real corpus
     both answer. The claimed and owner cases live in avatar-owner.spec.ts. */
@@ -29,7 +29,7 @@ test.describe('the profile monument', () => {
     await openProfile(page)
 
     await expect(page.getByText('Days at the top')).toBeVisible()
-    await expect(page.locator(NUMERAL)).toHaveText(/^\d+$/)
+    await expect(page.locator(NUMERAL)).toHaveText(/^[\d,]+$/)
     await expect(
       page.getByText(/\d+ titles? held now|No titles standing/),
     ).toBeVisible()
@@ -57,7 +57,7 @@ test.describe('the profile monument', () => {
       const moments = await amberMoments(page, 'main')
 
       expect(moments).toHaveLength(1)
-      expect(moments[0].says).toMatch(/^\d+\s*days?$/)
+      expect(moments[0].says).toMatch(/^[\d,]+\s*days?$/)
     })
   }
 
@@ -93,7 +93,7 @@ test.describe('the monument under reduced motion', () => {
     // meet a 0 that never resolves if the alternative were merely "no frames".
     const numeral = page.locator(NUMERAL)
     const landed = await numeral.textContent()
-    expect(landed).toMatch(/^\d+$/)
+    expect(landed).toMatch(/^[\d,]+$/)
     await page.waitForTimeout(1200)
     await expect(numeral).toHaveText(landed!)
   })

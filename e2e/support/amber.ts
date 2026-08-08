@@ -8,7 +8,12 @@ export interface AmberMoment {
 
 /** The One Amber Rule counts *moments*, not nodes: colour inherits, so a run of
     amber ink is the element that starts it. Material is not ink, so the glow
-    behind `aria-hidden` glass is not one. */
+    behind `aria-hidden` glass is not one.
+
+    A tripwire for a page you already know, not an enforcement of the rule: it
+    reads `color` and `background-color` against the two accent tokens, so a
+    border, an SVG fill, a pseudo-element or an alpha-modified accent all pass
+    it, and anything `aria-hidden` is trusted to be material. */
 export async function amberMoments(
   page: Page,
   root: string,
