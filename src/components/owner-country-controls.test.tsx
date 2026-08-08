@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 
 const setMyCountry = vi.fn()
@@ -11,8 +11,7 @@ vi.mock('@tanstack/react-router', () => ({ useRouter: () => ({ invalidate }) }))
 
 const { OwnerCountryControls } = await import('./owner-country-controls')
 
-/** Resolves only when told to, so a slow earlier write can be made to land
-    after a faster later one — the ordering this component has to survive. */
+/** Resolves only when told to, so a write can be held in flight. */
 function deferred() {
   let release!: () => void
   const promise = new Promise<void>((r) => (release = r))
@@ -20,134 +19,192 @@ function deferred() {
 }
 
 const picker = () => screen.getByLabelText<HTMLSelectElement>('Country')
+const saveButton = () =>
+  screen.getByRole<HTMLButtonElement>('button', { name: 'Save' })
 const status = () => screen.getByRole('status').textContent
+const sentCodes = () =>
+  setMyCountry.mock.calls.map((c) => c[0].data.countryCode)
+
+const flush = () => act(async () => undefined)
 
 beforeEach(() => {
-  vi.useFakeTimers({ shouldAdvanceTime: true })
   setMyCountry.mockReset().mockResolvedValue(undefined)
   invalidate.mockClear()
 })
-afterEach(() => {
-  vi.useRealTimers()
-})
 
-async function settle() {
-  await act(async () => {
-    vi.runAllTimers()
-    await Promise.resolve()
-  })
-}
-
-describe('the settle before a write', () => {
-  it('writes once for a run of type-ahead keystrokes, with the last value', async () => {
+describe('a country is written only when the owner says so', () => {
+  // A closed native <select> fires `change` per type-ahead keystroke: "Japan"
+  // arrives as J → Jamaica, Ja → Jamaica, Jap → Japan. None of those are picks.
+  it('writes nothing for the countries type-ahead passes through', async () => {
     render(<OwnerCountryControls playerId={1} countryCode={null} />)
 
-    // What typing "Jap" does to a closed native select.
     fireEvent.change(picker(), { target: { value: 'JM' } })
     fireEvent.change(picker(), { target: { value: 'JP' } })
-    await settle()
+    await flush()
+
+    expect(setMyCountry).not.toHaveBeenCalled()
+  })
+
+  // The pause is what defeats a debounce: it makes the waypoint look settled.
+  it('writes nothing for a waypoint the owner rested on mid-word', async () => {
+    render(<OwnerCountryControls playerId={1} countryCode={null} />)
+
+    fireEvent.change(picker(), { target: { value: 'JM' } })
+    await new Promise((r) => setTimeout(r, 50))
+    await flush()
+    fireEvent.change(picker(), { target: { value: 'JP' } })
+    fireEvent.click(saveButton())
+    await flush()
+
+    expect(sentCodes()).toEqual(['JP'])
+  })
+
+  it('writes the chosen country once, on the press', async () => {
+    render(<OwnerCountryControls playerId={1} countryCode={null} />)
+
+    fireEvent.change(picker(), { target: { value: 'JP' } })
+    fireEvent.click(saveButton())
+    await flush()
 
     expect(setMyCountry).toHaveBeenCalledTimes(1)
     expect(setMyCountry).toHaveBeenCalledWith({
       data: { playerId: 1, countryCode: 'JP' },
     })
-  })
-
-  it('writes on blur rather than making the owner wait it out', async () => {
-    render(<OwnerCountryControls playerId={1} countryCode={null} />)
-
-    fireEvent.change(picker(), { target: { value: 'BR' } })
-    // Before any re-render could carry the pick into state.
-    fireEvent.blur(picker())
-    await settle()
-
-    expect(setMyCountry).toHaveBeenCalledWith({
-      data: { playerId: 1, countryCode: 'BR' },
-    })
+    expect(invalidate).toHaveBeenCalledTimes(1)
+    expect(status()).toBe('Saved')
   })
 
   it('sends null to clear, never an empty string', async () => {
-    render(<OwnerCountryControls playerId={1} countryCode={'JP'} />)
+    render(<OwnerCountryControls playerId={1} countryCode="JP" />)
 
     fireEvent.change(picker(), { target: { value: '' } })
-    await settle()
+    fireEvent.click(saveButton())
+    await flush()
 
-    expect(setMyCountry).toHaveBeenCalledWith({
-      data: { playerId: 1, countryCode: null },
-    })
+    expect(sentCodes()).toEqual([null])
   })
 })
 
-describe('two picks racing', () => {
-  it('never lets a slow earlier write land after a newer one', async () => {
-    const first = deferred()
-    setMyCountry
-      .mockImplementationOnce(() => first.promise)
-      .mockResolvedValue(undefined)
-
-    render(<OwnerCountryControls playerId={1} countryCode={null} />)
+describe('the Save press', () => {
+  it('is offered only once the field differs from what is stored', () => {
+    render(<OwnerCountryControls playerId={1} countryCode="JP" />)
+    expect(saveButton().disabled).toBe(true)
 
     fireEvent.change(picker(), { target: { value: 'BR' } })
-    await settle()
-    expect(setMyCountry).toHaveBeenCalledTimes(1)
+    expect(saveButton().disabled).toBe(false)
 
-    // Picked again while the first write is still in flight.
+    // Back to the stored value is not an edit.
     fireEvent.change(picker(), { target: { value: 'JP' } })
-    await settle()
-    // The second must not have been sent yet — writes are chained, so the
-    // server can never receive them out of order.
-    expect(setMyCountry).toHaveBeenCalledTimes(1)
-
-    await act(async () => {
-      first.release()
-      await Promise.resolve()
-    })
-    await settle()
-
-    expect(setMyCountry).toHaveBeenCalledTimes(2)
-    expect(setMyCountry).toHaveBeenLastCalledWith({
-      data: { playerId: 1, countryCode: 'JP' },
-    })
+    expect(saveButton().disabled).toBe(true)
   })
 
-  it('lets only the newest write report, so "Saved" never confirms a stale pick', async () => {
-    const first = deferred()
-    setMyCountry
-      .mockImplementationOnce(() => first.promise)
-      .mockResolvedValue(undefined)
+  // Two writes can never overlap, so a slow one cannot land after a newer one.
+  it('cannot be pressed again while a write is going', async () => {
+    const inFlight = deferred()
+    setMyCountry.mockImplementationOnce(() => inFlight.promise)
 
     render(<OwnerCountryControls playerId={1} countryCode={null} />)
     fireEvent.change(picker(), { target: { value: 'BR' } })
-    await settle()
+    fireEvent.click(saveButton())
+    await flush()
+
+    expect(saveButton().disabled).toBe(true)
+    fireEvent.click(saveButton())
     fireEvent.change(picker(), { target: { value: 'JP' } })
-    await settle()
+    fireEvent.click(saveButton())
+    await flush()
+    expect(setMyCountry).toHaveBeenCalledTimes(1)
 
     await act(async () => {
-      first.release()
+      inFlight.release()
       await Promise.resolve()
     })
-    await settle()
+    expect(sentCodes()).toEqual(['BR'])
+  })
 
-    // Two writes, one reload: the superseded one returned without touching the
-    // route or claiming success, so "Saved" can only mean the newest pick.
-    expect(setMyCountry).toHaveBeenCalledTimes(2)
-    expect(invalidate).toHaveBeenCalledTimes(1)
-    expect(status()).toBe('Saved')
+  // The press disables its own button, and a disabled control cannot hold
+  // focus — the same trap that made disabling the select unusable.
+  it('hands focus back to the field rather than dropping it', async () => {
+    const { rerender } = render(
+      <OwnerCountryControls playerId={1} countryCode={null} />,
+    )
+    fireEvent.change(picker(), { target: { value: 'JP' } })
+    saveButton().focus()
+    expect(document.activeElement).toBe(saveButton())
+
+    fireEvent.click(saveButton())
+    await flush()
+    // What the reload does: the parent re-renders with what is now stored, and
+    // the button disables because there is nothing left to save.
+    rerender(<OwnerCountryControls playerId={1} countryCode="JP" />)
+
+    expect(saveButton().disabled).toBe(true)
+    expect(document.activeElement).toBe(picker())
+  })
+
+  // Disabling a focused control blurs it out from under the owner — the reason
+  // the select is never the thing that goes quiet.
+  it('never disables the select itself', async () => {
+    const inFlight = deferred()
+    setMyCountry.mockImplementationOnce(() => inFlight.promise)
+
+    render(<OwnerCountryControls playerId={1} countryCode={null} />)
+    fireEvent.change(picker(), { target: { value: 'BR' } })
+    fireEvent.click(saveButton())
+    await flush()
+
+    expect(picker().disabled).toBe(false)
+    await act(async () => {
+      inFlight.release()
+      await Promise.resolve()
+    })
   })
 })
 
 describe('a refused write', () => {
-  it('reports it and snaps the field back to what the server still holds', async () => {
+  it('reports it and keeps the choice so the owner can press again', async () => {
     setMyCountry.mockRejectedValue(new Error('You do not hold this claim'))
-    render(<OwnerCountryControls playerId={1} countryCode={'JP'} />)
+    render(<OwnerCountryControls playerId={1} countryCode="JP" />)
 
     fireEvent.change(picker(), { target: { value: 'BR' } })
-    await settle()
+    fireEvent.click(saveButton())
+    await flush()
 
     expect(screen.getByRole('alert').textContent).toContain(
       'You do not hold this claim',
     )
-    expect(picker().value).toBe('JP')
+    // Not snapped back: finding the country again would be the owner's cost
+    // for the server's failure.
+    expect(picker().value).toBe('BR')
+    expect(saveButton().disabled).toBe(false)
+    expect(status()).toBe('')
+    expect(invalidate).not.toHaveBeenCalled()
+  })
+
+  it('clears the error once the owner picks again', async () => {
+    setMyCountry.mockRejectedValue(new Error('Network error'))
+    render(<OwnerCountryControls playerId={1} countryCode={null} />)
+
+    fireEvent.change(picker(), { target: { value: 'BR' } })
+    fireEvent.click(saveButton())
+    await flush()
+    expect(screen.queryByRole('alert')).not.toBeNull()
+
+    fireEvent.change(picker(), { target: { value: 'JP' } })
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+})
+
+describe('"Saved"', () => {
+  it('stops standing for a pick the owner has since changed', async () => {
+    render(<OwnerCountryControls playerId={1} countryCode={null} />)
+
+    fireEvent.change(picker(), { target: { value: 'JP' } })
+    fireEvent.click(saveButton())
+    await flush()
+    expect(status()).toBe('Saved')
+
+    fireEvent.change(picker(), { target: { value: 'BR' } })
     expect(status()).toBe('')
   })
 })

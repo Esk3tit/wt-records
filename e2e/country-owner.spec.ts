@@ -36,6 +36,17 @@ function picker(page: Page) {
   return page.getByLabel('Country', { exact: true })
 }
 
+function saveButton(page: Page) {
+  return page.getByRole('button', { name: 'Save', exact: true })
+}
+
+/** Choose and commit — the write happens on the press, never on the change. */
+async function choose(page: Page, code: string) {
+  await picker(page).selectOption(code)
+  await saveButton(page).click()
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible()
+}
+
 async function storedCountry(sql: Sql, slug: string): Promise<string | null> {
   const rows = await sql<{ country_code: string | null }[]>`
     select country_code from players where slug = ${slug}
@@ -53,12 +64,13 @@ test.describe('the claim holder states a Country', () => {
       await seedOwnedPlayer(sql, slug)
       await page.goto(`/player/${slug}`)
 
-      // No country is the ordinary state: nothing renders, no placeholder mark.
+      // No country is the ordinary state: nothing renders, no placeholder mark,
+      // and there is nothing to save until the owner changes something.
       await expect(picker(page)).toHaveValue('')
       await expect(page.locator('.country-flag')).toHaveCount(0)
+      await expect(saveButton(page)).toBeDisabled()
 
-      await picker(page).selectOption('JP')
-      await expect(page.getByText('Saved', { exact: true })).toBeVisible()
+      await choose(page, 'JP')
       expect(await storedCountry(sql, slug)).toBe('JP')
 
       // The mark and the full name, together — the flag never appears alone.
@@ -68,13 +80,13 @@ test.describe('the claim holder states a Country', () => {
       // ...and it links nowhere.
       await expect(shown.locator('a')).toHaveCount(0)
 
-      // Unlimited and self-serve: a correction costs one action, no cooldown.
-      await picker(page).selectOption('BR')
+      // Unlimited and self-serve: a correction costs one press, no cooldown.
+      await choose(page, 'BR')
       await expect(shown).toContainText('Brazil')
       expect(await storedCountry(sql, slug)).toBe('BR')
 
       // "Not set" is pinned first and always available, so clearing is one too.
-      await picker(page).selectOption('')
+      await choose(page, '')
       await expect(page.locator('.country-flag')).toHaveCount(0)
       expect(await storedCountry(sql, slug)).toBeNull()
     } finally {
@@ -83,8 +95,9 @@ test.describe('the claim holder states a Country', () => {
     }
   })
 
-  // "Japan" walks through Jamaica, and disabling a focused control mid-save
-  // drops focus to the body — this stored JM and stranded the keyboard.
+  // "Japan" walks through Jamaica, so an autosaving field stored JM — and the
+  // pause between "J" and "apan" is what defeated the debounce that hid it.
+  // Typing writes nothing at all now; only the press does.
   test('typing a country stores only the one landed on', async ({ page }) => {
     const slug = 'e2e-country-keyboard'
     const sql = connect()
@@ -93,10 +106,22 @@ test.describe('the claim holder states a Country', () => {
       await page.goto(`/player/${slug}`)
 
       await picker(page).focus()
-      await page.keyboard.type('Japan', { delay: 60 })
+      await page.keyboard.type('Ja', { delay: 60 })
+      await page.waitForTimeout(700) // resting on Jamaica must not store it
+      await page.keyboard.type('pan', { delay: 60 })
+      expect(await storedCountry(sql, slug)).toBeNull()
+
+      // Reachable and operable by keyboard alone, and the press leaves focus
+      // where the owner put it rather than dropping it to the body.
+      await page.keyboard.press('Tab')
+      await expect(saveButton(page)).toBeFocused()
+      await page.keyboard.press('Enter')
       await expect(page.getByText('Saved', { exact: true })).toBeVisible()
 
       expect(await storedCountry(sql, slug)).toBe('JP')
+      // The press disabled its own button, so focus is handed back to the
+      // field rather than dropped to the top of the document.
+      await expect(saveButton(page)).toBeDisabled()
       await expect(picker(page)).toBeFocused()
     } finally {
       await sql`delete from players where slug = ${slug}`
