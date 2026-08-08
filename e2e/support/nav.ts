@@ -14,6 +14,22 @@ export async function openNav(
   await expect(page.getByRole('button', { name: /Switch to/ })).toBeVisible()
 }
 
+/** The first link matching a route shape, so fixtures come from live data and
+    specs hold against the seed and a real corpus alike. */
+export async function firstPath(page: Page, shape: RegExp) {
+  const href = await page
+    .locator('a[href]')
+    .evaluateAll(
+      (links, source) =>
+        (links as HTMLAnchorElement[])
+          .map((a) => new URL(a.href).pathname)
+          .find((path) => new RegExp(source).test(path)) ?? '',
+      shape.source,
+    )
+  expect(href, `no ${shape} link to follow`).toBeTruthy()
+  return href
+}
+
 /** Scrolls the way a reader does, and holds there. It has to be a real wheel:
     motion is armed by genuine input, and a scripted `scrollTo` is undone the
     moment the router restores the entry — which also settles after hydration
