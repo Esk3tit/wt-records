@@ -16,9 +16,8 @@ export type ClaimViewer =
       providerAvatarUrl: string | null
     }
 
-/* The monument is this page's one amber moment, and an unclaimed page is the
-   common case — so the resting CTA is ghost, and amber is spent only on the
-   commit itself, which nobody sees until they have asked for the form. */
+/* The monument is this page's one amber moment, so the resting CTA is ghost
+   and amber is spent only on the commit inside the form. */
 const amberButton =
   'inline-flex items-center justify-center gap-1.5 rounded bg-accent px-3.5 py-2 text-sm font-semibold text-black no-underline transition-[filter] duration-200 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50'
 const ghostButton =

@@ -6,10 +6,8 @@ import { STATE } from './support/states'
 import { LIGHTING } from './support/theme'
 import type { Lighting } from './support/theme'
 
-/* The profile header states the number the ledger is about as the site's own
-   Record Monument. What is asserted here is what the direction was picked for:
-   the page has one amber moment, nothing is said twice, and the shape is the
-   same for a player with titles standing and one with none. */
+/* What the direction was picked for, not its markup: one amber moment, nothing
+   said twice, and one shape whether titles stand or not. */
 
 const NUMERAL = '[data-monument-days]'
 
@@ -67,6 +65,8 @@ test.describe('the profile monument', () => {
     await page.setViewportSize({ width: 320, height: 900 })
     await openProfile(page)
 
+    // The monument leads as the hero column, not as the first thing read: a
+    // reader on a phone meets whose page this is before what it is worth.
     const name = await page.getByRole('heading', { level: 1 }).boundingBox()
     const numeral = await page.locator(NUMERAL).boundingBox()
     expect(numeral!.y).toBeGreaterThan(name!.y)

@@ -5,19 +5,15 @@ import type { LongestHeldTitle } from '#/components/profile-enrichment'
 
 const DAY_SECONDS = 86_400
 
-/* The registry counts in days, and a reign that exists is never none of them —
-   the same reason formatHeldDays says "under a day" rather than a zero. Only a
-   player who has never held a title has spent no days at the top. */
+/* A reign that exists is never zero days, the same ground formatHeldDays says
+   "under a day" on. Only a player who never held a title has spent none. */
 function daysAtTheTop(longestHeld: LongestHeldTitle | null): number {
   if (!longestHeld) return 0
   return Math.max(1, Math.round(longestHeld.heldSeconds / DAY_SECONDS))
 }
 
-/* The profile's lock-screen moment: the longest a title of theirs has stood, as
-   the page's single amber numeral. Days rather than titles held — almost every
-   player holds one to three, and a monumental 1 is ceremony without substance,
-   where days has range at every population. One shape for everyone: with
-   nothing standing the plaque inverts, and the tenure is still the feat. */
+/* The profile's monument. Days rather than titles held: almost every player
+   holds one to three, and a monumental 1 is ceremony without substance. */
 export function PlayerMonument({
   titlesHeld,
   longestHeld,
@@ -33,8 +29,8 @@ export function PlayerMonument({
         Days at the top
       </p>
       <p className="text-[clamp(3.25rem,8vw,5rem)] leading-none font-bold tracking-[-0.03em] text-accent-text">
-        {/* The figure apart from its unit, so a spec can read the number the
-            count-up arrives at rather than the line it sits in. */}
+        {/* The figure apart from its unit, so a spec can read what the
+            count-up arrives at rather than the whole line. */}
         <span data-monument-days="">
           <CountUp value={days} />
         </span>

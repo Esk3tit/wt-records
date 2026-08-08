@@ -6,12 +6,9 @@ export interface AmberMoment {
   says: string
 }
 
-/** The One Amber Rule counts *moments*, not nodes. Colour inherits, so a run of
-    amber ink is the element that starts it and every descendant riding on that
-    inheritance belongs to the same moment. Two carve-outs the rule makes by
-    name are honoured here: **material is not ink**, so the monument's glow —
-    a gradient behind `aria-hidden` glass — is not counted, and **summoned ink
-    spends no ration**, so the focus ring never rests in this reading. */
+/** The One Amber Rule counts *moments*, not nodes: colour inherits, so a run of
+    amber ink is the element that starts it. Material is not ink, so the glow
+    behind `aria-hidden` glass is not one. */
 export async function amberMoments(
   page: Page,
   root: string,

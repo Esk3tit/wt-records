@@ -141,10 +141,8 @@ function PlayerProfile() {
   return (
     <section className="mt-6 space-y-5">
       <div className="glass-mid relative p-6 sm:p-7">
-        {/* z-0 stacking context, so the glow stays behind everything the card
-            holds and inside the pane's own radius. The glow's circle is sized
-            off a wide pane; on a narrow one it is cut mid-ramp and lands as a
-            hard vertical seam, so it simply doesn't run there. */}
+        {/* Measured: a pane narrower than it is tall cuts the glow's ramp into a
+            hard vertical seam, so it runs only where the pane is wide. */}
         <div
           className="absolute inset-0 z-0 hidden overflow-hidden rounded-[inherit] md:block"
           aria-hidden="true"
@@ -152,9 +150,8 @@ function PlayerProfile() {
           <div className="monument-glow" />
         </div>
 
-        {/* The identity column runs shorter than the monument at desktop. That
-            air is accepted rather than filled — the strip below is where this
-            card's next fact belongs, not beside a name. */}
+        {/* The identity column's desktop air is accepted, not filled: this
+            card's next fact belongs in the strip below, not beside a name. */}
         <div className="relative grid items-start gap-8 md:grid-cols-[1fr_auto]">
           <div className="flex items-center gap-5">
             <PlayerAvatar
