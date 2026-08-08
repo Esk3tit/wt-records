@@ -148,7 +148,9 @@ function PlayerProfile() {
   return (
     <section className="mt-6 space-y-5">
       <div className="glass-mid p-6 sm:p-7">
-        <div className="flex items-center gap-5">
+        {/* Stacked below sm: beside an 84px disc a phone leaves the name ~180px,
+            and a long one shatters into fragments rather than wrapping. */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
           <PlayerAvatar
             avatarUrl={profile.avatarUrl}
             displayName={profile.displayName}
@@ -157,7 +159,9 @@ function PlayerProfile() {
           />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              <h1 className="text-2xl font-semibold text-balance">
+              {/* A name can be one unbroken token. `anywhere`, not `break-word`:
+                  only the former lets the flex item shrink under it. */}
+              <h1 className="text-2xl font-semibold wrap-anywhere text-balance">
                 {profile.displayName}
               </h1>
               {profile.isClaimed && <ClaimedChip />}

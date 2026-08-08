@@ -23,6 +23,8 @@ export default [
       'src/lib/country-flags.generated.ts',
       '.output/**',
       '.nitro/**',
+      // The local Supabase CLI's scratch state, written by `supabase start`.
+      'supabase/.temp/**',
       '.tanstack/**',
       'dist/**',
       '.claude/**',

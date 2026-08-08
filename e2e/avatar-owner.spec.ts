@@ -1,43 +1,26 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
-import postgres from 'postgres'
 import type { Sql } from 'postgres'
+import { withPlayer } from './support/players'
 import { STATE } from './support/states'
 import { TEST_USERS } from './support/users'
-import { requireEnv } from './support/env'
 
 /* This stack has no object store configured, and an upload with nowhere to put
    the bytes is refused server-side — so the E2E proves the owner-only *gating*
    (owner sees the control, non-owners never do). The upload/replace/remove
    round-trip against a store is covered by the owner-avatar integration tests. */
 
-function connect(): Sql {
-  return postgres(requireEnv('DATABASE_URL'), {
-    prepare: false,
-    connect_timeout: 10,
-  })
-}
-
 // Any content-hashed key: the E2E stack serves no object, so the avatar renders
 // as the Medallion, but hasAvatar (DB truth) is true — enough to make the owner
 // controls flip to Replace/Remove, which a non-owner must still never see.
 const FAKE_AVATAR_KEY = 'avatars/1/deadbeef0000.webp'
 
-/** A player claimed by the E2E viewer, isolated on its own slug so parallel
-    specs never touch each other's row. Delete-first survives a prior failure. */
-async function seedOwnedPlayer(sql: Sql, slug: string): Promise<void> {
-  const ownerId = (
-    await sql<{ id: string }[]>`
-      select id from auth.users where email = ${TEST_USERS.viewer.email}
-    `
-  ).at(0)?.id
-  if (!ownerId) throw new Error('the E2E viewer must be provisioned first')
-  await sql`delete from players where slug = ${slug}`
-  await sql`
-    insert into players (slug, display_name, user_id)
-    values (${slug}, 'E2E Avatar Owner', ${ownerId})
-  `
-}
+/** Claimed by the E2E viewer, which is what surfaces the owner's controls. */
+const ownedPlayer = (slug: string) => ({
+  slug,
+  displayName: 'E2E Avatar Owner',
+  ownerEmail: TEST_USERS.viewer.email,
+})
 
 test.describe('owner avatar controls', () => {
   test.use({ storageState: STATE.viewer })
@@ -46,9 +29,7 @@ test.describe('owner avatar controls', () => {
     page,
   }) => {
     const slug = 'e2e-avatar-owner'
-    const sql = connect()
-    try {
-      await seedOwnedPlayer(sql, slug)
+    await withPlayer(ownedPlayer(slug), async () => {
       await page.goto(`/player/${slug}`)
 
       // The owner is offered the control; with no avatar yet, no Remove.
@@ -58,10 +39,7 @@ test.describe('owner avatar controls', () => {
       await expect(
         page.getByRole('button', { name: 'Remove', exact: true }),
       ).toHaveCount(0)
-    } finally {
-      await sql`delete from players where slug = ${slug}`
-      await sql.end()
-    }
+    })
   })
 })
 
@@ -99,14 +77,9 @@ test.describe('a signed-out visitor sees no avatar controls', () => {
     page,
   }) => {
     const slug = 'e2e-avatar-anon'
-    const sql = connect()
-    try {
-      await seedOwnedPlayer(sql, slug)
-      await expectNonOwnerSeesNothing(page, sql, slug)
-    } finally {
-      await sql`delete from players where slug = ${slug}`
-      await sql.end()
-    }
+    await withPlayer(ownedPlayer(slug), ({ sql }) =>
+      expectNonOwnerSeesNothing(page, sql, slug),
+    )
   })
 })
 
@@ -117,13 +90,8 @@ test.describe('a signed-in non-owner sees no avatar controls', () => {
     page,
   }) => {
     const slug = 'e2e-avatar-nonowner'
-    const sql = connect()
-    try {
-      await seedOwnedPlayer(sql, slug)
-      await expectNonOwnerSeesNothing(page, sql, slug)
-    } finally {
-      await sql`delete from players where slug = ${slug}`
-      await sql.end()
-    }
+    await withPlayer(ownedPlayer(slug), ({ sql }) =>
+      expectNonOwnerSeesNothing(page, sql, slug),
+    )
   })
 })
