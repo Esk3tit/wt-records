@@ -19,6 +19,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 # Never run two migrations at once, and never cancel one mid-flight.
 concurrency:
@@ -26,35 +27,120 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # No environment on this job, so it runs the moment the workflow triggers —
-  # while `migrate` below is still paused on the approval gate. Without it the
-  # pending approval is invisible unless someone happens to open the Actions tab.
+  # No environment on this job, so it runs the moment the workflow triggers,
+  # before `migrate` requests approval. Without it the pending approval is
+  # invisible unless someone happens to open the Actions tab.
   notify-approval-needed:
     name: ping for approval
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
+      # Before the ping, not just before the migration: `migrate` rejects a
+      # non-main ref too, but by then this job has already told everyone that
+      # production is waiting on an approval that was never going to run.
+      - name: Verify ref is main
+        if: ${{ github.ref_name != 'main' }}
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          echo "::error::migrate-prod must run on main — got '$REF_NAME'"
+          exit 1
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # An additive migration is approved promptly; one that drops or renames is
+      # approved only once the new build is live, or the old one 5xxs on the
+      # column. The prompt has to carry that, since the gate can't enforce it.
+      - name: Detect destructive migrations
+        id: destructive
+        env:
+          SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          HITS=""
+          UNKNOWN=""
+
+          # db:migrate applies everything pending, which is everything added
+          # since the last run that actually applied — not what this push
+          # changed. A run that was cancelled, rejected or failed leaves its
+          # migrations in that set, and the push that follows would otherwise
+          # never scan them. This stands in for the DB's own journal, which
+          # only the gated job holds credentials for; a restore or a repointed
+          # secret breaks that (docs/deploy.md).
+          if ! BASE=$(gh run list --workflow migrate-prod.yml --branch main --status success \
+            --limit 1 --json headSha --jq '.[0].headSha // ""' 2>/dev/null); then
+            UNKNOWN=1
+            echo "::warning::could not read migrate-prod history — pending set treated as unknown"
+          elif [ -z "$BASE" ]; then
+            UNKNOWN=1
+            echo "::warning::no successful migrate-prod run on main — history may have aged out, so what is pending is unknown"
+          elif ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            UNKNOWN=1
+            echo "::warning::last successful run's commit $BASE is unreachable — pending set treated as unknown"
+          else
+            HITS=$(git diff -z --name-only --diff-filter=d "$BASE" "$SHA" -- 'drizzle/*.sql' \
+              | node scripts/destructive-migrations.mjs)
+          fi
+
+          echo "files=$HITS" >> "$GITHUB_OUTPUT"
+          echo "unknown=$UNKNOWN" >> "$GITHUB_OUTPUT"
+
       - name: Post to Discord
         env:
           WEBHOOK_URL: ${{ secrets.DISCORD_MIGRATIONS_WEBHOOK_URL }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           TRIGGER: ${{ github.event_name == 'workflow_dispatch' && format('manual dispatch by {0}', github.actor) || github.event.head_commit.message }}
+          DESTRUCTIVE: ${{ steps.destructive.outputs.files }}
+          UNKNOWN: ${{ steps.destructive.outputs.unknown }}
         run: |
+          # A routine ping is best-effort, but the one that carries the ordering
+          # constraint is the whole reason `migrate` waits on this job. If that
+          # one can't be delivered, fail rather than open the gate in silence.
+          REQUIRED=""
+          if [ -n "$DESTRUCTIVE" ] || [ -n "$UNKNOWN" ]; then REQUIRED=1; fi
+
           if [ -z "$WEBHOOK_URL" ]; then
+            if [ -n "$REQUIRED" ]; then
+              echo "::error::DISCORD_MIGRATIONS_WEBHOOK_URL is not set, and this run needs a destructive-migration warning delivered before approval. Set the secret, or dispatch again once the new build is live having read docs/deploy.md."
+              exit 1
+            fi
             echo "::notice::DISCORD_MIGRATIONS_WEBHOOK_URL not set — skipping notification"
             exit 0
           fi
           FIRST_LINE=$(printf '%s' "$TRIGGER" | head -1 | cut -c1-140)
-          CONTENT=$(printf '🗄️ **Prod migration awaiting approval** — %s\nApprove: %s' "$FIRST_LINE" "$RUN_URL")
-          # Best-effort: a Discord outage must not paint the migration run red.
-          jq -n --arg content "$CONTENT" '{content: $content}' \
-            | curl -sf -H 'Content-Type: application/json' -d @- "$WEBHOOK_URL" \
-            || echo "::warning::Discord notification failed — approve via the Actions tab"
+          # @everyone, not @here: production is blocked until someone approves,
+          # and @here reaches nobody who isn't already looking at Discord.
+          CONTENT=$(printf '@everyone 🗄️ **Prod migration awaiting approval** — %s\nApprove: %s' "$FIRST_LINE" "$RUN_URL")
+          if [ -n "$DESTRUCTIVE" ]; then
+            CONTENT=$(printf '%s\n\n⚠️ **Drops or renames a column or table** (%s) — do NOT approve until Railway reports the new build live, or the old one 5xxs on the column it can no longer find. See docs/deploy.md.' "$CONTENT" "$DESTRUCTIVE")
+            echo "::warning::destructive migration pending approval: $DESTRUCTIVE"
+          elif [ -n "$UNKNOWN" ]; then
+            CONTENT=$(printf '%s\n\n⚠️ This ping cannot tell which migrations are still pending. Check them for a dropped column or table first; if any drops, approve only once the new build is live. See docs/deploy.md.' "$CONTENT")
+            echo "::warning::pending migrations not determined — check for destructive DDL before approving"
+          fi
+          # A webhook only rings the mention it is explicitly allowed to parse.
+          if jq -n --arg content "$CONTENT" \
+            '{content: $content, allowed_mentions: {parse: ["everyone"]}}' \
+            | curl -sf -H 'Content-Type: application/json' -d @- "$WEBHOOK_URL"; then
+            exit 0
+          fi
+          if [ -n "$REQUIRED" ]; then
+            echo "::error::could not deliver the destructive-migration warning to Discord — refusing to open the approval gate without it. Retry once Discord is reachable."
+            exit 1
+          fi
+          # Best-effort: a Discord outage must not paint an ordinary run red.
+          echo "::warning::Discord notification failed — approve via the Actions tab"
 
   migrate:
     name: migrate production
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Gates the approval request behind the warning: without this the
+    # environment can be approved before the ping that says to wait.
+    needs: notify-approval-needed
     # Holds the required-reviewer approval gate and the PROD_MIGRATE_DATABASE_URL
     # secret; the job pauses here for approval on every run.
     environment: WT Records / production
@@ -65,6 +151,16 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.confirm != 'migrate' }}
         run: |
           echo "::error::confirmation phrase not matched — aborting"
+          exit 1
+
+      # Prod's schema follows main. A dispatch on another ref would apply that
+      # ref's journal, leaving main's pending migrations silently behind.
+      - name: Verify ref is main
+        if: ${{ github.ref_name != 'main' }}
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          echo "::error::migrate-prod must run on main — got '$REF_NAME'"
           exit 1
 
       # Fail fast with a clear message instead of a generic Drizzle connection
@@ -121,14 +217,17 @@ jobs:
             echo "::notice::DISCORD_MIGRATIONS_WEBHOOK_URL not set — skipping notification"
             exit 0
           fi
+          # Only the outcomes that need something done ping. Announcing every
+          # success is how a mention stops meaning anything.
           case "$RESULT" in
             success) MSG="✅ **Prod migration applied**" ;;
-            cancelled) MSG="🚫 **Prod migration cancelled**" ;;
+            cancelled) MSG="@everyone 🚫 **Prod migration cancelled** — the schema did not move; ${RUN_URL}" ;;
             # A rejected approval also surfaces as `failure`, indistinguishable
             # from a migration error here — the message stays honest about both.
-            *) MSG="❌ **Prod migration did not apply** (failed or rejected) — ${RUN_URL}" ;;
+            *) MSG="@everyone ❌ **Prod migration did not apply** (failed or rejected) — ${RUN_URL}" ;;
           esac
           # Best-effort: a Discord outage must not paint the migration run red.
-          jq -n --arg content "$MSG" '{content: $content}' \
+          jq -n --arg content "$MSG" \
+            '{content: $content, allowed_mentions: {parse: ["everyone"]}}' \
             | curl -sf -H 'Content-Type: application/json' -d @- "$WEBHOOK_URL" \
             || echo "::warning::Discord notification failed — check the run result in the Actions tab"

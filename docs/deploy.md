@@ -23,9 +23,17 @@ The app never self-migrates. Committed migrations reach production via the **`mi
 - **Automatically on merge to `main`** when anything under `drizzle/` changes. A bad migration can't reach here — the per-PR migration check blocks it at review time.
 - **Manually** (Actions tab → _migrate-prod_ → _Run workflow_, confirm with `migrate`) for re-runs or out-of-band migrations.
 
-Railway deploys the same merge in parallel and does **not** wait for the migration, so approve promptly — especially when new code depends on the new schema.
+Railway deploys the same merge in parallel and does **not** wait for the migration, so for an additive migration approve promptly — especially when new code depends on the new schema. A migration that **drops** anything inverts this; see the contract half below before approving one.
 
-Additive migrations only skew one way: new code against the old schema fails, so approving late is the only risk. A migration that **renames or drops** a column read by content queries skews both ways — old code against the new schema fails too — so no ordering avoids a window, only shortens it. Don't ship those: split the change into **expand** (add the new columns and backfill them, leaving the old ones in place) and **contract** (drop the old ones, once nothing reads them) across two releases, which makes both halves ordinary additive migrations. `0011_portrait_columns` is the expand half of exactly that; its contract half drops `vehicles.image_url` / `image_key`.
+Additive migrations only skew one way: new code against the old schema fails, so approving late is the only risk. A migration that **renames or drops** a column read by content queries skews both ways — old code against the new schema fails too — so no ordering avoids a window, only shortens it. Don't ship those: split the change into **expand** (add the new columns and backfill them, leaving the old ones in place) and **contract** (drop the old ones, once nothing reads them) across two releases, so each half skews one way only.
+
+The two halves are approved at opposite ends of the deploy, and this is the part that's easy to get backwards. An expand half is additive, so the old build tolerates it and you approve **promptly** — late approval is the only risk. A contract half is the mirror image: the new build tolerates it but the *old* one doesn't, so approve it **only once Railway reports the deploy live**. Approving a contract migration promptly is the failure mode.
+
+"Once nothing reads them" means nothing names them in SQL, which is stricter than it sounds: a bare `db.select().from(t)` enumerates every column declared on `t`, so a table object still carrying the old field emits it even where no code touches the value. Project the columns you want on any query a contract migration will cross.
+
+A contract migration also takes rollback away from you, which is the cost worth knowing before you approve one. Redeploying an earlier image puts code that still names the dropped columns back in front of the contracted schema, so the failure returns by an ordinary recovery action. Roll **forward** past a contract migration. If you must go back, re-add the columns nullable first — `ALTER TABLE t ADD COLUMN <old> <type>;` — which is safe precisely because a contract half only ever drops columns whose values were already dead.
+
+`0011_portrait_columns` was the expand half of exactly that, and `0013_drop_image_columns` its contract half. Note what gated the two: the contract half could not ship until a content-addressed sync had re-keyed every portrait, because the columns it drops were the only record of which mirrored objects that run had to delete. A contract migration waits on the data catching up, not just on the code.
 
 As a local last resort, migrate **through the Session pooler or Direct connection** — *not* the transaction pooler, because `drizzle-kit` uses prepared statements the transaction pooler rejects:
 
@@ -59,9 +67,11 @@ SEED_REMOTE=1 bun run db:seed
 
 Switching the app between providers is then just repointing the service's `DATABASE_URL`. When doing so, also repoint the `PROD_MIGRATE_DATABASE_URL` secret (see [Apply migrations](#apply-migrations)) — otherwise merges keep migrating the old provider's database and the live one drifts.
 
+Repointing that secret, or restoring the database from a backup, also invalidates what the approval ping knows. It works out what is pending by diffing from the last successful `migrate-prod` run, which stands in for the schema that run left behind — true only while the database keeps moving forward under the same secret. After a restore or a repoint, migrations that workflow believes are long applied are pending again, and the ping will not name them. Read the pending set yourself that once.
+
 ## Deploy
 
-Merge to `main` → Railway builds the Dockerfile and deploys. **Migrations must already be applied to the hosted DB** (above) before/with the deploy.
+Merge to `main` → Railway builds the Dockerfile and deploys. **An additive migration must already be applied to the hosted DB** (above) before/with the deploy. A contract migration runs the other way round — after the deploy is live — for the reasons under [Apply migrations](#apply-migrations).
 
 ## catalog-sync watchdog
 

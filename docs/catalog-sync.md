@@ -77,9 +77,6 @@ upstream host into the R2 assets bucket so the site never hotlinks third-party
 hosting. Best-effort and outside the sync transaction: a mirror failure is a
 warning in the summary, never a failed sync.
 
-- `vehicles.image_url` / `image_key` are the superseded pair, left in place by
-  the expand half of the migration and dropped once nothing reads them — see
-  `docs/deploy.md`. Nothing writes them any more.
 - `vehicles.portrait_url` keeps the upstream source URL and
   `vehicles.portrait_content_id` the blob SHA of those bytes — both what
   upstream currently offers; `vehicles.portrait_key` holds the mirrored

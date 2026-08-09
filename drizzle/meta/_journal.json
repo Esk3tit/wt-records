@@ -92,6 +92,13 @@
       "when": 1786153647776,
       "tag": "0012_player_country",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1786266178543,
+      "tag": "0013_drop_image_columns",
+      "breakpoints": true
     }
   ]
 }

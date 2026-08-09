@@ -751,9 +751,16 @@ export async function getEntryContext(
   mode: string,
   vehicleSlug: string,
 ) {
+  // Projected, not bare: a bare select() names every declared column in the
+  // SQL, which makes any future contract migration 5xx this path mid-deploy.
   const vehicle = (
     await db
-      .select()
+      .select({
+        id: vehicles.id,
+        name: vehicles.name,
+        isDifficult: vehicles.isDifficult,
+        class: vehicles.class,
+      })
       .from(vehicles)
       .where(eq(vehicles.slug, vehicleSlug))
       .limit(1)
