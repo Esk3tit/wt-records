@@ -92,8 +92,11 @@ export function stripSqlComments(sql) {
     }
 
     if (sql[i] === "'" || sql[i] === '"') {
-      skipQuoted(sql[i], sql[i] === "'" && opensEscapeString())
-      out += ' '
+      const identifier = sql[i] === '"'
+      skipQuoted(sql[i], !identifier && opensEscapeString())
+      // A quoted identifier still occupies its slot in the grammar — blanking it
+      // would turn `DROP "col"` into a bare `DROP` and hide the statement.
+      out += identifier ? ' _ ' : ' '
       continue
     }
 

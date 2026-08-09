@@ -20,6 +20,11 @@ describe('isDestructive', () => {
     ],
     ['drop if exists', 'ALTER TABLE vehicles DROP IF EXISTS image_url;'],
     ['drop constraint', 'ALTER TABLE t DROP CONSTRAINT "t_pkey";'],
+    ['quoted drop without COLUMN', 'ALTER TABLE "t" DROP "old_column";'],
+    [
+      'quoted drop if exists without COLUMN',
+      'ALTER TABLE "t" DROP IF EXISTS "old_column";',
+    ],
   ])('flags %s', (_, sql) => {
     expect(isDestructive(sql)).toBe(true)
   })
