@@ -116,7 +116,9 @@ test.describe("the holder's Country list is legible in both lightings", () => {
         async () => {
           await stampTheme(page, theme)
           await page.goto(`/player/${slug}`)
-          await expect(page.getByLabel('Country', { exact: true })).toBeVisible()
+          await expect(
+            page.getByLabel('Country', { exact: true }),
+          ).toBeVisible()
 
           const readings = await readOptions(page)
           // 250 countries and "Not set" — a list this long is exactly the one
