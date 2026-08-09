@@ -71,14 +71,12 @@ jobs:
             echo "::warning::last successful run's commit $BASE is unreachable — pending set treated as unknown"
           else
             CHANGED=$(git diff --name-only --diff-filter=d "$BASE" "$SHA" -- 'drizzle/*.sql')
-            for f in $CHANGED; do
-              if grep -Eqi 'DROP[[:space:]]+(COLUMN|TABLE)|RENAME[[:space:]]+COLUMN' "$f"; then
-                HITS="$HITS $(basename "$f")"
-              fi
-            done
+            if [ -n "$CHANGED" ]; then
+              HITS=$(node scripts/destructive-migrations.mjs $CHANGED)
+            fi
           fi
 
-          echo "files=${HITS# }" >> "$GITHUB_OUTPUT"
+          echo "files=$HITS" >> "$GITHUB_OUTPUT"
           echo "unknown=$UNKNOWN" >> "$GITHUB_OUTPUT"
 
       - name: Post to Discord
