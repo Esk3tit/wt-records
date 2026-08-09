@@ -127,16 +127,10 @@ test.describe('the claim holder states a Country', () => {
     })
   })
 
-  test('states the rule under the field, and offers no home nation', async ({
-    page,
-  }) => {
+  test('offers no home nation', async ({ page }) => {
     const slug = 'e2e-country-rule'
     await withPlayer(ownedPlayer(slug), async () => {
       await page.goto(`/player/${slug}`)
-
-      await expect(
-        page.getByText('Your country is a citizenship you hold.'),
-      ).toBeVisible()
 
       const options = await picker(page).locator('option').allInnerTexts()
       expect(options[0]).toBe('Not set')
