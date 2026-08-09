@@ -56,7 +56,9 @@ jobs:
           # since the last run that actually applied — not what this push
           # changed. A run that was cancelled, rejected or failed leaves its
           # migrations in that set, and the push that follows would otherwise
-          # never scan them.
+          # never scan them. This stands in for the DB's own journal, which
+          # only the gated job holds credentials for; a restore or a repointed
+          # secret breaks that (docs/deploy.md).
           if ! BASE=$(gh run list --workflow migrate-prod.yml --branch main --status success \
             --limit 1 --json headSha --jq '.[0].headSha // ""' 2>/dev/null); then
             UNKNOWN=1
@@ -87,7 +89,17 @@ jobs:
           DESTRUCTIVE: ${{ steps.destructive.outputs.files }}
           UNKNOWN: ${{ steps.destructive.outputs.unknown }}
         run: |
+          # A routine ping is best-effort, but the one that carries the ordering
+          # constraint is the whole reason `migrate` waits on this job. If that
+          # one can't be delivered, fail rather than open the gate in silence.
+          REQUIRED=""
+          if [ -n "$DESTRUCTIVE" ] || [ -n "$UNKNOWN" ]; then REQUIRED=1; fi
+
           if [ -z "$WEBHOOK_URL" ]; then
+            if [ -n "$REQUIRED" ]; then
+              echo "::error::DISCORD_MIGRATIONS_WEBHOOK_URL is not set, and this run needs a destructive-migration warning delivered before approval. Set the secret, or dispatch again once the new build is live having read docs/deploy.md."
+              exit 1
+            fi
             echo "::notice::DISCORD_MIGRATIONS_WEBHOOK_URL not set — skipping notification"
             exit 0
           fi
@@ -100,10 +112,16 @@ jobs:
             CONTENT=$(printf '%s\n\n⚠️ This ping cannot tell which migrations are still pending. Check them for a dropped column or table first; if any drops, approve only once the new build is live. See docs/deploy.md.' "$CONTENT")
             echo "::warning::pending migrations not determined — check for destructive DDL before approving"
           fi
-          # Best-effort: a Discord outage must not paint the migration run red.
-          jq -n --arg content "$CONTENT" '{content: $content}' \
-            | curl -sf -H 'Content-Type: application/json' -d @- "$WEBHOOK_URL" \
-            || echo "::warning::Discord notification failed — approve via the Actions tab"
+          if jq -n --arg content "$CONTENT" '{content: $content}' \
+            | curl -sf -H 'Content-Type: application/json' -d @- "$WEBHOOK_URL"; then
+            exit 0
+          fi
+          if [ -n "$REQUIRED" ]; then
+            echo "::error::could not deliver the destructive-migration warning to Discord — refusing to open the approval gate without it. Retry once Discord is reachable."
+            exit 1
+          fi
+          # Best-effort: a Discord outage must not paint an ordinary run red.
+          echo "::warning::Discord notification failed — approve via the Actions tab"
 
   migrate:
     name: migrate production

@@ -67,6 +67,8 @@ SEED_REMOTE=1 bun run db:seed
 
 Switching the app between providers is then just repointing the service's `DATABASE_URL`. When doing so, also repoint the `PROD_MIGRATE_DATABASE_URL` secret (see [Apply migrations](#apply-migrations)) — otherwise merges keep migrating the old provider's database and the live one drifts.
 
+Repointing that secret, or restoring the database from a backup, also invalidates what the approval ping knows. It works out what is pending by diffing from the last successful `migrate-prod` run, which stands in for the schema that run left behind — true only while the database keeps moving forward under the same secret. After a restore or a repoint, migrations that workflow believes are long applied are pending again, and the ping will not name them. Read the pending set yourself that once.
+
 ## Deploy
 
 Merge to `main` → Railway builds the Dockerfile and deploys. **An additive migration must already be applied to the hosted DB** (above) before/with the deploy. A contract migration runs the other way round — after the deploy is live — for the reasons under [Apply migrations](#apply-migrations).
