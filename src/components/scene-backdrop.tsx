@@ -256,6 +256,7 @@ export function SceneBackdrop({
       </div>
       <div className="scene-scrim" aria-hidden="true" />
       <div className="scene-grain" aria-hidden="true" />
+      <div className="scene-dither" aria-hidden="true" />
     </>
   )
 }
