@@ -27,9 +27,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # No environment on this job, so it runs the moment the workflow triggers —
-  # while `migrate` below is still paused on the approval gate. Without it the
-  # pending approval is invisible unless someone happens to open the Actions tab.
+  # No environment on this job, so it runs the moment the workflow triggers,
+  # before `migrate` requests approval. Without it the pending approval is
+  # invisible unless someone happens to open the Actions tab.
   notify-approval-needed:
     name: ping for approval
     runs-on: ubuntu-latest
@@ -67,7 +67,7 @@ jobs:
             done
             # db:migrate applies everything still pending, not just this push, so
             # a run that never applied leaves its migrations in that set.
-            PREV=$(gh run list --workflow migrate-prod.yml --status completed \
+            PREV=$(gh run list --workflow migrate-prod.yml --branch main --status completed \
               --limit 1 --json conclusion --jq '.[0].conclusion // ""' 2>/dev/null || true)
             if [ -n "$PREV" ] && [ "$PREV" != 'success' ]; then
               UNKNOWN=1
@@ -108,6 +108,9 @@ jobs:
     name: migrate production
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Gates the approval request behind the warning: without this the
+    # environment can be approved before the ping that says to wait.
+    needs: notify-approval-needed
     # Holds the required-reviewer approval gate and the PROD_MIGRATE_DATABASE_URL
     # secret; the job pauses here for approval on every run.
     environment: WT Records / production
@@ -118,6 +121,14 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.confirm != 'migrate' }}
         run: |
           echo "::error::confirmation phrase not matched — aborting"
+          exit 1
+
+      # Prod's schema follows main. A dispatch on another ref would apply that
+      # ref's journal, leaving main's pending migrations silently behind.
+      - name: Verify ref is main
+        if: ${{ github.ref_name != 'main' }}
+        run: |
+          echo "::error::migrate-prod must run on main — got '${{ github.ref_name }}'"
           exit 1
 
       # Fail fast with a clear message instead of a generic Drizzle connection
