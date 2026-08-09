@@ -103,7 +103,7 @@ test.describe('the claim holder states a Country', () => {
   })
 
   // The stored code outlives the list it came from: CLDR can retire one.
-  test('reads a code the list no longer offers as "Not set"', async ({
+  test('lets the owner clear a code the list no longer offers', async ({
     page,
   }) => {
     const slug = 'e2e-country-delisted'
@@ -112,8 +112,18 @@ test.describe('the claim holder states a Country', () => {
       await page.goto(`/player/${slug}`)
 
       await expect(page.locator('.country-flag')).toHaveCount(0)
-      // Not a blank selection: the picker offers no option for a delisted code.
       await expect(picker(page)).toHaveValue('')
+
+      /* The reachable half. Displaying "Not set" is not this component's doing
+         and cannot regress: React selects options by comparing each to `value`,
+         so an unmatched one deselects them all and a size-1 select then rests
+         on its first regardless. What does regress is the field reading as
+         clean — "Not set" is what shows, but not what the row holds. */
+      await expect(saveButton(page)).toBeEnabled()
+      await saveButton(page).click()
+      await expect(page.getByText('Saved', { exact: true })).toBeVisible()
+      expect(await storedCountry(sql, slug)).toBeNull()
+      await expect(saveButton(page)).toBeDisabled()
     })
   })
 

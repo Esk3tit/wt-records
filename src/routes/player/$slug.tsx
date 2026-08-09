@@ -91,9 +91,14 @@ const loadPlayer = createServerFn({ method: 'GET' })
         // owner's controls reflect the stored state, not the served URL.
         hasAvatar: avatarKey != null,
         avatarKey,
-        // Resolved server-side, and the only country the client sees — so a
-        // since-dropped code reads as "Not set" rather than a blank selection.
+        // Resolved server-side (all 250 marks stay off the client), so a code
+        // the list has since dropped renders as nothing at all.
         country: resolveCountryMark(countryCode),
+        // Not redundant with country.code, though it reads that way: this is
+        // what the row holds even when that no longer resolves. Deriving the
+        // picker from the resolved mark instead cost the owner the ability to
+        // clear a dropped code — the field looked clean because it was empty.
+        countryCode,
         isClaimed: claimed,
       },
       redirectTo: null,
@@ -218,7 +223,7 @@ function PlayerProfile() {
               <OwnerCountryControls
                 key={profile.id}
                 playerId={profile.id}
-                countryCode={profile.country?.code ?? null}
+                countryCode={profile.countryCode}
               />
             </>
           )}

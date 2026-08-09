@@ -195,6 +195,26 @@ describe('a refused write', () => {
   })
 })
 
+// CLDR can retire a code, leaving the row holding one the picker cannot offer.
+describe('a stored country the list no longer offers', () => {
+  /* Only the dirtiness is worth asserting. What the field *displays* is the
+     same either way and cannot regress: React selects options by comparing
+     each to `value`, so an unmatched one deselects them all and a size-1
+     select rests on its first — which is "Not set". */
+  it('leaves Save live, so the orphan clears in one press', async () => {
+    render(<OwnerCountryControls playerId={1} countryCode={'ZZ'} />)
+    // Dirty on arrival: "Not set" is not what the row holds.
+    expect(saveButton().disabled).toBe(false)
+
+    fireEvent.click(saveButton())
+    await flush()
+
+    expect(setMyCountry).toHaveBeenCalledWith({
+      data: { playerId: 1, countryCode: null },
+    })
+  })
+})
+
 describe('"Saved"', () => {
   // The select stays editable during the write, so the owner can move on
   // before it lands — and the status names the country in the field.

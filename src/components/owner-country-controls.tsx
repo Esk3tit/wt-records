@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { useRouter } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
-import { COUNTRIES } from '#/lib/countries'
+import { COUNTRIES, normalizeCountryCode } from '#/lib/countries'
 import { errorMessage } from '#/lib/errors'
 import { setMyCountry } from '#/claims/api'
 
@@ -35,8 +35,14 @@ export function OwnerCountryControls({
   const router = useRouter()
   const fieldId = useId()
   const ruleId = useId()
+  // What the row holds, against which the field is dirty — and separately what
+  // the field can select. They differ only when the list has dropped a code
+  // since it was stored, and keeping them apart is what leaves Save live so
+  // the owner can clear the orphan in one press rather than having to pick
+  // some other country first just to make the field dirty.
   const stored = countryCode ?? ''
-  const [choice, setChoice] = useState(stored)
+  const showable = (countryCode && normalizeCountryCode(countryCode)) ?? ''
+  const [choice, setChoice] = useState(showable)
   const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
