@@ -19,6 +19,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 # Never run two migrations at once, and never cancel one mid-flight.
 concurrency:
@@ -48,24 +49,34 @@ jobs:
           BEFORE: ${{ github.event.before }}
           SHA: ${{ github.sha }}
           EVENT: ${{ github.event_name }}
+          GH_TOKEN: ${{ github.token }}
         run: |
+          HITS=""
+          UNKNOWN=""
+
           # A dispatch applies whatever the journal says is pending, which this
           # job can't read without the prod secret it deliberately doesn't hold.
-          # Unknown means warn, not clear.
           if [ "$EVENT" != 'push' ] || [ -z "$BEFORE" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
-            echo "files=" >> "$GITHUB_OUTPUT"
-            echo "unknown=1" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          echo "unknown=" >> "$GITHUB_OUTPUT"
-          CHANGED=$(git diff --name-only --diff-filter=d "$BEFORE" "$SHA" -- 'drizzle/*.sql')
-          HITS=""
-          for f in $CHANGED; do
-            if grep -Eqi 'DROP[[:space:]]+(COLUMN|TABLE)' "$f"; then
-              HITS="$HITS $(basename "$f")"
+            UNKNOWN=1
+          else
+            CHANGED=$(git diff --name-only --diff-filter=d "$BEFORE" "$SHA" -- 'drizzle/*.sql')
+            for f in $CHANGED; do
+              if grep -Eqi 'DROP[[:space:]]+(COLUMN|TABLE)' "$f"; then
+                HITS="$HITS $(basename "$f")"
+              fi
+            done
+            # db:migrate applies everything still pending, not just this push, so
+            # a run that never applied leaves its migrations in that set.
+            PREV=$(gh run list --workflow migrate-prod.yml --status completed \
+              --limit 1 --json conclusion --jq '.[0].conclusion // ""' 2>/dev/null || true)
+            if [ -n "$PREV" ] && [ "$PREV" != 'success' ]; then
+              UNKNOWN=1
+              echo "::warning::previous migrate-prod run was '$PREV' — its migrations may still be pending"
             fi
-          done
+          fi
+
           echo "files=${HITS# }" >> "$GITHUB_OUTPUT"
+          echo "unknown=$UNKNOWN" >> "$GITHUB_OUTPUT"
 
       - name: Post to Discord
         env:
@@ -85,8 +96,8 @@ jobs:
             CONTENT=$(printf '%s\n\n⚠️ **Drops a column or table** (%s) — do NOT approve until Railway reports the new build live, or the old one 5xxs on the dropped column. See docs/deploy.md.' "$CONTENT" "$DESTRUCTIVE")
             echo "::warning::destructive migration pending approval: $DESTRUCTIVE"
           elif [ -n "$UNKNOWN" ]; then
-            CONTENT=$(printf '%s\n\n⚠️ Manual run — this ping cannot tell which migrations are still pending. Check them for a dropped column or table first; if any drops, approve only once the new build is live. See docs/deploy.md.' "$CONTENT")
-            echo "::warning::manual dispatch — pending migrations not determined, check for destructive DDL"
+            CONTENT=$(printf '%s\n\n⚠️ This ping cannot tell which migrations are still pending. Check them for a dropped column or table first; if any drops, approve only once the new build is live. See docs/deploy.md.' "$CONTENT")
+            echo "::warning::pending migrations not determined — check for destructive DDL before approving"
           fi
           # Best-effort: a Discord outage must not paint the migration run red.
           jq -n --arg content "$CONTENT" '{content: $content}' \
