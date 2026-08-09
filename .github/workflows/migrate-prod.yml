@@ -34,11 +34,40 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # An additive migration is approved promptly; one that drops is approved
+      # only once the new build is live, or the old one 5xxs on the missing
+      # column. The prompt has to carry that, since the gate can't enforce it.
+      - name: Detect destructive migrations
+        id: destructive
+        env:
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [ -z "$BEFORE" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            echo "files=" >> "$GITHUB_OUTPUT"
+            echo "::notice::no push range to compare — skipping destructive-DDL detection"
+            exit 0
+          fi
+          CHANGED=$(git diff --name-only --diff-filter=d "$BEFORE" "$SHA" -- 'drizzle/*.sql')
+          HITS=""
+          for f in $CHANGED; do
+            if grep -Eqi 'DROP[[:space:]]+(COLUMN|TABLE)' "$f"; then
+              HITS="$HITS $(basename "$f")"
+            fi
+          done
+          echo "files=${HITS# }" >> "$GITHUB_OUTPUT"
+
       - name: Post to Discord
         env:
           WEBHOOK_URL: ${{ secrets.DISCORD_MIGRATIONS_WEBHOOK_URL }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           TRIGGER: ${{ github.event_name == 'workflow_dispatch' && format('manual dispatch by {0}', github.actor) || github.event.head_commit.message }}
+          DESTRUCTIVE: ${{ steps.destructive.outputs.files }}
         run: |
           if [ -z "$WEBHOOK_URL" ]; then
             echo "::notice::DISCORD_MIGRATIONS_WEBHOOK_URL not set — skipping notification"
@@ -46,6 +75,10 @@ jobs:
           fi
           FIRST_LINE=$(printf '%s' "$TRIGGER" | head -1 | cut -c1-140)
           CONTENT=$(printf '🗄️ **Prod migration awaiting approval** — %s\nApprove: %s' "$FIRST_LINE" "$RUN_URL")
+          if [ -n "$DESTRUCTIVE" ]; then
+            CONTENT=$(printf '%s\n\n⚠️ **Drops a column or table** (%s) — do NOT approve until Railway reports the new build live, or the old one 5xxs on the dropped column. See docs/deploy.md.' "$CONTENT" "$DESTRUCTIVE")
+            echo "::warning::destructive migration pending approval: $DESTRUCTIVE"
+          fi
           # Best-effort: a Discord outage must not paint the migration run red.
           jq -n --arg content "$CONTENT" '{content: $content}' \
             | curl -sf -H 'Content-Type: application/json' -d @- "$WEBHOOK_URL" \
