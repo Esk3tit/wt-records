@@ -66,12 +66,17 @@ jobs:
               fi
             done
             # db:migrate applies everything still pending, not just this push, so
-            # a run that never applied leaves its migrations in that set.
-            PREV=$(gh run list --workflow migrate-prod.yml --branch main --status completed \
-              --limit 1 --json conclusion --jq '.[0].conclusion // ""' 2>/dev/null || true)
-            if [ -n "$PREV" ] && [ "$PREV" != 'success' ]; then
+            # a run that never applied leaves its migrations in that set. An
+            # empty result means no run yet; a failed lookup means we don't know.
+            if PREV=$(gh run list --workflow migrate-prod.yml --branch main --status completed \
+              --limit 1 --json conclusion --jq '.[0].conclusion // ""' 2>/dev/null); then
+              if [ -n "$PREV" ] && [ "$PREV" != 'success' ]; then
+                UNKNOWN=1
+                echo "::warning::previous migrate-prod run was '$PREV' — its migrations may still be pending"
+              fi
+            else
               UNKNOWN=1
-              echo "::warning::previous migrate-prod run was '$PREV' — its migrations may still be pending"
+              echo "::warning::could not read migrate-prod history — pending set treated as unknown"
             fi
           fi
 
