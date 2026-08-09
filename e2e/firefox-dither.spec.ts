@@ -14,49 +14,57 @@ const FREEZE = `*, *::before, *::after {
   transition: none !important;
 }`
 
-/** How many pixels the dither moves, against how many the page moves on its
-    own. A live page is never byte-stable frame to frame, so the second frame
-    is the control: the verdict is the ratio, never the raw count. */
-async function ditherSignal(page: Page) {
-  const frame = async (css: string) => {
-    const tag = await page.addStyleTag({ content: css })
-    await page.waitForTimeout(300)
-    const shot = (await page.screenshot()).toString('base64')
-    await tag.evaluate((el: Element) => el.remove())
-    return shot
-  }
-  const ON = '/* dither as shipped */'
-  const OFF = '.scene-dither { background-image: none !important; }'
-  const [a, b, c] = [await frame(ON), await frame(ON), await frame(OFF)]
+const ON = '/* dither as shipped */'
+const OFF = '.scene-dither { background-image: none !important; }'
 
-  // Decoded in the page, the way the contrast harness does it: no image
-  // decoder in the runner, and the browser already has one.
+/* The pane's left padding, clear of every glyph — the gradient alone. */
+const GUTTER = { x0: 4, x1: 24 }
+
+async function shootPane(page: Page, css: string) {
+  const tag = await page.addStyleTag({ content: css })
+  await page.waitForTimeout(300)
+  const shot = await page.locator('.pane-gold').first().screenshot()
+  await tag.evaluate((el: Element) => el.remove())
+  return shot.toString('base64')
+}
+
+/** Counts hard horizontal contours: rows where the whole sampled strip steps
+    in lockstep. This is the thing banding *is*, so it answers the question a
+    pixel-diff cannot — a flat tint moves every pixel and removes no band. */
+async function bandEdges(page: Page, shot: string) {
   return page.evaluate(
-    async ([on1, on2, off]) => {
-      const decode = async (b64: string) => {
-        const image = new Image()
-        image.src = `data:image/png;base64,${b64}`
-        await image.decode()
-        const canvas = document.createElement('canvas')
-        canvas.width = image.naturalWidth
-        canvas.height = image.naturalHeight
-        const ctx = canvas.getContext('2d', { willReadFrequently: true })!
-        ctx.drawImage(image, 0, 0)
-        return ctx.getImageData(0, 0, canvas.width, canvas.height).data
+    async ([b64, x0, x1]) => {
+      const image = new Image()
+      image.src = `data:image/png;base64,${b64}`
+      await image.decode()
+      const canvas = document.createElement('canvas')
+      canvas.width = image.naturalWidth
+      canvas.height = image.naturalHeight
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })!
+      ctx.drawImage(image, 0, 0)
+      const { data, width, height } = ctx.getImageData(
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+      )
+      const green = (x: number, y: number) => data[(y * width + x) * 4 + 1]
+
+      let edges = 0
+      // Past the 42% stop, where the tail turns shallow and the bands widen.
+      // Rows are compared two apart so the 1px grain scanline cancels.
+      for (let y = Math.round(height * 0.44); y < height - 8; y++) {
+        let stepped = 0
+        let total = 0
+        for (let x = Number(x0); x < Math.min(Number(x1), width); x++) {
+          if (green(x, y + 2) !== green(x, y)) stepped++
+          total++
+        }
+        if (total && stepped / total > 0.8) edges++
       }
-      const count = (x: Uint8ClampedArray, y: Uint8ClampedArray) => {
-        let n = 0
-        for (let i = 0; i < x.length; i += 4) if (x[i] !== y[i]) n++
-        return n
-      }
-      const [p, q, r] = [
-        await decode(on1),
-        await decode(on2),
-        await decode(off),
-      ]
-      return { floor: count(p, q), delta: count(p, r) }
+      return edges
     },
-    [a, b, c],
+    [shot, GUTTER.x0, GUTTER.x1] as const,
   )
 }
 
@@ -64,9 +72,12 @@ test.describe('the scene dither', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/grb')
     await page.addStyleTag({ content: FREEZE })
+    // A skipped guard is a guard that does nothing: fail loudly if the seed
+    // ever stops putting a gilded pane on this page.
+    await expect(page.locator('.pane-gold').first()).toBeVisible()
   })
 
-  test('paints in Gecko, at the amplitude the bands were measured against', async ({
+  test('breaks the gold pane out of banding, in Gecko', async ({
     page,
     browserName,
   }) => {
@@ -76,8 +87,6 @@ test.describe('the scene dither', () => {
     )
 
     const layer = page.locator('.scene-dither')
-    await expect(layer).toHaveCount(1)
-
     const { image, opacity } = await layer.evaluate((el) => {
       const s = getComputedStyle(el)
       return { image: s.backgroundImage, opacity: Number(s.opacity) }
@@ -88,28 +97,36 @@ test.describe('the scene dither', () => {
     expect(opacity).toBeGreaterThanOrEqual(0.018)
     expect(opacity).toBeLessThanOrEqual(0.025)
 
-    const { floor, delta } = await ditherSignal(page)
+    const banded = await bandEdges(page, await shootPane(page, OFF))
+    const dithered = await bandEdges(page, await shootPane(page, ON))
+
+    // Guard the guard: if Gecko ever starts dithering for itself there is
+    // nothing left to prove, and a 0-vs-0 pass would prove it forever.
+    expect(banded, 'undithered Gecko should band').toBeGreaterThan(4)
     expect(
-      delta,
-      `dither moved ${delta}px against a ${floor}px floor`,
-    ).toBeGreaterThan(Math.max(floor * 5, 10_000))
+      dithered,
+      `dither left ${dithered} hard contours against ${banded} without it`,
+    ).toBeLessThanOrEqual(banded / 2)
   })
 
-  test('paints nothing outside Gecko', async ({ page, browserName }) => {
+  test('leaves the pane untouched outside Gecko', async ({
+    page,
+    browserName,
+  }) => {
     test.skip(browserName === 'firefox', 'covered by the Gecko case')
 
     // Chromium and WebKit dither for themselves; the fix must stay invisible
     // to them, so the layer is present but inert rather than absent.
-    await expect(page.locator('.scene-dither')).toHaveCount(1)
-    await expect(page.locator('.scene-dither')).toHaveCSS(
-      'background-image',
-      'none',
-    )
+    const layer = page.locator('.scene-dither')
+    await expect(layer).toHaveCount(1)
+    await expect(layer).toHaveCSS('background-image', 'none')
 
-    const { floor, delta } = await ditherSignal(page)
-    expect(
-      delta,
-      `dither moved ${delta}px against a ${floor}px floor`,
-    ).toBeLessThanOrEqual(Math.max(floor * 2, 1000))
+    // Bracketed so the two ON frames span the same window as the OFF frame
+    // between them — page churn lands in the control, not in the verdict.
+    const first = await shootPane(page, ON)
+    const off = await shootPane(page, OFF)
+    const second = await shootPane(page, ON)
+    expect(off, 'the gate must make the layer a no-op').toBe(first)
+    expect(second, 'the pane must be stable across the run').toBe(first)
   })
 })
