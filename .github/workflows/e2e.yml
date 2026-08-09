@@ -107,7 +107,7 @@ jobs:
           # The browser set is part of the key: a cache written before Firefox
           # joined restores a hit, skips the install, and leaves the Gecko
           # project with no binary to run.
-          key: playwright-${{ runner.os }}-${{ env.PLAYWRIGHT_VERSION }}-chromium-firefox
+          key: playwright-${{ runner.os }}-${{ env.PLAYWRIGHT_VERSION }}-chromium-firefox-webkit
 
       # Always via the pinned local binary: `bunx playwright` can resolve a
       # newer registry version whose browser build the tests then can't find.
@@ -117,7 +117,7 @@ jobs:
 
       - name: Install browser system deps
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: ./node_modules/.bin/playwright install-deps chromium firefox
+        run: ./node_modules/.bin/playwright install-deps chromium firefox webkit
 
       # The vendor action rather than the `bunx supabase` humans use locally:
       # it caches the binary and pins it independently of the npm wrapper.

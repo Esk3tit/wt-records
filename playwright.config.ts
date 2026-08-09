@@ -42,11 +42,20 @@ export default defineConfig({
       dependencies: ['setup'],
     },
     // Gecko renders gradients differently enough to need its own fix, which a
-    // Chromium-only suite can never see. Scoped to that one spec: the point is
-    // to guard the engine difference, not to run everything twice.
+    // Chromium-only suite can never see. WebKit rides along to hold the other
+    // half of the claim: that the fix stays invisible outside Gecko, in every
+    // engine and not just the one we happen to run everything else in. Both
+    // are scoped to that one spec — the point is to guard the engine
+    // difference, not to run the suite three times.
     {
       name: 'firefox',
       use: devices['Desktop Firefox'],
+      testMatch: /firefox-dither\.spec\.ts/,
+      dependencies: ['setup'],
+    },
+    {
+      name: 'webkit',
+      use: devices['Desktop Safari'],
       testMatch: /firefox-dither\.spec\.ts/,
       dependencies: ['setup'],
     },

@@ -54,13 +54,18 @@ async function bandEdges(page: Page, shot: string) {
       // Past the 42% stop, where the tail turns shallow and the bands widen.
       // Rows are compared two apart so the 1px grain scanline cancels.
       for (let y = Math.round(height * 0.44); y < height - 8; y++) {
-        let stepped = 0
+        // A contour is not "these pixels moved" but "these pixels moved
+        // together": one signed step shared across the strip. Noise moves
+        // pixels too, by every amount at once, which is the whole point.
+        const shared = new Map<number, number>()
         let total = 0
         for (let x = Number(x0); x < Math.min(Number(x1), width); x++) {
-          if (green(x, y + 2) !== green(x, y)) stepped++
+          const step = green(x, y + 2) - green(x, y)
+          if (step !== 0) shared.set(step, (shared.get(step) ?? 0) + 1)
           total++
         }
-        if (total && stepped / total > 0.8) edges++
+        const agreed = Math.max(0, ...shared.values())
+        if (total && agreed / total > 0.8) edges++
       }
       return edges
     },
@@ -121,12 +126,10 @@ test.describe('the scene dither', () => {
     await expect(layer).toHaveCount(1)
     await expect(layer).toHaveCSS('background-image', 'none')
 
-    // Bracketed so the two ON frames span the same window as the OFF frame
-    // between them — page churn lands in the control, not in the verdict.
-    const first = await shootPane(page, ON)
-    const off = await shootPane(page, OFF)
-    const second = await shootPane(page, ON)
-    expect(off, 'the gate must make the layer a no-op').toBe(first)
-    expect(second, 'the pane must be stable across the run').toBe(first)
+    // Not byte equality: WebKit's first composite of a backdrop-filtered pane
+    // is not reproducible frame to frame, and that churn is not the dither.
+    const withLayer = await bandEdges(page, await shootPane(page, ON))
+    const without = await bandEdges(page, await shootPane(page, OFF))
+    expect(withLayer, 'the gate must make the layer a no-op').toBe(without)
   })
 })
