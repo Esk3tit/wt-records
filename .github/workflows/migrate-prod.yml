@@ -35,6 +35,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
+      # Before the ping, not just before the migration: `migrate` rejects a
+      # non-main ref too, but by then this job has already told everyone that
+      # production is waiting on an approval that was never going to run.
+      - name: Verify ref is main
+        if: ${{ github.ref_name != 'main' }}
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          echo "::error::migrate-prod must run on main — got '$REF_NAME'"
+          exit 1
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
