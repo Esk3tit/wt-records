@@ -4,6 +4,11 @@
      night and day; structure, spacing, radii, and type never do. The theme
      init script in __root stamps data-theme before first paint. ─────────── */
 :root {
+  /* Native popups, scrollbars and autofill are painted by the UA, which reads
+     this and not our tokens: without it every one of them stays light while our
+     ink goes white, and a <select> drops its options onto a white sheet. */
+  color-scheme: dark;
+
   --base: #0a0c10;
   --ink: rgba(255, 255, 255, 0.96);
   /* Measured on the panes these actually sit on, not on the base: a pane is
@@ -110,6 +115,8 @@
 }
 
 :root[data-theme='light'] {
+  color-scheme: light;
+
   --base: #f2f3f6;
   --ink: rgba(10, 12, 16, 0.92);
   --ink-muted: rgba(10, 12, 16, 0.74);
