@@ -41,6 +41,15 @@ export default defineConfig({
       use: devices['Desktop Chrome'],
       dependencies: ['setup'],
     },
+    // Gecko renders gradients differently enough to need its own fix, which a
+    // Chromium-only suite can never see. Scoped to that one spec: the point is
+    // to guard the engine difference, not to run everything twice.
+    {
+      name: 'firefox',
+      use: devices['Desktop Firefox'],
+      testMatch: /firefox-dither\.spec\.ts/,
+      dependencies: ['setup'],
+    },
   ],
   // PLAYWRIGHT_BASE_URL targets a server someone else is running (a deployed
   // preview); without it Playwright boots the built SSR server itself.

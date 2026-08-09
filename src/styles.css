@@ -591,18 +591,18 @@
   bottom: 0;
   width: 120%;
 }
-.scene-scrim {
+.scene-scrim,
+.scene-grain,
+.scene-dither {
   position: fixed;
   inset: 0;
   z-index: 1;
   pointer-events: none;
+}
+.scene-scrim {
   background: var(--scrim);
 }
 .scene-grain {
-  position: fixed;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
   opacity: 0.05;
   background-image: repeating-linear-gradient(
     0deg,
@@ -610,18 +610,12 @@
     transparent 1px 2px
   );
 }
-.scene-dither {
-  position: fixed;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-}
-/* Gecko is the one engine that doesn't dither its gradients, so the shallow
-   tails of the metal panes quantise into hard 20px bands there. The grain above
-   is constant along each row and so cannot break a horizontal contour; noise
-   can. Amplitude is measured, not chosen — below 0.018 the bands survive, and a
-   soft-light blend reads no better while costing ~40% more per scrolled frame. */
-@supports (-moz-appearance: none) or (-moz-osx-font-smoothing: auto) {
+/* Gecko alone does not dither its gradients, so the shallow tails of the metal
+   panes quantise into hard ~20px bands there. Grain cannot help — it is uniform
+   along each row, and a horizontal contour needs breaking across one. */
+@supports (-moz-appearance: none) {
+  /* Measured, not chosen: under 0.018 the bands survive, over ~0.025 the noise
+     bands on its own, and a soft-light blend dithers worse for 1.4x the frame. */
   .scene-dither {
     opacity: 0.02;
     background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'140'%20height%3D'140'%3E%3Cfilter%20id%3D'n'%20x%3D'0'%20y%3D'0'%20width%3D'100%25'%20height%3D'100%25'%3E%3CfeTurbulence%20type%3D'fractalNoise'%20baseFrequency%3D'1.4'%20numOctaves%3D'1'%20stitchTiles%3D'stitch'%2F%3E%3CfeColorMatrix%20type%3D'saturate'%20values%3D'0'%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D'140'%20height%3D'140'%20filter%3D'url(%23n)'%2F%3E%3C%2Fsvg%3E");
