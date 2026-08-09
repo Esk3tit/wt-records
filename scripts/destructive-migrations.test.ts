@@ -110,6 +110,38 @@ ALTER TABLE "vehicles" DROP COLUMN "image_url";`
     expect(isDestructive(sql)).toBe(true)
   })
 
+  // Dynamic SQL is composed at runtime, so it is warned about unread.
+  it.each([
+    [
+      'a quoted statement',
+      `DO $$ BEGIN EXECUTE 'ALTER TABLE vehicles DROP COLUMN image_url'; END $$;`,
+    ],
+    [
+      'a format() template',
+      `DO $$ BEGIN EXECUTE format('ALTER TABLE %I DROP COLUMN c', 'vehicles'); END $$;`,
+    ],
+    [
+      'a concatenation',
+      `DO $$ BEGIN EXECUTE 'ALTER TABLE ' || t || ' DROP COLUMN c'; END $$;`,
+    ],
+  ])('flags EXECUTE of %s', (_, sql) => {
+    expect(isDestructive(sql)).toBe(true)
+  })
+
+  // A trigger runs a function that already exists; it composes no new DDL.
+  it.each([
+    [
+      'execute function',
+      'CREATE TRIGGER t AFTER INSERT ON x FOR EACH ROW EXECUTE FUNCTION f();',
+    ],
+    [
+      'execute procedure',
+      'CREATE TRIGGER t AFTER INSERT ON x FOR EACH ROW EXECUTE PROCEDURE f();',
+    ],
+  ])('leaves a trigger declaring %s alone', (_, sql) => {
+    expect(isDestructive(sql)).toBe(false)
+  })
+
   it('leaves an additive DO block alone', () => {
     expect(
       isDestructive(`DO $$ BEGIN ALTER TABLE t ADD COLUMN a text; END $$;`),

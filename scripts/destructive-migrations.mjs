@@ -10,6 +10,11 @@ import { readFileSync } from 'node:fs'
 // noun misses `DROP image_url`. Anchor on DROP instead and exclude the
 // ALTER COLUMN sub-actions, which take something away from a column without
 // taking the column away.
+// EXECUTE builds its statement at runtime, so nothing here can read it. Treated
+// as destructive on principle — the exception is a trigger naming its function,
+// which executes something already defined rather than composing new DDL.
+const DYNAMIC = /\bEXECUTE\s+(?!FUNCTION\b|PROCEDURE\b)/i
+
 const DESTRUCTIVE =
   /\bDROP\s+(?!DEFAULT\b|NOT\s+NULL\b|IDENTITY\b|EXPRESSION\b)["\w]|\bRENAME\b/i
 
@@ -108,7 +113,8 @@ export function stripSqlComments(sql) {
 }
 
 export function isDestructive(sql) {
-  return DESTRUCTIVE.test(stripSqlComments(sql))
+  const code = stripSqlComments(sql)
+  return DESTRUCTIVE.test(code) || DYNAMIC.test(code)
 }
 
 export function destructiveAmong(files) {
