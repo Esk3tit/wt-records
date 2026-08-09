@@ -41,12 +41,11 @@ export default defineConfig({
       use: devices['Desktop Chrome'],
       dependencies: ['setup'],
     },
-    // Gecko renders gradients differently enough to need its own fix, which a
-    // Chromium-only suite can never see. WebKit rides along to hold the other
-    // half of the claim: that the fix stays invisible outside Gecko, in every
-    // engine and not just the one we happen to run everything else in. Both
-    // are scoped to that one spec — the point is to guard the engine
-    // difference, not to run the suite three times.
+    // Gecko renders gradients differently enough to need its own fix, and no
+    // amount of Chromium proves anything about it. These two carry testMatch
+    // and the project above does not, so the dither spec runs in all three:
+    // Gecko asserts the fix works, the other two that it stays invisible.
+    // Scoping is only to keep the rest of the suite on one engine.
     {
       name: 'firefox',
       use: devices['Desktop Firefox'],
