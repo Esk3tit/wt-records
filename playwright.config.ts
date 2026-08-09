@@ -41,6 +41,23 @@ export default defineConfig({
       use: devices['Desktop Chrome'],
       dependencies: ['setup'],
     },
+    // Gecko renders gradients differently enough to need its own fix, and no
+    // amount of Chromium proves anything about it. These two carry testMatch
+    // and the project above does not, so the dither spec runs in all three:
+    // Gecko asserts the fix works, the other two that it stays invisible.
+    // Scoping is only to keep the rest of the suite on one engine.
+    {
+      name: 'firefox',
+      use: devices['Desktop Firefox'],
+      testMatch: /firefox-dither\.spec\.ts/,
+      dependencies: ['setup'],
+    },
+    {
+      name: 'webkit',
+      use: devices['Desktop Safari'],
+      testMatch: /firefox-dither\.spec\.ts/,
+      dependencies: ['setup'],
+    },
   ],
   // PLAYWRIGHT_BASE_URL targets a server someone else is running (a deployed
   // preview); without it Playwright boots the built SSR server itself.
