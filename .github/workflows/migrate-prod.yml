@@ -100,7 +100,9 @@ jobs:
             exit 0
           fi
           FIRST_LINE=$(printf '%s' "$TRIGGER" | head -1 | cut -c1-140)
-          CONTENT=$(printf '🗄️ **Prod migration awaiting approval** — %s\nApprove: %s' "$FIRST_LINE" "$RUN_URL")
+          # @everyone, not @here: production is blocked until someone approves,
+          # and @here reaches nobody who isn't already looking at Discord.
+          CONTENT=$(printf '@everyone 🗄️ **Prod migration awaiting approval** — %s\nApprove: %s' "$FIRST_LINE" "$RUN_URL")
           if [ -n "$DESTRUCTIVE" ]; then
             CONTENT=$(printf '%s\n\n⚠️ **Drops or renames a column or table** (%s) — do NOT approve until Railway reports the new build live, or the old one 5xxs on the column it can no longer find. See docs/deploy.md.' "$CONTENT" "$DESTRUCTIVE")
             echo "::warning::destructive migration pending approval: $DESTRUCTIVE"
@@ -108,7 +110,9 @@ jobs:
             CONTENT=$(printf '%s\n\n⚠️ This ping cannot tell which migrations are still pending. Check them for a dropped column or table first; if any drops, approve only once the new build is live. See docs/deploy.md.' "$CONTENT")
             echo "::warning::pending migrations not determined — check for destructive DDL before approving"
           fi
-          if jq -n --arg content "$CONTENT" '{content: $content}' \
+          # A webhook only rings the mention it is explicitly allowed to parse.
+          if jq -n --arg content "$CONTENT" \
+            '{content: $content, allowed_mentions: {parse: ["everyone"]}}' \
             | curl -sf -H 'Content-Type: application/json' -d @- "$WEBHOOK_URL"; then
             exit 0
           fi
@@ -202,14 +206,17 @@ jobs:
             echo "::notice::DISCORD_MIGRATIONS_WEBHOOK_URL not set — skipping notification"
             exit 0
           fi
+          # Only the outcomes that need something done ping. Announcing every
+          # success is how a mention stops meaning anything.
           case "$RESULT" in
             success) MSG="✅ **Prod migration applied**" ;;
-            cancelled) MSG="🚫 **Prod migration cancelled**" ;;
+            cancelled) MSG="@everyone 🚫 **Prod migration cancelled** — the schema did not move; ${RUN_URL}" ;;
             # A rejected approval also surfaces as `failure`, indistinguishable
             # from a migration error here — the message stays honest about both.
-            *) MSG="❌ **Prod migration did not apply** (failed or rejected) — ${RUN_URL}" ;;
+            *) MSG="@everyone ❌ **Prod migration did not apply** (failed or rejected) — ${RUN_URL}" ;;
           esac
           # Best-effort: a Discord outage must not paint the migration run red.
-          jq -n --arg content "$MSG" '{content: $content}' \
+          jq -n --arg content "$MSG" \
+            '{content: $content, allowed_mentions: {parse: ["everyone"]}}' \
             | curl -sf -H 'Content-Type: application/json' -d @- "$WEBHOOK_URL" \
             || echo "::warning::Discord notification failed — check the run result in the Actions tab"
