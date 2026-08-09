@@ -40,8 +40,8 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      # An additive migration is approved promptly; one that drops is approved
-      # only once the new build is live, or the old one 5xxs on the missing
+      # An additive migration is approved promptly; one that drops or renames is
+      # approved only once the new build is live, or the old one 5xxs on the
       # column. The prompt has to carry that, since the gate can't enforce it.
       - name: Detect destructive migrations
         id: destructive
@@ -61,7 +61,7 @@ jobs:
           else
             CHANGED=$(git diff --name-only --diff-filter=d "$BEFORE" "$SHA" -- 'drizzle/*.sql')
             for f in $CHANGED; do
-              if grep -Eqi 'DROP[[:space:]]+(COLUMN|TABLE)' "$f"; then
+              if grep -Eqi 'DROP[[:space:]]+(COLUMN|TABLE)|RENAME[[:space:]]+COLUMN' "$f"; then
                 HITS="$HITS $(basename "$f")"
               fi
             done
@@ -70,7 +70,10 @@ jobs:
             # empty result means no run yet; a failed lookup means we don't know.
             if PREV=$(gh run list --workflow migrate-prod.yml --branch main --status completed \
               --limit 1 --json conclusion --jq '.[0].conclusion // ""' 2>/dev/null); then
-              if [ -n "$PREV" ] && [ "$PREV" != 'success' ]; then
+              if [ -z "$PREV" ]; then
+                UNKNOWN=1
+                echo "::warning::no completed migrate-prod run on main — history may have aged out, so what is pending is unknown"
+              elif [ "$PREV" != 'success' ]; then
                 UNKNOWN=1
                 echo "::warning::previous migrate-prod run was '$PREV' — its migrations may still be pending"
               fi
@@ -98,7 +101,7 @@ jobs:
           FIRST_LINE=$(printf '%s' "$TRIGGER" | head -1 | cut -c1-140)
           CONTENT=$(printf '🗄️ **Prod migration awaiting approval** — %s\nApprove: %s' "$FIRST_LINE" "$RUN_URL")
           if [ -n "$DESTRUCTIVE" ]; then
-            CONTENT=$(printf '%s\n\n⚠️ **Drops a column or table** (%s) — do NOT approve until Railway reports the new build live, or the old one 5xxs on the dropped column. See docs/deploy.md.' "$CONTENT" "$DESTRUCTIVE")
+            CONTENT=$(printf '%s\n\n⚠️ **Drops or renames a column or table** (%s) — do NOT approve until Railway reports the new build live, or the old one 5xxs on the column it can no longer find. See docs/deploy.md.' "$CONTENT" "$DESTRUCTIVE")
             echo "::warning::destructive migration pending approval: $DESTRUCTIVE"
           elif [ -n "$UNKNOWN" ]; then
             CONTENT=$(printf '%s\n\n⚠️ This ping cannot tell which migrations are still pending. Check them for a dropped column or table first; if any drops, approve only once the new build is live. See docs/deploy.md.' "$CONTENT")
@@ -132,8 +135,10 @@ jobs:
       # ref's journal, leaving main's pending migrations silently behind.
       - name: Verify ref is main
         if: ${{ github.ref_name != 'main' }}
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          echo "::error::migrate-prod must run on main — got '${{ github.ref_name }}'"
+          echo "::error::migrate-prod must run on main — got '$REF_NAME'"
           exit 1
 
       # Fail fast with a clear message instead of a generic Drizzle connection
