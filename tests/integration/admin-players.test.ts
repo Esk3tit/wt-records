@@ -213,6 +213,64 @@ describe('mergePlayers', () => {
     expect(tomb.avatarKey).toBeNull()
   })
 
+  // Everything a claim carries moves with it, or the merge quietly unstates a
+  // citizenship its holder is still holding.
+  it('carries the stated country over with the claim, and clears the tombstone', async () => {
+    const ace = await playerBySlug('ace')
+    const floppa = await playerBySlug('floppa')
+    await t.db
+      .update(players)
+      .set({ userId: USER_A, countryCode: 'JP' })
+      .where(eq(players.id, floppa.id))
+
+    await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
+
+    expect((await playerBySlug('ace')).countryCode).toBe('JP')
+    expect((await playerBySlug('floppa')).countryCode).toBeNull()
+  })
+
+  it('prefers the survivor’s own country when both sides are the same user', async () => {
+    const ace = await playerBySlug('ace')
+    const floppa = await playerBySlug('floppa')
+    await t.db
+      .update(players)
+      .set({ userId: USER_A, countryCode: 'BR' })
+      .where(eq(players.id, ace.id))
+    await t.db
+      .update(players)
+      .set({ userId: USER_A, countryCode: 'JP' })
+      .where(eq(players.id, floppa.id))
+
+    await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
+
+    expect((await playerBySlug('ace')).countryCode).toBe('BR')
+  })
+
+  // An accountless survivor states nothing: a country belongs to a claim, and
+  // this merge carries none.
+  it('leaves an unclaimed survivor with no country', async () => {
+    const ace = await playerBySlug('ace')
+    const floppa = await playerBySlug('floppa')
+    await t.db
+      .update(players)
+      .set({ countryCode: 'JP' })
+      .where(eq(players.id, floppa.id))
+
+    await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
+
+    expect((await playerBySlug('ace')).countryCode).toBeNull()
+    expect((await playerBySlug('floppa')).countryCode).toBeNull()
+  })
+
   it('keeps the duplicate avatar when the survivor is same-user but avatarless', async () => {
     const ace = await playerBySlug('ace')
     const floppa = await playerBySlug('floppa')

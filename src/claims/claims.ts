@@ -230,11 +230,12 @@ export async function approveClaim(
       ).at(0)
       if (!stillPending) throw new Error('This claim was already resolved')
 
-      // A fresh owner gets a fresh identity: set the seed or reset to the
-      // Medallion (null) — never inherit a prior owner's avatar.
+      // A fresh owner gets a fresh identity: seed or Medallion, and no country.
+      // Deleting an auth user nulls user_id by FK without running unclaim(), so
+      // this is the only thing standing between that row and its next claimant.
       await tx
         .update(players)
-        .set({ userId: claim.userId, avatarKey })
+        .set({ userId: claim.userId, avatarKey, countryCode: null })
         .where(eq(players.id, claim.playerId))
       await tx
         .delete(playerClaims)
@@ -392,6 +393,30 @@ export async function removeOwnAvatar(
   if (staleKey && store) await deleteAvatarIfUnreferenced(db, store, staleKey)
 }
 
+/** Unlimited and self-serve with no cooldown: the rule is stated, not verified,
+    so a correction costs one action. */
+export async function setOwnCountry(
+  db: Db,
+  userId: string,
+  playerId: number,
+  countryCode: string | null,
+): Promise<void> {
+  return db.transaction(async (tx) => {
+    const player = (
+      await tx
+        .select({ userId: players.userId, mergedInto: players.mergedInto })
+        .from(players)
+        .where(eq(players.id, playerId))
+        .for('update')
+    ).at(0)
+    assertClaimOwnership(player, userId)
+    await tx
+      .update(players)
+      .set({ countryCode })
+      .where(eq(players.id, playerId))
+  })
+}
+
 /** Deny a pending claim — the row vanishes, leaving no trace on the Player.
     Locks the player row so a deny serialises with a concurrent approve. */
 export async function denyClaim(db: Db, claimId: number): Promise<void> {
@@ -418,8 +443,9 @@ export async function denyClaim(db: Db, claimId: number): Promise<void> {
   })
 }
 
-/** Undo an approved claim, returning the Player to the accountless state and
-    resetting its avatar to the Medallion. Records and Snapshots never move. */
+/** Undo an approved claim, returning the Player to the accountless state,
+    resetting its avatar to the Medallion and dropping the stated Country.
+    Records and Snapshots never move. */
 async function unclaim(
   db: Db,
   store: AvatarStore | null,
@@ -439,9 +465,10 @@ async function unclaim(
     if (mustBeUserId != null && player.userId !== mustBeUserId) {
       throw new Error('You do not hold this claim')
     }
+    // Deleted, not just read-gated: a value left behind resurrects on re-claim.
     await tx
       .update(players)
-      .set({ userId: null, avatarKey: null })
+      .set({ userId: null, avatarKey: null, countryCode: null })
       .where(eq(players.id, playerId))
     return player.avatarKey
   })

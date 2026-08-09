@@ -11,16 +11,20 @@ import { PlayerAvatar } from '#/components/player-avatar'
 import { ClaimedChip } from '#/components/claimed-chip'
 import { ClaimPanel } from '#/components/claim-panel'
 import { OwnerAvatarControls } from '#/components/owner-avatar-controls'
+import { OwnerCountryControls } from '#/components/owner-country-controls'
+import { PlayerCountry } from '#/components/player-country'
 import { PlayerMonument, hasMonument } from '#/components/player-monument'
 import { ProfileEnrichment } from '#/components/profile-enrichment'
 import type { ClaimViewer } from '#/components/claim-panel'
 import { db } from '#/db'
 import {
   effectiveAvatarKey,
+  effectiveCountry,
   getPlayer,
   getPlayerEnrichment,
   playerMergeRedirect,
 } from '#/db/queries'
+import { resolveCountryMark } from '#/lib/country-mark-server'
 import { hasAuthCookie, getSessionUser } from '#/auth/supabase-server'
 import { providerAvatarUrl } from '#/auth/profile'
 import { viewerHasPendingClaim } from '#/claims/claims'
@@ -68,6 +72,7 @@ const loadPlayer = createServerFn({ method: 'GET' })
     }
     const claimed = found.player.userId != null
     const avatarKey = effectiveAvatarKey(found.player)
+    const countryCode = effectiveCountry(found.player)
     const [viewer, enrichment] = await Promise.all([
       resolveClaimViewer(found.player),
       getPlayerEnrichment(db, found.player.id),
@@ -86,6 +91,14 @@ const loadPlayer = createServerFn({ method: 'GET' })
         // owner's controls reflect the stored state, not the served URL.
         hasAvatar: avatarKey != null,
         avatarKey,
+        // Resolved server-side (all 250 marks stay off the client), so a code
+        // the list has since dropped renders as nothing at all.
+        country: resolveCountryMark(countryCode),
+        // Not redundant with country.code, though it reads that way: this is
+        // what the row holds even when that no longer resolves. Deriving the
+        // picker from the resolved mark instead cost the owner the ability to
+        // clear a dropped code — the field looked clean because it was empty.
+        countryCode,
         isClaimed: claimed,
       },
       redirectTo: null,
@@ -177,16 +190,16 @@ function PlayerProfile() {
                 </h1>
                 {profile.isClaimed && <ClaimedChip />}
               </div>
+              {/* No placeholder, no globe: a neutral mark reads as a statement. */}
+              {profile.country && (
+                <p className="mt-1">
+                  <PlayerCountry country={profile.country} />
+                </p>
+              )}
               {formerNames.length > 0 && (
                 <p className="mt-1 text-sm text-fg-faint">
                   previously known as {formerNames.join(', ')}
                 </p>
-              )}
-              {viewer.signedIn && viewer.isOwner && (
-                <OwnerAvatarControls
-                  playerId={profile.id}
-                  hasAvatar={profile.hasAvatar}
-                />
               )}
             </div>
           </div>
@@ -195,6 +208,26 @@ function PlayerProfile() {
         </div>
 
         <div className="relative">
+          {/* Below the identity row, not in it: that column now shares its own
+              row with the monument, and these would take the name's width as
+              well as the height that strands the avatar beside it. */}
+          {viewer.signedIn && viewer.isOwner && (
+            <>
+              {/* Keyed like ClaimPanel: the router keeps this mounted across a
+                  slug change, and in-flight state belongs to one player. */}
+              <OwnerAvatarControls
+                key={profile.id}
+                playerId={profile.id}
+                hasAvatar={profile.hasAvatar}
+              />
+              <OwnerCountryControls
+                key={profile.id}
+                playerId={profile.id}
+                countryCode={profile.countryCode}
+              />
+            </>
+          )}
+
           <ProfileEnrichment stats={enrichment} />
 
           <ClaimPanel

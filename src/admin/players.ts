@@ -365,19 +365,24 @@ export async function mergePlayers(
       })
     }
 
-    // The survivor keeps or gains the lone/same-user claim (different-user was
-    // refused above). The avatar of whichever side actually held the claim
-    // rides along — preferring the survivor's own — so identity survives.
+    // Everything belonging to the lone/same-user claim rides along with it,
+    // preferring the survivor's own, so identity survives the merge.
     const carriedUserId = survivor.userId ?? duplicate.userId
-    const survivorAvatar = survivor.userId != null ? survivor.avatarKey : null
-    const duplicateAvatar =
-      duplicate.userId != null ? duplicate.avatarKey : null
-    const finalAvatar =
-      carriedUserId != null ? (survivorAvatar ?? duplicateAvatar) : null
+    const carried = <T>(ofSurvivor: T | null, ofDuplicate: T | null) =>
+      carriedUserId == null
+        ? null
+        : ((survivor.userId != null ? ofSurvivor : null) ??
+          (duplicate.userId != null ? ofDuplicate : null))
+    const finalAvatar = carried(survivor.avatarKey, duplicate.avatarKey)
+    const finalCountry = carried(survivor.countryCode, duplicate.countryCode)
     if (carriedUserId != null) {
       await tx
         .update(players)
-        .set({ userId: carriedUserId, avatarKey: finalAvatar })
+        .set({
+          userId: carriedUserId,
+          avatarKey: finalAvatar,
+          countryCode: finalCountry,
+        })
         .where(eq(players.id, survivor.id))
     }
     // Any avatar object this merge dereferences and doesn't carry forward is
@@ -405,7 +410,12 @@ export async function mergePlayers(
       .where(inArray(playerClaims.playerId, clearClaimsFor))
     await tx
       .update(players)
-      .set({ mergedInto: survivor.id, userId: null, avatarKey: null })
+      .set({
+        mergedInto: survivor.id,
+        userId: null,
+        avatarKey: null,
+        countryCode: null,
+      })
       .where(eq(players.id, duplicate.id))
     // Keep tombstones one hop deep: anything merged into the duplicate
     // earlier now points straight at the survivor.
