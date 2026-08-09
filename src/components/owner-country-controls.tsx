@@ -34,7 +34,6 @@ export function OwnerCountryControls({
 }) {
   const router = useRouter()
   const fieldId = useId()
-  const ruleId = useId()
   // What the row holds, against which the field is dirty — and separately what
   // the field can select. They differ only when the list has dropped a code
   // since it was stored, and keeping them apart is what leaves Save live so
@@ -110,7 +109,6 @@ export function OwnerCountryControls({
         <select
           ref={selectRef}
           id={fieldId}
-          aria-describedby={ruleId}
           className={selectClass}
           value={choice}
           onChange={(e) => {
@@ -146,14 +144,6 @@ export function OwnerCountryControls({
           {saved ? 'Saved' : ''}
         </span>
       </div>
-      {/* The rule belongs under the field, not in the label: the site states it
-          and does not verify it, so a dispute has something to be judged
-          against. */}
-      <p id={ruleId} className="mt-1.5 max-w-prose text-xs text-fg-faint">
-        Your country is a citizenship you hold. Not where you live, not where
-        your family is from, not where you play. If you hold more than one, pick
-        the one you want shown.
-      </p>
       {error && (
         <p role="alert" className="mt-1.5 text-sm text-status-danger">
           {error}
