@@ -101,6 +101,32 @@ ALTER TABLE "vehicles" DROP COLUMN "image_url";`
     ).toBe(false)
   })
 
+  it.each([
+    [
+      "an E'' string with an escaped quote",
+      String.raw`SELECT E'abc\'--not comment'; ALTER TABLE t DROP COLUMN x;`,
+    ],
+    [
+      'a standard string ending in a backslash',
+      String.raw`SELECT 'abc\'; ALTER TABLE t DROP COLUMN x;`,
+    ],
+    [
+      "an uppercase E'' string",
+      String.raw`SELECT E'a\'--x'; ALTER TABLE t RENAME TO u;`,
+    ],
+  ])('still flags DDL after %s', (_, sql) => {
+    expect(isDestructive(sql)).toBe(true)
+  })
+
+  // `case` ends in e but does not make the next string an escape string.
+  it('does not mistake a trailing e in an identifier for E-quoting', () => {
+    expect(
+      isDestructive(
+        String.raw`SELECT nocase'a\'; ALTER TABLE t ADD COLUMN c text;`,
+      ),
+    ).toBe(false)
+  })
+
   it('does not flag DDL keywords that are only string data', () => {
     expect(isDestructive(`INSERT INTO audit VALUES ('DROP COLUMN x');`)).toBe(
       false,

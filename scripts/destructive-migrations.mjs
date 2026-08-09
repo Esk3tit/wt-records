@@ -20,9 +20,23 @@ export function stripSqlComments(sql) {
   let out = ''
   let i = 0
 
-  const skipQuoted = (quote) => {
+  // Backslash escapes a quote only in E'…'; in a standard string it is literal,
+  // and treating it as an escape there would run past the real close.
+  const opensEscapeString = () => {
+    const code = out.trimEnd()
+    const last = code.at(-1)
+    if (last !== 'e' && last !== 'E') return false
+    const before = code.at(-2)
+    return before === undefined || !/[A-Za-z0-9_]/.test(before)
+  }
+
+  const skipQuoted = (quote, escapes) => {
     i += 1
     while (i < sql.length) {
+      if (escapes && sql[i] === '\\') {
+        i += 2
+        continue
+      }
       if (sql[i] === quote) {
         if (sql[i + 1] === quote) {
           i += 2
@@ -73,7 +87,7 @@ export function stripSqlComments(sql) {
     }
 
     if (sql[i] === "'" || sql[i] === '"') {
-      skipQuoted(sql[i])
+      skipQuoted(sql[i], sql[i] === "'" && opensEscapeString())
       out += ' '
       continue
     }
