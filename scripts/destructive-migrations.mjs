@@ -6,7 +6,12 @@
 import { basename } from 'node:path'
 import { readFileSync } from 'node:fs'
 
-const DESTRUCTIVE = /\bDROP\s+(?:COLUMN|TABLE)\b|\bRENAME\b/i
+// ALTER TABLE makes COLUMN optional and allows IF EXISTS, so anchoring on the
+// noun misses `DROP image_url`. Anchor on DROP instead and exclude the
+// ALTER COLUMN sub-actions, which take something away from a column without
+// taking the column away.
+const DESTRUCTIVE =
+  /\bDROP\s+(?!DEFAULT\b|NOT\s+NULL\b|IDENTITY\b|EXPRESSION\b)["\w]|\bRENAME\b/i
 
 const DOLLAR_TAG = /^\$[A-Za-z_][A-Za-z0-9_]*\$|^\$\$/
 
@@ -108,7 +113,9 @@ export function destructiveAmong(files) {
 }
 
 if (process.argv[1] && import.meta.url.endsWith(basename(process.argv[1]))) {
-  const paths = process.argv.slice(2)
+  // NUL-delimited on stdin: a path is free to contain whitespace or glob
+  // characters, and the shell must not get a say in either.
+  const paths = readFileSync(0, 'utf8').split('\0').filter(Boolean)
   const hits = destructiveAmong(
     paths.map((name) => ({ name, sql: readFileSync(name, 'utf8') })),
   )

@@ -70,10 +70,8 @@ jobs:
             UNKNOWN=1
             echo "::warning::last successful run's commit $BASE is unreachable — pending set treated as unknown"
           else
-            CHANGED=$(git diff --name-only --diff-filter=d "$BASE" "$SHA" -- 'drizzle/*.sql')
-            if [ -n "$CHANGED" ]; then
-              HITS=$(node scripts/destructive-migrations.mjs $CHANGED)
-            fi
+            HITS=$(git diff -z --name-only --diff-filter=d "$BASE" "$SHA" -- 'drizzle/*.sql' \
+              | node scripts/destructive-migrations.mjs)
           fi
 
           echo "files=$HITS" >> "$GITHUB_OUTPUT"

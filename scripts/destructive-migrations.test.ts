@@ -14,6 +14,12 @@ describe('isDestructive', () => {
     ['rename table', 'ALTER TABLE "t" RENAME TO "u";'],
     ['lowercase', 'alter table "t" drop column "a";'],
     ['split across lines', 'ALTER TABLE "t"\n  DROP COLUMN "a";'],
+    [
+      'drop without the optional COLUMN',
+      'ALTER TABLE vehicles DROP image_url;',
+    ],
+    ['drop if exists', 'ALTER TABLE vehicles DROP IF EXISTS image_url;'],
+    ['drop constraint', 'ALTER TABLE t DROP CONSTRAINT "t_pkey";'],
   ])('flags %s', (_, sql) => {
     expect(isDestructive(sql)).toBe(true)
   })
@@ -26,6 +32,10 @@ describe('isDestructive', () => {
       'create index',
       'CREATE INDEX "veh_nation_idx" ON "vehicles" ("nation_id");',
     ],
+    // These take something from a column without taking the column away, so
+    // the old build keeps reading it fine.
+    ['drop not null', 'ALTER TABLE "t" ALTER COLUMN "c" DROP NOT NULL;'],
+    ['drop default', 'ALTER TABLE "t" ALTER COLUMN "c" DROP DEFAULT;'],
   ])('leaves %s alone', (_, sql) => {
     expect(isDestructive(sql)).toBe(false)
   })
