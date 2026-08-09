@@ -48,6 +48,48 @@ ALTER TABLE "vehicles" ADD COLUMN "portrait_url" text;`
 ALTER TABLE "vehicles" DROP COLUMN "image_url";`
     expect(isDestructive(sql)).toBe(true)
   })
+
+  // A comment marker inside a literal must not swallow the statement after it.
+  it.each([
+    [
+      'line-comment marker in a string',
+      `SELECT '--'; ALTER TABLE vehicles DROP COLUMN image_url;`,
+    ],
+    [
+      'block-comment markers in strings',
+      `SELECT '/*'; ALTER TABLE vehicles DROP COLUMN image_url; SELECT '*/';`,
+    ],
+    [
+      'marker in a dollar-quoted body',
+      `SELECT $$--$$; ALTER TABLE vehicles DROP COLUMN image_url;`,
+    ],
+    [
+      'marker in a tagged dollar-quoted body',
+      `SELECT $tag$ /* $tag$; ALTER TABLE vehicles DROP COLUMN image_url;`,
+    ],
+    [
+      'marker in a quoted identifier',
+      `ALTER TABLE "od--d" DROP COLUMN "image_url";`,
+    ],
+    [
+      'doubled quote inside a string',
+      `SELECT 'it''s --'; ALTER TABLE vehicles DROP COLUMN image_url;`,
+    ],
+  ])('still flags DDL after a %s', (_, sql) => {
+    expect(isDestructive(sql)).toBe(true)
+  })
+
+  it('does not flag DDL keywords that are only string data', () => {
+    expect(isDestructive(`INSERT INTO audit VALUES ('DROP COLUMN x');`)).toBe(
+      false,
+    )
+  })
+
+  it('handles nested block comments', () => {
+    expect(
+      isDestructive('/* outer /* inner DROP COLUMN a */ still */ SELECT 1;'),
+    ).toBe(false)
+  })
 })
 
 describe('destructiveAmong', () => {

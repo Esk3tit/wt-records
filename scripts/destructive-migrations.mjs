@@ -8,9 +8,78 @@ import { readFileSync } from 'node:fs'
 
 const DESTRUCTIVE = /\bDROP\s+(?:COLUMN|TABLE)\b|\bRENAME\b/i
 
-/** Comments describe drops as often as statements perform them. */
+const DOLLAR_TAG = /^\$[A-Za-z_][A-Za-z0-9_]*\$|^\$\$/
+
+/**
+ * Blank out everything that isn't executable SQL — comments, and the contents
+ * of quoted regions, so a `--` sitting inside a string can't swallow the
+ * statement after it. Ambiguity resolves toward keeping text as code, since
+ * over-reporting a drop is the harmless direction.
+ */
 export function stripSqlComments(sql) {
-  return sql.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/--[^\n]*/g, ' ')
+  let out = ''
+  let i = 0
+
+  const skipQuoted = (quote) => {
+    i += 1
+    while (i < sql.length) {
+      if (sql[i] === quote) {
+        if (sql[i + 1] === quote) {
+          i += 2
+          continue
+        }
+        i += 1
+        return
+      }
+      i += 1
+    }
+  }
+
+  while (i < sql.length) {
+    const rest = sql.slice(i)
+
+    if (sql[i] === '-' && sql[i + 1] === '-') {
+      while (i < sql.length && sql[i] !== '\n') i += 1
+      out += ' '
+      continue
+    }
+
+    // Postgres block comments nest, so track depth rather than find the first close.
+    if (sql[i] === '/' && sql[i + 1] === '*') {
+      let depth = 1
+      i += 2
+      while (i < sql.length && depth > 0) {
+        if (sql[i] === '/' && sql[i + 1] === '*') {
+          depth += 1
+          i += 2
+        } else if (sql[i] === '*' && sql[i + 1] === '/') {
+          depth -= 1
+          i += 2
+        } else i += 1
+      }
+      out += ' '
+      continue
+    }
+
+    const tag = DOLLAR_TAG.exec(rest)?.[0]
+    if (tag) {
+      const end = sql.indexOf(tag, i + tag.length)
+      i = end === -1 ? sql.length : end + tag.length
+      out += ' '
+      continue
+    }
+
+    if (sql[i] === "'" || sql[i] === '"') {
+      skipQuoted(sql[i])
+      out += ' '
+      continue
+    }
+
+    out += sql[i]
+    i += 1
+  }
+
+  return out
 }
 
 export function isDestructive(sql) {
