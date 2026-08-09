@@ -4,6 +4,7 @@
 // costs an outage.
 
 import { basename } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { readFileSync } from 'node:fs'
 
 // ALTER TABLE makes COLUMN optional and allows IF EXISTS, so anchoring on the
@@ -18,7 +19,11 @@ const DYNAMIC = /\bEXECUTE\s+(?!FUNCTION\b|PROCEDURE\b)/i
 const DESTRUCTIVE =
   /\bDROP\s+(?!DEFAULT\b|NOT\s+NULL\b|IDENTITY\b|EXPRESSION\b)["\w]|\bRENAME\b/i
 
-const DOLLAR_TAG = /^\$[A-Za-z_][A-Za-z0-9_]*\$|^\$\$/
+// Sticky, so a tag can be matched at an offset without slicing the rest of the
+// file at every character. lastIndex is set immediately before each use.
+const DOLLAR_TAG = /\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/y
+const WHITESPACE = /\s/
+const WORD = /[A-Za-z0-9_]/
 
 /**
  * Blank out everything that isn't executable SQL — comments, and the contents
@@ -33,11 +38,12 @@ export function stripSqlComments(sql) {
   // Backslash escapes a quote only in E'…'; in a standard string it is literal,
   // and treating it as an escape there would run past the real close.
   const opensEscapeString = () => {
-    const code = out.trimEnd()
-    const last = code.at(-1)
+    let k = out.length - 1
+    while (k >= 0 && WHITESPACE.test(out[k])) k -= 1
+    const last = out[k]
     if (last !== 'e' && last !== 'E') return false
-    const before = code.at(-2)
-    return before === undefined || !/[A-Za-z0-9_]/.test(before)
+    const before = out[k - 1]
+    return before === undefined || !WORD.test(before)
   }
 
   const skipQuoted = (quote, escapes) => {
@@ -60,8 +66,6 @@ export function stripSqlComments(sql) {
   }
 
   while (i < sql.length) {
-    const rest = sql.slice(i)
-
     if (sql[i] === '-' && sql[i + 1] === '-') {
       while (i < sql.length && sql[i] !== '\n') i += 1
       out += ' '
@@ -87,7 +91,11 @@ export function stripSqlComments(sql) {
 
     // Dollar quoting wraps DO blocks and function bodies, not just inert data,
     // so the contents are scanned rather than discarded.
-    const tag = DOLLAR_TAG.exec(rest)?.[0]
+    let tag
+    if (sql[i] === '$') {
+      DOLLAR_TAG.lastIndex = i
+      tag = DOLLAR_TAG.exec(sql)?.[0]
+    }
     if (tag) {
       const end = sql.indexOf(tag, i + tag.length)
       const stop = end === -1 ? sql.length : end
@@ -121,7 +129,12 @@ export function destructiveAmong(files) {
   return files.filter((f) => isDestructive(f.sql)).map((f) => basename(f.name))
 }
 
-if (process.argv[1] && import.meta.url.endsWith(basename(process.argv[1]))) {
+// Full URL, not the basename: the CLI branch blocks reading stdin, so an
+// unrelated entry script sharing this filename must not trigger it on import.
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   // NUL-delimited on stdin: a path is free to contain whitespace or glob
   // characters, and the shell must not get a say in either.
   const paths = readFileSync(0, 'utf8').split('\0').filter(Boolean)
