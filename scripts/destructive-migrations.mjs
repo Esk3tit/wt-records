@@ -61,11 +61,14 @@ export function stripSqlComments(sql) {
       continue
     }
 
+    // Dollar quoting wraps DO blocks and function bodies, not just inert data,
+    // so the contents are scanned rather than discarded.
     const tag = DOLLAR_TAG.exec(rest)?.[0]
     if (tag) {
       const end = sql.indexOf(tag, i + tag.length)
+      const stop = end === -1 ? sql.length : end
+      out += ` ${stripSqlComments(sql.slice(i + tag.length, stop))} `
       i = end === -1 ? sql.length : end + tag.length
-      out += ' '
       continue
     }
 

@@ -79,6 +79,28 @@ ALTER TABLE "vehicles" DROP COLUMN "image_url";`
     expect(isDestructive(sql)).toBe(true)
   })
 
+  // Dollar quoting wraps executable bodies, so their contents are code.
+  it.each([
+    ['a DO block', `DO $body$ BEGIN DROP TABLE vehicles; END $body$;`],
+    ['an untagged DO block', `DO $$ BEGIN DROP TABLE vehicles; END $$;`],
+    [
+      'a function body',
+      `CREATE FUNCTION f() RETURNS void AS $$ BEGIN ALTER TABLE t RENAME TO u; END $$ LANGUAGE plpgsql;`,
+    ],
+    [
+      'a DO block whose body comments out something else',
+      `DO $$ BEGIN -- keep\n DROP COLUMN x; END $$;`,
+    ],
+  ])('flags destructive DDL inside %s', (_, sql) => {
+    expect(isDestructive(sql)).toBe(true)
+  })
+
+  it('leaves an additive DO block alone', () => {
+    expect(
+      isDestructive(`DO $$ BEGIN ALTER TABLE t ADD COLUMN a text; END $$;`),
+    ).toBe(false)
+  })
+
   it('does not flag DDL keywords that are only string data', () => {
     expect(isDestructive(`INSERT INTO audit VALUES ('DROP COLUMN x');`)).toBe(
       false,
