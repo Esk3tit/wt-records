@@ -4,10 +4,16 @@
      night and day; structure, spacing, radii, and type never do. The theme
      init script in __root stamps data-theme before first paint. ─────────── */
 :root {
-  /* Native popups, scrollbars and autofill are painted by the UA, which reads
-     this and not our tokens: without it every one of them stays light while our
-     ink goes white, and a <select> drops its options onto a white sheet. */
+  /* Scrollbars, autofill and spinners are painted by the UA, which reads this
+     and not our tokens: without it they all stay light against night ink. It
+     does NOT reach a <select>'s open list — see --field-bg. */
   color-scheme: dark;
+
+  /* Opaque on purpose: a <select>'s open list is drawn outside the page, so
+     nothing is behind it to show through, and a translucent fill there is one
+     the browser finishes in whatever lighting IT is in. Matched to the glass a
+     field sits on, so an open row looks like the pane it came from. */
+  --field-bg: #191c21;
 
   --base: #0a0c10;
   --ink: rgba(255, 255, 255, 0.96);
@@ -116,6 +122,7 @@
 
 :root[data-theme='light'] {
   color-scheme: light;
+  --field-bg: #ffffff;
 
   --base: #f2f3f6;
   --ink: rgba(10, 12, 16, 0.92);
@@ -201,6 +208,15 @@
     ),
     linear-gradient(rgba(242, 243, 246, 0.44), rgba(242, 243, 246, 0.44));
   --grain-ink: #0a0c10;
+}
+
+/* Deliberately unlayered, so it outranks a utility: a row that lets one make it
+   transparent is a row whose colour the browser picks, and it picks by its own
+   lighting rather than the page's. The field above it stays glass — only the
+   row needs a surface, because only the row is drawn outside the page. */
+option {
+  background-color: var(--field-bg);
+  color: var(--ink);
 }
 
 @theme inline {

@@ -39,12 +39,14 @@ const luminance = ([r, g, b]: number[]) =>
 const rgba = (colour: string): number[] =>
   (colour.match(/[\d.]+/g) ?? ['0', '0', '0']).map(Number)
 
-/** Ink carries its own alpha and the list has nothing behind it but the
-    browser's surface, so that is the only thing it can be laid over. */
+/** Ink carries its own alpha and a row has nothing behind it but its own
+    surface, so that is the only thing it can be laid over. */
 const over = (ink: number[], surface: number[]) => {
   const a = ink[3] ?? 1
   return [0, 1, 2].map((i) => ink[i] * a + surface[i] * (1 - a))
 }
+
+const opaque = (colour: string) => (rgba(colour)[3] ?? 1) === 1
 
 function ratioOf(ink: string, surface: string) {
   const under = rgba(surface)
@@ -54,35 +56,33 @@ function ratioOf(ink: string, surface: string) {
   return (hi + 0.05) / (lo + 0.05)
 }
 
-/** Reads every option's declared ink and the surface the browser will put
-    behind it. `Field` is a system colour: asking for it in the page resolves it
-    exactly as the list will, under the same used `color-scheme`. */
+/** Reads what each option declares for itself. Not what the browser might put
+    behind it: that is the whole trap. A row with no surface of its own is a row
+    whose surface the browser picks, and it picks by its own lighting, not the
+    page's — so `color-scheme` moves the answer here while the paint stays
+    white. Only a colour we state is a colour we can measure. */
 async function readOptions(page: Page): Promise<Reading[]> {
-  const raw = await page.evaluate(() => {
-    const probe = document.createElement('div')
-    probe.style.backgroundColor = 'Field'
-    document.body.append(probe)
-    const surface = getComputedStyle(probe).backgroundColor
-    probe.remove()
-    return [...document.querySelectorAll('select')].flatMap((field) =>
+  const raw = await page.evaluate(() =>
+    [...document.querySelectorAll('select')].flatMap((field) =>
       [...field.options].map((option) => ({
         field: field.id || field.name || field.outerHTML.slice(0, 60),
         option: option.textContent.trim(),
         ink: getComputedStyle(option).color,
-        surface,
+        surface: getComputedStyle(option).backgroundColor,
       })),
-    )
-  })
+    ),
+  )
   return raw.map((r) => ({ ...r, ratio: ratioOf(r.ink, r.surface) }))
 }
 
 function faults(readings: Reading[]) {
-  return readings
-    .filter((r) => r.ratio < FLOOR)
-    .map(
-      (r) =>
-        `${r.field} · "${r.option}" ${r.ink} on ${r.surface} = ${r.ratio.toFixed(2)}:1`,
-    )
+  return readings.flatMap((r) => {
+    const where = `${r.field} · "${r.option}"`
+    if (!opaque(r.surface)) return [`${where} has no surface: ${r.surface}`]
+    if (r.ratio < FLOOR)
+      return [`${where} ${r.ink} on ${r.surface} = ${r.ratio.toFixed(2)}:1`]
+    return []
+  })
 }
 
 test.describe('an open <select> is legible in both lightings', () => {
