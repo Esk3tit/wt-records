@@ -31,6 +31,8 @@ The two halves are approved at opposite ends of the deploy, and this is the part
 
 "Once nothing reads them" means nothing names them in SQL, which is stricter than it sounds: a bare `db.select().from(t)` enumerates every column declared on `t`, so a table object still carrying the old field emits it even where no code touches the value. Project the columns you want on any query a contract migration will cross.
 
+A contract migration also takes rollback away from you, which is the cost worth knowing before you approve one. Redeploying an earlier image puts code that still names the dropped columns back in front of the contracted schema, so the failure returns by an ordinary recovery action. Roll **forward** past a contract migration. If you must go back, re-add the columns nullable first — `ALTER TABLE t ADD COLUMN <old> <type>;` — which is safe precisely because a contract half only ever drops columns whose values were already dead.
+
 `0011_portrait_columns` was the expand half of exactly that, and `0013_drop_image_columns` its contract half. Note what gated the two: the contract half could not ship until a content-addressed sync had re-keyed every portrait, because the columns it drops were the only record of which mirrored objects that run had to delete. A contract migration waits on the data catching up, not just on the code.
 
 As a local last resort, migrate **through the Session pooler or Direct connection** — *not* the transaction pooler, because `drizzle-kit` uses prepared statements the transaction pooler rejects:
