@@ -47,12 +47,17 @@ jobs:
         env:
           BEFORE: ${{ github.event.before }}
           SHA: ${{ github.sha }}
+          EVENT: ${{ github.event_name }}
         run: |
-          if [ -z "$BEFORE" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+          # A dispatch applies whatever the journal says is pending, which this
+          # job can't read without the prod secret it deliberately doesn't hold.
+          # Unknown means warn, not clear.
+          if [ "$EVENT" != 'push' ] || [ -z "$BEFORE" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
             echo "files=" >> "$GITHUB_OUTPUT"
-            echo "::notice::no push range to compare — skipping destructive-DDL detection"
+            echo "unknown=1" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          echo "unknown=" >> "$GITHUB_OUTPUT"
           CHANGED=$(git diff --name-only --diff-filter=d "$BEFORE" "$SHA" -- 'drizzle/*.sql')
           HITS=""
           for f in $CHANGED; do
@@ -68,6 +73,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           TRIGGER: ${{ github.event_name == 'workflow_dispatch' && format('manual dispatch by {0}', github.actor) || github.event.head_commit.message }}
           DESTRUCTIVE: ${{ steps.destructive.outputs.files }}
+          UNKNOWN: ${{ steps.destructive.outputs.unknown }}
         run: |
           if [ -z "$WEBHOOK_URL" ]; then
             echo "::notice::DISCORD_MIGRATIONS_WEBHOOK_URL not set — skipping notification"
@@ -78,6 +84,9 @@ jobs:
           if [ -n "$DESTRUCTIVE" ]; then
             CONTENT=$(printf '%s\n\n⚠️ **Drops a column or table** (%s) — do NOT approve until Railway reports the new build live, or the old one 5xxs on the dropped column. See docs/deploy.md.' "$CONTENT" "$DESTRUCTIVE")
             echo "::warning::destructive migration pending approval: $DESTRUCTIVE"
+          elif [ -n "$UNKNOWN" ]; then
+            CONTENT=$(printf '%s\n\n⚠️ Manual run — this ping cannot tell which migrations are still pending. Check them for a dropped column or table first; if any drops, approve only once the new build is live. See docs/deploy.md.' "$CONTENT")
+            echo "::warning::manual dispatch — pending migrations not determined, check for destructive DDL"
           fi
           # Best-effort: a Discord outage must not paint the migration run red.
           jq -n --arg content "$CONTENT" '{content: $content}' \
