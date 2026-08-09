@@ -23,7 +23,7 @@ The app never self-migrates. Committed migrations reach production via the **`mi
 - **Automatically on merge to `main`** when anything under `drizzle/` changes. A bad migration can't reach here — the per-PR migration check blocks it at review time.
 - **Manually** (Actions tab → _migrate-prod_ → _Run workflow_, confirm with `migrate`) for re-runs or out-of-band migrations.
 
-Railway deploys the same merge in parallel and does **not** wait for the migration, so approve promptly — especially when new code depends on the new schema.
+Railway deploys the same merge in parallel and does **not** wait for the migration, so for an additive migration approve promptly — especially when new code depends on the new schema. A migration that **drops** anything inverts this; see the contract half below before approving one.
 
 Additive migrations only skew one way: new code against the old schema fails, so approving late is the only risk. A migration that **renames or drops** a column read by content queries skews both ways — old code against the new schema fails too — so no ordering avoids a window, only shortens it. Don't ship those: split the change into **expand** (add the new columns and backfill them, leaving the old ones in place) and **contract** (drop the old ones, once nothing reads them) across two releases, so each half skews one way only.
 
@@ -69,7 +69,7 @@ Switching the app between providers is then just repointing the service's `DATAB
 
 ## Deploy
 
-Merge to `main` → Railway builds the Dockerfile and deploys. **Migrations must already be applied to the hosted DB** (above) before/with the deploy.
+Merge to `main` → Railway builds the Dockerfile and deploys. **An additive migration must already be applied to the hosted DB** (above) before/with the deploy. A contract migration runs the other way round — after the deploy is live — for the reasons under [Apply migrations](#apply-migrations).
 
 ## catalog-sync watchdog
 
