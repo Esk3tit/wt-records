@@ -22,7 +22,6 @@ const DESTRUCTIVE =
 // Sticky, so a tag can be matched at an offset without slicing the rest of the
 // file at every character. lastIndex is set immediately before each use.
 const DOLLAR_TAG = /\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/y
-const WHITESPACE = /\s/
 const WORD = /[A-Za-z0-9_]/
 
 /**
@@ -36,10 +35,10 @@ export function stripSqlComments(sql) {
   let i = 0
 
   // Backslash escapes a quote only in E'…'; in a standard string it is literal,
-  // and treating it as an escape there would run past the real close.
+  // and treating it as an escape there would run past the real close. The E has
+  // to touch the quote — `E '…'` is an identifier beside an ordinary string.
   const opensEscapeString = () => {
-    let k = out.length - 1
-    while (k >= 0 && WHITESPACE.test(out[k])) k -= 1
+    const k = out.length - 1
     const last = out[k]
     if (last !== 'e' && last !== 'E') return false
     const before = out[k - 1]

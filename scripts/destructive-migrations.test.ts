@@ -161,6 +161,17 @@ ALTER TABLE "vehicles" DROP COLUMN "image_url";`
       "an uppercase E'' string",
       String.raw`SELECT E'a\'--x'; ALTER TABLE t RENAME TO u;`,
     ],
+    // `E '…'` is an identifier beside an ordinary string, so the backslash is
+    // literal and the quote really does close there.
+    [
+      'an E separated from its quote by a space',
+      String.raw`SELECT E 'abc\'; ALTER TABLE t DROP COLUMN x;`,
+    ],
+    [
+      'an E separated from its quote by a newline',
+      String.raw`SELECT E
+'abc\'; ALTER TABLE t DROP COLUMN x;`,
+    ],
   ])('still flags DDL after %s', (_, sql) => {
     expect(isDestructive(sql)).toBe(true)
   })
