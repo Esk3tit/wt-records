@@ -46,41 +46,34 @@ jobs:
       - name: Detect destructive migrations
         id: destructive
         env:
-          BEFORE: ${{ github.event.before }}
           SHA: ${{ github.sha }}
-          EVENT: ${{ github.event_name }}
           GH_TOKEN: ${{ github.token }}
         run: |
           HITS=""
           UNKNOWN=""
 
-          # A dispatch applies whatever the journal says is pending, which this
-          # job can't read without the prod secret it deliberately doesn't hold.
-          if [ "$EVENT" != 'push' ] || [ -z "$BEFORE" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+          # db:migrate applies everything pending, which is everything added
+          # since the last run that actually applied — not what this push
+          # changed. A run that was cancelled, rejected or failed leaves its
+          # migrations in that set, and the push that follows would otherwise
+          # never scan them.
+          if ! BASE=$(gh run list --workflow migrate-prod.yml --branch main --status success \
+            --limit 1 --json headSha --jq '.[0].headSha // ""' 2>/dev/null); then
             UNKNOWN=1
+            echo "::warning::could not read migrate-prod history — pending set treated as unknown"
+          elif [ -z "$BASE" ]; then
+            UNKNOWN=1
+            echo "::warning::no successful migrate-prod run on main — history may have aged out, so what is pending is unknown"
+          elif ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            UNKNOWN=1
+            echo "::warning::last successful run's commit $BASE is unreachable — pending set treated as unknown"
           else
-            CHANGED=$(git diff --name-only --diff-filter=d "$BEFORE" "$SHA" -- 'drizzle/*.sql')
+            CHANGED=$(git diff --name-only --diff-filter=d "$BASE" "$SHA" -- 'drizzle/*.sql')
             for f in $CHANGED; do
               if grep -Eqi 'DROP[[:space:]]+(COLUMN|TABLE)|RENAME[[:space:]]+COLUMN' "$f"; then
                 HITS="$HITS $(basename "$f")"
               fi
             done
-            # db:migrate applies everything still pending, not just this push, so
-            # a run that never applied leaves its migrations in that set. An
-            # empty result means no run yet; a failed lookup means we don't know.
-            if PREV=$(gh run list --workflow migrate-prod.yml --branch main --status completed \
-              --limit 1 --json conclusion --jq '.[0].conclusion // ""' 2>/dev/null); then
-              if [ -z "$PREV" ]; then
-                UNKNOWN=1
-                echo "::warning::no completed migrate-prod run on main — history may have aged out, so what is pending is unknown"
-              elif [ "$PREV" != 'success' ]; then
-                UNKNOWN=1
-                echo "::warning::previous migrate-prod run was '$PREV' — its migrations may still be pending"
-              fi
-            else
-              UNKNOWN=1
-              echo "::warning::could not read migrate-prod history — pending set treated as unknown"
-            fi
           fi
 
           echo "files=${HITS# }" >> "$GITHUB_OUTPUT"
