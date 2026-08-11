@@ -27,7 +27,7 @@ import {
 import { resolveCountryMark } from '#/lib/country-mark-server'
 import { hasAuthCookie, getSessionUser } from '#/auth/supabase-server'
 import { providerAvatarUrl } from '#/auth/profile'
-import { viewerClaimCommitment, viewerClaimState } from '#/claims/claims'
+import { viewerClaimState, viewerIsCommitted } from '#/claims/claims'
 import { assetUrlIfConfigured } from '#/storage/urls'
 import { toPlayerCardModel } from '#/og/props/player'
 import { playerUnfurl } from '#/og/copy'
@@ -51,7 +51,7 @@ async function resolveClaimViewer(player: {
   // Claim (or waiting on one) is offered nothing here rather than a dead end.
   const committedElsewhere =
     !claimed && claimState === 'none'
-      ? (await viewerClaimCommitment(db, user.id)) != null
+      ? await viewerIsCommitted(db, user.id)
       : false
   const canClaim = !claimed && claimState === 'none' && !committedElsewhere
   return {

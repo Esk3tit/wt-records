@@ -14,7 +14,6 @@ export type ClaimViewer =
       isOwner: boolean
       /** Where this viewer's own request on this Player stands. */
       claimState: ViewerClaimState
-      /** What they hold or await elsewhere, which is what blocks them here. */
       canClaim: boolean
       providerAvatarUrl: string | null
     }
@@ -26,10 +25,9 @@ const amberButton =
 const ghostButton =
   'tap-reach inline-flex items-center justify-center gap-1.5 rounded border border-hairline-soft px-3.5 py-2 text-sm font-semibold text-fg-muted no-underline transition-colors duration-200 hover:text-fg disabled:cursor-not-allowed disabled:opacity-50'
 
-/* The one claim affordance on a Player page, resolving to exactly one state for
-   the viewer: sign-in-to-claim, request a claim, pending review, denied, or
-   "your page". A page claimed by someone else shows nothing here — only the
-   quiet indicator in the header. */
+/* The one claim affordance on a Player page: at most one state for the viewer,
+   and nothing at all whenever a claim is not theirs to make — the page is
+   someone else's, or they are already committed elsewhere. */
 export function ClaimPanel({
   playerId,
   slug,
