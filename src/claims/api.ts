@@ -98,9 +98,8 @@ export const setMyCountry = createServerFn({ method: 'POST' })
 
 /* ── Moderator ───────────────────────────────────────────────── */
 
-/* One round trip for the Review screen: both queues, and the denials, which
-   are not work. Two panels that never merge — an identity judgement and a
-   content judgement are not the same act — so they arrive as two lists. */
+/* One round trip for the Review screen. Two lists, never merged: an identity
+   judgement and a content judgement are not the same act. */
 export const reviewQueue = createServerFn({ method: 'GET' })
   .validator((data?: { deniedOffset?: number }) => ({
     deniedOffset: nonNegativeInt(data?.deniedOffset ?? 0, 'deniedOffset'),
@@ -112,13 +111,11 @@ export const reviewQueue = createServerFn({ method: 'GET' })
       listDeniedClaims(db, { offset: data.deniedOffset }),
       listPendingAmendments(db),
     ])
-    return { claims, denied, amendments: amendments.map(withRendering) }
+    return { claims, denied, amendments: amendments.map(withAssetUrls) }
   })
 
-/* Keys are the store's business; the panel needs something to render. Every
-   shadowed field is an image today — a text one would carry its value straight
-   through and resolve no URL at all. */
-function withRendering(row: AmendmentQueueRow) {
+/* Keys are the store's business; the panel needs something to render. */
+function withAssetUrls(row: AmendmentQueueRow) {
   const url = (value: string | null) =>
     value ? assetUrlIfConfigured(value) : null
   return {
@@ -128,9 +125,7 @@ function withRendering(row: AmendmentQueueRow) {
   }
 }
 
-/* The one number on the Review tab, summed here so a badge never has to be
-   decomposed before it means anything. Read on every /admin view, so it counts
-   rather than lists. */
+/* Counted rather than listed: this is read on every /admin view. */
 export const reviewQueueCount = createServerFn({ method: 'GET' }).handler(
   async () => {
     await requireModerator()
@@ -155,7 +150,7 @@ export const approveClaimRequest = createServerFn({ method: 'POST' })
     })
   })
 
-export const approveAmendmentRequest = createServerFn({ method: 'POST' })
+export const approvePendingAmendment = createServerFn({ method: 'POST' })
   .validator((data: { amendmentId: number }) => ({
     amendmentId: positiveInt(data.amendmentId, 'amendmentId'),
   }))
@@ -164,7 +159,7 @@ export const approveAmendmentRequest = createServerFn({ method: 'POST' })
     return approveAmendment(db, avatarStore(), userId, data.amendmentId)
   })
 
-export const rejectAmendmentRequest = createServerFn({ method: 'POST' })
+export const rejectPendingAmendment = createServerFn({ method: 'POST' })
   .validator((data: { amendmentId: number; reason?: string }) => ({
     amendmentId: positiveInt(data.amendmentId, 'amendmentId'),
     reason: optionalNote(data.reason),

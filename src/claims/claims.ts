@@ -195,12 +195,9 @@ export async function viewerClaimState(
 /** Approve a pending claim: link the User, seed the avatar if they asked for it
     and the Moderator accepted it, and clear every pending request on that
     Player (the winner and the losers). Denied rows on that Player survive it —
-    approving is not an amnesty.
-
-    The seed is a second, independent decision: a good claim with a bad picture
-    is not a dilemma, so `acceptSeed: false` links the User onto the Medallion.
-    It can only ever refuse the picture the request already carried — nothing a
-    caller passes can point the mirror somewhere else. */
+    approving is not an amnesty. The seed is a second, independent decision:
+    `acceptSeed: false` links the User onto the Medallion, and can only ever
+    refuse the picture the request already carried. */
 export async function approveClaim(
   db: Db,
   store: AvatarStore | null,

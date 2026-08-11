@@ -22,18 +22,18 @@ import { MAX_NOTE_LENGTH } from '#/claims/limits'
 import { ADMIN_PAGE_SIZE, Pager, pageParam } from '#/components/admin/pager'
 import { formatDayTime } from '#/lib/dates'
 import {
-  approveAmendmentRequest,
   approveClaimRequest,
+  approvePendingAmendment,
   clearClaimDenialRequest,
   denyClaimRequest,
-  rejectAmendmentRequest,
+  rejectPendingAmendment,
   reviewQueue,
 } from '#/claims/api'
+import { alreadyBroken } from '#/lib/images'
 
 /* Review: one screen where things await a Moderator, in two panels that never
-   merge — a claim is a judgement about identity, verified on Discord, and an
-   Amendment is a judgement about content. The route keeps its path; the tab
-   and the screen are Review. */
+   merge — a claim judges identity, an Amendment judges content. The route
+   keeps its path; the tab and the screen are Review. */
 
 export const Route = createFileRoute('/admin/claims')({
   validateSearch: (s: Record<string, unknown>) => ({ page: pageParam(s.page) }),
@@ -96,16 +96,15 @@ function ReviewQueue() {
     try {
       outcome = await fn()
     } catch (e) {
-      // Only a failed mutation is an error; a failed refresh below is not.
       setFailed({ key, message: errorMessage(e) })
-      setBusyKey(null)
-      return
     }
     // A resolve that lost the compare-and-set: the other Moderator's decision
     // stands, which is an outcome rather than a failure.
     if (unresolved(outcome)) setHandledElsewhere(true)
-    // The decision committed — a failed refresh must not read as a failure
-    // and invite a duplicate action against a row that no longer exists.
+    // Refetched whichever way it went, so a row somebody else resolved leaves
+    // rather than inviting a second action. The message above is keyed to its
+    // row, so it goes with the row and stays while the row stays. A failed
+    // refresh is not itself a failure.
     await router.invalidate().catch(() => undefined)
     setBusyKey(null)
   }
@@ -201,7 +200,7 @@ function ReviewQueue() {
                 disabled={busyKey != null}
                 onApprove={() =>
                   act(amendmentKey(amendment.id), () =>
-                    approveAmendmentRequest({
+                    approvePendingAmendment({
                       data: { amendmentId: amendment.id },
                     }),
                   )
@@ -255,7 +254,7 @@ function ReviewQueue() {
           setRejecting(null)
           setReason('')
           act(amendmentKey(amendment.id), () =>
-            rejectAmendmentRequest({
+            rejectPendingAmendment({
               data: { amendmentId: amendment.id, reason },
             }),
           )
@@ -559,8 +558,8 @@ function ClaimRow({
   )
 }
 
-/* One row per Amendment, rendered on `field` — a second shadowed field is a
-   renderer here and a row in this switch, not a new screen. */
+/* One row per Amendment. Avatar is the only shadowed field, so this renders
+   images; a second field brings its own rendering here, not its own screen. */
 function AmendmentRow({
   amendment,
   busy,
@@ -640,10 +639,10 @@ function AmendmentRow({
   )
 }
 
-/** The picture under judgement. A key can outlive its object and a Discord CDN
-    URL dies the moment its owner changes their picture, so a dead link renders
-    as plainly missing — never as a broken frame, and never as the Medallion,
-    which would read as a decision about something that is live. */
+/** The picture under judgement. A Discord CDN URL dies the moment its owner
+    changes their picture, so a dead link renders as plainly missing — never as
+    a broken frame, and never as the Medallion, which would read as a decision
+    about something that is live. */
 function ProposedImage({ url, alt }: { url: string | null; alt: string }) {
   const [failedUrl, setFailedUrl] = useState<string | null>(null)
   if (!url || failedUrl === url) {
@@ -667,10 +666,8 @@ function ProposedImage({ url, alt }: { url: string | null; alt: string }) {
         height={JUDGEABLE}
         style={{ width: JUDGEABLE, height: JUDGEABLE }}
         className="rounded-[10px] border border-hairline-soft object-cover"
-        // A server-rendered image that failed before hydration never fires an
-        // error at React, and a broken frame is exactly what must not render.
         ref={(node) => {
-          if (node?.complete && node.naturalWidth === 0) setFailedUrl(url)
+          if (alreadyBroken(node)) setFailedUrl(url)
         }}
         onError={() => setFailedUrl(url)}
       />
@@ -678,10 +675,9 @@ function ProposedImage({ url, alt }: { url: string | null; alt: string }) {
   )
 }
 
-/** The target is a day, carried by the UI rather than by policy: pending never
-    expires, in either direction. One threshold, not two — and the nag is the
-    semantic warn token, because /admin reserves the amber primary for the
-    single commit action per view. */
+/** A day is a target carried by the UI, never an expiry: no automatic
+    disposition is acceptable in either direction. The nag is the semantic warn
+    token — /admin spends its amber on the commit action. */
 function AgeStamp({ at }: { at: Date | string | null }) {
   if (!at) return null
   const submitted = at instanceof Date ? at : new Date(at)

@@ -386,6 +386,51 @@ test('approving publishes the proposal; refusing leaves what is live alone', asy
   )
 })
 
+test('a row another moderator already decided fails benignly and refreshes', async ({
+  page,
+}) => {
+  await withPlayer(
+    {
+      slug: 'e2e-review-raced',
+      displayName: 'Raced Holder',
+      ownerEmail: VIEWER,
+      avatarKey: 'avatars/0/live.webp',
+    },
+    async ({ sql, id }) => {
+      await propose(sql, id, VIEWER, `avatars/${id}/raced.webp`)
+      await page.goto(REVIEW)
+      const row = panel(page, 'Pending amendments')
+        .getByRole('listitem')
+        .filter({ hasText: 'Raced Holder' })
+      await expect(row).toBeVisible()
+
+      // The other Moderator decides while this page is open.
+      await sql`
+        update player_amendments set state = 'rejected', reviewed_at = now()
+        where player_id = ${id} and state = 'pending'
+      `
+      const auditedBefore = await sql<{ n: number }[]>`
+        select count(*)::int as n from audit_log
+        where entity = 'player' and entity_id = ${String(id)}
+      `
+      await row.getByRole('button', { name: 'Approve' }).click()
+
+      await expect(
+        page.getByText('Another moderator resolved that one first'),
+      ).toBeVisible()
+      await expect(row).toHaveCount(0)
+      // The decision that won stands: nothing was published, and the losing
+      // resolve wrote no second audit row.
+      expect(await publishedAvatar(sql, id)).toBe('avatars/0/live.webp')
+      const [{ n }] = await sql<{ n: number }[]>`
+        select count(*)::int as n from audit_log
+        where entity = 'player' and entity_id = ${String(id)}
+      `
+      expect(n).toBe(auditedBefore[0].n)
+    },
+  )
+})
+
 test('prior refusals are shown with their reasons, and hidden when there are none', async ({
   page,
 }) => {
@@ -532,9 +577,11 @@ test('registers no subscription and no refresh timer', async ({ page }) => {
       ).not.toHaveCount(0)
 
       // The want was correctness, not liveness: a compare-and-set closes the
-      // window two Moderators race in, and no refresh interval could.
+      // window two Moderators race in, and no refresh interval could. The
+      // instrumentation above is what proves it — the wait only catches a
+      // refetch fired straight after the load.
       const settled = calls.length
-      await page.waitForTimeout(3000)
+      await page.waitForTimeout(1000)
       expect(calls.slice(settled)).toEqual([])
       const watched = await page.evaluate(
         () =>

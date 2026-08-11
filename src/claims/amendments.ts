@@ -175,16 +175,10 @@ export async function listPendingAmendments(
     .leftJoin(profiles, eq(profiles.id, playerAmendments.submittedBy))
     .where(eq(playerAmendments.state, 'pending'))
     .orderBy(asc(playerAmendments.submittedAt), asc(playerAmendments.id))
-  return withPriorRejections(db, rows)
-}
-
-/** Only `rejected` counts: a `withdrawn` or `superseded` row was never refused,
-    and counting it would show a Moderator a history nobody wrote. */
-async function withPriorRejections<T extends { playerId: number }>(
-  db: Db,
-  rows: T[],
-): Promise<(T & { priorRejections: AmendmentRejection[] })[]> {
   if (rows.length === 0) return []
+
+  // Only `rejected` counts: a `withdrawn` or `superseded` row was never
+  // refused, and counting it would show a history nobody wrote.
   const refusals = await db
     .select({
       playerId: playerAmendments.playerId,

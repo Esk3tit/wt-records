@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Medallion } from '#/components/medallion'
+import { alreadyBroken } from '#/lib/images'
 
 /* A Player's face in the hall: the site-owned avatar when set, otherwise the
    Medallion. A lit, hairline-ringed disc — a floating object, not a boxed
@@ -35,12 +36,8 @@ export function PlayerAvatar({
           loading={eager ? 'eager' : 'lazy'}
           decoding="async"
           className="h-full w-full object-cover"
-          // An image that failed before hydration never fires an error at
-          // React, and the fallback has to happen for that one too.
           ref={(node) => {
-            if (node?.complete && node.naturalWidth === 0) {
-              setFailedUrl(avatarUrl)
-            }
+            if (alreadyBroken(node)) setFailedUrl(avatarUrl)
           }}
           onError={() => setFailedUrl(avatarUrl)}
         />
