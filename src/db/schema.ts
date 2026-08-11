@@ -151,8 +151,8 @@ export const players = pgTable(
     ),
   },
   (t) => [
-    // One approved Claim per User, as a fact rather than an intention; partial
-    // because accountless is the default state, not a duplicate of it.
+    // One approved Claim per User, as a fact rather than an intention;
+    // partial because accountless is the default state, not a duplicate.
     uniqueIndex('ply_user_uq')
       .on(t.userId)
       .where(sql`${t.userId} is not null`),
@@ -177,9 +177,8 @@ export const playerAliases = pgTable(
   (t) => [uniqueIndex('alias_uq').on(t.playerId, t.name, t.kind)],
 ).enableRLS()
 
-/* A Claim request. Approving consumes the row (the durable link is
-   players.user_id), so 'approved' is not a state a row can be found in;
-   a denial is kept, and that is what refuses the same ask a second time. */
+/* A Claim request. Approving consumes the row, so 'approved' is not a state
+   one can be found in; a denial is kept, and that refuses the second ask. */
 export const playerClaims = pgTable(
   'player_claims',
   {
@@ -194,7 +193,9 @@ export const playerClaims = pgTable(
     // Provider picture captured when the requester opted into the avatar seed;
     // null = they chose the Medallion. Mirrored to R2 only on approval.
     seedAvatarUrl: text('seed_avatar_url'),
-    state: text('state').notNull().default('pending'), // "pending" | "denied"
+    state: text('state', { enum: ['pending', 'denied'] })
+      .notNull()
+      .default('pending'),
     // Null on delete, not cascade: the denial outlives the moderator's account.
     decidedBy: uuid('decided_by').references(() => authUsers.id, {
       onDelete: 'set null',

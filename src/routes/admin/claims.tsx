@@ -36,8 +36,7 @@ function ClaimsQueue() {
   const queue = Route.useLoaderData()
   const router = useRouter()
   const [busyId, setBusyId] = useState<number | null>(null)
-  // Kept against the row that failed, so the message lands under the list the
-  // moderator was working in rather than at the far end of the page.
+  // Kept per row, so the message lands under the list being worked in.
   const [failed, setFailed] = useState<{ id: number; message: string } | null>(
     null,
   )
@@ -113,9 +112,10 @@ function ClaimsQueue() {
       </Panel>
 
       <DeniedClaims
-        claims={queue.denied}
+        claims={queue.denied.rows}
+        hasMore={queue.denied.hasMore}
         busyId={busyId}
-        error={errorIn(queue.denied)}
+        error={errorIn(queue.denied.rows)}
         onClear={(id) =>
           act(id, () => clearClaimDenialRequest({ data: { claimId: id } }))
         }
@@ -126,11 +126,13 @@ function ClaimsQueue() {
 
 function DeniedClaims({
   claims,
+  hasMore,
   busyId,
   error,
   onClear,
 }: {
   claims: QueuedClaim[]
+  hasMore: boolean
   busyId: number | null
   error: string | null
   onClear: (claimId: number) => void
@@ -176,6 +178,11 @@ function DeniedClaims({
           </li>
         ))}
       </ul>
+      {hasMore && (
+        <p className="mt-3 text-xs text-fg-faint">
+          The {claims.length} most recent — older denials still stand.
+        </p>
+      )}
       <ErrorNote error={error} />
     </Panel>
   )

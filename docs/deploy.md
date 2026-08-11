@@ -39,7 +39,17 @@ A contract migration also takes rollback away from you, which is the cost worth 
 
 A migration adding a UNIQUE or CHECK over existing rows fails outright if the data already breaks it, and it fails **inside the approval gate**, after you have opened it. Run its check against production first — reading is safe at any time, and a duplicate found beforehand is a decision rather than an incident.
 
-`0015_one_claim_per_user` is one of those: it makes "one approved Claim per User" a fact. Nobody may already hold two.
+The claim migrations are two of those, and **both** need checking — `0014` applies first, so a clean `0015` check is no comfort if `0014` is what fails.
+
+`0014_claim_state` allows one pending request per User. The old schema allowed one per *(user, player)* pair, so anyone with two open requests on different players breaks it:
+
+```sql
+select user_id, count(*), array_agg(player_id)
+from player_claims
+group by user_id having count(*) > 1;
+```
+
+`0015_one_claim_per_user` makes "one approved Claim per User" a fact. Nobody may already hold two:
 
 ```sql
 select user_id, count(*), array_agg(slug)
@@ -47,7 +57,7 @@ from players where user_id is not null
 group by user_id having count(*) > 1;
 ```
 
-Zero rows and the migration applies cleanly. Any rows and the extra Players must be revoked (`/admin/players/<id>` → Revoke claim) before it goes out — the constraint cannot pick which claim was the real one.
+Zero rows from both and the migrations apply cleanly. Rows from the first: deny the surplus requests in `/admin/claims` (a denial is remembered, so deny the ones you would refuse anyway). Rows from the second: revoke the extra claims (`/admin/players/<id>` → Revoke claim). Neither constraint can pick which one was the real one, which is why this is a decision to make before the gate opens rather than inside it.
 
 As a local last resort, migrate **through the Session pooler or Direct connection** — *not* the transaction pooler, because `drizzle-kit` uses prepared statements the transaction pooler rejects:
 

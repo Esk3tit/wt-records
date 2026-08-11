@@ -4,6 +4,7 @@ import { BadgeCheck, Clock, Loader2, ShieldOff } from 'lucide-react'
 import { Medallion } from '#/components/medallion'
 import { MAX_NOTE_LENGTH } from '#/claims/limits'
 import { errorMessage } from '#/lib/errors'
+import type { ViewerClaimState } from '#/claims/claims'
 import { submitClaimRequest } from '#/claims/api'
 
 export type ClaimViewer =
@@ -12,7 +13,7 @@ export type ClaimViewer =
       signedIn: true
       isOwner: boolean
       /** Where this viewer's own request on this Player stands. */
-      claimState: 'none' | 'pending' | 'denied'
+      claimState: ViewerClaimState
       canClaim: boolean
       providerAvatarUrl: string | null
     }

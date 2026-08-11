@@ -315,7 +315,7 @@ describe('denyClaim', () => {
     expect((await listPendingClaims(t.db)).map((c) => c.playerId)).toEqual([
       floppa.id,
     ])
-    expect(await listDeniedClaims(t.db)).toMatchObject([
+    expect((await listDeniedClaims(t.db)).rows).toMatchObject([
       {
         playerId: ace.id,
         requesterHandle: 'AceIRL',
@@ -338,7 +338,7 @@ describe('clearClaimDenial', () => {
     await denyClaim(t.db, MOD, id)
     await clearClaimDenial(t.db, MOD, id)
 
-    expect(await listDeniedClaims(t.db)).toHaveLength(0)
+    expect((await listDeniedClaims(t.db)).rows).toHaveLength(0)
     expect(await viewerClaimState(t.db, USER_A, ace.id)).toBe('none')
     await expect(requestClaim(t.db, USER_A, ace.id, {})).resolves.toBeDefined()
   })

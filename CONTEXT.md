@@ -40,7 +40,7 @@ A pending Claim — not a separate entity. Filed by a logged-in User; the link e
 
 **Revoke** (a Claim):
 The only way out of a Claim, and a Moderator act — one action serving three situations (a moderator's own mistake, a holder asking to leave, an abuse), told apart afterwards by the **reason** the moderator records with it. The Player returns to the accountless state and the revoked User is free to request a different Player; Records and Snapshots never move. Approving, denying, clearing a denial and revoking all land in the audit log against the Player.
-_Avoid_: release, unclaim, self-service unlinking — a User cannot sever their own Claim.
+_Avoid_ in product and interface copy: release, unclaim, self-service unlinking — a User cannot sever their own Claim. (Internally, `unclaim()` names the one code path back to accountless, which only Revoke reaches.)
 
 **Merge** (Players):
 Collapsing duplicate Player rows for the same person into one survivor: Records repoint, the duplicate's names become survivor Aliases, and the duplicate leaves a tombstone redirecting its old page. Records' Snapshots never change. Two claimed Players are never mergeable — two claims are two people (the User is the identity source of truth), and one User holds one Player, so a same-User pair cannot exist to begin with.
