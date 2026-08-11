@@ -204,8 +204,11 @@ test.describe('an Avatar awaiting review', () => {
         expect(await cacheHeaders()).toEqual(quiet)
 
         // And after the decision lands, which is the other half of the tell.
+        // Written as a decision actually is — a decided row carries its time.
         await sql`
-          update player_amendments set state = 'rejected' where player_id = ${id}
+          update player_amendments
+          set state = 'rejected', reviewed_at = now()
+          where player_id = ${id}
         `
         expect(await cacheHeaders()).toEqual(quiet)
         expect(quiet.cache).toContain('no-store')
