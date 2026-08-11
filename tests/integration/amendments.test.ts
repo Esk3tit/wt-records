@@ -9,7 +9,7 @@ import {
   approveAmendment,
   rejectAmendment,
 } from '#/claims/amendments'
-import { setOwnAvatar } from '#/claims/owner'
+import { removeOwnAvatar, setOwnAvatar } from '#/claims/owner'
 
 /* What a decision does to published state, and what each viewer is served
    afterwards. A row's `state` column on its own tests the machinery, not the
@@ -225,6 +225,54 @@ describe('a proposal that outlived its Claim', () => {
       reviewedAt: null,
     })
     expect(store.objects.has(proposed)).toBe(false)
+  })
+})
+
+describe('a proposal whose submitter was deleted outright', () => {
+  it('is withdrawn on the null-user leg, not just the mismatch one', async () => {
+    // The FK nulls submitted_by while user_id survives — the same orphaning
+    // from the other side, and a different branch of the same guard.
+    const ace = await claimedPlayer('ace', OWNER)
+    const store = fakeStore()
+    const proposed = `avatars/${ace.id}/orphaned.webp`
+    await store.put('assets', proposed, new Uint8Array([7]))
+    const row = await propose(ace.id, OWNER, proposed)
+    await t.db
+      .update(playerAmendments)
+      .set({ submittedBy: null })
+      .where(eq(playerAmendments.id, row.id))
+
+    expect(await approveAmendment(t.db, store, MOD, row.id)).toEqual({
+      resolved: false,
+    })
+    expect(await avatarKeyOf(ace.id)).toBeNull()
+    expect(await amendment(row.id)).toMatchObject({ state: 'withdrawn' })
+    expect(store.objects.has(proposed)).toBe(false)
+  })
+})
+
+describe('Remove photo against a proposal of the very same picture', () => {
+  it('closes both and leaves nobody pointing at the one shared object', async () => {
+    // Re-uploading the picture you already have published lands on the very
+    // key removal is about to dereference — one object, two references.
+    const ace = await claimedPlayer('ace', OWNER)
+    const store = fakeStore()
+    const { avatarKey } = await setOwnAvatar(
+      t.db,
+      store,
+      OWNER,
+      ace.id,
+      await pixel(),
+    )
+    await t.db.update(players).set({ avatarKey }).where(eq(players.id, ace.id))
+    const again = await setOwnAvatar(t.db, store, OWNER, ace.id, await pixel())
+    expect(again.avatarKey).toBe(avatarKey)
+
+    await removeOwnAvatar(t.db, store, OWNER, ace.id)
+
+    expect(await avatarKeyOf(ace.id)).toBeNull()
+    expect(await loadAmendmentViewer(t.db, OWNER)).toBeNull()
+    expect(store.objects.has(avatarKey)).toBe(false)
   })
 })
 

@@ -115,6 +115,104 @@ test.describe('an Avatar awaiting review', () => {
     return image
   }
 
+  /** Hands the current holder of a grb title to our owned Player for the body,
+      then puts the title back — the ledger and the vehicle sheet only render an
+      Avatar beside a holder, and the seed's holders are not ours to claim. */
+  async function asTitleHolder(
+    sql: Sql,
+    playerId: number,
+    body: (vehicleSlug: string) => Promise<void>,
+  ) {
+    const [held] = await sql<{ id: number; player_id: number; slug: string }[]>`
+      select r.id, r.player_id, v.slug
+      from records r join vehicles v on v.id = r.vehicle_id
+      where r.mode = 'grb' and r.is_current and r.status = 'verified'
+      order by r.id limit 1
+    `
+    await sql`update records set player_id = ${playerId} where id = ${held.id}`
+    try {
+      await body(held.slug)
+    } finally {
+      await sql`
+        update records set player_id = ${held.player_id} where id = ${held.id}
+      `
+    }
+  }
+
+  /* The profile page is not the only surface, and it is the only one whose
+     route was already viewer-aware. Dropping the viewer argument in the ledger
+     or the sheet loader is a one-line regression that every other case here
+     still passes. */
+  test('follows the holder onto the ledger and the vehicle sheet', async ({
+    page,
+    browser,
+  }) => {
+    const slug = 'e2e-avatar-shadow-ledger'
+    await withPlayer(
+      { ...ownedPlayer(slug), avatarKey: APPROVED },
+      async ({ sql, id }) => {
+        await sql`
+          insert into player_amendments (player_id, field, value, submitted_by)
+          values (${id}, 'avatar', ${PENDING},
+                  (select user_id from players where id = ${id}))
+        `
+        await asTitleHolder(sql, id, async (vehicleSlug) => {
+          const anon = await browser.newContext({ storageState: STATE.anon })
+          try {
+            for (const path of [
+              '/grb/vehicles',
+              `/grb/vehicle/${vehicleSlug}`,
+            ]) {
+              const own = await (await page.request.get(path)).text()
+              expect(own, path).toMatch(rendered(PENDING))
+              expect(own, path).not.toMatch(rendered(APPROVED))
+
+              const theirs = await (await anon.request.get(path)).text()
+              expect(theirs, path).toMatch(rendered(APPROVED))
+              expect(theirs, path).not.toMatch(rendered(PENDING))
+            }
+          } finally {
+            await anon.close()
+          }
+        })
+      },
+    )
+  })
+
+  /* The headers must not time the review for the holder: one that appeared
+     when they uploaded and vanished when a Moderator decided would tell them
+     everything the shadow exists to withhold. */
+  test('answers a holder in the same headers whether or not one is in flight', async ({
+    page,
+  }) => {
+    const slug = 'e2e-avatar-shadow-headers'
+    await withPlayer(
+      { ...ownedPlayer(slug), avatarKey: APPROVED },
+      async ({ sql, id }) => {
+        const cacheHeaders = async () => {
+          const res = await page.request.get('/grb/vehicles')
+          const h = res.headers()
+          return { cache: h['cache-control'] ?? null, vary: h['vary'] ?? null }
+        }
+
+        const quiet = await cacheHeaders()
+        await sql`
+          insert into player_amendments (player_id, field, value, submitted_by)
+          values (${id}, 'avatar', ${PENDING},
+                  (select user_id from players where id = ${id}))
+        `
+        expect(await cacheHeaders()).toEqual(quiet)
+
+        // And after the decision lands, which is the other half of the tell.
+        await sql`
+          update player_amendments set state = 'rejected' where player_id = ${id}
+        `
+        expect(await cacheHeaders()).toEqual(quiet)
+        expect(quiet.cache).toContain('no-store')
+      },
+    )
+  })
+
   test('is the holder’s alone, and never rides out on the share card', async ({
     page,
     browser,

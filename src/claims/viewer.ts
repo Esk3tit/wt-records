@@ -11,15 +11,15 @@ import { getSessionUser, hasAuthCookie } from '#/auth/supabase-server'
 
     A response that carries somebody's own unpublished value is theirs alone: a
     shared cache serving it on would hand the site the very image it is holding
-    back. */
+    back. Every signed-in response is marked private, not just the ones that
+    carry something — a header that appeared when a holder uploaded and
+    disappeared when a Moderator decided would time the review for them, which
+    is the one thing they must not be able to see. */
 export async function resolveAmendmentViewer(): Promise<AmendmentViewer | null> {
   if (!hasAuthCookie()) return null
+  setResponseHeader('Cache-Control', 'private, no-store')
+  setResponseHeader('Vary', 'Cookie')
   const user = await getSessionUser()
   if (!user) return null
-  const viewer = await loadAmendmentViewer(db, user.id)
-  if (viewer) {
-    setResponseHeader('Cache-Control', 'private, no-store')
-    setResponseHeader('Vary', 'Cookie')
-  }
-  return viewer
+  return loadAmendmentViewer(db, user.id)
 }

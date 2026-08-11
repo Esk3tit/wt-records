@@ -170,25 +170,40 @@ async function resolveAmendment(
   decision: { state: 'approved' | 'rejected'; reason: string | null },
 ): Promise<{ resolved: boolean }> {
   const outcome = await db.transaction(async (tx) => {
+    // The Player first, then the proposal — the order every owner-side write
+    // takes. Taking them the other way round is what deadlocks a Moderator's
+    // decision against the holder's next upload.
+    const target = (
+      await tx
+        .select({ playerId: playerAmendments.playerId })
+        .from(playerAmendments)
+        .where(eq(playerAmendments.id, amendmentId))
+    ).at(0)
+    if (!target) return { applied: false, keys: [] }
+    const player = (
+      await tx
+        .select({ userId: players.userId, avatarKey: players.avatarKey })
+        .from(players)
+        .where(eq(players.id, target.playerId))
+        .for('update')
+    ).at(0)
+    if (!player) return { applied: false, keys: [] }
+
     const claimed = (
       await tx
         .select({
           playerId: playerAmendments.playerId,
-          userId: players.userId,
-          avatarKey: players.avatarKey,
           submittedBy: playerAmendments.submittedBy,
           value: playerAmendments.value,
         })
         .from(playerAmendments)
-        .innerJoin(players, eq(players.id, playerAmendments.playerId))
         .where(
           and(
             eq(playerAmendments.id, amendmentId),
             eq(playerAmendments.state, 'pending'),
           ),
         )
-        // Both rows: the proposal is what two Moderators race for, and locking
-        // only the Player would let the loser read a stale `pending`.
+        // The proposal is what two Moderators race for, so it is locked too.
         .for('update')
     ).at(0)
     // Already resolved (or never pending): a benign no-op, not a write — the
@@ -198,7 +213,7 @@ async function resolveAmendment(
     // Deleting an auth User nulls players.user_id by FK without running
     // unclaim(), so a live proposal can outlive the Claim it belonged to. It
     // is the system's to close, not a Moderator's to decide.
-    if (claimed.userId == null || claimed.userId !== claimed.submittedBy) {
+    if (player.userId == null || player.userId !== claimed.submittedBy) {
       const keys = await closePendingAmendments(
         tx,
         claimed.playerId,
@@ -247,7 +262,7 @@ async function resolveAmendment(
       entity: 'player',
       entityId: claimed.playerId,
       diff: {
-        before: { avatarKey: claimed.avatarKey },
+        before: { avatarKey: player.avatarKey },
         after: { avatarKey: claimed.value },
         context: { amendmentId, field: 'avatar' },
       },
@@ -255,8 +270,8 @@ async function resolveAmendment(
     return {
       applied: true,
       keys:
-        claimed.avatarKey && claimed.avatarKey !== claimed.value
-          ? [claimed.avatarKey]
+        player.avatarKey && player.avatarKey !== claimed.value
+          ? [player.avatarKey]
           : [],
     }
   })
