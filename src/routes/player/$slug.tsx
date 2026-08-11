@@ -47,18 +47,17 @@ async function resolveClaimViewer(player: {
   const claimState = claimed
     ? 'none'
     : await viewerClaimState(db, user.id, player.id)
-  // Only asked when the form would otherwise render: what they hold elsewhere
-  // is the difference between offering a claim and offering a dead end.
-  const commitment =
+  // Asked only when the form would otherwise render: a User already holding a
+  // Claim (or waiting on one) is offered nothing here rather than a dead end.
+  const committedElsewhere =
     !claimed && claimState === 'none'
-      ? await viewerClaimCommitment(db, user.id)
-      : null
-  const canClaim = !claimed && claimState === 'none' && commitment == null
+      ? (await viewerClaimCommitment(db, user.id)) != null
+      : false
+  const canClaim = !claimed && claimState === 'none' && !committedElsewhere
   return {
     signedIn: true,
     isOwner: player.userId === user.id,
     claimState,
-    commitment,
     canClaim,
     // Offered only when a claim is actually possible — never leaked otherwise.
     providerAvatarUrl: canClaim ? providerAvatarUrl(user) : null,
