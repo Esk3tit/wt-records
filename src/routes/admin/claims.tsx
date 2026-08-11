@@ -455,12 +455,10 @@ function ClaimRow({
   // The seed decision lives with the row it is about; rows are keyed by id, so
   // it survives a refetch exactly as the row does.
   const [acceptSeed, setAcceptSeed] = useState(true)
-  const [loadFailed, setLoadFailed] = useState(false)
-  // No URL at all is as unseeable as one that would not load, and derived
-  // rather than remembered so the two can never disagree. A picture nobody
-  // could look at is never seeded — but the claim itself is a separate
-  // decision, and stays open.
-  const unseeable = claim.seedAvatarUrl == null || loadFailed
+  const [seen, setSeen] = useState(false)
+  // A picture nobody has looked at is never seeded — whether it failed, or has
+  // simply not arrived. The claim itself is a separate decision and stays open.
+  const unseeable = claim.seedAvatarUrl == null || !seen
   const seeding = acceptSeed && !unseeable
   return (
     <li className={`${claimCardClass} p-4`}>
@@ -498,7 +496,7 @@ function ClaimRow({
               <ProposedImage
                 url={claim.seedAvatarUrl}
                 alt={`Avatar ${claim.requesterHandle ?? 'this user'} would seed`}
-                onUnseeable={() => setLoadFailed(true)}
+                onSeen={setSeen}
               />
               <figcaption className="mt-2 max-w-[200px] text-xs text-fg-muted">
                 <label className="flex items-center gap-2">
@@ -572,11 +570,11 @@ function AmendmentRow({
   onReject: () => void
 }) {
   // Publishing is the one thing that must not be possible without having seen
-  // it: a load that failed here proves the picture is unseen, never that it is
-  // harmless, and no URL at all is the same fact arriving earlier. Reject stays
-  // open — refusing something unshowable is a decision.
-  const [loadFailed, setLoadFailed] = useState(false)
-  const unseeable = amendment.valueUrl == null || loadFailed
+  // it, so the gate is on the picture having arrived rather than on nothing
+  // having gone wrong yet — a slow load is as unseen as a dead one. Reject
+  // stays open: refusing something unshowable is a decision.
+  const [seen, setSeen] = useState(false)
+  const unseeable = amendment.valueUrl == null || !seen
   return (
     <li className={`${claimCardClass} p-4`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -600,7 +598,7 @@ function AmendmentRow({
               <ProposedImage
                 url={amendment.valueUrl}
                 alt={`Proposed avatar for ${amendment.playerDisplayName}`}
-                onUnseeable={() => setLoadFailed(true)}
+                onSeen={setSeen}
               />
               <figcaption className="mt-2 text-xs tracking-wide text-fg-faint uppercase">
                 Proposed
@@ -659,23 +657,22 @@ function AmendmentRow({
     a broken frame, and never as the Medallion, which would read as a decision
     about something that is live.
 
-    `onUnseeable` fires when it cannot be shown, because a load that failed on
-    this machine says nothing about whether the picture exists: the row must
-    stop offering to publish what nobody has looked at. */
+    `onSeen` reports whether it is actually on the screen — and says so only
+    once it is, never merely because nothing has gone wrong yet. A row must not
+    offer to publish a picture that has not arrived. */
 function ProposedImage({
   url,
   alt,
-  onUnseeable,
+  onSeen,
 }: {
   url: string | null
   alt: string
-  onUnseeable: () => void
+  onSeen: (seen: boolean) => void
 }) {
   const [failedUrl, setFailedUrl] = useState<string | null>(null)
-  const missed = (node: HTMLImageElement | null) => {
-    if (!alreadyBroken(node)) return
-    setFailedUrl(url)
-    onUnseeable()
+  const settle = (seen: boolean) => {
+    if (!seen) setFailedUrl(url)
+    onSeen(seen)
   }
   if (!url || failedUrl === url) {
     return (
@@ -701,11 +698,13 @@ function ProposedImage({
         referrerPolicy="no-referrer"
         style={{ width: JUDGEABLE, height: JUDGEABLE }}
         className="rounded-[10px] border border-hairline-soft object-cover"
-        ref={missed}
-        onError={() => {
-          setFailedUrl(url)
-          onUnseeable()
+        // A picture already decoded before React arrived fires no load event,
+        // so the ref asks; `alreadyBroken` is the failed half of that question.
+        ref={(node) => {
+          if (node?.complete) settle(!alreadyBroken(node))
         }}
+        onLoad={() => settle(true)}
+        onError={() => settle(false)}
       />
     </a>
   )
