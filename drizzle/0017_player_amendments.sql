@@ -26,5 +26,11 @@ CREATE INDEX "amend_player_idx" ON "player_amendments" USING btree ("player_id")
 -- Live avatars are grandfathered in as approved and get no rows: a value is
 -- approved because it sits on `players`. The one exception is an accountless
 -- row, whose key no surface publishes and which would resurrect on a re-claim.
+--
+-- This strands whatever those keys pointed at: nothing references them after
+-- the UPDATE, so the reference-guarded cleanup can never find them again. That
+-- is the accepted price of owning no reclamation lifecycle, and it is one-time.
+-- To collect them anyway, read them BEFORE applying and delete them by hand:
+--   SELECT avatar_key FROM players WHERE user_id IS NULL AND avatar_key IS NOT NULL;
 UPDATE "players" SET "avatar_key" = NULL
 WHERE "user_id" IS NULL AND "avatar_key" IS NOT NULL;
