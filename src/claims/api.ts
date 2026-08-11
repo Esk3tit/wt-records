@@ -19,6 +19,7 @@ import {
   setOwnCountry,
 } from '#/claims/claims'
 import {
+  nonNegativeInt,
   optionalNote,
   positiveInt,
   requiredReason,
@@ -92,16 +93,18 @@ export const setMyCountry = createServerFn({ method: 'POST' })
 /* ── Moderator ───────────────────────────────────────────────── */
 
 /* One round trip: the work waiting, and the denials, which are not work. */
-export const claimQueue = createServerFn({ method: 'GET' }).handler(
-  async () => {
+export const claimQueue = createServerFn({ method: 'GET' })
+  .validator((data?: { deniedOffset?: number }) => ({
+    deniedOffset: nonNegativeInt(data?.deniedOffset ?? 0, 'deniedOffset'),
+  }))
+  .handler(async ({ data }) => {
     await requireModerator()
     const [pending, denied] = await Promise.all([
       listPendingClaims(db),
-      listDeniedClaims(db),
+      listDeniedClaims(db, { offset: data.deniedOffset }),
     ])
     return { pending, denied }
-  },
-)
+  })
 
 export const approveClaimRequest = createServerFn({ method: 'POST' })
   .validator((data: { claimId: number }) => ({

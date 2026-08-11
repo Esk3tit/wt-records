@@ -3,7 +3,13 @@ import { asc, eq, inArray } from 'drizzle-orm'
 import { freshDb } from './pglite'
 import type { TestDb } from './pglite'
 import { seed } from '#/db/seed'
-import { playerAliases, playerClaims, players, records } from '#/db/schema'
+import {
+  playerAliases,
+  playerClaims,
+  players,
+  profiles,
+  records,
+} from '#/db/schema'
 import {
   addAlias,
   getAdminPlayer,
@@ -14,7 +20,12 @@ import {
   resetPlayerAvatar,
   searchAdminPlayers,
 } from '#/admin/players'
-import { deleteAvatarIfUnreferenced } from '#/claims/claims'
+import {
+  deleteAvatarIfUnreferenced,
+  denyClaim,
+  requestClaim,
+  viewerClaimState,
+} from '#/claims/claims'
 import { listAudit } from '#/admin/audit'
 
 /** In-memory stand-in for the R2 assets bucket (mirrors claims.test.ts). */
@@ -42,6 +53,8 @@ beforeEach(async () => {
   await seed(t.db)
   for (const id of [MOD, USER_A, USER_B]) {
     await t.client.query('insert into auth.users (id) values ($1)', [id])
+    // A claimant with no Profile row cannot be locked, so cannot request.
+    await t.db.insert(profiles).values({ id })
   }
 })
 afterEach(async () => {
@@ -351,6 +364,25 @@ describe('mergePlayers', () => {
       .from(playerClaims)
       .where(eq(playerClaims.playerId, ace.id))
     expect(left).toHaveLength(0)
+  })
+
+  it('carries a denial to the survivor, so a merge cannot launder one', async () => {
+    const ace = await playerBySlug('ace')
+    const floppa = await playerBySlug('floppa')
+    const denied = await requestClaim(t.db, USER_A, floppa.id, {})
+    await denyClaim(t.db, MOD, denied.id)
+    // The same user is mid-request on the survivor; the denial outranks it.
+    await t.db.insert(playerClaims).values({ playerId: ace.id, userId: USER_A })
+
+    await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
+
+    expect(await viewerClaimState(t.db, USER_A, ace.id)).toBe('denied')
+    await expect(requestClaim(t.db, USER_A, ace.id, {})).rejects.toThrow(
+      /denied/i,
+    )
   })
 
   it('refuses self-merge and re-merge of a tombstone', async () => {

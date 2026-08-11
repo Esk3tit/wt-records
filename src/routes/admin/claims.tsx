@@ -1,5 +1,10 @@
 import { useState } from 'react'
-import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
+import {
+  Link,
+  createFileRoute,
+  useNavigate,
+  useRouter,
+} from '@tanstack/react-router'
 import { ImageOff, Image as ImageIcon } from 'lucide-react'
 import {
   ErrorNote,
@@ -9,6 +14,7 @@ import {
   errorMessage,
   subtleButtonClass,
 } from '#/components/admin/ui'
+import { ADMIN_PAGE_SIZE, Pager, pageParam } from '#/components/admin/pager'
 import { formatDayTime } from '#/lib/dates'
 import {
   approveClaimRequest,
@@ -18,9 +24,13 @@ import {
 } from '#/claims/api'
 
 export const Route = createFileRoute('/admin/claims')({
-  loader: async ({ context }) => {
+  validateSearch: (s: Record<string, unknown>) => ({ page: pageParam(s.page) }),
+  loaderDeps: ({ search }) => search,
+  loader: async ({ context, deps }) => {
     if (context.gate.state !== 'moderator') return null
-    return claimQueue()
+    return claimQueue({
+      data: { deniedOffset: ((deps.page ?? 1) - 1) * ADMIN_PAGE_SIZE },
+    })
   },
   component: ClaimsQueue,
 })
@@ -34,6 +44,8 @@ const claimCardClass =
 
 function ClaimsQueue() {
   const queue = Route.useLoaderData()
+  const page = Route.useSearch().page ?? 1
+  const navigate = useNavigate({ from: Route.fullPath })
   const router = useRouter()
   const [busyId, setBusyId] = useState<number | null>(null)
   // Kept per row, so the message lands under the list being worked in.
@@ -114,6 +126,8 @@ function ClaimsQueue() {
       <DeniedClaims
         claims={queue.denied.rows}
         hasMore={queue.denied.hasMore}
+        page={page}
+        onPage={(p) => navigate({ search: { page: p } })}
         busyId={busyId}
         error={errorIn(queue.denied.rows)}
         onClear={(id) =>
@@ -127,17 +141,21 @@ function ClaimsQueue() {
 function DeniedClaims({
   claims,
   hasMore,
+  page,
+  onPage,
   busyId,
   error,
   onClear,
 }: {
   claims: QueuedClaim[]
   hasMore: boolean
+  page: number
+  onPage: (page: number | undefined) => void
   busyId: number | null
   error: string | null
   onClear: (claimId: number) => void
 }) {
-  if (claims.length === 0) return null
+  if (claims.length === 0 && page <= 1) return null
   return (
     <Panel title="Denied requests">
       <p className="mb-4 max-w-prose text-sm text-fg-muted">
@@ -145,6 +163,9 @@ function DeniedClaims({
         again. Clear one you denied for something fixable — a useless note, the
         wrong player picked by accident — and they may ask once more.
       </p>
+      {claims.length === 0 && (
+        <p className="text-sm text-fg-faint">Nothing this far back.</p>
+      )}
       <ul className="space-y-2">
         {claims.map((claim) => (
           <li
@@ -178,11 +199,7 @@ function DeniedClaims({
           </li>
         ))}
       </ul>
-      {hasMore && (
-        <p className="mt-3 text-xs text-fg-faint">
-          The {claims.length} most recent — older denials still stand.
-        </p>
-      )}
+      <Pager page={page} hasMore={hasMore} onPage={onPage} />
       <ErrorNote error={error} />
     </Panel>
   )

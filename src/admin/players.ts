@@ -423,6 +423,39 @@ export async function mergePlayers(
         eq(playerClaims.state, 'pending'),
       ),
     )
+    // The duplicate's denials move to the survivor, or the merge would launder
+    // them: the tombstone redirects, and every claim check reads the survivor.
+    const deniedOnDuplicate = await tx
+      .select({ userId: playerClaims.userId })
+      .from(playerClaims)
+      .where(
+        and(
+          eq(playerClaims.playerId, duplicate.id),
+          eq(playerClaims.state, 'denied'),
+        ),
+      )
+    if (deniedOnDuplicate.length > 0) {
+      const deniedUsers = deniedOnDuplicate.map((c) => c.userId)
+      // A denial on either side outranks whatever that user held on the
+      // survivor, so the surviving pair is denied however the two lined up.
+      await tx
+        .delete(playerClaims)
+        .where(
+          and(
+            eq(playerClaims.playerId, survivor.id),
+            inArray(playerClaims.userId, deniedUsers),
+          ),
+        )
+      await tx
+        .update(playerClaims)
+        .set({ playerId: survivor.id })
+        .where(
+          and(
+            eq(playerClaims.playerId, duplicate.id),
+            eq(playerClaims.state, 'denied'),
+          ),
+        )
+    }
     // Keep tombstones one hop deep: anything merged into the duplicate
     // earlier now points straight at the survivor.
     await tx

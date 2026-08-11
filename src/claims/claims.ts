@@ -731,14 +731,16 @@ export async function listPendingClaims(db: Db): Promise<ClaimQueueRow[]> {
 }
 
 /** The denials, most recent first. The pending queue drains; this only ever
-    grows, so it pages. */
+    grows, so it pages — every denial has to stay reachable to be cleared. */
 export async function listDeniedClaims(
   db: Db,
-  limit = ADMIN_PAGE_SIZE,
+  opts: { limit?: number; offset?: number } = {},
 ): Promise<{ rows: ClaimQueueRow[]; hasMore: boolean }> {
+  const limit = opts.limit ?? ADMIN_PAGE_SIZE
   const rows = await claimQueueSelect(db)
     .where(eq(playerClaims.state, 'denied'))
     .orderBy(desc(playerClaims.decidedAt), desc(playerClaims.id))
     .limit(limit + 1)
+    .offset(opts.offset ?? 0)
   return { rows: rows.slice(0, limit), hasMore: rows.length > limit }
 }

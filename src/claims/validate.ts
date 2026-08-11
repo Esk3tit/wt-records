@@ -5,6 +5,13 @@ import { normalizeCountryCode } from '#/lib/countries'
    endpoints take untrusted network payloads, so ids and notes are checked
    here rather than trusting the compile-time types. */
 
+export function nonNegativeInt(value: unknown, field: string): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) {
+    throw new Error(`${field} must be a whole number`)
+  }
+  return value
+}
+
 export function positiveInt(value: unknown, field: string): number {
   // isSafeInteger, not isInteger: values past 2^53 collapse in JSON transport.
   if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0) {
