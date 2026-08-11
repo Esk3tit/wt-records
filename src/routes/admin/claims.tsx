@@ -455,9 +455,12 @@ function ClaimRow({
   // The seed decision lives with the row it is about; rows are keyed by id, so
   // it survives a refetch exactly as the row does.
   const [acceptSeed, setAcceptSeed] = useState(true)
-  const [unseeable, setUnseeable] = useState(false)
-  // A picture nobody could look at is never seeded — but the claim itself is a
-  // separate decision, and stays open.
+  const [loadFailed, setLoadFailed] = useState(false)
+  // No URL at all is as unseeable as one that would not load, and derived
+  // rather than remembered so the two can never disagree. A picture nobody
+  // could look at is never seeded — but the claim itself is a separate
+  // decision, and stays open.
+  const unseeable = claim.seedAvatarUrl == null || loadFailed
   const seeding = acceptSeed && !unseeable
   return (
     <li className={`${claimCardClass} p-4`}>
@@ -495,7 +498,7 @@ function ClaimRow({
               <ProposedImage
                 url={claim.seedAvatarUrl}
                 alt={`Avatar ${claim.requesterHandle ?? 'this user'} would seed`}
-                onUnseeable={() => setUnseeable(true)}
+                onUnseeable={() => setLoadFailed(true)}
               />
               <figcaption className="mt-2 max-w-[200px] text-xs text-fg-muted">
                 <label className="flex items-center gap-2">
@@ -570,8 +573,10 @@ function AmendmentRow({
 }) {
   // Publishing is the one thing that must not be possible without having seen
   // it: a load that failed here proves the picture is unseen, never that it is
-  // harmless. Reject stays open — refusing something unshowable is a decision.
-  const [unseeable, setUnseeable] = useState(false)
+  // harmless, and no URL at all is the same fact arriving earlier. Reject stays
+  // open — refusing something unshowable is a decision.
+  const [loadFailed, setLoadFailed] = useState(false)
+  const unseeable = amendment.valueUrl == null || loadFailed
   return (
     <li className={`${claimCardClass} p-4`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -595,7 +600,7 @@ function AmendmentRow({
               <ProposedImage
                 url={amendment.valueUrl}
                 alt={`Proposed avatar for ${amendment.playerDisplayName}`}
-                onUnseeable={() => setUnseeable(true)}
+                onUnseeable={() => setLoadFailed(true)}
               />
               <figcaption className="mt-2 text-xs tracking-wide text-fg-faint uppercase">
                 Proposed
