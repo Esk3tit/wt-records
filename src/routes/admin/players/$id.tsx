@@ -28,6 +28,7 @@ import {
 } from '#/admin/api'
 import { ClaimedChip } from '#/components/claimed-chip'
 import { revokePlayerClaim } from '#/claims/api'
+import { MAX_NOTE_LENGTH } from '#/claims/limits'
 
 export const Route = createFileRoute('/admin/players/$id')({
   loader: async ({ context, params }) => {
@@ -58,17 +59,19 @@ function PlayerDetailInner() {
 
   const refresh = () => router.invalidate()
 
+  /** Reports whether the write landed, so a dialog knows to stay open. */
   const call = async (fn: () => Promise<unknown>) => {
     setError(null)
     try {
       await fn()
     } catch (e) {
       setError(errorMessage(e))
-      return
+      return false
     }
     // The mutation committed — a failed refresh must not read as a failure
     // (e.g. a revoke that succeeded but left the ClaimedChip until reload).
     await refresh().catch(() => undefined)
+    return true
   }
 
   if (player.mergedInto != null) {
@@ -116,14 +119,18 @@ function PlayerDetailInner() {
         <p className="mt-2 text-xs text-fg-faint">Last IGN used: {lastIgn}</p>
         {player.userId && (
           <ClaimStatus
+            error={error}
+            onDismissError={() => setError(null)}
             hasAvatar={player.avatarKey != null}
             onResetAvatar={() =>
               call(() =>
                 adminResetPlayerAvatar({ data: { playerId: player.id } }),
               )
             }
-            onRevoke={() =>
-              call(() => revokePlayerClaim({ data: { playerId: player.id } }))
+            onRevoke={(reason) =>
+              call(() =>
+                revokePlayerClaim({ data: { playerId: player.id, reason } }),
+              )
             }
           />
         )}
@@ -273,8 +280,8 @@ function MergePanel({
       <p className="mb-3 text-sm text-fg-muted">
         <strong className="text-fg">{survivor.displayName}</strong> survives:
         the duplicate's records repoint here, its names become aliases, and its
-        page redirects here. Refused when both players are claimed by different
-        users.
+        page redirects here. Refused when both players are claimed — one user
+        holds one player, so two claims are two people.
       </p>
       <div className="max-w-sm">
         <AsyncCombobox
@@ -343,23 +350,40 @@ function MergePanel({
 }
 
 function ClaimStatus({
+  error,
+  onDismissError,
   hasAvatar,
   onResetAvatar,
   onRevoke,
 }: {
+  error: string | null
+  /** The error is route-wide, so a dialog must not open onto someone else's. */
+  onDismissError: () => void
   hasAvatar: boolean
-  onResetAvatar: () => Promise<void> | void
-  onRevoke: () => Promise<void> | void
+  onResetAvatar: () => Promise<boolean>
+  onRevoke: (reason: string) => Promise<boolean>
 }) {
   const [confirming, setConfirming] = useState<'reset' | 'revoke' | null>(null)
   const [busy, setBusy] = useState(false)
-  const run = async (action: () => Promise<void> | void) => {
+  const [reason, setReason] = useState('')
+  const open = (dialog: 'reset' | 'revoke') => {
+    onDismissError()
+    setConfirming(dialog)
+  }
+  const close = () => {
+    onDismissError()
+    setConfirming(null)
+    setReason('')
+  }
+  const run = async (action: () => Promise<boolean>) => {
     setBusy(true)
-    try {
-      await action()
-    } finally {
-      setBusy(false)
+    const committed = await action()
+    setBusy(false)
+    // A failed write keeps the dialog and the typed reason: retyping one to
+    // retry is the moderator paying for our error.
+    if (committed) {
       setConfirming(null)
+      setReason('')
     }
   }
   return (
@@ -369,7 +393,7 @@ function ClaimStatus({
         <button
           type="button"
           className="text-sm text-fg-muted transition-colors duration-200 hover:text-fg"
-          onClick={() => setConfirming('reset')}
+          onClick={() => open('reset')}
         >
           Reset avatar
         </button>
@@ -377,7 +401,7 @@ function ClaimStatus({
       <button
         type="button"
         className="text-sm text-status-danger transition-[filter] duration-200 hover:brightness-110"
-        onClick={() => setConfirming('revoke')}
+        onClick={() => open('revoke')}
       >
         Revoke claim
       </button>
@@ -387,26 +411,51 @@ function ClaimStatus({
         confirmLabel="Reset"
         busy={busy}
         onConfirm={() => run(onResetAvatar)}
-        onCancel={() => setConfirming(null)}
+        onCancel={close}
       >
         <p>
           The avatar returns to the Medallion and the stored image is deleted.
           The claim is untouched, and the owner can upload a new one.
         </p>
+        <ErrorNote error={error} />
       </ConfirmDialog>
       <ConfirmDialog
         open={confirming === 'revoke'}
         title="Revoke this claim?"
         confirmLabel="Revoke"
         busy={busy}
-        onConfirm={() => run(onRevoke)}
-        onCancel={() => setConfirming(null)}
+        confirmDisabled={reason.trim().length === 0}
+        onConfirm={() => run(() => onRevoke(reason))}
+        onCancel={close}
       >
         <p>
           The player returns to the accountless state and its avatar resets to
-          the Medallion. Records and snapshots are untouched, and the user can
-          claim again.
+          the Medallion. Records and snapshots are untouched.
         </p>
+        <p>
+          Revoking is the only way out of a claim — a mistake, a request to
+          leave and a punishment all come through here, so the reason is what
+          tells them apart later.
+        </p>
+        <p>
+          It frees the player, not the user: they may request this one again, or
+          any other. If this is a punishment, deny that request when it comes —
+          a denial is what makes the refusal stick.
+        </p>
+        <Field
+          label="Reason"
+          hint="Required — recorded in the audit log against this player."
+        >
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            maxLength={MAX_NOTE_LENGTH}
+            rows={2}
+            placeholder="e.g. asked to be unlinked, or claimed the wrong player"
+            className={inputClass}
+          />
+        </Field>
+        <ErrorNote error={error} />
       </ConfirmDialog>
     </div>
   )

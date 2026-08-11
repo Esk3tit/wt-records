@@ -35,6 +35,31 @@ A contract migration also takes rollback away from you, which is the cost worth 
 
 `0011_portrait_columns` was the expand half of exactly that, and `0013_drop_image_columns` its contract half. Note what gated the two: the contract half could not ship until a content-addressed sync had re-keyed every portrait, because the columns it drops were the only record of which mirrored objects that run had to delete. A contract migration waits on the data catching up, not just on the code.
 
+### Migrations that constrain live data
+
+A migration adding a UNIQUE or CHECK over existing rows fails outright if the data already breaks it, and it fails **inside the approval gate**, after you have opened it. Run its check against production first — reading is safe at any time, and a duplicate found beforehand is a decision rather than an incident.
+
+`0014_claim_state` would be one of those, and instead **resolves its own** — the two legacy shapes are unreviewable by hand (nobody can say which of a user's open requests was the real one), so the migration decides deterministically rather than aborting mid-gate. It deletes a User's requests where they already hold a Player, and all but their earliest where they filed several. Deleted, never denied: a denial is remembered forever, and none of these was a moderator's decision. To see what it will drop, before it drops it:
+
+```sql
+select c.user_id, count(*), array_agg(c.player_id)
+from player_claims c
+group by c.user_id having count(*) > 1;
+
+select c.id, c.user_id, c.player_id
+from player_claims c join players p on p.user_id = c.user_id;
+```
+
+`0015_one_claim_per_user` is the one that stops. It makes "one approved Claim per User" a fact, and nobody may already hold two:
+
+```sql
+select user_id, count(*), array_agg(slug)
+from players where user_id is not null
+group by user_id having count(*) > 1;
+```
+
+Zero rows and it applies cleanly. Any rows and the extra claims must be revoked (`/admin/players/<id>` → Revoke claim) first — unlike a stale request, a claim is somebody's identity on the site, so which one goes is a judgement rather than a rule, and it is one to make before the gate opens rather than inside it.
+
 As a local last resort, migrate **through the Session pooler or Direct connection** — *not* the transaction pooler, because `drizzle-kit` uses prepared statements the transaction pooler rejects:
 
 ```bash

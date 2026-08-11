@@ -1,17 +1,21 @@
 import { useState } from 'react'
 import { useRouter } from '@tanstack/react-router'
-import { BadgeCheck, Clock, Loader2 } from 'lucide-react'
+import { BadgeCheck, Clock, Loader2, ShieldOff } from 'lucide-react'
 import { Medallion } from '#/components/medallion'
 import { MAX_NOTE_LENGTH } from '#/claims/limits'
 import { errorMessage } from '#/lib/errors'
-import { releaseMyClaim, submitClaimRequest } from '#/claims/api'
+import type { ClaimCommitment, ViewerClaimState } from '#/claims/claims'
+import { submitClaimRequest } from '#/claims/api'
 
 export type ClaimViewer =
   | { signedIn: false }
   | {
       signedIn: true
       isOwner: boolean
-      pending: boolean
+      /** Where this viewer's own request on this Player stands. */
+      claimState: ViewerClaimState
+      /** What they hold or await elsewhere, which is what blocks them here. */
+      commitment: ClaimCommitment | null
       canClaim: boolean
       providerAvatarUrl: string | null
     }
@@ -24,8 +28,8 @@ const ghostButton =
   'tap-reach inline-flex items-center justify-center gap-1.5 rounded border border-hairline-soft px-3.5 py-2 text-sm font-semibold text-fg-muted no-underline transition-colors duration-200 hover:text-fg disabled:cursor-not-allowed disabled:opacity-50'
 
 /* The one claim affordance on a Player page, resolving to exactly one state for
-   the viewer: sign-in-to-claim, request a claim, pending review, or "your page"
-   with release. A page claimed by someone else shows nothing here — only the
+   the viewer: sign-in-to-claim, request a claim, pending review, denied, or
+   "your page". A page claimed by someone else shows nothing here — only the
    quiet indicator in the header. */
 export function ClaimPanel({
   playerId,
@@ -79,21 +83,29 @@ export function ClaimPanel({
     )
   } else if (viewer.isOwner) {
     content = (
-      <OwnerControls
-        busy={busy}
-        error={error}
-        onRelease={() => run(() => releaseMyClaim({ data: { playerId } }))}
-      />
+      <p className="flex items-center gap-1.5 text-sm font-medium text-fg">
+        <BadgeCheck size={16} className="shrink-0 text-fg-muted" aria-hidden />
+        This is your page
+      </p>
     )
-  } else if (viewer.pending) {
+  } else if (viewer.claimState === 'pending') {
     content = (
-      <div className="flex items-center gap-2 text-sm text-fg-muted">
-        <Clock size={15} className="shrink-0" aria-hidden />
-        <span>
-          Claim pending review — a moderator verifies this on Discord.
-        </span>
-      </div>
+      <ClaimNote icon={<Clock size={15} className="shrink-0" aria-hidden />}>
+        Claim pending review — a moderator verifies this on Discord. Picked the
+        wrong player? Ask them to deny it.
+      </ClaimNote>
     )
+  } else if (viewer.claimState === 'denied') {
+    content = (
+      <ClaimNote
+        icon={<ShieldOff size={15} className="shrink-0" aria-hidden />}
+      >
+        This request was denied. Ask a moderator on Discord if that was a
+        mistake.
+      </ClaimNote>
+    )
+  } else if (viewer.commitment) {
+    content = <CommittedElsewhere commitment={viewer.commitment} />
   } else if (viewer.canClaim) {
     content = (
       <ClaimForm
@@ -112,6 +124,49 @@ export function ClaimPanel({
   if (!content) return null
   return (
     <div className="mt-5 border-t border-hairline-soft pt-5">{content}</div>
+  )
+}
+
+/* Naming the page they are held by: without it "you already hold a claim"
+   reads as a refusal they cannot act on. */
+function CommittedElsewhere({ commitment }: { commitment: ClaimCommitment }) {
+  const held = commitment.kind === 'holds'
+  return (
+    <ClaimNote
+      icon={
+        held ? (
+          <BadgeCheck size={15} className="shrink-0" aria-hidden />
+        ) : (
+          <Clock size={15} className="shrink-0" aria-hidden />
+        )
+      }
+    >
+      {held ? 'Your claim is on ' : 'Your claim request on '}
+      <a
+        className="underline decoration-hairline underline-offset-2 hover:text-fg"
+        href={`/player/${commitment.playerSlug}`}
+      >
+        {commitment.playerDisplayName}
+      </a>
+      {held
+        ? ' — a moderator has to revoke it before you can claim another player.'
+        : ' is still waiting on a moderator. One at a time.'}
+    </ClaimNote>
+  )
+}
+
+function ClaimNote({
+  icon,
+  children,
+}: {
+  icon: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <div className="flex items-start gap-2 text-sm text-fg-muted">
+      <span className="mt-0.5">{icon}</span>
+      <span>{children}</span>
+    </div>
   )
 }
 
@@ -289,59 +344,5 @@ function SeedOption({
       <span className="shrink-0">{preview}</span>
       <span className="text-sm font-medium">{label}</span>
     </button>
-  )
-}
-
-function OwnerControls({
-  busy,
-  error,
-  onRelease,
-}: {
-  busy: boolean
-  error: string | null
-  onRelease: () => void
-}) {
-  const [confirming, setConfirming] = useState(false)
-  return (
-    <div className="space-y-2">
-      <p className="flex items-center gap-1.5 text-sm font-medium text-fg">
-        <BadgeCheck size={16} className="shrink-0 text-fg-muted" aria-hidden />
-        This is your page
-      </p>
-      {confirming ? (
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-fg-muted">Release this claim?</span>
-          <button
-            type="button"
-            className="tap-reach text-sm font-semibold text-status-danger hover:brightness-110 disabled:opacity-50"
-            disabled={busy}
-            onClick={onRelease}
-          >
-            {busy ? 'Releasing…' : 'Release'}
-          </button>
-          <button
-            type="button"
-            className="tap-reach text-sm text-fg-muted hover:text-fg disabled:opacity-50"
-            disabled={busy}
-            onClick={() => setConfirming(false)}
-          >
-            Keep
-          </button>
-        </div>
-      ) : (
-        <button
-          type="button"
-          className="tap-reach text-sm text-fg-muted underline decoration-hairline underline-offset-2 hover:text-fg"
-          onClick={() => setConfirming(true)}
-        >
-          Release claim
-        </button>
-      )}
-      {error && (
-        <p role="alert" className="text-sm text-status-danger">
-          {error}
-        </p>
-      )}
-    </div>
   )
 }

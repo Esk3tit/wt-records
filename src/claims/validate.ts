@@ -5,6 +5,13 @@ import { normalizeCountryCode } from '#/lib/countries'
    endpoints take untrusted network payloads, so ids and notes are checked
    here rather than trusting the compile-time types. */
 
+export function nonNegativeInt(value: unknown, field: string): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) {
+    throw new Error(`${field} must be a whole number`)
+  }
+  return value
+}
+
 export function positiveInt(value: unknown, field: string): number {
   // isSafeInteger, not isInteger: values past 2^53 collapse in JSON transport.
   if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0) {
@@ -22,6 +29,20 @@ export function selectableCountryCode(value: unknown): string | null {
   const code = normalizeCountryCode(value)
   if (!code) throw new Error('Choose a country from the list')
   return code
+}
+
+/** A revocation's reason: the only thing that tells a mistake, a departure and
+    a punishment apart afterwards, so an empty one is a malformed payload. */
+export function requiredReason(value: unknown): string {
+  if (typeof value !== 'string') throw new Error('A reason must be text')
+  const reason = value.trim()
+  if (!reason) {
+    throw new Error('Record a reason — it is what tells a mistake from a ban')
+  }
+  if (reason.length > MAX_NOTE_LENGTH) {
+    throw new Error(`Keep the reason to at most ${MAX_NOTE_LENGTH} characters`)
+  }
+  return reason
 }
 
 export function optionalNote(value: unknown): string | undefined {

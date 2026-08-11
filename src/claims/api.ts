@@ -8,18 +8,19 @@ import { assetUrlIfConfigured } from '#/storage/urls'
 import { MAX_AVATAR_BYTES } from '#/storage/image-types'
 import {
   approveClaim,
+  clearClaimDenial,
   denyClaim,
+  listDeniedClaims,
   listPendingClaims,
-  releaseClaim,
-  removeOwnAvatar,
   requestClaim,
   revokeClaim,
-  setOwnAvatar,
-  setOwnCountry,
 } from '#/claims/claims'
+import { removeOwnAvatar, setOwnAvatar, setOwnCountry } from '#/claims/owner'
 import {
+  nonNegativeInt,
   optionalNote,
   positiveInt,
+  requiredReason,
   selectableCountryCode,
 } from '#/claims/validate'
 
@@ -44,15 +45,6 @@ export const submitClaimRequest = createServerFn({ method: 'POST' })
       note: data.note,
       seedAvatarUrl,
     })
-  })
-
-export const releaseMyClaim = createServerFn({ method: 'POST' })
-  .validator((data: { playerId: number }) => ({
-    playerId: positiveInt(data.playerId, 'playerId'),
-  }))
-  .handler(async ({ data }) => {
-    const user = await requireSessionUser()
-    return releaseClaim(db, avatarStore(), user.id, data.playerId)
   })
 
 export const uploadMyAvatar = createServerFn({ method: 'POST' })
@@ -98,36 +90,54 @@ export const setMyCountry = createServerFn({ method: 'POST' })
 
 /* ── Moderator ───────────────────────────────────────────────── */
 
-export const claimQueue = createServerFn({ method: 'GET' }).handler(
-  async () => {
+/* One round trip: the work waiting, and the denials, which are not work. */
+export const claimQueue = createServerFn({ method: 'GET' })
+  .validator((data?: { deniedOffset?: number }) => ({
+    deniedOffset: nonNegativeInt(data?.deniedOffset ?? 0, 'deniedOffset'),
+  }))
+  .handler(async ({ data }) => {
     await requireModerator()
-    return listPendingClaims(db)
-  },
-)
+    const [pending, denied] = await Promise.all([
+      listPendingClaims(db),
+      listDeniedClaims(db, { offset: data.deniedOffset }),
+    ])
+    return { pending, denied }
+  })
 
 export const approveClaimRequest = createServerFn({ method: 'POST' })
   .validator((data: { claimId: number }) => ({
     claimId: positiveInt(data.claimId, 'claimId'),
   }))
   .handler(async ({ data }) => {
-    await requireModerator()
-    return approveClaim(db, avatarStore(), data.claimId)
+    const { userId } = await requireModerator()
+    return approveClaim(db, avatarStore(), userId, data.claimId)
   })
 
 export const denyClaimRequest = createServerFn({ method: 'POST' })
+  .validator((data: { claimId: number; reason?: string }) => ({
+    claimId: positiveInt(data.claimId, 'claimId'),
+    reason: optionalNote(data.reason),
+  }))
+  .handler(async ({ data }) => {
+    const { userId } = await requireModerator()
+    return denyClaim(db, userId, data.claimId, data.reason)
+  })
+
+export const clearClaimDenialRequest = createServerFn({ method: 'POST' })
   .validator((data: { claimId: number }) => ({
     claimId: positiveInt(data.claimId, 'claimId'),
   }))
   .handler(async ({ data }) => {
-    await requireModerator()
-    return denyClaim(db, data.claimId)
+    const { userId } = await requireModerator()
+    return clearClaimDenial(db, userId, data.claimId)
   })
 
 export const revokePlayerClaim = createServerFn({ method: 'POST' })
-  .validator((data: { playerId: number }) => ({
+  .validator((data: { playerId: number; reason: string }) => ({
     playerId: positiveInt(data.playerId, 'playerId'),
+    reason: requiredReason(data.reason),
   }))
   .handler(async ({ data }) => {
-    await requireModerator()
-    return revokeClaim(db, avatarStore(), data.playerId)
+    const { userId } = await requireModerator()
+    return revokeClaim(db, avatarStore(), userId, data.playerId, data.reason)
   })

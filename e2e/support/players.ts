@@ -71,6 +71,11 @@ export async function withPlayer(
 ): Promise<void> {
   const sql = connect()
   try {
+    // Two parallel cases claiming as the same user collide on ply_user_uq;
+    // this queues them. Session-scoped — the disconnect below frees it.
+    if (seed.ownerEmail) {
+      await sql`select pg_advisory_lock(hashtext(${`e2e-owner:${seed.ownerEmail}`}))`
+    }
     const id = await seedPlayer(sql, seed)
     await body({ sql, id })
   } finally {
