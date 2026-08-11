@@ -20,12 +20,8 @@ import {
   resetPlayerAvatar,
   searchAdminPlayers,
 } from '#/admin/players'
-import {
-  deleteAvatarIfUnreferenced,
-  denyClaim,
-  requestClaim,
-  viewerClaimState,
-} from '#/claims/claims'
+import { denyClaim, requestClaim, viewerClaimState } from '#/claims/claims'
+import { deleteAvatarIfUnreferenced } from '#/claims/avatar'
 import { listAudit } from '#/admin/audit'
 
 /** In-memory stand-in for the R2 assets bucket (mirrors claims.test.ts). */

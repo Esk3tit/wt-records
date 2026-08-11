@@ -413,13 +413,17 @@ function ClaimStatus({
       >
         <p>
           The player returns to the accountless state and its avatar resets to
-          the Medallion. Records and snapshots are untouched, and the user is
-          free to claim a different player.
+          the Medallion. Records and snapshots are untouched.
         </p>
         <p>
           Revoking is the only way out of a claim — a mistake, a request to
           leave and a punishment all come through here, so the reason is what
           tells them apart later.
+        </p>
+        <p>
+          It frees the player, not the user: they may request this one again, or
+          any other. If this is a punishment, deny that request when it comes —
+          a denial is what makes the refusal stick.
         </p>
         <Field
           label="Reason"

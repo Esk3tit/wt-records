@@ -8,12 +8,16 @@ import {
 import { ImageOff, Image as ImageIcon } from 'lucide-react'
 import {
   ErrorNote,
+  Field,
   Panel,
   buttonClass,
   commitButtonClass,
   errorMessage,
+  inputClass,
   subtleButtonClass,
 } from '#/components/admin/ui'
+import { ConfirmDialog } from '#/components/admin/confirm-dialog'
+import { MAX_NOTE_LENGTH } from '#/claims/limits'
 import { ADMIN_PAGE_SIZE, Pager, pageParam } from '#/components/admin/pager'
 import { formatDayTime } from '#/lib/dates'
 import {
@@ -48,6 +52,8 @@ function ClaimsQueue() {
   const navigate = useNavigate({ from: Route.fullPath })
   const router = useRouter()
   const [busyId, setBusyId] = useState<number | null>(null)
+  const [denying, setDenying] = useState<QueuedClaim | null>(null)
+  const [reason, setReason] = useState('')
   // Kept per row, so the message lands under the list being worked in.
   const [failed, setFailed] = useState<{ id: number; message: string } | null>(
     null,
@@ -88,8 +94,8 @@ function ClaimsQueue() {
       >
         <p className="mb-4 max-w-prose text-sm text-fg-muted">
           Verify the requester on Discord — recognise them, or ask in the server
-          — before approving. Approving links the account and grants their
-          avatar. A claim is permanent: only a revoke undoes it. Denying is
+          — before approving. Approving links the account and seeds the avatar
+          they chose. A claim is permanent: only a revoke undoes it. Denying is
           remembered, and refuses that user this player for good.
         </p>
 
@@ -110,11 +116,7 @@ function ClaimsQueue() {
                     approveClaimRequest({ data: { claimId: claim.id } }),
                   )
                 }
-                onDeny={() =>
-                  act(claim.id, () =>
-                    denyClaimRequest({ data: { claimId: claim.id } }),
-                  )
-                }
+                onDeny={() => setDenying(claim)}
               />
             ))}
           </ul>
@@ -122,6 +124,26 @@ function ClaimsQueue() {
 
         <ErrorNote error={errorIn(claims)} />
       </Panel>
+
+      <DenyDialog
+        claim={denying}
+        reason={reason}
+        onReason={setReason}
+        busy={denying != null && busyId === denying.id}
+        onCancel={() => {
+          setDenying(null)
+          setReason('')
+        }}
+        onConfirm={() => {
+          const claim = denying
+          if (!claim) return
+          setDenying(null)
+          setReason('')
+          act(claim.id, () =>
+            denyClaimRequest({ data: { claimId: claim.id, reason } }),
+          )
+        }}
+      />
 
       <DeniedClaims
         claims={queue.denied.rows}
@@ -135,6 +157,51 @@ function ClaimsQueue() {
         }
       />
     </div>
+  )
+}
+
+/* Denying is the one moderator action with no undo but another moderator, so
+   it confirms — and the reason is what that moderator will weigh. */
+function DenyDialog({
+  claim,
+  reason,
+  onReason,
+  busy,
+  onConfirm,
+  onCancel,
+}: {
+  claim: QueuedClaim | null
+  reason: string
+  onReason: (reason: string) => void
+  busy: boolean
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  return (
+    <ConfirmDialog
+      open={claim != null}
+      title={`Deny the claim on ${claim?.playerDisplayName ?? ''}?`}
+      confirmLabel="Deny"
+      busy={busy}
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+    >
+      <p>
+        {claim?.requesterHandle ?? 'This user'} can never ask for this player
+        again — the refusal is remembered. Any moderator can clear it here if it
+        turns out to be fixable.
+      </p>
+      <Field label="Reason" hint="Optional — shown to whoever weighs a clear.">
+        <textarea
+          value={reason}
+          onChange={(e) => onReason(e.target.value)}
+          maxLength={MAX_NOTE_LENGTH}
+          rows={2}
+          placeholder="e.g. no proof they are this holder"
+          className={inputClass}
+        />
+      </Field>
+    </ConfirmDialog>
   )
 }
 
@@ -160,7 +227,7 @@ function DeniedClaims({
     <Panel title="Denied requests">
       <p className="mb-4 max-w-prose text-sm text-fg-muted">
         A denied request is remembered: that user can never ask for that player
-        again. Clear one you denied for something fixable — a useless note, the
+        again. Clear a denial made for something fixable — a useless note, the
         wrong player picked by accident — and they may ask once more.
       </p>
       {claims.length === 0 && (
@@ -187,6 +254,11 @@ function DeniedClaims({
                 denied by {claim.decidedByHandle ?? 'a moderator'}
                 {claim.decidedAt && ` · ${formatDayTime(claim.decidedAt)}`}
               </span>
+              {claim.decidedReason && (
+                <span className="mt-1 block text-xs text-fg-muted italic">
+                  “{claim.decidedReason}”
+                </span>
+              )}
             </span>
             <button
               type="button"

@@ -327,6 +327,25 @@ describe('denyClaim', () => {
   it('refuses to deny a claim that no longer exists', async () => {
     await expect(denyClaim(t.db, MOD, 9999)).rejects.toThrow(/unknown/i)
   })
+
+  it('records an optional reason for whoever weighs the clear', async () => {
+    const ace = await playerBySlug('ace')
+    const floppa = await playerBySlug('floppa')
+    const withReason = await requestClaim(t.db, USER_A, ace.id, {})
+    await denyClaim(t.db, MOD, withReason.id, '  no proof they are Ace  ')
+    const without = await requestClaim(t.db, USER_B, floppa.id, {})
+    await denyClaim(t.db, MOD, without.id)
+
+    const { rows } = await listDeniedClaims(t.db)
+    expect(rows.map((r) => r.decidedReason).sort()).toEqual([
+      'no proof they are Ace',
+      null,
+    ])
+    const audit = await auditRows()
+    expect(audit.at(0)?.diff).toMatchObject({
+      context: { reason: 'no proof they are Ace' },
+    })
+  })
 })
 
 describe('clearClaimDenial', () => {

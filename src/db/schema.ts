@@ -201,6 +201,9 @@ export const playerClaims = pgTable(
       onDelete: 'set null',
     }),
     decidedAt: timestamp('decided_at', { withTimezone: true }),
+    // Optional, unlike a revoke's: a queue decision usually speaks for itself,
+    // but it is the only thing a later moderator can weigh a clear against.
+    decidedReason: text('decided_reason'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   },
   (t) => [

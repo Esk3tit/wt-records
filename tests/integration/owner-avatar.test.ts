@@ -5,7 +5,7 @@ import { freshDb } from './pglite'
 import type { TestDb } from './pglite'
 import { seed } from '#/db/seed'
 import { players, profiles } from '#/db/schema'
-import { removeOwnAvatar, setOwnAvatar } from '#/claims/claims'
+import { removeOwnAvatar, setOwnAvatar } from '#/claims/owner'
 
 const USER_A = '00000000-0000-4000-8000-00000000000a'
 const USER_B = '00000000-0000-4000-8000-00000000000b'

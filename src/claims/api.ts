@@ -12,12 +12,10 @@ import {
   denyClaim,
   listDeniedClaims,
   listPendingClaims,
-  removeOwnAvatar,
   requestClaim,
   revokeClaim,
-  setOwnAvatar,
-  setOwnCountry,
 } from '#/claims/claims'
+import { removeOwnAvatar, setOwnAvatar, setOwnCountry } from '#/claims/owner'
 import {
   nonNegativeInt,
   optionalNote,
@@ -116,12 +114,13 @@ export const approveClaimRequest = createServerFn({ method: 'POST' })
   })
 
 export const denyClaimRequest = createServerFn({ method: 'POST' })
-  .validator((data: { claimId: number }) => ({
+  .validator((data: { claimId: number; reason?: string }) => ({
     claimId: positiveInt(data.claimId, 'claimId'),
+    reason: optionalNote(data.reason),
   }))
   .handler(async ({ data }) => {
     const { userId } = await requireModerator()
-    return denyClaim(db, userId, data.claimId)
+    return denyClaim(db, userId, data.claimId, data.reason)
   })
 
 export const clearClaimDenialRequest = createServerFn({ method: 'POST' })

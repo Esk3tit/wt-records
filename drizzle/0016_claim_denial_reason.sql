@@ -1,0 +1,1 @@
+ALTER TABLE "player_claims" ADD COLUMN "decided_reason" text;

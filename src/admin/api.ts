@@ -48,7 +48,7 @@ import {
 } from '#/admin/proofs'
 import type { ImageProofKind, ProofFileInput } from '#/admin/proofs'
 import { storageFromEnv, storageFromEnvIfConfigured } from '#/storage/r2'
-import { deleteAvatarIfUnreferenced } from '#/claims/claims'
+import { deleteAvatarIfUnreferenced } from '#/claims/avatar'
 import { proofUrlIfConfigured } from '#/storage/urls'
 import type { VehicleClass } from '#/lib/vehicle-classes'
 

@@ -2,23 +2,15 @@ import { and, asc, desc, eq, ne, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Db } from '#/db'
 import { playerAliases, playerClaims, players, profiles } from '#/db/schema'
-import type { Storage } from '#/storage/r2'
 import { writeAudit } from '#/admin/audit'
-import { fetchUpstream } from '#/catalog/upstream-fetch'
-import {
-  MAX_AVATAR_BYTES,
-  RASTER_IMAGE_CONTENT_TYPES,
-} from '#/storage/image-types'
-import { playerAvatarKey } from '#/storage/avatar-key'
-import { isAllowedAvatarHost } from '#/auth/profile'
+import type { AvatarStore } from '#/claims/avatar'
+import { deleteAvatarIfUnreferenced, seedAvatar } from '#/claims/avatar'
 import { MAX_NOTE_LENGTH } from '#/claims/limits'
 import { ADMIN_PAGE_SIZE } from '#/lib/paging'
-import { requiredReason } from '#/claims/validate'
+import { optionalNote, requiredReason } from '#/claims/validate'
 
 /* The claim lifecycle. Approving consumes the request (players.user_id is the
    durable link); a denial is kept, and that is what refuses the second ask. */
-
-type AvatarStore = Pick<Storage, 'put' | 'delete'>
 
 /** Where a (User, Player) pair stands, from the requester's side. */
 export type ViewerClaimState = 'none' | 'pending' | 'denied'
@@ -212,84 +204,6 @@ export async function viewerClaimState(
   return row.state === 'denied' ? 'denied' : 'pending'
 }
 
-/** Fetch the provider picture and mirror it into the assets bucket. Best-effort:
-    any failure returns null so a flaky image never blocks a legitimate claim —
-    the Player falls back to the Medallion, which a later upload flow replaces. */
-async function seedAvatar(
-  store: AvatarStore,
-  playerId: number,
-  url: string,
-  fetchImpl: typeof fetch,
-): Promise<string | null> {
-  // Re-validate the host at the fetch boundary (defence in depth) and refuse
-  // redirects — a provider CDN must never bounce the server fetch off-host.
-  let hostname: string
-  try {
-    hostname = new URL(url).hostname
-  } catch {
-    return null
-  }
-  if (!isAllowedAvatarHost(hostname)) return null
-  try {
-    const res = await fetchUpstream(url, {
-      fetchImpl,
-      timeoutMs: 15_000,
-      redirect: 'error',
-      // One shot: the seed is best-effort with a Medallion fallback, so don't
-      // spend retry backoff on a transient blip or a redirect rejection.
-      maxAttempts: 1,
-    })
-    const contentType =
-      res.headers.get('content-type')?.split(';')[0].trim().toLowerCase() ?? ''
-    if (!RASTER_IMAGE_CONTENT_TYPES.has(contentType)) {
-      await res.body?.cancel().catch(() => undefined)
-      return null
-    }
-    const bytes = await readCapped(res, MAX_AVATAR_BYTES)
-    if (!bytes || bytes.byteLength === 0) return null
-    const key = playerAvatarKey(playerId, bytes, contentType)
-    await store.put('assets', key, bytes, contentType)
-    return key
-  } catch {
-    return null
-  }
-}
-
-/** Read a response body but never buffer more than `max` bytes: a
-    content-length precheck plus a streamed cap, so a lying or unbounded
-    upstream can't exhaust process memory. */
-async function readCapped(
-  res: Response,
-  max: number,
-): Promise<Uint8Array | null> {
-  const declared = Number(res.headers.get('content-length'))
-  if (Number.isFinite(declared) && declared > max) {
-    await res.body?.cancel().catch(() => undefined)
-    return null
-  }
-  const reader = res.body?.getReader()
-  if (!reader) return null
-  const chunks: Uint8Array[] = []
-  let total = 0
-  for (;;) {
-    const { done, value } = await reader.read()
-    if (done) break
-    total += value.byteLength
-    if (total > max) {
-      await reader.cancel().catch(() => undefined)
-      return null
-    }
-    chunks.push(value)
-  }
-  const out = new Uint8Array(total)
-  let offset = 0
-  for (const chunk of chunks) {
-    out.set(chunk, offset)
-    offset += chunk.byteLength
-  }
-  return out
-}
-
 /** Approve a pending claim: link the User, seed the avatar if they asked for it,
     and clear every pending request on that Player (the winner and the losers).
     Denied rows on that Player survive it — approving is not an amnesty. */
@@ -410,165 +324,6 @@ export async function approveClaim(
   return { playerId: claim.playerId, avatarSeeded: avatarKey != null }
 }
 
-/** Delete an avatar object only when no player row still references its key —
-    a content-addressed key can be re-referenced by a concurrent seed. Fully
-    best-effort: it runs after the owning write has committed at every call
-    site, so a leaked object must never surface as an error. */
-export async function deleteAvatarIfUnreferenced(
-  db: Db,
-  store: AvatarStore,
-  key: string,
-): Promise<void> {
-  try {
-    const referenced =
-      (
-        await db
-          .select({ id: players.id })
-          .from(players)
-          .where(eq(players.avatarKey, key))
-          .limit(1)
-      ).length > 0
-    if (!referenced) await store.delete('assets', key)
-  } catch {
-    // A post-commit cleanup failure only leaks bytes; never fail the caller.
-  }
-}
-
-/** The acting User must be the Player's current owner for a self-service avatar
-    change — a merged, accountless, or someone-else's Player is refused. */
-function assertClaimOwnership<
-  T extends { userId: string | null; mergedInto: number | null },
->(player: T | undefined, userId: string): asserts player is T {
-  if (!player) throw new Error('Unknown player')
-  if (player.mergedInto != null) throw new Error('This player was merged')
-  if (player.userId == null) throw new Error('This player is not claimed')
-  if (player.userId !== userId) throw new Error('You do not hold this claim')
-}
-
-/** The owner uploads a new Avatar for their own Player: the bytes are decoded,
-    center-cropped, and re-encoded to a 512×512 WebP (never stored as-is), put
-    under a fresh content-hashed key, and the Player is repointed. The sibling of
-    the seed path — same cap, key scheme, and reference-guarded cleanup. Refuses
-    when no store is configured: persisting a key with no object behind it would
-    render a broken avatar, unlike the best-effort seed which just stays null. */
-export async function setOwnAvatar(
-  db: Db,
-  store: AvatarStore | null,
-  userId: string,
-  playerId: number,
-  bytes: Uint8Array,
-): Promise<{ avatarKey: string }> {
-  if (!store) throw new Error('Avatar uploads are not available right now')
-  // Fast-fail ownership before spending any CPU on the decode; the transaction
-  // below re-checks under a row lock (the authoritative guard against a race).
-  assertClaimOwnership(
-    (
-      await db
-        .select({ userId: players.userId, mergedInto: players.mergedInto })
-        .from(players)
-        .where(eq(players.id, playerId))
-    ).at(0),
-    userId,
-  )
-
-  // Imported here, not at module top: keep sharp (a heavy native addon) out of
-  // the profile-view path, which pulls this module only for claim reads.
-  const { encodeAvatar } = await import('#/storage/avatar-image')
-  const processed = await encodeAvatar(bytes)
-  const key = playerAvatarKey(playerId, processed, 'image/webp')
-  // Put before the transaction so the (fast) DB write never waits on the store;
-  // the object is cleaned up below if that write fails.
-  await store.put('assets', key, processed, 'image/webp')
-
-  let staleKey: string | null = null
-  try {
-    staleKey = await db.transaction(async (tx) => {
-      const player = (
-        await tx
-          .select({
-            userId: players.userId,
-            mergedInto: players.mergedInto,
-            avatarKey: players.avatarKey,
-          })
-          .from(players)
-          .where(eq(players.id, playerId))
-          .for('update')
-      ).at(0)
-      assertClaimOwnership(player, userId)
-      await tx
-        .update(players)
-        .set({ avatarKey: key })
-        .where(eq(players.id, playerId))
-      // The prior object is now unreferenced unless a concurrent write already
-      // repointed another player at this identical content-hash key.
-      return player.avatarKey && player.avatarKey !== key
-        ? player.avatarKey
-        : null
-    })
-  } catch (error) {
-    await deleteAvatarIfUnreferenced(db, store, key)
-    throw error
-  }
-  if (staleKey) await deleteAvatarIfUnreferenced(db, store, staleKey)
-  return { avatarKey: key }
-}
-
-/** The owner removes their Avatar, returning the Player to the Medallion. The
-    dereferenced object is cleaned up when unreferenced; a Player already on the
-    Medallion is a no-op (idempotent), never an error. */
-export async function removeOwnAvatar(
-  db: Db,
-  store: AvatarStore | null,
-  userId: string,
-  playerId: number,
-): Promise<void> {
-  const staleKey = await db.transaction(async (tx) => {
-    const player = (
-      await tx
-        .select({
-          userId: players.userId,
-          mergedInto: players.mergedInto,
-          avatarKey: players.avatarKey,
-        })
-        .from(players)
-        .where(eq(players.id, playerId))
-        .for('update')
-    ).at(0)
-    assertClaimOwnership(player, userId)
-    if (player.avatarKey == null) return null
-    await tx
-      .update(players)
-      .set({ avatarKey: null })
-      .where(eq(players.id, playerId))
-    return player.avatarKey
-  })
-  if (staleKey && store) await deleteAvatarIfUnreferenced(db, store, staleKey)
-}
-
-/** Unlimited and self-serve with no cooldown: the rule is stated, not verified,
-    so a correction costs one action. */
-export async function setOwnCountry(
-  db: Db,
-  userId: string,
-  playerId: number,
-  countryCode: string | null,
-): Promise<void> {
-  return db.transaction(async (tx) => {
-    const player = (
-      await tx
-        .select({ userId: players.userId, mergedInto: players.mergedInto })
-        .from(players)
-        .where(eq(players.id, playerId))
-        .for('update')
-    ).at(0)
-    assertClaimOwnership(player, userId)
-    await tx
-      .update(players)
-      .set({ countryCode })
-      .where(eq(players.id, playerId))
-  })
-}
-
 /** Deny a claim request — the row is KEPT, marked denied, and that memory is
     what refuses the same ask forever. Locks the player row so a deny
     serialises with a concurrent approve. */
@@ -576,7 +331,9 @@ export async function denyClaim(
   db: Db,
   actorId: string,
   claimId: number,
+  reason?: string,
 ): Promise<void> {
+  const recorded = optionalNote(reason)?.trim() || null
   return db.transaction(async (tx) => {
     const claim = (
       await tx
@@ -596,7 +353,12 @@ export async function denyClaim(
     // A concurrent approve may have consumed the row since the read above.
     const denied = await tx
       .update(playerClaims)
-      .set({ state: 'denied', decidedBy: actorId, decidedAt: new Date() })
+      .set({
+        state: 'denied',
+        decidedBy: actorId,
+        decidedAt: new Date(),
+        decidedReason: recorded,
+      })
       .where(
         and(eq(playerClaims.id, claimId), eq(playerClaims.state, 'pending')),
       )
@@ -607,7 +369,7 @@ export async function denyClaim(
       action: 'player.deny_claim',
       entity: 'player',
       entityId: claim.playerId,
-      diff: { context: { claimId, userId: claim.userId } },
+      diff: { context: { claimId, userId: claim.userId, reason: recorded } },
     })
   })
 }
@@ -722,6 +484,7 @@ export interface ClaimQueueRow {
   createdAt: Date | null
   decidedByHandle: string | null
   decidedAt: Date | null
+  decidedReason: string | null
 }
 
 const decider = alias(profiles, 'decider')
@@ -745,6 +508,7 @@ function claimQueueSelect(db: Db) {
       createdAt: playerClaims.createdAt,
       decidedByHandle: decider.handle,
       decidedAt: playerClaims.decidedAt,
+      decidedReason: playerClaims.decidedReason,
     })
     .from(playerClaims)
     .innerJoin(players, eq(players.id, playerClaims.playerId))

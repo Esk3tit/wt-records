@@ -91,7 +91,8 @@ export function ClaimPanel({
   } else if (viewer.claimState === 'pending') {
     content = (
       <ClaimNote icon={<Clock size={15} className="shrink-0" aria-hidden />}>
-        Claim pending review — a moderator verifies this on Discord.
+        Claim pending review — a moderator verifies this on Discord. Picked the
+        wrong player? Ask them to deny it.
       </ClaimNote>
     )
   } else if (viewer.claimState === 'denied') {
@@ -99,8 +100,8 @@ export function ClaimPanel({
       <ClaimNote
         icon={<ShieldOff size={15} className="shrink-0" aria-hidden />}
       >
-        This claim was reviewed and denied. Ask a moderator on Discord if that
-        was a mistake.
+        This request was denied. Ask a moderator on Discord if that was a
+        mistake.
       </ClaimNote>
     )
   } else if (viewer.commitment) {
@@ -148,7 +149,7 @@ function CommittedElsewhere({ commitment }: { commitment: ClaimCommitment }) {
         {commitment.playerDisplayName}
       </a>
       {held
-        ? ' — a moderator has to revoke it before you can claim another page.'
+        ? ' — a moderator has to revoke it before you can claim another player.'
         : ' is still waiting on a moderator. One at a time.'}
     </ClaimNote>
   )
