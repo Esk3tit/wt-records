@@ -42,19 +42,12 @@ export function isAllowedAvatarHost(hostname: string): boolean {
   )
 }
 
-/** The login provider's profile picture, for the one-time avatar seed choice.
-    Read from the provider-set identity data — NEVER user_metadata, which an
-    authenticated user can rewrite to point the server-side seed fetch anywhere
-    (SSRF). https + provider-CDN host only. */
-export function providerAvatarUrl(user: {
-  identities?: { identity_data?: Record<string, unknown> | null }[] | null
-}): string | null {
-  const candidate = firstString(
-    ...(user.identities ?? []).flatMap((i) => {
-      const data = i.identity_data ?? {}
-      return [data.avatar_url, data.picture]
-    }),
-  )
+/** The candidate if it is one we would mirror — https on a provider CDN — and
+    null otherwise. A stored seed is fetched by the server AND rendered in a
+    Moderator's browser, so what may be kept is what may be loaded. */
+export function allowedAvatarUrl(
+  candidate: string | null | undefined,
+): string | null {
   if (!candidate) return null
   try {
     const url = new URL(candidate)
@@ -63,6 +56,23 @@ export function providerAvatarUrl(user: {
   } catch {
     return null
   }
+}
+
+/** The login provider's profile picture, for the one-time avatar seed choice.
+    Read from the provider-set identity data — NEVER user_metadata, which an
+    authenticated user can rewrite to point the server-side seed fetch anywhere
+    (SSRF). */
+export function providerAvatarUrl(user: {
+  identities?: { identity_data?: Record<string, unknown> | null }[] | null
+}): string | null {
+  return allowedAvatarUrl(
+    firstString(
+      ...(user.identities ?? []).flatMap((i) => {
+        const data = i.identity_data ?? {}
+        return [data.avatar_url, data.picture]
+      }),
+    ),
+  )
 }
 
 /** Provisions the profile on every OAuth callback. Refreshes identity fields,

@@ -113,6 +113,17 @@ describe('requestClaim', () => {
     expect(row.seedAvatarUrl).toBeNull()
   })
 
+  it('keeps no picture a moderator’s browser should not be asked to load', async () => {
+    const ace = await playerBySlug('ace')
+    await requestClaim(t.db, USER_A, ace.id, {
+      seedAvatarUrl: 'https://evil.example.com/x.png',
+    })
+    const [row] = await listPendingClaims(t.db)
+    // The panel renders this URL, so an off-host one must never be kept — the
+    // fetch-time check protects the server, and nothing else protects the page.
+    expect(row.seedAvatarUrl).toBeNull()
+  })
+
   it('refuses a duplicate pending request, a claimed player, and a tombstone', async () => {
     const ace = await playerBySlug('ace')
     await requestClaim(t.db, USER_A, ace.id, {})
@@ -289,9 +300,13 @@ describe('approveClaim', () => {
   it('rejects an off-host seed URL at the fetch boundary (SSRF backstop)', async () => {
     const ace = await playerBySlug('ace')
     const store = fakeStore()
-    const { id } = await requestClaim(t.db, USER_A, ace.id, {
-      seedAvatarUrl: 'https://evil.example.com/x.png',
-    })
+    const { id } = await requestClaim(t.db, USER_A, ace.id, {})
+    // Written past the request boundary on purpose: that boundary drops an
+    // off-host URL now, and this asserts the fetch refuses one anyway.
+    await t.db
+      .update(playerClaims)
+      .set({ seedAvatarUrl: 'https://evil.example.com/x.png' })
+      .where(eq(playerClaims.id, id))
     const result = await approveClaim(t.db, store, MOD, id, {
       fetchImpl: pngFetch,
     })

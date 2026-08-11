@@ -35,7 +35,9 @@ export function registerAmendmentNotifier(
     or fail for one, and a dropped notice costs nothing — the badge still
     shows the item. */
 export function notifyAmendmentSubmitted(notice: AmendmentNotice): void {
-  for (const notify of notifiers) {
+  // A snapshot: a notifier that registers another one mid-dispatch would
+  // otherwise extend the very array this loop is walking.
+  for (const notify of [...notifiers]) {
     try {
       void Promise.resolve(notify(notice)).catch(() => undefined)
     } catch {

@@ -3,6 +3,7 @@ import { alias } from 'drizzle-orm/pg-core'
 import type { Db } from '#/db'
 import { playerAliases, playerClaims, players, profiles } from '#/db/schema'
 import { writeAudit } from '#/admin/audit'
+import { allowedAvatarUrl } from '#/auth/profile'
 import type { AvatarStore } from '#/claims/avatar'
 import {
   deleteAvatarIfUnreferenced,
@@ -38,7 +39,11 @@ export async function requestClaim(
   if (note && note.length > MAX_NOTE_LENGTH) {
     throw new Error(`Keep the note to at most ${MAX_NOTE_LENGTH} characters`)
   }
-  const seedAvatarUrl = input.seedAvatarUrl?.trim() || null
+  // Dropped rather than refused: the seed is best-effort, and a Player on the
+  // Medallion is the same outcome a dead picture already gives. What is stored
+  // is what a Moderator's browser will load, so it is checked before it is kept
+  // and not only before it is fetched.
+  const seedAvatarUrl = allowedAvatarUrl(input.seedAvatarUrl?.trim())
   return db.transaction(async (tx) => {
     await lockClaimant(tx, userId)
     const player = (

@@ -696,6 +696,9 @@ function ProposedImage({
         alt={alt}
         width={JUDGEABLE}
         height={JUDGEABLE}
+        // The seed is a third-party CDN URL, and a Referer would tell that host
+        // the review path exists. The queue's existence is not public.
+        referrerPolicy="no-referrer"
         style={{ width: JUDGEABLE, height: JUDGEABLE }}
         className="rounded-[10px] border border-hairline-soft object-cover"
         ref={missed}

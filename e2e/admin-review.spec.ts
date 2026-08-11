@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import type { Locator, Page } from '@playwright/test'
+import type { Page } from '@playwright/test'
 import type { Sql } from 'postgres'
 import { STATE } from './support/states'
 import { TEST_USERS } from './support/users'
@@ -116,15 +116,28 @@ const reviewTab = (page: Page) =>
     .getByRole('link', { name: /Review/ })
 
 /** The badge is one number — claims and amendments summed — and it is not
-    there at all when nothing is waiting. Read straight after the load, so the
-    two sides are the same moment. */
-async function expectBadge(tab: Locator, waiting: number): Promise<void> {
-  if (waiting === 0) {
-    await expect(tab).toHaveText('Review')
-    return
-  }
-  await expect(tab).toContainText(String(waiting))
-  await expect(tab).toContainText(`${waiting} awaiting review`)
+    there at all when nothing is waiting.
+
+    Reloads until the page and the database answer for the same moment: the
+    suite is fully parallel and other specs leave rows in both queues, so a
+    total read beside a render is two moments, and comparing them once is a
+    flake rather than an assertion. */
+async function expectBadge(page: Page, sql: Sql): Promise<void> {
+  await expect
+    .poll(
+      async () => {
+        await page.reload()
+        const waiting = await pendingTotal(sql)
+        const label = (await reviewTab(page).textContent()) ?? ''
+        // The number is painted once and read out once, so both have to agree
+        // with the queues — and at zero the tab is a plain word.
+        const shown = waiting === 0 ? 'Review' : `Review${waiting}`
+        const spoken = waiting === 0 ? '' : ` — ${waiting} awaiting review`
+        return label === shown + spoken
+      },
+      { message: 'the badge never agreed with the queues it counts' },
+    )
+    .toBe(true)
 }
 
 test('the tab is Review, and its badge is both queues in one number', async ({
@@ -138,14 +151,13 @@ test('the tab is Review, and its badge is both queues in one number', async ({
     },
     async ({ sql, id }) => {
       await page.goto('/admin')
-      const tab = reviewTab(page)
-      await expect(tab).toBeVisible()
+      await expect(reviewTab(page)).toBeVisible()
       await expect(
         page
           .getByRole('navigation', { name: 'Admin sections' })
           .getByRole('link', { name: 'Claims' }),
       ).toHaveCount(0)
-      await expectBadge(tab, await pendingTotal(sql))
+      await expectBadge(page, sql)
 
       // One of each: a badge that counted only one queue would now be short.
       await propose(sql, id, VIEWER, `avatars/${id}/badge.webp`)
@@ -154,10 +166,8 @@ test('the tab is Review, and its badge is both queues in one number', async ({
         async (other) => {
           try {
             await fileClaim(other.sql, other.id, MODERATOR, null)
-            await page.reload()
-            const waiting = await pendingTotal(sql)
-            expect(waiting).toBeGreaterThanOrEqual(2)
-            await expectBadge(tab, waiting)
+            expect(await pendingTotal(sql)).toBeGreaterThanOrEqual(2)
+            await expectBadge(page, sql)
           } finally {
             await dropClaims(other.sql, MODERATOR)
           }
