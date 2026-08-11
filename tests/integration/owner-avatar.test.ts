@@ -6,7 +6,10 @@ import type { TestDb } from './pglite'
 import { seed } from '#/db/seed'
 import { playerAmendments, players, profiles } from '#/db/schema'
 import { removeOwnAvatar, setOwnAvatar } from '#/claims/owner'
-import { AMENDMENT_HOURLY_LIMIT, amendmentViewer } from '#/claims/amendments'
+import {
+  AMENDMENT_HOURLY_LIMIT,
+  loadAmendmentViewer,
+} from '#/claims/amendments'
 
 const USER_A = '00000000-0000-4000-8000-00000000000a'
 const USER_B = '00000000-0000-4000-8000-00000000000b'
@@ -66,7 +69,7 @@ async function amendments(playerId: number) {
 
 /** What the owner is served, straight through the shadow's own resolver. */
 async function pendingFor(userId: string) {
-  return (await amendmentViewer(t.db, userId))?.pendingAvatarKey ?? null
+  return (await loadAmendmentViewer(t.db, userId))?.pendingAvatarKey ?? null
 }
 
 beforeEach(async () => {

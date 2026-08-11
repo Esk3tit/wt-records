@@ -1,6 +1,6 @@
 import { setResponseHeader } from '@tanstack/react-start/server'
 import { db } from '#/db'
-import { amendmentViewer } from '#/claims/amendments'
+import { loadAmendmentViewer } from '#/claims/amendments'
 import type { AmendmentViewer } from '#/claims/amendments'
 import { getSessionUser, hasAuthCookie } from '#/auth/supabase-server'
 
@@ -16,7 +16,7 @@ export async function resolveAmendmentViewer(): Promise<AmendmentViewer | null> 
   if (!hasAuthCookie()) return null
   const user = await getSessionUser()
   if (!user) return null
-  const viewer = await amendmentViewer(db, user.id)
+  const viewer = await loadAmendmentViewer(db, user.id)
   if (viewer) {
     setResponseHeader('Cache-Control', 'private, no-store')
     setResponseHeader('Vary', 'Cookie')

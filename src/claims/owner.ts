@@ -2,7 +2,10 @@ import { eq } from 'drizzle-orm'
 import type { Db } from '#/db'
 import { players } from '#/db/schema'
 import type { AvatarStore } from '#/claims/avatar'
-import { deleteAvatarIfUnreferenced } from '#/claims/avatar'
+import {
+  deleteAvatarIfUnreferenced,
+  deleteAvatarsIfUnreferenced,
+} from '#/claims/avatar'
 import { closePendingAmendments, submitAmendment } from '#/claims/amendments'
 import { playerAvatarKey } from '#/storage/avatar-key'
 
@@ -126,11 +129,7 @@ export async function removeOwnAvatar(
       .where(eq(players.id, playerId))
     return [...dropped, player.avatarKey]
   })
-  if (store) {
-    for (const key of staleKeys) {
-      await deleteAvatarIfUnreferenced(db, store, key)
-    }
-  }
+  await deleteAvatarsIfUnreferenced(db, store, staleKeys)
 }
 
 /** Unlimited and self-serve with no cooldown: the rule is stated, not verified,

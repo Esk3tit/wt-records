@@ -15,6 +15,7 @@ import { OwnerCountryControls } from '#/components/owner-country-controls'
 import { PlayerCountry } from '#/components/player-country'
 import { PlayerMonument, hasMonument } from '#/components/player-monument'
 import { ProfileEnrichment } from '#/components/profile-enrichment'
+import type { User } from '@supabase/supabase-js'
 import type { ClaimViewer } from '#/components/claim-panel'
 import { db } from '#/db'
 import {
@@ -25,24 +26,23 @@ import {
   playerMergeRedirect,
 } from '#/db/queries'
 import { resolveCountryMark } from '#/lib/country-mark-server'
-import { hasAuthCookie, getSessionUser } from '#/auth/supabase-server'
+import { getSessionUser } from '#/auth/supabase-server'
 import { providerAvatarUrl } from '#/auth/profile'
 import { viewerClaimCommitment, viewerClaimState } from '#/claims/claims'
-import { resolveAmendmentViewer } from '#/claims/viewer'
+import { loadAmendmentViewer } from '#/claims/amendments'
 import { assetUrlIfConfigured } from '#/storage/urls'
 import { toPlayerCardModel } from '#/og/props/player'
 import { playerUnfurl } from '#/og/copy'
 import { playerCardUrl } from '#/og/urls'
 import { cardMeta } from '#/og/meta'
 
-/** The viewer's relationship to this Player — only for a signed-in visitor;
-    anonymous requests skip the auth round-trip entirely and stay cacheable. */
-async function resolveClaimViewer(player: {
-  id: number
-  userId: string | null
-}): Promise<ClaimViewer> {
-  if (!hasAuthCookie()) return { signedIn: false }
-  const user = await getSessionUser()
+/** The viewer's relationship to this Player. The session is validated once for
+    the page and handed in: this and the Avatar shadow both need it, and each
+    resolving its own would cost two round-trips to the auth server. */
+async function resolveClaimViewer(
+  player: { id: number; userId: string | null },
+  user: User | null,
+): Promise<ClaimViewer> {
   if (!user) return { signedIn: false }
   const claimed = player.userId != null
   const claimState = claimed
@@ -81,12 +81,15 @@ const loadPlayer = createServerFn({ method: 'GET' })
     }
     const claimed = found.player.userId != null
     const countryCode = effectiveCountry(found.player)
-    const [viewer, enrichment, amendmentViewer] = await Promise.all([
-      resolveClaimViewer(found.player),
+    // Anonymous requests skip the auth round-trip entirely (getSessionUser
+    // answers null off the cookie alone), so a visitor pays nothing for either.
+    const user = await getSessionUser()
+    const [viewer, enrichment, shadowed] = await Promise.all([
+      resolveClaimViewer(found.player, user),
       getPlayerEnrichment(db, found.player.id),
-      resolveAmendmentViewer(),
+      user ? loadAmendmentViewer(db, user.id) : null,
     ])
-    const avatarKey = effectiveAvatarKey(found.player, amendmentViewer)
+    const avatarKey = effectiveAvatarKey(found.player, shadowed)
     return {
       enrichment,
       profile: {
@@ -100,11 +103,9 @@ const loadPlayer = createServerFn({ method: 'GET' })
         // DB truth, independent of whether the asset host is configured, so the
         // owner's controls reflect the stored state, not the served URL.
         hasAvatar: avatarKey != null,
-        // The share card is excluded from the viewer predicate, so its version
-        // is derived from the REVIEWED key even here, on the owner's own page.
-        // Versioning it off what they alone can see would let their own visit
-        // render and publicly edge-cache an unreviewed picture under a fresh
-        // ?v= — the one surface the site propagates off-site.
+        // Deliberately the reviewed key, even for the owner: the share card is
+        // outside the viewer predicate (see /og/player/$slug), so its version
+        // must be too, or their own visit would cache an unreviewed one.
         cardAvatarKey: effectiveAvatarKey(found.player),
         // Resolved server-side (all 250 marks stay off the client), so a code
         // the list has since dropped renders as nothing at all.

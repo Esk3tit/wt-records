@@ -130,3 +130,16 @@ export async function deleteAvatarIfUnreferenced(
     // A post-commit cleanup failure only leaks bytes; never fail the caller.
   }
 }
+
+/** Every key one committed write dereferenced — an avatar replaced, removed,
+    refused, superseded, or left behind by a Claim that ended. */
+export async function deleteAvatarsIfUnreferenced(
+  db: Db,
+  store: AvatarStore | null,
+  keys: readonly string[],
+): Promise<void> {
+  if (!store) return
+  for (const key of keys) {
+    await deleteAvatarIfUnreferenced(db, store, key)
+  }
+}

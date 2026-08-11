@@ -146,6 +146,20 @@ test.describe('an Avatar awaiting review', () => {
           const ownCard = await ogImage(page.context(), slug)
           expect(ownCard).toBe(await ogImage(anon, slug))
 
+          // The card route itself, under the holder's own session: it renders,
+          // and it renders the same card an anonymous scraper is served. (This
+          // stack has no bucket, so both Avatars resolve to the Medallion —
+          // comparing the drawn pictures is child 7's.)
+          const card = await page.request.get(
+            `${new URL(ownCard!).pathname}${new URL(ownCard!).search}`,
+          )
+          expect(card.status()).toBe(200)
+          expect(card.headers()['content-type']).toContain('image/png')
+          expect((await card.body()).length).toBe(
+            (await (await anon.request.get(new URL(ownCard!).pathname)).body())
+              .length,
+          )
+
           // And the version does track the Avatar — otherwise the equality
           // above would hold no matter what the shadow did.
           await sql`

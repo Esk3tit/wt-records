@@ -2,7 +2,7 @@ import { and, count, eq, sql } from 'drizzle-orm'
 import type { Db } from '#/db'
 import { playerAmendments, players } from '#/db/schema'
 import type { AvatarStore } from '#/claims/avatar'
-import { deleteAvatarIfUnreferenced } from '#/claims/avatar'
+import { deleteAvatarsIfUnreferenced } from '#/claims/avatar'
 import { writeAudit } from '#/admin/audit'
 
 /* The shadow: a proposed change to a claimed Player's profile waits for a
@@ -29,7 +29,7 @@ export const AMENDMENT_HOURLY_LIMIT = 10
 /** The viewer's own pending value, or null when they have none. Joined to
     ownership, so a proposal left on a Player whose Claim has since moved can
     never overlay the Player they hold now. */
-export async function amendmentViewer(
+export async function loadAmendmentViewer(
   db: Db,
   userId: string,
 ): Promise<AmendmentViewer | null> {
@@ -129,11 +129,10 @@ export async function closePendingAmendments(
   return closed.map((row) => row.value)
 }
 
-/** Promote a proposal to the published row — pure metadata, no bytes move. The
-    avatar it replaces is deleted, as at every other moment one is dereferenced.
-
-    Conditional on the row still being pending: liveness cannot close the
-    two-moderators-one-row window at any interval, and a compare-and-set can. */
+/** Promote a proposal to the published row — pure metadata, nothing is moved
+    or re-encoded; the bytes have been in place since the upload. This is where
+    an Avatar is *replaced* now, so it is where the replaced object is deleted,
+    or nothing would ever collect it. */
 export async function approveAmendment(
   db: Db,
   store: AvatarStore | null,
@@ -188,7 +187,9 @@ async function resolveAmendment(
             eq(playerAmendments.state, 'pending'),
           ),
         )
-        .for('update', { of: players })
+        // Both rows: the proposal is what two Moderators race for, and locking
+        // only the Player would let the loser read a stale `pending`.
+        .for('update')
     ).at(0)
     // Already resolved (or never pending): a benign no-op, not a write — the
     // other Moderator's decision stands.
@@ -206,7 +207,9 @@ async function resolveAmendment(
       return { applied: false, keys }
     }
 
-    await tx
+    // The compare-and-set proper: the state predicate is on the WRITE, so a
+    // decision that lost the race changes nothing, whatever the read saw.
+    const decided = await tx
       .update(playerAmendments)
       .set({
         state: decision.state,
@@ -214,7 +217,14 @@ async function resolveAmendment(
         reviewedAt: new Date(),
         reviewedBy: actorId,
       })
-      .where(eq(playerAmendments.id, amendmentId))
+      .where(
+        and(
+          eq(playerAmendments.id, amendmentId),
+          eq(playerAmendments.state, 'pending'),
+        ),
+      )
+      .returning({ id: playerAmendments.id })
+    if (decided.length === 0) return { applied: false, keys: [] }
     if (decision.state === 'rejected') {
       await writeAudit(tx, {
         actorId,
@@ -250,10 +260,6 @@ async function resolveAmendment(
           : [],
     }
   })
-  if (store) {
-    for (const key of outcome.keys) {
-      await deleteAvatarIfUnreferenced(db, store, key)
-    }
-  }
+  await deleteAvatarsIfUnreferenced(db, store, outcome.keys)
   return { resolved: outcome.applied }
 }

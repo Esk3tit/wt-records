@@ -5,7 +5,7 @@ import type { TestDb } from './pglite'
 import { seed } from '#/db/seed'
 import { auditLog, playerAmendments, players, profiles } from '#/db/schema'
 import {
-  amendmentViewer,
+  loadAmendmentViewer,
   approveAmendment,
   rejectAmendment,
 } from '#/claims/amendments'
@@ -106,11 +106,13 @@ describe('approveAmendment', () => {
       reviewedBy: MOD,
       reason: null,
     })
-    // A pure metadata promotion: the bytes were already where they belong.
+    // Nothing is uploaded or re-encoded — the bytes have been in place since
+    // the owner picked the file. Approve is where the Avatar is replaced,
+    // though, so the object it replaces goes, as at every other such moment.
     expect(store.objects.has(proposed)).toBe(true)
     expect(store.objects.has(published)).toBe(false)
     // Everyone is served it now, the owner included.
-    expect(await amendmentViewer(t.db, OWNER)).toBeNull()
+    expect(await loadAmendmentViewer(t.db, OWNER)).toBeNull()
   })
 
   it('audits the promotion without duplicating the amendment row', async () => {
@@ -152,7 +154,7 @@ describe('rejectAmendment', () => {
       reviewedBy: MOD,
       reason: 'not you',
     })
-    expect(await amendmentViewer(t.db, OWNER)).toBeNull()
+    expect(await loadAmendmentViewer(t.db, OWNER)).toBeNull()
   })
 
   it('keeps the object when the owner already has that very picture published', async () => {
@@ -226,7 +228,7 @@ describe('a proposal that outlived its Claim', () => {
   })
 })
 
-describe('amendmentViewer', () => {
+describe('loadAmendmentViewer', () => {
   it('overlays nothing onto a Player the viewer no longer holds', async () => {
     // The Claim moved on; the proposal did not follow it. Resolving by User
     // alone would paint their old proposal onto the Player they hold now.
@@ -239,14 +241,14 @@ describe('amendmentViewer', () => {
       .where(eq(players.id, ace.id))
     const floppa = await claimedPlayer('floppa', OWNER)
 
-    expect(await amendmentViewer(t.db, OWNER)).toBeNull()
+    expect(await loadAmendmentViewer(t.db, OWNER)).toBeNull()
     expect(await avatarKeyOf(floppa.id)).toBeNull()
   })
 
   it('resolves nothing for a viewer with nothing in flight', async () => {
     await claimedPlayer('ace', OWNER)
-    expect(await amendmentViewer(t.db, OWNER)).toBeNull()
-    expect(await amendmentViewer(t.db, OTHER)).toBeNull()
+    expect(await loadAmendmentViewer(t.db, OWNER)).toBeNull()
+    expect(await loadAmendmentViewer(t.db, OTHER)).toBeNull()
   })
 })
 

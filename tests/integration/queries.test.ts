@@ -6,7 +6,7 @@ import { seed } from '#/db/seed'
 import { seedDemo } from '#/db/seed-demo'
 import { replaceSearchTerms } from '#/db/search-terms'
 import { browseFilters } from '#/lib/browse-params'
-import { amendmentViewer } from '#/claims/amendments'
+import { loadAmendmentViewer } from '#/claims/amendments'
 import {
   modes,
   nations,
@@ -1466,7 +1466,7 @@ describe('the shadow, across every avatar-bearing surface', () => {
       would actually carry for each of the four viewer classes. Anonymous, a
       signed-in non-holder, and a Moderator browsing the public site all
       resolve to the same nothing — being signed in is not a side channel. */
-  const asViewer = (userId: string) => amendmentViewer(t.db, userId)
+  const asViewer = (userId: string) => loadAmendmentViewer(t.db, userId)
   const anonymous = null
 
   const url = (key: string) => `https://assets.test/${key}`
@@ -1495,7 +1495,7 @@ describe('the shadow, across every avatar-bearing surface', () => {
     vi.unstubAllEnvs()
   })
 
-  type Viewer = Awaited<ReturnType<typeof amendmentViewer>>
+  type Viewer = Awaited<ReturnType<typeof loadAmendmentViewer>>
 
   const ledgerAvatar = async (viewer: Viewer) => {
     const r = await browseVehicles(

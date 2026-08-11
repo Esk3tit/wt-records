@@ -4,7 +4,11 @@ import type { Db } from '#/db'
 import { playerAliases, playerClaims, players, profiles } from '#/db/schema'
 import { writeAudit } from '#/admin/audit'
 import type { AvatarStore } from '#/claims/avatar'
-import { deleteAvatarIfUnreferenced, seedAvatar } from '#/claims/avatar'
+import {
+  deleteAvatarIfUnreferenced,
+  deleteAvatarsIfUnreferenced,
+  seedAvatar,
+} from '#/claims/avatar'
 import { closePendingAmendments } from '#/claims/amendments'
 import { MAX_NOTE_LENGTH } from '#/claims/limits'
 import { ADMIN_PAGE_SIZE } from '#/lib/paging'
@@ -328,11 +332,7 @@ export async function approveClaim(
   }
   // Same collision guard on the prior owner's objects: a concurrent re-seed of
   // the identical image could have re-referenced the same content-hash key.
-  if (store) {
-    for (const key of staleKeys) {
-      await deleteAvatarIfUnreferenced(db, store, key)
-    }
-  }
+  await deleteAvatarsIfUnreferenced(db, store, staleKeys)
   return { playerId: claim.playerId, avatarSeeded: avatarKey != null }
 }
 
@@ -468,11 +468,7 @@ async function unclaim(
     return player.avatarKey ? [...withdrawn, player.avatarKey] : withdrawn
   })
   // After commit, and only if a concurrent re-claim hasn't taken the key.
-  if (store) {
-    for (const key of staleKeys) {
-      await deleteAvatarIfUnreferenced(db, store, key)
-    }
-  }
+  await deleteAvatarsIfUnreferenced(db, store, staleKeys)
 }
 
 /** A moderator severs a Claim. It frees the Player, not the User: a revoked
