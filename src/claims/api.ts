@@ -111,7 +111,15 @@ export const reviewQueue = createServerFn({ method: 'GET' })
       listDeniedClaims(db, { offset: data.deniedOffset }),
       listPendingAmendments(db),
     ])
-    return { claims, denied, amendments: amendments.map(withAssetUrls) }
+    // The clock the age nag is measured against. Stamped here because a loader
+    // also runs in the browser, where the moderator's own clock could hide
+    // overdue work or invent it.
+    return {
+      claims,
+      denied,
+      amendments: amendments.map(withAssetUrls),
+      now: Date.now(),
+    }
   })
 
 /* Keys are the store's business; the panel needs something to render. */

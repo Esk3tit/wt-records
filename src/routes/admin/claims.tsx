@@ -39,12 +39,9 @@ export const Route = createFileRoute('/admin/claims')({
   loaderDeps: ({ search }) => search,
   loader: async ({ context, deps }) => {
     if (context.gate.state !== 'moderator') return null
-    const queue = await reviewQueue({
+    return reviewQueue({
       data: { deniedOffset: ((deps.page ?? 1) - 1) * ADMIN_PAGE_SIZE },
     })
-    // The clock the age nag is measured against, taken once on the server so
-    // every row on the page agrees and no client clock can move the threshold.
-    return { ...queue, now: Date.now() }
   },
   component: ReviewQueue,
 })
