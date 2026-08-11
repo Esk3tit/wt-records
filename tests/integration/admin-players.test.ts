@@ -178,19 +178,18 @@ describe('mergePlayers', () => {
     ).rejects.toThrow(/claim/i)
   })
 
-  it('merges same-user claims, survivor keeps the claim', async () => {
+  // The same-user-both-sides merge is unreachable now that one User holds one
+  // Player: the fixture for it can no longer be built.
+  it('never meets two players claimed by the same user', async () => {
     const ace = await playerBySlug('ace')
     const floppa = await playerBySlug('floppa')
-    await t.db
+    const refusal = await t.db
       .update(players)
       .set({ userId: USER_A })
       .where(inArray(players.id, [ace.id, floppa.id]))
-    await mergePlayers(t.db, MOD, {
-      survivorId: ace.id,
-      duplicateId: floppa.id,
-    })
-    expect((await playerBySlug('ace')).userId).toBe(USER_A)
-    expect((await playerBySlug('floppa')).userId).toBeNull()
+      .then(() => null)
+      .catch((e: { cause?: unknown }) => String(e.cause))
+    expect(refusal).toMatch(/ply_user_uq/)
   })
 
   it('carries a lone claim and its avatar on the duplicate over to the survivor', async () => {
@@ -232,16 +231,18 @@ describe('mergePlayers', () => {
     expect((await playerBySlug('floppa')).countryCode).toBeNull()
   })
 
-  it('prefers the survivor’s own country when both sides are the same user', async () => {
+  it('prefers the survivor’s own country when the survivor holds the claim', async () => {
     const ace = await playerBySlug('ace')
     const floppa = await playerBySlug('floppa')
     await t.db
       .update(players)
       .set({ userId: USER_A, countryCode: 'BR' })
       .where(eq(players.id, ace.id))
+    // A country left on an accountless row states nothing, and states nothing
+    // after the merge either.
     await t.db
       .update(players)
-      .set({ userId: USER_A, countryCode: 'JP' })
+      .set({ countryCode: 'JP' })
       .where(eq(players.id, floppa.id))
 
     await mergePlayers(t.db, MOD, {
@@ -271,25 +272,6 @@ describe('mergePlayers', () => {
     expect((await playerBySlug('floppa')).countryCode).toBeNull()
   })
 
-  it('keeps the duplicate avatar when the survivor is same-user but avatarless', async () => {
-    const ace = await playerBySlug('ace')
-    const floppa = await playerBySlug('floppa')
-    const avatarKey = `avatars/${floppa.id}/abc123abc123.png`
-    await t.db
-      .update(players)
-      .set({ userId: USER_A })
-      .where(eq(players.id, ace.id))
-    await t.db
-      .update(players)
-      .set({ userId: USER_A, avatarKey })
-      .where(eq(players.id, floppa.id))
-    await mergePlayers(t.db, MOD, {
-      survivorId: ace.id,
-      duplicateId: floppa.id,
-    })
-    expect((await playerBySlug('ace')).avatarKey).toBe(avatarKey)
-  })
-
   it('reports the duplicate avatar as orphaned when the survivor keeps its own', async () => {
     const ace = await playerBySlug('ace')
     const floppa = await playerBySlug('floppa')
@@ -301,7 +283,7 @@ describe('mergePlayers', () => {
       .where(eq(players.id, ace.id))
     await t.db
       .update(players)
-      .set({ userId: USER_A, avatarKey: dupKey })
+      .set({ avatarKey: dupKey })
       .where(eq(players.id, floppa.id))
     const result = await mergePlayers(t.db, MOD, {
       survivorId: ace.id,

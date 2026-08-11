@@ -32,7 +32,7 @@ The vehicle catalogue is not hand-maintained — it syncs from an upstream datam
 
 - **Multi-mode by construction.** The registry is built around four game modes and opens them one at a time; every surface must survive a mode with zero records without looking broken. Mode is the top-level dimension of the site, not a filter.
 - **Writes are moderator-gated.** Nothing publishes itself: both submissions and claims require moderator approval. Claims are never self-serve because impersonating a known holder would otherwise be one click.
-- **Accountless holders are permanent and first-class.** A Player with no User is a valid end state, not an incomplete signup. Claiming adds to a page that already exists; releasing a claim returns the Player to that state with records untouched.
+- **Accountless holders are permanent and first-class.** A Player with no User is a valid end state, not an incomplete signup. Claiming adds to a page that already exists; a moderator revoking a claim returns the Player to that state with records untouched.
 - **Removed vehicles stay in the book.** A vehicle pulled from the game keeps its page and its record, flagged as removed. History is never deleted for tidiness.
 - **Runs on free-tier infrastructure, funded out of pocket.** Per-user cost is a real constraint on what can ship today. Whether paid tiers arrive later — as neighbouring sites like StatShark and ThunderSkill have — is deliberately undecided: do not design as though revenue exists, and do not foreclose it.
 - **Terminology is fixed in `CONTEXT.md`.** User / Profile / Player / Holder / Claim / Alias / Record / Title and the rest are defined there and must not be redefined or conflated in product or interface work.

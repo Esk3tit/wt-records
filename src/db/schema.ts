@@ -151,7 +151,11 @@ export const players = pgTable(
     ),
   },
   (t) => [
-    index('ply_user_idx').on(t.userId),
+    // One approved Claim per User, as a fact rather than an intention; partial
+    // because accountless is the default state, not a duplicate of it.
+    uniqueIndex('ply_user_uq')
+      .on(t.userId)
+      .where(sql`${t.userId} is not null`),
     // Shape and case only: 250 codes in a CHECK would rot on the next CLDR bump.
     check('ply_country_upper', sql`${t.countryCode} ~ '^[A-Z]{2}$'`),
   ],
@@ -173,9 +177,9 @@ export const playerAliases = pgTable(
   (t) => [uniqueIndex('alias_uq').on(t.playerId, t.name, t.kind)],
 ).enableRLS()
 
-/* A pending Claim: a User asking to be linked to a Player. Not a separate
-   entity — the row exists only while pending; approving sets players.user_id
-   and deletes it, denying just deletes it (no audit trail in v1). */
+/* A Claim request. Approving consumes the row (the durable link is
+   players.user_id), so 'approved' is not a state a row can be found in;
+   a denial is kept, and that is what refuses the same ask a second time. */
 export const playerClaims = pgTable(
   'player_claims',
   {
@@ -190,14 +194,24 @@ export const playerClaims = pgTable(
     // Provider picture captured when the requester opted into the avatar seed;
     // null = they chose the Medallion. Mirrored to R2 only on approval.
     seedAvatarUrl: text('seed_avatar_url'),
+    state: text('state').notNull().default('pending'), // "pending" | "denied"
+    // Null on delete, not cascade: the denial outlives the moderator's account.
+    decidedBy: uuid('decided_by').references(() => authUsers.id, {
+      onDelete: 'set null',
+    }),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   },
   (t) => [
-    // Resolving a claim deletes the row, so "one pending request per
-    // (user, player)" is a plain unique, not a partial one.
+    // A denied row survives, so this refuses the repeat ask until it's cleared.
     uniqueIndex('claim_user_player_uq').on(t.userId, t.playerId),
+    // One request at a time; ply_user_uq carries the approved side of the rule.
+    uniqueIndex('claim_one_pending_uq')
+      .on(t.userId)
+      .where(sql`${t.state} = 'pending'`),
     index('claim_player_idx').on(t.playerId),
     index('claim_created_idx').on(t.createdAt),
+    check('claim_state_valid', sql`${t.state} in ('pending', 'denied')`),
   ],
 ).enableRLS()
 

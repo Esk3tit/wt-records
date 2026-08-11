@@ -4,11 +4,12 @@ import { freshDb } from './pglite'
 import type { TestDb } from './pglite'
 import { seed } from '#/db/seed'
 import { playerClaims, players, profiles } from '#/db/schema'
-import { approveClaim, releaseClaim, setOwnCountry } from '#/claims/claims'
+import { approveClaim, revokeClaim, setOwnCountry } from '#/claims/claims'
 import { effectiveCountry } from '#/db/queries'
 
 const USER_A = '00000000-0000-4000-8000-00000000000a'
 const USER_B = '00000000-0000-4000-8000-00000000000b'
+const MOD = '00000000-0000-4000-8000-00000000000c'
 
 let t: TestDb
 
@@ -29,6 +30,7 @@ beforeEach(async () => {
   for (const [id, handle] of [
     [USER_A, 'AceIRL'],
     [USER_B, 'Rival'],
+    [MOD, 'Warden'],
   ]) {
     await t.client.query('insert into auth.users (id) values ($1)', [id])
     await t.db.insert(profiles).values({ id, handle })
@@ -83,11 +85,11 @@ describe('an unclaimed player carries no country', () => {
   })
 
   // The gate alone would leave the value to resurrect on re-claim.
-  it('is enforced again by deletion on release', async () => {
+  it('is enforced again by deletion on revoke', async () => {
     const ace = await claim('ace', USER_A)
     await setOwnCountry(t.db, USER_A, ace.id, 'JP')
 
-    await releaseClaim(t.db, null, USER_A, ace.id)
+    await revokeClaim(t.db, null, MOD, ace.id, 'asked to leave')
     expect((await playerBySlug('ace')).countryCode).toBeNull()
 
     await claim('ace', USER_B)
@@ -108,7 +110,7 @@ describe('an unclaimed player carries no country', () => {
       .insert(playerClaims)
       .values({ playerId: ace.id, userId: USER_B })
       .returning({ id: playerClaims.id })
-    await approveClaim(t.db, null, pending.id)
+    await approveClaim(t.db, null, MOD, pending.id)
 
     const claimed = await playerBySlug('ace')
     expect(claimed.userId).toBe(USER_B)

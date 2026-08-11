@@ -41,6 +41,24 @@ test.describe('owner avatar controls', () => {
       ).toHaveCount(0)
     })
   })
+
+  // A Claim is permanent from the owner's side: only a moderator severs it,
+  // so the page offers them no way out of their own.
+  test('the owner is offered no way to release their own claim', async ({
+    page,
+  }) => {
+    const slug = 'e2e-claim-permanent'
+    await withPlayer(ownedPlayer(slug), async () => {
+      await page.goto(`/player/${slug}`)
+
+      await expect(page.getByText('This is your page')).toBeVisible()
+      for (const name of ['Release claim', 'Release']) {
+        await expect(
+          page.getByRole('button', { name, exact: true }),
+        ).toHaveCount(0)
+      }
+    })
+  })
 })
 
 async function expectNoOwnerControls(page: Page) {

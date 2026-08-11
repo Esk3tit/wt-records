@@ -35,6 +35,20 @@ A contract migration also takes rollback away from you, which is the cost worth 
 
 `0011_portrait_columns` was the expand half of exactly that, and `0013_drop_image_columns` its contract half. Note what gated the two: the contract half could not ship until a content-addressed sync had re-keyed every portrait, because the columns it drops were the only record of which mirrored objects that run had to delete. A contract migration waits on the data catching up, not just on the code.
 
+### Migrations that constrain live data
+
+A migration adding a UNIQUE or CHECK over existing rows fails outright if the data already breaks it, and it fails **inside the approval gate**, after you have opened it. Run its check against production first — reading is safe at any time, and a duplicate found beforehand is a decision rather than an incident.
+
+`0015_one_claim_per_user` is one of those: it makes "one approved Claim per User" a fact. Nobody may already hold two.
+
+```sql
+select user_id, count(*), array_agg(slug)
+from players where user_id is not null
+group by user_id having count(*) > 1;
+```
+
+Zero rows and the migration applies cleanly. Any rows and the extra Players must be revoked (`/admin/players/<id>` → Revoke claim) before it goes out — the constraint cannot pick which claim was the real one.
+
 As a local last resort, migrate **through the Session pooler or Direct connection** — *not* the transaction pooler, because `drizzle-kit` uses prepared statements the transaction pooler rejects:
 
 ```bash

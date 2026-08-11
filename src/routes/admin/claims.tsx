@@ -10,7 +10,12 @@ import {
   subtleButtonClass,
 } from '#/components/admin/ui'
 import { formatDayTime } from '#/lib/dates'
-import { approveClaimRequest, claimQueue, denyClaimRequest } from '#/claims/api'
+import {
+  approveClaimRequest,
+  claimQueue,
+  clearClaimDenialRequest,
+  denyClaimRequest,
+} from '#/claims/api'
 
 export const Route = createFileRoute('/admin/claims')({
   loader: async ({ context }) => {
@@ -20,23 +25,35 @@ export const Route = createFileRoute('/admin/claims')({
   component: ClaimsQueue,
 })
 
-type PendingClaim = NonNullable<Awaited<ReturnType<typeof claimQueue>>>[number]
+type Queue = NonNullable<Awaited<ReturnType<typeof claimQueue>>>
+type QueuedClaim = Queue['pending'][number]
+
+/* Both lists sit on the same card: a request, whichever way it went. */
+const claimCardClass =
+  'rounded-[14px] border border-hairline-soft bg-[var(--tint)]'
 
 function ClaimsQueue() {
-  const claims = Route.useLoaderData()
+  const queue = Route.useLoaderData()
   const router = useRouter()
   const [busyId, setBusyId] = useState<number | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  if (!claims) return null
+  // Kept against the row that failed, so the message lands under the list the
+  // moderator was working in rather than at the far end of the page.
+  const [failed, setFailed] = useState<{ id: number; message: string } | null>(
+    null,
+  )
+  if (!queue) return null
+  const claims = queue.pending
+  const errorIn = (rows: { id: number }[]) =>
+    failed && rows.some((r) => r.id === failed.id) ? failed.message : null
 
   const act = async (id: number, fn: () => Promise<unknown>) => {
     setBusyId(id)
-    setError(null)
+    setFailed(null)
     try {
       await fn()
     } catch (e) {
       // Only a failed mutation is an error; a failed refresh below is not.
-      setError(errorMessage(e))
+      setFailed({ id, message: errorMessage(e) })
       setBusyId(null)
       return
     }
@@ -47,47 +64,118 @@ function ClaimsQueue() {
   }
 
   return (
-    <Panel
-      title="Pending claims"
-      aside={
-        claims.length > 0 ? (
-          <span className="text-sm text-fg-muted">
-            {claims.length} awaiting review
-          </span>
-        ) : undefined
-      }
-    >
+    <div className="space-y-4">
+      <Panel
+        title="Pending claims"
+        aside={
+          claims.length > 0 ? (
+            <span className="text-sm text-fg-muted">
+              {claims.length} awaiting review
+            </span>
+          ) : undefined
+        }
+      >
+        <p className="mb-4 max-w-prose text-sm text-fg-muted">
+          Verify the requester on Discord — recognise them, or ask in the server
+          — before approving. Approving links the account and grants their
+          avatar. A claim is permanent: only a revoke undoes it. Denying is
+          remembered, and refuses that user this player for good.
+        </p>
+
+        {claims.length === 0 ? (
+          <p className="text-sm text-fg-faint">
+            No claims are awaiting review.
+          </p>
+        ) : (
+          <ul className="space-y-3">
+            {claims.map((claim) => (
+              <ClaimRow
+                key={claim.id}
+                claim={claim}
+                busy={busyId === claim.id}
+                disabled={busyId != null}
+                onApprove={() =>
+                  act(claim.id, () =>
+                    approveClaimRequest({ data: { claimId: claim.id } }),
+                  )
+                }
+                onDeny={() =>
+                  act(claim.id, () =>
+                    denyClaimRequest({ data: { claimId: claim.id } }),
+                  )
+                }
+              />
+            ))}
+          </ul>
+        )}
+
+        <ErrorNote error={errorIn(claims)} />
+      </Panel>
+
+      <DeniedClaims
+        claims={queue.denied}
+        busyId={busyId}
+        error={errorIn(queue.denied)}
+        onClear={(id) =>
+          act(id, () => clearClaimDenialRequest({ data: { claimId: id } }))
+        }
+      />
+    </div>
+  )
+}
+
+function DeniedClaims({
+  claims,
+  busyId,
+  error,
+  onClear,
+}: {
+  claims: QueuedClaim[]
+  busyId: number | null
+  error: string | null
+  onClear: (claimId: number) => void
+}) {
+  if (claims.length === 0) return null
+  return (
+    <Panel title="Denied requests">
       <p className="mb-4 max-w-prose text-sm text-fg-muted">
-        Verify the requester on Discord — recognise them, or ask in the server —
-        before approving. Approving links the account and grants their avatar.
-        Denying leaves no trace on the player.
+        A denied request is remembered: that user can never ask for that player
+        again. Clear one you denied for something fixable — a useless note, the
+        wrong player picked by accident — and they may ask once more.
       </p>
-
-      {claims.length === 0 ? (
-        <p className="text-sm text-fg-faint">No claims are awaiting review.</p>
-      ) : (
-        <ul className="space-y-3">
-          {claims.map((claim) => (
-            <ClaimRow
-              key={claim.id}
-              claim={claim}
-              busy={busyId === claim.id}
+      <ul className="space-y-2">
+        {claims.map((claim) => (
+          <li
+            key={claim.id}
+            className={`flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-3 text-sm ${claimCardClass}`}
+          >
+            <span className="min-w-0">
+              <Link
+                to="/admin/players/$id"
+                params={{ id: String(claim.playerId) }}
+                className="font-semibold"
+              >
+                {claim.playerDisplayName}
+              </Link>{' '}
+              <span className="text-fg-muted">
+                asked by {claim.requesterHandle ?? 'Unknown handle'}
+              </span>
+              <span className="block text-xs text-fg-faint">
+                denied by {claim.decidedByHandle ?? 'a moderator'}
+                {claim.decidedAt && ` · ${formatDayTime(claim.decidedAt)}`}
+              </span>
+            </span>
+            <button
+              type="button"
+              className={subtleButtonClass}
               disabled={busyId != null}
-              onApprove={() =>
-                act(claim.id, () =>
-                  approveClaimRequest({ data: { claimId: claim.id } }),
-                )
-              }
-              onDeny={() =>
-                act(claim.id, () =>
-                  denyClaimRequest({ data: { claimId: claim.id } }),
-                )
-              }
-            />
-          ))}
-        </ul>
-      )}
-
+              onClick={() => onClear(claim.id)}
+            >
+              {busyId === claim.id ? 'Working…' : 'Clear denial'}
+            </button>
+          </li>
+        ))}
+      </ul>
       <ErrorNote error={error} />
     </Panel>
   )
@@ -100,14 +188,14 @@ function ClaimRow({
   onApprove,
   onDeny,
 }: {
-  claim: PendingClaim
+  claim: QueuedClaim
   busy: boolean
   disabled: boolean
   onApprove: () => void
   onDeny: () => void
 }) {
   return (
-    <li className="rounded-[14px] border border-hairline-soft bg-[var(--tint)] p-4">
+    <li className={`${claimCardClass} p-4`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">

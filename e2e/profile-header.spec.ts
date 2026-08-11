@@ -202,8 +202,8 @@ test.describe('the profile header stacks on a phone', () => {
 
 /* A phone reader meets the header in one of three states: a page nobody has
    claimed, which offers the claim CTA; a page they are signed in to claim; or
-   their own, which carries the avatar controls and the release. Each control
-   holds the same 44px the nav does. */
+   their own, which carries the avatar controls. Each control holds the same
+   44px the nav does. */
 test.describe('every header control answers a thumb at 320px', () => {
   test.describe('an anonymous visitor', () => {
     test.use({ storageState: STATE.anon })
@@ -278,7 +278,7 @@ test.describe('every header control answers a thumb at 320px', () => {
   test.describe('the page owner', () => {
     test.use({ storageState: STATE.viewer })
 
-    test('can tap the avatar controls and the release', async ({ page }) => {
+    test('can tap the avatar controls', async ({ page }) => {
       await onProfile(
         page,
         {
@@ -291,14 +291,6 @@ test.describe('every header control answers a thumb at 320px', () => {
           await expect(
             page.getByRole('button', { name: 'Upload photo', exact: true }),
           ).toBeVisible()
-
-          expect(await reachFaults(page, HEADER_REACH)).toEqual([])
-          expect(await proseTaken(page, HEADER_REACH)).toEqual([])
-
-          // Releasing is a two-step confirm, and its two quiet text buttons are
-          // only in the tree once the first step has been taken.
-          await page.getByRole('button', { name: 'Release claim' }).click()
-          await expect(page.getByRole('button', { name: 'Keep' })).toBeVisible()
 
           expect(await reachFaults(page, HEADER_REACH)).toEqual([])
           expect(await proseTaken(page, HEADER_REACH)).toEqual([])

@@ -1,7 +1,9 @@
-import { and, asc, eq, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, ne, sql } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 import type { Db } from '#/db'
 import { playerAliases, playerClaims, players, profiles } from '#/db/schema'
 import type { Storage } from '#/storage/r2'
+import { writeAudit } from '#/admin/audit'
 import { fetchUpstream } from '#/catalog/upstream-fetch'
 import {
   MAX_AVATAR_BYTES,
@@ -10,12 +12,16 @@ import {
 import { playerAvatarKey } from '#/storage/avatar-key'
 import { isAllowedAvatarHost } from '#/auth/profile'
 import { MAX_NOTE_LENGTH } from '#/claims/limits'
+import { requiredReason } from '#/claims/validate'
 
-/* The claim lifecycle. A pending Claim is the whole player_claims row: it lives
-   only until a moderator resolves it, at which point the row is deleted and the
-   durable link is players.user_id. There is no audit trail in v1 (ADR 0010). */
+/* The claim lifecycle. Approving consumes the request and the durable link is
+   players.user_id; a denial is kept, and that remembered row is what refuses
+   the same ask a second time. Only a moderator can undo an approved Claim. */
 
 type AvatarStore = Pick<Storage, 'put' | 'delete'>
+
+/** Where a (User, Player) pair stands, from the requester's side. */
+export type ViewerClaimState = 'none' | 'pending' | 'denied'
 
 export interface ClaimRequestInput {
   note?: string | null
@@ -23,8 +29,8 @@ export interface ClaimRequestInput {
   seedAvatarUrl?: string | null
 }
 
-/** File a pending claim (User → Player). Refused when the player is merged or
-    already claimed; one pending request per (user, player). */
+/** File a claim request (User → Player). A User holds one thing at a time: one
+    approved Claim or one pending request, and never a twice-asked denial. */
 export async function requestClaim(
   db: Db,
   userId: string,
@@ -37,6 +43,7 @@ export async function requestClaim(
   }
   const seedAvatarUrl = input.seedAvatarUrl?.trim() || null
   return db.transaction(async (tx) => {
+    await lockClaimant(tx, userId)
     const player = (
       await tx
         .select({
@@ -58,34 +65,111 @@ export async function requestClaim(
           : 'This player is already claimed',
       )
     }
-    const row = (
+    const held = (
       await tx
-        .insert(playerClaims)
-        .values({ playerId, userId, note, seedAvatarUrl })
-        .onConflictDoNothing({
-          target: [playerClaims.userId, playerClaims.playerId],
-        })
-        .returning({ id: playerClaims.id })
+        .select({ displayName: players.displayName })
+        .from(players)
+        .where(eq(players.userId, userId))
+        .limit(1)
     ).at(0)
-    if (!row) throw new Error('You already have a pending claim on this player')
-    return row
+    if (held) {
+      throw new Error(
+        `You already hold the claim on ${held.displayName}. A claim is permanent — a moderator has to revoke it before you can claim another player`,
+      )
+    }
+    const existing = (
+      await tx
+        .select({ state: playerClaims.state })
+        .from(playerClaims)
+        .where(
+          and(
+            eq(playerClaims.userId, userId),
+            eq(playerClaims.playerId, playerId),
+          ),
+        )
+    ).at(0)
+    if (existing) {
+      throw new Error(
+        existing.state === 'denied' ? DENIED_ALREADY : PENDING_HERE,
+      )
+    }
+    const elsewhere = (
+      await tx
+        .select({ id: playerClaims.id })
+        .from(playerClaims)
+        .where(
+          and(
+            eq(playerClaims.userId, userId),
+            eq(playerClaims.state, 'pending'),
+            ne(playerClaims.playerId, playerId),
+          ),
+        )
+        .limit(1)
+    ).at(0)
+    if (elsewhere) throw new Error(PENDING_ELSEWHERE)
+    try {
+      return (
+        await tx
+          .insert(playerClaims)
+          .values({ playerId, userId, note, seedAvatarUrl })
+          .returning({ id: playerClaims.id })
+      )[0]
+    } catch (error) {
+      // The checks above lose to a concurrent request; the indexes don't. Say
+      // the same plain thing rather than leak a constraint name to a claimant.
+      throw refusalForCollision(error)
+    }
   })
 }
 
-/** Whether this User has a pending claim on this Player (drives the CTA state). */
-export async function viewerHasPendingClaim(
+/** "One approved Claim or one pending request" spans two tables, so no index
+    can hold it: a request and an approval of that same User serialise on their
+    Profile row instead. Always taken BEFORE any players lock — the one order
+    both paths use is what keeps them from deadlocking. */
+function lockClaimant(tx: Db, userId: string) {
+  return tx
+    .select({ id: profiles.id })
+    .from(profiles)
+    .where(eq(profiles.id, userId))
+    .for('update')
+}
+
+/* Claim requests are not shadowed — unlike an Amendment, a refusal here says
+   exactly what it is. */
+const PENDING_HERE = 'You already have a pending claim request on this player'
+const PENDING_ELSEWHERE =
+  'You already have a claim request awaiting review — one at a time'
+const DENIED_ALREADY =
+  'This request was denied. Ask a moderator on Discord if that was a mistake'
+
+function refusalForCollision(error: unknown): Error {
+  const text = String((error as { cause?: unknown }).cause ?? error)
+  if (text.includes('claim_one_pending_uq')) return new Error(PENDING_ELSEWHERE)
+  if (text.includes('claim_user_player_uq')) return new Error(PENDING_HERE)
+  return error instanceof Error ? error : new Error(String(error))
+}
+
+/** Where this User stands on this Player: the CTA, the pending note, or the
+    denied note. A denied row is a fact about the pair, not a queue entry. */
+export async function viewerClaimState(
   db: Db,
   userId: string,
   playerId: number,
-): Promise<boolean> {
-  const rows = await db
-    .select({ id: playerClaims.id })
-    .from(playerClaims)
-    .where(
-      and(eq(playerClaims.userId, userId), eq(playerClaims.playerId, playerId)),
-    )
-    .limit(1)
-  return rows.length > 0
+): Promise<ViewerClaimState> {
+  const row = (
+    await db
+      .select({ state: playerClaims.state })
+      .from(playerClaims)
+      .where(
+        and(
+          eq(playerClaims.userId, userId),
+          eq(playerClaims.playerId, playerId),
+        ),
+      )
+      .limit(1)
+  ).at(0)
+  if (!row) return 'none'
+  return row.state === 'denied' ? 'denied' : 'pending'
 }
 
 /** Fetch the provider picture and mirror it into the assets bucket. Best-effort:
@@ -167,10 +251,12 @@ async function readCapped(
 }
 
 /** Approve a pending claim: link the User, seed the avatar if they asked for it,
-    and clear every pending request on that Player (the winner and the losers). */
+    and clear every pending request on that Player (the winner and the losers).
+    Denied rows on that Player survive it — approving is not an amnesty. */
 export async function approveClaim(
   db: Db,
   store: AvatarStore | null,
+  actorId: string,
   claimId: number,
   opts: { fetchImpl?: typeof fetch } = {},
 ): Promise<{ playerId: number; avatarSeeded: boolean }> {
@@ -180,11 +266,14 @@ export async function approveClaim(
         playerId: playerClaims.playerId,
         userId: playerClaims.userId,
         seedAvatarUrl: playerClaims.seedAvatarUrl,
+        state: playerClaims.state,
       })
       .from(playerClaims)
       .where(eq(playerClaims.id, claimId))
   ).at(0)
   if (!claim) throw new Error(`Unknown claim ${claimId}`)
+  if (claim.state !== 'pending')
+    throw new Error('This claim was already resolved')
 
   // Mirror the avatar BEFORE the transaction so a 15s fetch never holds the
   // player row locked; the object is cleaned up if the write below fails.
@@ -201,6 +290,7 @@ export async function approveClaim(
   let staleKey: string | null = null
   try {
     staleKey = await db.transaction(async (tx) => {
+      await lockClaimant(tx, claim.userId)
       const player = (
         await tx
           .select({
@@ -226,7 +316,12 @@ export async function approveClaim(
         await tx
           .select({ id: playerClaims.id })
           .from(playerClaims)
-          .where(eq(playerClaims.id, claimId))
+          .where(
+            and(
+              eq(playerClaims.id, claimId),
+              eq(playerClaims.state, 'pending'),
+            ),
+          )
       ).at(0)
       if (!stillPending) throw new Error('This claim was already resolved')
 
@@ -237,9 +332,26 @@ export async function approveClaim(
         .update(players)
         .set({ userId: claim.userId, avatarKey, countryCode: null })
         .where(eq(players.id, claim.playerId))
+      // The winner's row and the losers'. Only the pending ones: a denial on
+      // this Player is a decision, and it outlives whoever wins the page.
       await tx
         .delete(playerClaims)
-        .where(eq(playerClaims.playerId, claim.playerId))
+        .where(
+          and(
+            eq(playerClaims.playerId, claim.playerId),
+            eq(playerClaims.state, 'pending'),
+          ),
+        )
+      await writeAudit(tx, {
+        actorId,
+        action: 'player.approve_claim',
+        entity: 'player',
+        entityId: claim.playerId,
+        diff: {
+          after: { userId: claim.userId },
+          context: { claimId, avatarSeeded: avatarKey != null },
+        },
+      })
       // The prior owner's object is now unreferenced (keys are per-player).
       return player.avatarKey && player.avatarKey !== avatarKey
         ? player.avatarKey
@@ -417,13 +529,21 @@ export async function setOwnCountry(
   })
 }
 
-/** Deny a pending claim — the row vanishes, leaving no trace on the Player.
-    Locks the player row so a deny serialises with a concurrent approve. */
-export async function denyClaim(db: Db, claimId: number): Promise<void> {
+/** Deny a claim request — the row is KEPT, marked denied, and that memory is
+    what refuses the same ask forever. Locks the player row so a deny
+    serialises with a concurrent approve. */
+export async function denyClaim(
+  db: Db,
+  actorId: string,
+  claimId: number,
+): Promise<void> {
   return db.transaction(async (tx) => {
     const claim = (
       await tx
-        .select({ playerId: playerClaims.playerId })
+        .select({
+          playerId: playerClaims.playerId,
+          userId: playerClaims.userId,
+        })
         .from(playerClaims)
         .where(eq(playerClaims.id, claimId))
     ).at(0)
@@ -433,43 +553,101 @@ export async function denyClaim(db: Db, claimId: number): Promise<void> {
       .from(players)
       .where(eq(players.id, claim.playerId))
       .for('update')
-    // Re-check under the lock: a concurrent approve may have deleted the row
-    // between the read above and this delete — 0 rows means it already won.
-    const deleted = await tx
-      .delete(playerClaims)
-      .where(eq(playerClaims.id, claimId))
+    // Re-check under the lock: a concurrent approve may have consumed the row
+    // between the read above and this write — 0 rows means it already won.
+    const denied = await tx
+      .update(playerClaims)
+      .set({ state: 'denied', decidedBy: actorId, decidedAt: new Date() })
+      .where(
+        and(eq(playerClaims.id, claimId), eq(playerClaims.state, 'pending')),
+      )
       .returning({ id: playerClaims.id })
-    if (deleted.length === 0) throw new Error('This claim was already resolved')
+    if (denied.length === 0) throw new Error('This claim was already resolved')
+    await writeAudit(tx, {
+      actorId,
+      action: 'player.deny_claim',
+      entity: 'player',
+      entityId: claim.playerId,
+      diff: { context: { claimId, userId: claim.userId } },
+    })
   })
 }
 
-/** Undo an approved claim, returning the Player to the accountless state,
-    resetting its avatar to the Medallion and dropping the stated Country.
-    Records and Snapshots never move. */
+/** Forgive a denial made for something fixable — a useless note, the wrong
+    Player picked by accident — re-opening that (User, Player) pair. */
+export async function clearClaimDenial(
+  db: Db,
+  actorId: string,
+  claimId: number,
+): Promise<void> {
+  return db.transaction(async (tx) => {
+    const claim = (
+      await tx
+        .select({
+          playerId: playerClaims.playerId,
+          userId: playerClaims.userId,
+          note: playerClaims.note,
+          state: playerClaims.state,
+        })
+        .from(playerClaims)
+        .where(eq(playerClaims.id, claimId))
+        .for('update')
+    ).at(0)
+    if (!claim) throw new Error(`Unknown claim ${claimId}`)
+    if (claim.state !== 'denied') {
+      throw new Error('Only a denied request can be cleared')
+    }
+    await tx.delete(playerClaims).where(eq(playerClaims.id, claimId))
+    await writeAudit(tx, {
+      actorId,
+      action: 'player.clear_denial',
+      entity: 'player',
+      entityId: claim.playerId,
+      diff: { before: { userId: claim.userId, note: claim.note } },
+    })
+  })
+}
+
+/** THE single path back to accountless: link, Avatar and stated Country all
+    go, since a value left behind resurrects on the next claim. */
 async function unclaim(
   db: Db,
   store: AvatarStore | null,
   playerId: number,
-  mustBeUserId: string | null,
+  audit: { actorId: string; action: string; reason: string },
 ): Promise<void> {
   const staleKey = await db.transaction(async (tx) => {
     const player = (
       await tx
-        .select({ userId: players.userId, avatarKey: players.avatarKey })
+        .select({
+          userId: players.userId,
+          avatarKey: players.avatarKey,
+          countryCode: players.countryCode,
+        })
         .from(players)
         .where(eq(players.id, playerId))
         .for('update')
     ).at(0)
     if (!player) throw new Error(`Unknown player ${playerId}`)
     if (player.userId == null) throw new Error('This player is not claimed')
-    if (mustBeUserId != null && player.userId !== mustBeUserId) {
-      throw new Error('You do not hold this claim')
-    }
-    // Deleted, not just read-gated: a value left behind resurrects on re-claim.
     await tx
       .update(players)
       .set({ userId: null, avatarKey: null, countryCode: null })
       .where(eq(players.id, playerId))
+    await writeAudit(tx, {
+      actorId: audit.actorId,
+      action: audit.action,
+      entity: 'player',
+      entityId: playerId,
+      diff: {
+        before: {
+          userId: player.userId,
+          avatarKey: player.avatarKey,
+          countryCode: player.countryCode,
+        },
+        context: { reason: audit.reason },
+      },
+    })
     return player.avatarKey
   })
   // Delete the orphaned object after commit, but only if a concurrent re-claim
@@ -477,26 +655,26 @@ async function unclaim(
   if (staleKey && store) await deleteAvatarIfUnreferenced(db, store, staleKey)
 }
 
-/** The User unlinks their own claim (never gated). */
-export function releaseClaim(
+/** A moderator severs a Claim — the only way out, serving a mistake, a request
+    to leave and a punishment alike, told apart by the recorded reason. It
+    frees the Player, not the User: a revoked User may ask again, here or
+    elsewhere, and it is a denial that makes a refusal permanent. */
+export async function revokeClaim(
   db: Db,
   store: AvatarStore | null,
-  userId: string,
+  actorId: string,
   playerId: number,
+  reason: string,
 ): Promise<void> {
-  return unclaim(db, store, playerId, userId)
+  return unclaim(db, store, playerId, {
+    actorId,
+    action: 'player.revoke_claim',
+    reason: requiredReason(reason),
+  })
 }
 
-/** A moderator severs any claim. */
-export function revokeClaim(
-  db: Db,
-  store: AvatarStore | null,
-  playerId: number,
-): Promise<void> {
-  return unclaim(db, store, playerId, null)
-}
-
-export interface PendingClaim {
+/** One row of either moderator list; the decided_* pair is null while pending. */
+export interface ClaimQueueRow {
   id: number
   playerId: number
   playerSlug: string
@@ -507,11 +685,15 @@ export interface PendingClaim {
   requesterHandle: string | null
   requesterDiscordId: string | null
   createdAt: Date | null
+  decidedByHandle: string | null
+  decidedAt: Date | null
 }
 
-/** The moderator queue: each pending request with the requester's Discord
-    identity next to the Player's name + aliases, oldest first. */
-export async function listPendingClaims(db: Db): Promise<PendingClaim[]> {
+const decider = alias(profiles, 'decider')
+
+/** Both moderator lists are the same row shape: the request with the
+    requester's Discord identity next to the Player's name + aliases. */
+function claimQueueSelect(db: Db) {
   return db
     .select({
       id: playerClaims.id,
@@ -526,17 +708,36 @@ export async function listPendingClaims(db: Db): Promise<PendingClaim[]> {
       requesterHandle: profiles.handle,
       requesterDiscordId: profiles.discordId,
       createdAt: playerClaims.createdAt,
+      decidedByHandle: decider.handle,
+      decidedAt: playerClaims.decidedAt,
     })
     .from(playerClaims)
     .innerJoin(players, eq(players.id, playerClaims.playerId))
     .leftJoin(playerAliases, eq(playerAliases.playerId, playerClaims.playerId))
     .leftJoin(profiles, eq(profiles.id, playerClaims.userId))
+    .leftJoin(decider, eq(decider.id, playerClaims.decidedBy))
     .groupBy(
       playerClaims.id,
       players.slug,
       players.displayName,
       profiles.handle,
       profiles.discordId,
+      decider.handle,
     )
+}
+
+/** The work actually waiting on a moderator, oldest first. Denied rows are
+    kept forever, so this must ask for pending — they are not work. */
+export async function listPendingClaims(db: Db): Promise<ClaimQueueRow[]> {
+  return claimQueueSelect(db)
+    .where(eq(playerClaims.state, 'pending'))
     .orderBy(asc(playerClaims.createdAt), asc(playerClaims.id))
+}
+
+/** The denials, most recent first — the record of what has been refused, and
+    the only place a denial made for something fixable can be cleared. */
+export async function listDeniedClaims(db: Db): Promise<ClaimQueueRow[]> {
+  return claimQueueSelect(db)
+    .where(eq(playerClaims.state, 'denied'))
+    .orderBy(desc(playerClaims.decidedAt), desc(playerClaims.id))
 }

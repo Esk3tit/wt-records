@@ -375,6 +375,17 @@ export async function mergePlayers(
           (duplicate.userId != null ? ofDuplicate : null))
     const finalAvatar = carried(survivor.avatarKey, duplicate.avatarKey)
     const finalCountry = carried(survivor.countryCode, duplicate.countryCode)
+    // The duplicate gives the claim up first: one User owns one Player, and
+    // that index is checked per statement, not at commit.
+    await tx
+      .update(players)
+      .set({
+        mergedInto: survivor.id,
+        userId: null,
+        avatarKey: null,
+        countryCode: null,
+      })
+      .where(eq(players.id, duplicate.id))
     if (carriedUserId != null) {
       await tx
         .update(players)
@@ -405,18 +416,13 @@ export async function mergePlayers(
     // approve would reject them — so the moderation queue stays clean.
     const clearClaimsFor =
       carriedUserId != null ? [duplicate.id, survivor.id] : [duplicate.id]
-    await tx
-      .delete(playerClaims)
-      .where(inArray(playerClaims.playerId, clearClaimsFor))
-    await tx
-      .update(players)
-      .set({
-        mergedInto: survivor.id,
-        userId: null,
-        avatarKey: null,
-        countryCode: null,
-      })
-      .where(eq(players.id, duplicate.id))
+    await tx.delete(playerClaims).where(
+      and(
+        inArray(playerClaims.playerId, clearClaimsFor),
+        // Denials are not pending work and outlive the row they judged.
+        eq(playerClaims.state, 'pending'),
+      ),
+    )
     // Keep tombstones one hop deep: anything merged into the duplicate
     // earlier now points straight at the survivor.
     await tx

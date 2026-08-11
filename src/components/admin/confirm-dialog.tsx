@@ -9,6 +9,7 @@ export function ConfirmDialog({
   title,
   confirmLabel,
   busy,
+  confirmDisabled,
   onConfirm,
   onCancel,
   children,
@@ -17,6 +18,8 @@ export function ConfirmDialog({
   title: string
   confirmLabel: string
   busy?: boolean
+  /** For a confirm that also collects something the write requires. */
+  confirmDisabled?: boolean
   onConfirm: () => void
   onCancel: () => void
   children: ReactNode
@@ -58,7 +61,7 @@ export function ConfirmDialog({
         <button
           type="button"
           className={commitButtonClass}
-          disabled={busy}
+          disabled={busy || confirmDisabled}
           onClick={onConfirm}
         >
           {busy ? 'Saving…' : confirmLabel}

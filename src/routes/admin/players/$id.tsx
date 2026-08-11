@@ -28,6 +28,7 @@ import {
 } from '#/admin/api'
 import { ClaimedChip } from '#/components/claimed-chip'
 import { revokePlayerClaim } from '#/claims/api'
+import { MAX_NOTE_LENGTH } from '#/claims/limits'
 
 export const Route = createFileRoute('/admin/players/$id')({
   loader: async ({ context, params }) => {
@@ -122,8 +123,10 @@ function PlayerDetailInner() {
                 adminResetPlayerAvatar({ data: { playerId: player.id } }),
               )
             }
-            onRevoke={() =>
-              call(() => revokePlayerClaim({ data: { playerId: player.id } }))
+            onRevoke={(reason) =>
+              call(() =>
+                revokePlayerClaim({ data: { playerId: player.id, reason } }),
+              )
             }
           />
         )}
@@ -273,8 +276,8 @@ function MergePanel({
       <p className="mb-3 text-sm text-fg-muted">
         <strong className="text-fg">{survivor.displayName}</strong> survives:
         the duplicate's records repoint here, its names become aliases, and its
-        page redirects here. Refused when both players are claimed by different
-        users.
+        page redirects here. Refused when both players are claimed — one user
+        holds one player, so two claims are two people.
       </p>
       <div className="max-w-sm">
         <AsyncCombobox
@@ -349,10 +352,11 @@ function ClaimStatus({
 }: {
   hasAvatar: boolean
   onResetAvatar: () => Promise<void> | void
-  onRevoke: () => Promise<void> | void
+  onRevoke: (reason: string) => Promise<void> | void
 }) {
   const [confirming, setConfirming] = useState<'reset' | 'revoke' | null>(null)
   const [busy, setBusy] = useState(false)
+  const [reason, setReason] = useState('')
   const run = async (action: () => Promise<void> | void) => {
     setBusy(true)
     try {
@@ -360,6 +364,7 @@ function ClaimStatus({
     } finally {
       setBusy(false)
       setConfirming(null)
+      setReason('')
     }
   }
   return (
@@ -399,14 +404,36 @@ function ClaimStatus({
         title="Revoke this claim?"
         confirmLabel="Revoke"
         busy={busy}
-        onConfirm={() => run(onRevoke)}
-        onCancel={() => setConfirming(null)}
+        confirmDisabled={reason.trim().length === 0}
+        onConfirm={() => run(() => onRevoke(reason))}
+        onCancel={() => {
+          setConfirming(null)
+          setReason('')
+        }}
       >
         <p>
           The player returns to the accountless state and its avatar resets to
-          the Medallion. Records and snapshots are untouched, and the user can
-          claim again.
+          the Medallion. Records and snapshots are untouched, and the user is
+          free to claim a different player.
         </p>
+        <p>
+          Revoking is the only way out of a claim — a mistake, a request to
+          leave and a punishment all come through here, so the reason is what
+          tells them apart later.
+        </p>
+        <Field
+          label="Reason"
+          hint="Required — recorded in the audit log against this player."
+        >
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            maxLength={MAX_NOTE_LENGTH}
+            rows={2}
+            placeholder="e.g. asked to be unlinked, or claimed the wrong player"
+            className={inputClass}
+          />
+        </Field>
       </ConfirmDialog>
     </div>
   )

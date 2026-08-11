@@ -24,6 +24,20 @@ export function selectableCountryCode(value: unknown): string | null {
   return code
 }
 
+/** A revocation's reason: the only thing that tells a mistake, a departure and
+    a punishment apart afterwards, so an empty one is a malformed payload. */
+export function requiredReason(value: unknown): string {
+  if (typeof value !== 'string') throw new Error('A reason must be text')
+  const reason = value.trim()
+  if (!reason) {
+    throw new Error('Record a reason — it is what tells a mistake from a ban')
+  }
+  if (reason.length > MAX_NOTE_LENGTH) {
+    throw new Error(`Keep the reason to at most ${MAX_NOTE_LENGTH} characters`)
+  }
+  return reason
+}
+
 export function optionalNote(value: unknown): string | undefined {
   if (value == null) return undefined
   if (typeof value !== 'string') throw new Error('A note must be text')

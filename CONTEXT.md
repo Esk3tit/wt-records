@@ -33,16 +33,17 @@ _Avoid_: account; "user" (a Player may have no User).
 The Player who holds a given Record. A relational role, not a separate entity.
 
 **Claim**:
-The act of a logged-in User linking a Player to themselves (sets the account link), which also ties that Player's existing Records to the User. Required to submit, and the source of identity: a claimed Player inherits its User's avatar and "this is my page" presence.
+The act of a logged-in User linking a Player to themselves (sets the account link), which also ties that Player's existing Records to the User. Required to submit, and the source of identity: a claimed Player inherits its User's avatar and "this is my page" presence. Permanent from the User's side, and one per User: a User holds either one approved Claim or one pending request, never two of anything.
 
 **Claim request**:
-A pending Claim — not a separate entity. Filed by a logged-in User; the link exists only once a moderator approves. Claims are never self-serve (impersonation of known holders is one click otherwise); a denied request leaves no trace on the Player.
+A pending Claim — not a separate entity. Filed by a logged-in User; the link exists only once a moderator approves. Claims are never self-serve (impersonation of known holders is one click otherwise). A denied request is **remembered** on the claim row — it leaves no trace on the Player, but that User can never ask for that Player again unless a moderator clears the denial. Requesting while already holding a Claim is refused with a plain error: unlike an Amendment, a claim request is not shadowed.
 
-**Release / Revoke** (a Claim):
-Undoing a Claim — **Release** when the User unlinks themselves (never gated), **Revoke** when a moderator severs it. Either way the Player simply returns to the accountless state; Records and Snapshots never move.
+**Revoke** (a Claim):
+The only way out of a Claim, and a Moderator act — one action serving three situations (a moderator's own mistake, a holder asking to leave, an abuse), told apart afterwards by the **reason** the moderator records with it. The Player returns to the accountless state and the revoked User is free to request a different Player; Records and Snapshots never move. Approving, denying, clearing a denial and revoking all land in the audit log against the Player.
+_Avoid_: release, unclaim, self-service unlinking — a User cannot sever their own Claim.
 
 **Merge** (Players):
-Collapsing duplicate Player rows for the same person into one survivor: Records repoint, the duplicate's names become survivor Aliases, and the duplicate leaves a tombstone redirecting its old page. Records' Snapshots never change. Players claimed by **different** Users are never mergeable — two claims are two people (the User is the identity source of truth); same-User claims are.
+Collapsing duplicate Player rows for the same person into one survivor: Records repoint, the duplicate's names become survivor Aliases, and the duplicate leaves a tombstone redirecting its old page. Records' Snapshots never change. Two claimed Players are never mergeable — two claims are two people (the User is the identity source of truth), and one User holds one Player, so a same-User pair cannot exist to begin with.
 
 **Avatar**:
 A claimed Player's site-owned picture. Seeded once, at claim, from the login provider's picture — only by the claimant's explicit choice, never auto-published — then changed by uploading on the site, fully detached from the provider thereafter. Moderators can reset any Avatar to the Medallion.
@@ -52,7 +53,7 @@ The designed fallback identity mark for any Player without an Avatar — account
 _Avoid_: default avatar, placeholder.
 
 **Country**:
-A citizenship a claimed Player states — not where they live, not where their family is from, not where they play. Set and cleared freely by the claim holder alone; the site states the rule and does not verify it, so a dispute is judged against the rule rather than argued on taste. Distinct from a **Nation**, the in-game tree a vehicle belongs to: the two share a page and mean nothing alike. A Country's flag always appears with the country's full name as text, which is what separates it at a glance from a Nation's mark-only chip. An absent Country renders nothing at all — never a placeholder, never a neutral mark. It leaves with the claim: Release, Revoke and approving a new Claim all **delete** the stored value, so it can never resurface as a later holder's statement.
+A citizenship a claimed Player states — not where they live, not where their family is from, not where they play. Set and cleared freely by the claim holder alone; the site states the rule and does not verify it, so a dispute is judged against the rule rather than argued on taste. Distinct from a **Nation**, the in-game tree a vehicle belongs to: the two share a page and mean nothing alike. A Country's flag always appears with the country's full name as text, which is what separates it at a glance from a Nation's mark-only chip. An absent Country renders nothing at all — never a placeholder, never a neutral mark. It leaves with the claim: Revoke and approving a new Claim both **delete** the stored value, so it can never resurface as a later holder's statement.
 _Avoid_: nationality (shares a root with Nation), region, location.
 
 **Alias**:
