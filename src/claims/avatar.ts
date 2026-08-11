@@ -99,7 +99,12 @@ async function readCapped(
     key can be re-referenced by (re-uploading a picture you already have lands
     on the very key a reject would otherwise delete). Fully best-effort: it runs
     after the owning write has committed at every call site, so a leaked object
-    must never surface as an error. */
+    must never surface as an error.
+
+    The check and the delete are not atomic, and deliberately so: an upload of
+    the identical picture that commits between them loses its object and renders
+    broken until the next upload. Closing that costs either a lock held across a
+    round-trip to R2 or a reclamation lifecycle this site has refused to own. */
 export async function deleteAvatarIfUnreferenced(
   db: Db,
   store: AvatarStore,
