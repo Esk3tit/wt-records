@@ -455,6 +455,10 @@ function ClaimRow({
   // The seed decision lives with the row it is about; rows are keyed by id, so
   // it survives a refetch exactly as the row does.
   const [acceptSeed, setAcceptSeed] = useState(true)
+  const [unseeable, setUnseeable] = useState(false)
+  // A picture nobody could look at is never seeded — but the claim itself is a
+  // separate decision, and stays open.
+  const seeding = acceptSeed && !unseeable
   return (
     <li className={`${claimCardClass} p-4`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -491,18 +495,19 @@ function ClaimRow({
               <ProposedImage
                 url={claim.seedAvatarUrl}
                 alt={`Avatar ${claim.requesterHandle ?? 'this user'} would seed`}
+                onUnseeable={() => setUnseeable(true)}
               />
               <figcaption className="mt-2 max-w-[200px] text-xs text-fg-muted">
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    checked={acceptSeed}
-                    disabled={disabled}
+                    checked={seeding}
+                    disabled={disabled || unseeable}
                     onChange={(e) => setAcceptSeed(e.target.checked)}
                   />
                   Seed this picture
                 </label>
-                {!acceptSeed && (
+                {!seeding && (
                   <span className="mt-1 block text-fg-faint">
                     Approving keeps the Medallion.
                   </span>
@@ -536,7 +541,7 @@ function ClaimRow({
             type="button"
             className={commitButtonClass}
             disabled={disabled}
-            onClick={() => onApprove(acceptSeed)}
+            onClick={() => onApprove(seeding)}
           >
             {busy ? 'Working…' : 'Approve'}
           </button>
@@ -563,6 +568,10 @@ function AmendmentRow({
   onApprove: () => void
   onReject: () => void
 }) {
+  // Publishing is the one thing that must not be possible without having seen
+  // it: a load that failed here proves the picture is unseen, never that it is
+  // harmless. Reject stays open — refusing something unshowable is a decision.
+  const [unseeable, setUnseeable] = useState(false)
   return (
     <li className={`${claimCardClass} p-4`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -586,6 +595,7 @@ function AmendmentRow({
               <ProposedImage
                 url={amendment.valueUrl}
                 alt={`Proposed avatar for ${amendment.playerDisplayName}`}
+                onUnseeable={() => setUnseeable(true)}
               />
               <figcaption className="mt-2 text-xs tracking-wide text-fg-faint uppercase">
                 Proposed
@@ -609,23 +619,30 @@ function AmendmentRow({
           />
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            className={subtleButtonClass}
-            disabled={disabled}
-            onClick={onReject}
-          >
-            Reject
-          </button>
-          <button
-            type="button"
-            className={commitButtonClass}
-            disabled={disabled}
-            onClick={onApprove}
-          >
-            {busy ? 'Working…' : 'Approve'}
-          </button>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className={subtleButtonClass}
+              disabled={disabled}
+              onClick={onReject}
+            >
+              Reject
+            </button>
+            <button
+              type="button"
+              className={commitButtonClass}
+              disabled={disabled || unseeable}
+              onClick={onApprove}
+            >
+              {busy ? 'Working…' : 'Approve'}
+            </button>
+          </div>
+          {unseeable && (
+            <p className="max-w-[15rem] text-right text-xs text-status-warn">
+              Nothing to approve until the picture loads — reload, or reject it.
+            </p>
+          )}
         </div>
       </div>
     </li>
@@ -635,9 +652,26 @@ function AmendmentRow({
 /** The picture under judgement. A Discord CDN URL dies the moment its owner
     changes their picture, so a dead link renders as plainly missing — never as
     a broken frame, and never as the Medallion, which would read as a decision
-    about something that is live. */
-function ProposedImage({ url, alt }: { url: string | null; alt: string }) {
+    about something that is live.
+
+    `onUnseeable` fires when it cannot be shown, because a load that failed on
+    this machine says nothing about whether the picture exists: the row must
+    stop offering to publish what nobody has looked at. */
+function ProposedImage({
+  url,
+  alt,
+  onUnseeable,
+}: {
+  url: string | null
+  alt: string
+  onUnseeable: () => void
+}) {
   const [failedUrl, setFailedUrl] = useState<string | null>(null)
+  const missed = (node: HTMLImageElement | null) => {
+    if (!alreadyBroken(node)) return
+    setFailedUrl(url)
+    onUnseeable()
+  }
   if (!url || failedUrl === url) {
     return (
       <div
@@ -659,10 +693,11 @@ function ProposedImage({ url, alt }: { url: string | null; alt: string }) {
         height={JUDGEABLE}
         style={{ width: JUDGEABLE, height: JUDGEABLE }}
         className="rounded-[10px] border border-hairline-soft object-cover"
-        ref={(node) => {
-          if (alreadyBroken(node)) setFailedUrl(url)
+        ref={missed}
+        onError={() => {
+          setFailedUrl(url)
+          onUnseeable()
         }}
-        onError={() => setFailedUrl(url)}
       />
     </a>
   )

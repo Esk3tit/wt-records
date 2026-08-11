@@ -19,6 +19,10 @@ const REVIEW = '/admin/claims'
 const VIEWER = TEST_USERS.viewer.email
 const MODERATOR = TEST_USERS.moderator.email
 
+/* A key the test server actually serves, so the picture renders and Approve is
+   reachable. Any other key 404s, which is its own case below. */
+const SHOWABLE = 'logo192.png'
+
 async function userId(sql: Sql, email: string): Promise<string> {
   const found = (
     await sql<
@@ -266,12 +270,55 @@ test('the seed picture is rendered inline, and a dead link is plainly missing', 
               gone.getByRole('img', { name: 'Image missing' }),
             ).toBeVisible()
             await expect(gone.locator('img')).toHaveCount(0)
+            // And it cannot be seeded: a load that failed here proves the
+            // picture is unseen, never that it is harmless. The claim itself
+            // stays decidable, which is the point of two decisions.
+            const seedBox = gone.getByRole('checkbox', {
+              name: 'Seed this picture',
+            })
+            await expect(seedBox).toBeDisabled()
+            await expect(seedBox).not.toBeChecked()
+            await expect(
+              gone.getByRole('button', { name: 'Approve' }),
+            ).toBeEnabled()
           } finally {
             await dropClaims(live.sql, VIEWER)
             await dropClaims(dead.sql, MODERATOR)
           }
         },
       )
+    },
+  )
+})
+
+/* The feature's whole promise is that no image reaches the site unlooked-at.
+   A picture that would not load is exactly the case where pressing Approve
+   publishes something nobody saw. */
+test('a proposal that will not load cannot be published, only refused', async ({
+  page,
+}) => {
+  await withPlayer(
+    {
+      slug: 'e2e-review-unseeable',
+      displayName: 'Unseeable Change',
+      ownerEmail: VIEWER,
+      avatarKey: 'avatars/0/live.webp',
+    },
+    async ({ sql, id }) => {
+      await propose(sql, id, VIEWER, `avatars/${id}/not-really-there.webp`)
+      await page.goto(REVIEW)
+      const row = panel(page, 'Pending amendments')
+        .getByRole('listitem')
+        .filter({ hasText: 'Unseeable Change' })
+
+      await expect(
+        row.getByRole('img', { name: 'Image missing' }),
+      ).toBeVisible()
+      await expect(row.getByRole('button', { name: 'Approve' })).toBeDisabled()
+      await expect(row.getByText('until the picture loads')).toBeVisible()
+      // Refusing something unshowable is still a decision a Moderator can take.
+      await expect(row.getByRole('button', { name: 'Reject' })).toBeEnabled()
+      expect(await publishedAvatar(sql, id)).toBe('avatars/0/live.webp')
     },
   )
 })
@@ -323,7 +370,8 @@ test('approving publishes the proposal; refusing leaves what is live alone', asy
           avatarKey: 'avatars/0/untouched.webp',
         },
         async (rejecting) => {
-          const proposed = `avatars/${approving.id}/proposed.webp`
+          // Approving is gated on the picture being visible, so this one is.
+          const proposed = SHOWABLE
           await propose(approving.sql, approving.id, VIEWER, proposed)
           await propose(
             rejecting.sql,
@@ -404,7 +452,7 @@ test('a row another moderator already decided fails benignly and refreshes', asy
       avatarKey: 'avatars/0/live.webp',
     },
     async ({ sql, id }) => {
-      await propose(sql, id, VIEWER, `avatars/${id}/raced.webp`)
+      await propose(sql, id, VIEWER, SHOWABLE)
       await page.goto(REVIEW)
       const row = panel(page, 'Pending amendments')
         .getByRole('listitem')
