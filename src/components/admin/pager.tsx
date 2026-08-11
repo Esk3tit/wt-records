@@ -5,7 +5,11 @@ export { ADMIN_PAGE_SIZE }
 /** Offset pager shared by the admin list views. */
 export function pageParam(value: unknown): number | undefined {
   const page = Number(value)
-  return Number.isInteger(page) && page > 1 ? page : undefined
+  if (!Number.isInteger(page) || page <= 1) return undefined
+  // A page from the URL becomes page × size downstream, and past this it stops
+  // being a number arithmetic can trust — clamped, not rejected, so a nonsense
+  // page lands on the last one instead of throwing out of a loader.
+  return Math.min(page, Math.floor(Number.MAX_SAFE_INTEGER / ADMIN_PAGE_SIZE))
 }
 
 export function Pager({
