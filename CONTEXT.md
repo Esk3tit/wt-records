@@ -54,7 +54,7 @@ _Avoid_: default avatar, placeholder.
 
 **Amendment**:
 One proposed change to one Shadowed field of a claimed Player's profile, awaiting a Moderator. It is either pending, approved, rejected, **superseded** (the holder proposed something else, or overtook it by removing the value), or **withdrawn** (the Claim behind it ended — never a rejection, which would inflate a count nobody earned). One pending Amendment per (Player, field), always: a second proposal supersedes the first rather than queueing behind it, so a Moderator never reviews N values to reach one outcome. Approved values live on the Player, so the Amendment table is a **review log, not a value store** — a value that predates the queue is approved because it sits on the Player, and no Amendment attests to it.
-_Avoid_: request, submission (a pending Record), edit.
+_Avoid_ as names for the thing itself: request, edit, and **Submission** — which is a pending Record, not this. (One is still *submitted*, which is why the row records who submitted it and when.)
 
 **Shadow** (the):
 That an Amendment is invisible to the person who made it: they are served their own pending value on every surface, immediately and everywhere, while everyone else is served the approved one — and nothing tells them a review exists. No status, no toast, no wait, and no refusal, because a queue whose existence is known is a queue to route around. A holder meets a rejection as a plain revert on their next reload.
