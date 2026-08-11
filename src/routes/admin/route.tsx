@@ -82,7 +82,10 @@ function AdminShell() {
             a 320px screen, and a sixth tab was refused partly for that. */}
         <nav
           aria-label="Admin sections"
-          className="flex max-w-full items-center gap-0.5 overflow-x-auto rounded-[13px] border border-hairline-soft bg-[var(--pill-track)] p-0.5"
+          // Wraps rather than scrolls: a scroller with no visible scrollbar
+          // hides whole sections on a phone, and a moderator cannot reach a tab
+          // they cannot see is there.
+          className="flex max-w-full flex-wrap items-center gap-0.5 rounded-[13px] border border-hairline-soft bg-[var(--pill-track)] p-0.5"
         >
           {TABS.map((tab) => (
             <Link

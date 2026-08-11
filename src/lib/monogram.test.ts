@@ -18,4 +18,11 @@ describe('monogram', () => {
     expect(monogram(' Игрок')).toBe('ИГ')
     expect(monogram('   ')).toBe('?')
   })
+
+  it('never hands back punctuation as somebody’s initial', () => {
+    expect(monogram('Vasiliy “Grom” Antonov')).toBe('VG')
+    expect(monogram('Vasiliy "Grom" Antonov')).toBe('VG')
+    expect(monogram('(anon)')).toBe('AN')
+    expect(monogram('!!!')).toBe('?')
+  })
 })

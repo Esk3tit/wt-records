@@ -135,8 +135,9 @@ function ReviewQueue() {
         }
       >
         {claims.length === 0 ? (
-          <p className="text-sm text-fg-faint">
-            No claims are awaiting review.
+          <p className="max-w-prose text-sm text-fg-faint">
+            No claims are awaiting review. One arrives when a signed-in user
+            asks for a player from that player’s own page.
           </p>
         ) : (
           <>
@@ -183,8 +184,10 @@ function ReviewQueue() {
         }
       >
         {amendments.length === 0 ? (
-          <p className="text-sm text-fg-faint">
-            No changes are awaiting review.
+          <p className="max-w-prose text-sm text-fg-faint">
+            No changes are awaiting review. A holder’s new avatar lands here the
+            moment they upload it — they see it immediately, and nobody else
+            does until you approve it.
           </p>
         ) : (
           <>
@@ -462,7 +465,7 @@ function ClaimRow({
   const seeding = acceptSeed && !unseeable
   return (
     <li className={`${claimCardClass} p-4`}>
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="max-w-3xl">
         <div className="min-w-0">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
             <Link
@@ -498,10 +501,13 @@ function ClaimRow({
                 alt={`Avatar ${claim.requesterHandle ?? 'this user'} would seed`}
                 onSeen={setSeen}
               />
-              <figcaption className="mt-2 max-w-[200px] text-xs text-fg-muted">
-                <label className="flex items-center gap-2">
+              <figcaption className="mt-1 max-w-[200px] text-xs text-fg-muted">
+                {/* The label carries the 44px, not the box: a `<label>` is the
+                    one wrapper a tap actually reaches the control through. */}
+                <label className="flex min-h-11 items-center gap-2">
                   <input
                     type="checkbox"
+                    className="h-4 w-4"
                     checked={seeding}
                     disabled={disabled || unseeable}
                     onChange={(e) => setAcceptSeed(e.target.checked)}
@@ -529,15 +535,10 @@ function ClaimRow({
           )}
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            className={subtleButtonClass}
-            disabled={disabled}
-            onClick={onDeny}
-          >
-            Deny
-          </button>
+        {/* Under what is being judged, not across the card from it: the picture
+            is the decision, and the same two controls sit in the same place on
+            every row at every width. */}
+        <div className="mt-4 flex items-center gap-2">
           <button
             type="button"
             className={commitButtonClass}
@@ -545,6 +546,14 @@ function ClaimRow({
             onClick={() => onApprove(seeding)}
           >
             {busy ? 'Working…' : 'Approve'}
+          </button>
+          <button
+            type="button"
+            className={subtleButtonClass}
+            disabled={disabled}
+            onClick={onDeny}
+          >
+            Deny
           </button>
         </div>
       </div>
@@ -577,7 +586,7 @@ function AmendmentRow({
   const unseeable = amendment.valueUrl == null || !seen
   return (
     <li className={`${claimCardClass} p-4`}>
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="max-w-3xl">
         <div className="min-w-0">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
             <Link
@@ -600,9 +609,14 @@ function AmendmentRow({
                 alt={`Proposed avatar for ${amendment.playerDisplayName}`}
                 onSeen={setSeen}
               />
-              <figcaption className="mt-2 text-xs tracking-wide text-fg-faint uppercase">
+              <figcaption className="mt-2 max-w-[200px] text-xs tracking-wide text-fg-faint uppercase">
                 Proposed
               </figcaption>
+              {unseeable && (
+                <p className="mt-1 max-w-[200px] text-xs text-status-warn">
+                  Nothing to approve until this loads — reload, or reject it.
+                </p>
+              )}
             </figure>
             <figure>
               <PlayerAvatar
@@ -622,30 +636,23 @@ function AmendmentRow({
           />
         </div>
 
-        <div className="flex shrink-0 flex-col items-end gap-2">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className={subtleButtonClass}
-              disabled={disabled}
-              onClick={onReject}
-            >
-              Reject
-            </button>
-            <button
-              type="button"
-              className={commitButtonClass}
-              disabled={disabled || unseeable}
-              onClick={onApprove}
-            >
-              {busy ? 'Working…' : 'Approve'}
-            </button>
-          </div>
-          {unseeable && (
-            <p className="max-w-[15rem] text-right text-xs text-status-warn">
-              Nothing to approve until the picture loads — reload, or reject it.
-            </p>
-          )}
+        <div className="mt-4 flex items-center gap-2">
+          <button
+            type="button"
+            className={commitButtonClass}
+            disabled={disabled || unseeable}
+            onClick={onApprove}
+          >
+            {busy ? 'Working…' : 'Approve'}
+          </button>
+          <button
+            type="button"
+            className={subtleButtonClass}
+            disabled={disabled}
+            onClick={onReject}
+          >
+            Reject
+          </button>
         </div>
       </div>
     </li>

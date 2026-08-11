@@ -4,6 +4,8 @@ import type { Sql } from 'postgres'
 import { STATE } from './support/states'
 import { TEST_USERS } from './support/users'
 import { withPlayer } from './support/players'
+import { faultsInInk, readInk, unreadable } from './support/contrast'
+import { LIGHTING, stampTheme } from './support/theme'
 
 /* The one screen where things await a Moderator. What is asserted here is what
    a Moderator can reach and what a decision does — never the component tree. */
@@ -325,7 +327,9 @@ test('a proposal that will not load cannot be published, only refused', async ({
         row.getByRole('img', { name: 'Image missing' }),
       ).toBeVisible()
       await expect(row.getByRole('button', { name: 'Approve' })).toBeDisabled()
-      await expect(row.getByText('until the picture loads')).toBeVisible()
+      await expect(
+        row.getByText('Nothing to approve until this loads'),
+      ).toBeVisible()
       // Refusing something unshowable is still a decision a Moderator can take.
       await expect(row.getByRole('button', { name: 'Reject' })).toBeEnabled()
       expect(await publishedAvatar(sql, id)).toBe('avatars/0/live.webp')
@@ -580,7 +584,10 @@ test('prior refusals are shown with their reasons, and hidden when there are non
   )
 })
 
-test('an age past a day nags in the warn token, and never in amber', async ({
+/* The token is half the law. An assertion that only names the ink passes
+   happily while the nag is unreadable, which is how this one first shipped —
+   so the same case reads the contrast it actually renders at. */
+test('an age past a day nags in the warn token, legibly, and never in amber', async ({
   page,
 }) => {
   await withPlayer(
@@ -613,6 +620,35 @@ test('an age past a day nags in the warn token, and never in amber', async ({
     },
   )
 })
+
+for (const theme of LIGHTING) {
+  test(`every ink on the Review screen clears AA — ${theme}`, async ({
+    page,
+  }) => {
+    test.setTimeout(120_000)
+    await withPlayer(
+      {
+        slug: 'e2e-review-ink',
+        displayName: 'Legible Holder',
+        ownerEmail: VIEWER,
+      },
+      async ({ sql, id }) => {
+        // The refusal block and the age nag are the two warn inks, and both sit
+        // on a tinted panel rather than on the bare pane — which is the backdrop
+        // that fails first, and the one a token value can never tell you about.
+        await refused(sql, id, VIEWER, 'blurry, cannot make out a face')
+        await propose(sql, id, VIEWER, SHOWABLE, '2 days')
+        await stampTheme(page, theme)
+        await page.setViewportSize({ width: 1440, height: 1100 })
+        await page.goto(REVIEW)
+        await expect(page.getByText('Refused 1 time before')).toBeVisible()
+        const readings = await readInk(page, '#admin-content', '')
+        expect(faultsInInk(readings)).toEqual([])
+        expect(unreadable(readings)).toEqual([])
+      },
+    )
+  })
+}
 
 test('offers no way to empty the queue without looking at it', async ({
   page,
