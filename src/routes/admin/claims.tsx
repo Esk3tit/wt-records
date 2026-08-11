@@ -11,7 +11,6 @@ import {
   ErrorNote,
   Field,
   Panel,
-  buttonClass,
   commitButtonClass,
   errorMessage,
   inputClass,
@@ -40,9 +39,12 @@ export const Route = createFileRoute('/admin/claims')({
   loaderDeps: ({ search }) => search,
   loader: async ({ context, deps }) => {
     if (context.gate.state !== 'moderator') return null
-    return reviewQueue({
+    const queue = await reviewQueue({
       data: { deniedOffset: ((deps.page ?? 1) - 1) * ADMIN_PAGE_SIZE },
     })
+    // The clock the age nag is measured against, taken once on the server so
+    // every row on the page agrees and no client clock can move the threshold.
+    return { ...queue, now: Date.now() }
   },
   component: ReviewQueue,
 })
@@ -61,10 +63,25 @@ const JUDGEABLE = 200
 
 const DAY_MS = 86_400_000
 
-/* A row's key across both queues: a claim id and an Amendment id are both
-   small integers, and the busy control must be the one that was pressed. */
+/** Enough to read a pattern; the rest is a count. */
+const REASONS_SHOWN = 4
+
+/* A row's key across all three lists: a claim id and an Amendment id are both
+   small integers, and the busy control must be the one that was pressed. The
+   prefix is also which list a failure belongs under. */
 const claimKey = (id: number) => `claim:${id}`
 const amendmentKey = (id: number) => `amendment:${id}`
+const denialKey = (id: number) => `denial:${id}`
+
+/* What an action says when it did not do what pressing it implied. Neither is
+   a failure, and both outlive the row they were about. */
+const SETTLED =
+  'That one was already settled — nothing was changed, and the list is up to date.'
+const SEED_GONE =
+  'That picture was gone by the time we fetched it, so the claim was approved onto the Medallion.'
+
+const settledNotice = (outcome: { resolved: boolean }) =>
+  outcome.resolved ? null : SETTLED
 
 function ReviewQueue() {
   const queue = Route.useLoaderData()
@@ -75,42 +92,44 @@ function ReviewQueue() {
   const [denying, setDenying] = useState<QueuedClaim | null>(null)
   const [rejecting, setRejecting] = useState<QueuedAmendment | null>(null)
   const [reason, setReason] = useState('')
-  // The seed is decided beside the claim, not inside it: unticked here, the
-  // approval links the User onto the Medallion instead.
-  const [declinedSeeds, setDeclinedSeeds] = useState<number[]>([])
-  // Kept per row, so the message lands under the list being worked in.
-  const [failed, setFailed] = useState<{ key: string; message: string } | null>(
-    null,
-  )
-  const [handledElsewhere, setHandledElsewhere] = useState(false)
+  // Held by list rather than by row: a decision that lost its race takes the
+  // row away, and a message that goes with it reads exactly like success.
+  const [failed, setFailed] = useState<{
+    list: string
+    message: string
+  } | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   if (!queue) return null
   const { claims, amendments } = queue
-  const errorIn = (keys: string[]) =>
-    failed && keys.includes(failed.key) ? failed.message : null
+  const errorIn = (list: string) =>
+    failed?.list === list ? failed.message : null
 
-  const act = async (key: string, fn: () => Promise<unknown>) => {
+  const act = async (key: string, fn: () => Promise<string | null>) => {
     setBusyKey(key)
     setFailed(null)
-    setHandledElsewhere(false)
-    let outcome: unknown
+    setNotice(null)
     try {
-      outcome = await fn()
+      setNotice(await fn())
     } catch (e) {
-      setFailed({ key, message: errorMessage(e) })
+      setFailed({ list: key.split(':')[0], message: errorMessage(e) })
     }
-    // A resolve that lost the compare-and-set: the other Moderator's decision
-    // stands, which is an outcome rather than a failure.
-    if (unresolved(outcome)) setHandledElsewhere(true)
     // Refetched whichever way it went, so a row somebody else resolved leaves
-    // rather than inviting a second action. The message above is keyed to its
-    // row, so it goes with the row and stays while the row stays. A failed
-    // refresh is not itself a failure.
+    // rather than inviting a second press. A failed refresh is not a failure.
     await router.invalidate().catch(() => undefined)
     setBusyKey(null)
   }
 
   return (
     <div className="space-y-4">
+      {notice && (
+        <p
+          role="status"
+          className="rounded-[10px] border border-hairline-soft bg-[var(--tint)] px-4 py-2.5 text-sm text-fg-muted"
+        >
+          {notice}
+        </p>
+      )}
+
       <Panel
         title="Pending claims"
         aside={
@@ -121,51 +140,42 @@ function ReviewQueue() {
           ) : undefined
         }
       >
-        <p className="mb-4 max-w-prose text-sm text-fg-muted">
-          Verify the requester on Discord — recognise them, or ask in the server
-          — before approving. The picture they chose to seed is a second
-          decision: untick it and the claim is approved onto the Medallion. A
-          claim is permanent: only a revoke undoes it. Denying is remembered,
-          and refuses that user this player for good.
-        </p>
-
         {claims.length === 0 ? (
           <p className="text-sm text-fg-faint">
             No claims are awaiting review.
           </p>
         ) : (
-          <ul className="space-y-3">
-            {claims.map((claim) => (
-              <ClaimRow
-                key={claim.id}
-                claim={claim}
-                acceptSeed={!declinedSeeds.includes(claim.id)}
-                onSeed={(accept) =>
-                  setDeclinedSeeds((declined) =>
-                    accept
-                      ? declined.filter((id) => id !== claim.id)
-                      : [...declined, claim.id],
-                  )
-                }
-                busy={busyKey === claimKey(claim.id)}
-                disabled={busyKey != null}
-                onApprove={() =>
-                  act(claimKey(claim.id), () =>
-                    approveClaimRequest({
-                      data: {
-                        claimId: claim.id,
-                        acceptSeed: !declinedSeeds.includes(claim.id),
-                      },
-                    }),
-                  )
-                }
-                onDeny={() => setDenying(claim)}
-              />
-            ))}
-          </ul>
+          <>
+            <p className="mb-4 max-w-prose text-sm text-fg-muted">
+              Verify the requester on Discord before approving — recognise them,
+              or ask in the server. The picture they chose is a second decision.
+            </p>
+            <ul className="space-y-3">
+              {claims.map((claim) => (
+                <ClaimRow
+                  key={claim.id}
+                  claim={claim}
+                  busy={busyKey === claimKey(claim.id)}
+                  disabled={busyKey != null}
+                  now={queue.now}
+                  onApprove={(acceptSeed) =>
+                    act(claimKey(claim.id), async () => {
+                      const { avatarSeeded } = await approveClaimRequest({
+                        data: { claimId: claim.id, acceptSeed },
+                      })
+                      return acceptSeed && claim.seedAvatarUrl && !avatarSeeded
+                        ? SEED_GONE
+                        : null
+                    })
+                  }
+                  onDeny={() => setDenying(claim)}
+                />
+              ))}
+            </ul>
+          </>
         )}
 
-        <ErrorNote error={errorIn(claims.map((c) => claimKey(c.id)))} />
+        <ErrorNote error={errorIn('claim')} />
       </Panel>
 
       <Panel
@@ -178,52 +188,47 @@ function ReviewQueue() {
           ) : undefined
         }
       >
-        <p className="mb-4 max-w-prose text-sm text-fg-muted">
-          A holder proposed this change to their own profile and is being served
-          it already — nobody else sees it until you approve. Refusing is not
-          taking anything down: what is live now stays live, and the refused
-          picture is deleted. To clear a published avatar instead, use Reset to
-          Medallion on the player.
-        </p>
-
         {amendments.length === 0 ? (
           <p className="text-sm text-fg-faint">
             No changes are awaiting review.
           </p>
         ) : (
-          <ul className="space-y-3">
-            {amendments.map((amendment) => (
-              <AmendmentRow
-                key={amendment.id}
-                amendment={amendment}
-                busy={busyKey === amendmentKey(amendment.id)}
-                disabled={busyKey != null}
-                onApprove={() =>
-                  act(amendmentKey(amendment.id), () =>
-                    approvePendingAmendment({
-                      data: { amendmentId: amendment.id },
-                    }),
-                  )
-                }
-                onReject={() => setRejecting(amendment)}
-              />
-            ))}
-          </ul>
+          <>
+            <p className="mb-4 max-w-prose text-sm text-fg-muted">
+              The holder is being served this already — nobody else sees it
+              until you approve.
+            </p>
+            <ul className="space-y-3">
+              {amendments.map((amendment) => (
+                <AmendmentRow
+                  key={amendment.id}
+                  amendment={amendment}
+                  busy={busyKey === amendmentKey(amendment.id)}
+                  disabled={busyKey != null}
+                  now={queue.now}
+                  onApprove={() =>
+                    act(amendmentKey(amendment.id), async () =>
+                      settledNotice(
+                        await approvePendingAmendment({
+                          data: { amendmentId: amendment.id },
+                        }),
+                      ),
+                    )
+                  }
+                  onReject={() => setRejecting(amendment)}
+                />
+              ))}
+            </ul>
+          </>
         )}
 
-        {handledElsewhere && (
-          <p role="status" className="mt-3 text-sm text-fg-muted">
-            Another moderator resolved that one first — the list is up to date.
-          </p>
-        )}
-        <ErrorNote error={errorIn(amendments.map((a) => amendmentKey(a.id)))} />
+        <ErrorNote error={errorIn('amendment')} />
       </Panel>
 
       <DenyDialog
         claim={denying}
         reason={reason}
         onReason={setReason}
-        busy={denying != null && busyKey === claimKey(denying.id)}
         onCancel={() => {
           setDenying(null)
           setReason('')
@@ -233,9 +238,10 @@ function ReviewQueue() {
           if (!claim) return
           setDenying(null)
           setReason('')
-          act(claimKey(claim.id), () =>
-            denyClaimRequest({ data: { claimId: claim.id, reason } }),
-          )
+          act(claimKey(claim.id), async () => {
+            await denyClaimRequest({ data: { claimId: claim.id, reason } })
+            return null
+          })
         }}
       />
 
@@ -243,7 +249,6 @@ function ReviewQueue() {
         amendment={rejecting}
         reason={reason}
         onReason={setReason}
-        busy={rejecting != null && busyKey === amendmentKey(rejecting.id)}
         onCancel={() => {
           setRejecting(null)
           setReason('')
@@ -253,10 +258,12 @@ function ReviewQueue() {
           if (!amendment) return
           setRejecting(null)
           setReason('')
-          act(amendmentKey(amendment.id), () =>
-            rejectPendingAmendment({
-              data: { amendmentId: amendment.id, reason },
-            }),
+          act(amendmentKey(amendment.id), async () =>
+            settledNotice(
+              await rejectPendingAmendment({
+                data: { amendmentId: amendment.id, reason },
+              }),
+            ),
           )
         }}
       />
@@ -267,23 +274,15 @@ function ReviewQueue() {
         page={page}
         onPage={(p) => navigate({ search: { page: p } })}
         busyKey={busyKey}
-        error={errorIn(queue.denied.rows.map((c) => claimKey(c.id)))}
+        error={errorIn('denial')}
         onClear={(id) =>
-          act(claimKey(id), () =>
-            clearClaimDenialRequest({ data: { claimId: id } }),
-          )
+          act(denialKey(id), async () => {
+            await clearClaimDenialRequest({ data: { claimId: id } })
+            return null
+          })
         }
       />
     </div>
-  )
-}
-
-function unresolved(outcome: unknown): boolean {
-  return (
-    typeof outcome === 'object' &&
-    outcome !== null &&
-    'resolved' in outcome &&
-    outcome.resolved === false
   )
 }
 
@@ -293,14 +292,12 @@ function DenyDialog({
   claim,
   reason,
   onReason,
-  busy,
   onConfirm,
   onCancel,
 }: {
   claim: QueuedClaim | null
   reason: string
   onReason: (reason: string) => void
-  busy: boolean
   onConfirm: () => void
   onCancel: () => void
 }) {
@@ -309,7 +306,6 @@ function DenyDialog({
       open={claim != null}
       title={`Deny the claim on ${claim?.playerDisplayName ?? ''}?`}
       confirmLabel="Deny"
-      busy={busy}
       onConfirm={onConfirm}
       onCancel={onCancel}
     >
@@ -339,14 +335,12 @@ function RejectDialog({
   amendment,
   reason,
   onReason,
-  busy,
   onConfirm,
   onCancel,
 }: {
   amendment: QueuedAmendment | null
   reason: string
   onReason: (reason: string) => void
-  busy: boolean
   onConfirm: () => void
   onCancel: () => void
 }) {
@@ -355,7 +349,6 @@ function RejectDialog({
       open={amendment != null}
       title={`Refuse this change to ${amendment?.playerDisplayName ?? ''}?`}
       confirmLabel="Reject"
-      busy={busy}
       onConfirm={onConfirm}
       onCancel={onCancel}
     >
@@ -439,7 +432,7 @@ function DeniedClaims({
               disabled={busyKey != null}
               onClick={() => onClear(claim.id)}
             >
-              {busyKey === claimKey(claim.id) ? 'Working…' : 'Clear denial'}
+              {busyKey === denialKey(claim.id) ? 'Working…' : 'Clear denial'}
             </button>
           </li>
         ))}
@@ -452,21 +445,22 @@ function DeniedClaims({
 
 function ClaimRow({
   claim,
-  acceptSeed,
-  onSeed,
   busy,
   disabled,
+  now,
   onApprove,
   onDeny,
 }: {
   claim: QueuedClaim
-  acceptSeed: boolean
-  onSeed: (accept: boolean) => void
   busy: boolean
   disabled: boolean
-  onApprove: () => void
+  now: number
+  onApprove: (acceptSeed: boolean) => void
   onDeny: () => void
 }) {
+  // The seed decision lives with the row it is about; rows are keyed by id, so
+  // it survives a refetch exactly as the row does.
+  const [acceptSeed, setAcceptSeed] = useState(true)
   return (
     <li className={`${claimCardClass} p-4`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -495,7 +489,7 @@ function ClaimRow({
                 Discord ID {claim.requesterDiscordId}
               </span>
             )}
-            <AgeStamp at={claim.createdAt} />
+            <AgeStamp at={claim.createdAt} now={now} />
           </div>
 
           {claim.seedAvatarUrl ? (
@@ -510,7 +504,7 @@ function ClaimRow({
                     type="checkbox"
                     checked={acceptSeed}
                     disabled={disabled}
-                    onChange={(e) => onSeed(e.target.checked)}
+                    onChange={(e) => setAcceptSeed(e.target.checked)}
                   />
                   Seed this picture
                 </label>
@@ -546,9 +540,9 @@ function ClaimRow({
           </button>
           <button
             type="button"
-            className={busy ? buttonClass : commitButtonClass}
+            className={commitButtonClass}
             disabled={disabled}
-            onClick={onApprove}
+            onClick={() => onApprove(acceptSeed)}
           >
             {busy ? 'Working…' : 'Approve'}
           </button>
@@ -564,12 +558,14 @@ function AmendmentRow({
   amendment,
   busy,
   disabled,
+  now,
   onApprove,
   onReject,
 }: {
   amendment: QueuedAmendment
   busy: boolean
   disabled: boolean
+  now: number
   onApprove: () => void
   onReject: () => void
 }) {
@@ -577,18 +573,18 @@ function AmendmentRow({
     <li className={`${claimCardClass} p-4`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-fg-muted">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
             <Link
               to="/admin/players/$id"
               params={{ id: String(amendment.playerId) }}
-              className="font-semibold text-fg"
+              className="font-semibold"
             >
               {amendment.playerDisplayName}
             </Link>
             <span className="text-xs text-fg-faint">
               {amendment.submitterHandle ?? 'Unknown handle'}
             </span>
-            <AgeStamp at={amendment.submittedAt} />
+            <AgeStamp at={amendment.submittedAt} now={now} />
           </div>
 
           <div className="mt-3 flex flex-wrap items-end gap-5">
@@ -627,7 +623,7 @@ function AmendmentRow({
           </button>
           <button
             type="button"
-            className={busy ? buttonClass : commitButtonClass}
+            className={commitButtonClass}
             disabled={disabled}
             onClick={onApprove}
           >
@@ -677,11 +673,12 @@ function ProposedImage({ url, alt }: { url: string | null; alt: string }) {
 
 /** A day is a target carried by the UI, never an expiry: no automatic
     disposition is acceptable in either direction. The nag is the semantic warn
-    token — /admin spends its amber on the commit action. */
-function AgeStamp({ at }: { at: Date | string | null }) {
+    token — /admin spends its amber on the commit action. `now` is stamped by
+    the loader, so a skewed client clock cannot invent or hide the nag. */
+function AgeStamp({ at, now }: { at: Date | string | null; now: number }) {
   if (!at) return null
   const submitted = at instanceof Date ? at : new Date(at)
-  const overdue = Date.now() - submitted.getTime() >= DAY_MS
+  const overdue = now - submitted.getTime() >= DAY_MS
   return (
     <time
       dateTime={submitted.toISOString()}
@@ -701,6 +698,7 @@ function PriorRejections({
   rejections: QueuedAmendment['priorRejections']
 }) {
   if (rejections.length === 0) return null
+  const shown = rejections.slice(0, REASONS_SHOWN)
   return (
     <div className="mt-3 max-w-prose rounded-[8px] bg-[var(--tint-strong)] px-3 py-2 text-xs">
       <p className="text-status-warn">
@@ -708,13 +706,18 @@ function PriorRejections({
         before
       </p>
       <ul className="mt-1 space-y-0.5 text-fg-muted">
-        {rejections.map((rejection, at) => (
+        {shown.map((rejection, at) => (
           <li key={at}>
             {rejection.reason ? `“${rejection.reason}”` : 'No reason recorded'}
             {rejection.reviewedAt &&
               ` · ${formatDayTime(rejection.reviewedAt)}`}
           </li>
         ))}
+        {rejections.length > shown.length && (
+          <li className="text-fg-faint">
+            and {rejections.length - shown.length} older
+          </li>
+        )}
       </ul>
     </div>
   )

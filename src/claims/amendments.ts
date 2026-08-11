@@ -178,7 +178,9 @@ export async function listPendingAmendments(
   if (rows.length === 0) return []
 
   // Only `rejected` counts: a `withdrawn` or `superseded` row was never
-  // refused, and counting it would show a history nobody wrote.
+  // refused, and counting it would show a history nobody wrote. Scoped to
+  // whoever holds the Player NOW — "refused four times" is a judgement about a
+  // person, and a revoke hands the row to someone that history is not about.
   const refusals = await db
     .select({
       playerId: playerAmendments.playerId,
@@ -186,12 +188,14 @@ export async function listPendingAmendments(
       reviewedAt: playerAmendments.reviewedAt,
     })
     .from(playerAmendments)
+    .innerJoin(players, eq(players.id, playerAmendments.playerId))
     .where(
       and(
         inArray(playerAmendments.playerId, [
           ...new Set(rows.map((row) => row.playerId)),
         ]),
         eq(playerAmendments.state, 'rejected'),
+        eq(playerAmendments.submittedBy, players.userId),
       ),
     )
     .orderBy(desc(playerAmendments.reviewedAt), desc(playerAmendments.id))

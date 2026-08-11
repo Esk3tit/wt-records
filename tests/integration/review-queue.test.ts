@@ -170,6 +170,19 @@ describe('the amendments panel', () => {
     expect(row.priorRejections[0].reason).toBeNull()
   })
 
+  it('does not hand a new holder the last one’s rejections', async () => {
+    const player = await claimedPlayer('ace', OTHER)
+    // Refused while somebody else held this Player, before a revoke freed it.
+    await refused(player.id, 'hateful', AGES_AGO)
+    await propose(player.id, OTHER, 'proposed.webp')
+
+    const [row] = await listPendingAmendments(t.db)
+
+    // "Refused 4 times" is a judgement about a person, and this is not that
+    // person: a history written about someone else must not follow the row.
+    expect(row.priorRejections).toEqual([])
+  })
+
   it('keeps one Player’s history off another’s row', async () => {
     const refusedBefore = await claimedPlayer('ace', OWNER)
     const clean = await claimedPlayer('maverick', OTHER)

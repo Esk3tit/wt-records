@@ -84,6 +84,13 @@ async function pendingTotal(sql: Sql): Promise<number> {
   return Number(waiting)
 }
 
+async function claimedBy(sql: Sql, playerId: number): Promise<string | null> {
+  const [row] = await sql<{ userId: string | null }[]>`
+    select user_id as "userId" from players where id = ${playerId}
+  `
+  return row.userId
+}
+
 async function publishedAvatar(
   sql: Sql,
   playerId: number,
@@ -415,9 +422,7 @@ test('a row another moderator already decided fails benignly and refreshes', asy
       `
       await row.getByRole('button', { name: 'Approve' }).click()
 
-      await expect(
-        page.getByText('Another moderator resolved that one first'),
-      ).toBeVisible()
+      await expect(page.getByText('already settled')).toBeVisible()
       await expect(row).toHaveCount(0)
       // The decision that won stands: nothing was published, and the losing
       // resolve wrote no second audit row.
@@ -427,6 +432,41 @@ test('a row another moderator already decided fails benignly and refreshes', asy
         where entity = 'player' and entity_id = ${String(id)}
       `
       expect(n).toBe(auditedBefore[0].n)
+    },
+  )
+})
+
+/* A claim resolver throws rather than answering `{resolved:false}`, so this is
+   the leg where a vanished row could read as an approval. It must not: the
+   refusal and the row's departure have to arrive together. */
+test('a claim another moderator denied says so rather than looking approved', async ({
+  page,
+}) => {
+  await withPlayer(
+    { slug: 'e2e-review-raced-claim', displayName: 'Raced Claimant' },
+    async ({ sql, id }) => {
+      await fileClaim(sql, id, VIEWER, null)
+      try {
+        await page.goto(REVIEW)
+        const row = panel(page, 'Pending claims')
+          .getByRole('listitem')
+          .filter({ hasText: 'Raced Claimant' })
+        await expect(row).toBeVisible()
+
+        await sql`
+          update player_claims set state = 'denied', decided_at = now()
+          where player_id = ${id} and state = 'pending'
+        `
+        await row.getByRole('button', { name: 'Approve' }).click()
+
+        // The row goes, because it is gone — but never in silence, which is
+        // what an approval looks like.
+        await expect(row).toHaveCount(0)
+        await expect(page.getByRole('alert')).toContainText('already resolved')
+        expect(await claimedBy(sql, id)).toBeNull()
+      } finally {
+        await dropClaims(sql, VIEWER)
+      }
     },
   )
 })
