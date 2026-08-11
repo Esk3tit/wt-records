@@ -183,6 +183,30 @@ describe('the amendments panel', () => {
     expect(row.priorRejections).toEqual([])
   })
 
+  it('ships the newest reasons and counts the rest, however long the history', async () => {
+    const player = await claimedPlayer('ace', OWNER)
+    for (let nth = 1; nth <= 7; nth++) {
+      await refused(
+        player.id,
+        `refusal ${nth}`,
+        new Date(Date.UTC(2026, 0, nth)),
+      )
+    }
+    await propose(player.id, OWNER, 'proposed.webp')
+
+    const [row] = await listPendingAmendments(t.db)
+
+    // The count is the fact past a few; the whole history is never shipped to
+    // a browser just to render four lines of it.
+    expect(row.priorRejectionCount).toBe(7)
+    expect(row.priorRejections.map((r) => r.reason)).toEqual([
+      'refusal 7',
+      'refusal 6',
+      'refusal 5',
+      'refusal 4',
+    ])
+  })
+
   it('keeps one Player’s history off another’s row', async () => {
     const refusedBefore = await claimedPlayer('ace', OWNER)
     const clean = await claimedPlayer('maverick', OTHER)
@@ -194,6 +218,41 @@ describe('the amendments panel', () => {
 
     expect(rows[0].priorRejections).toHaveLength(1)
     expect(rows[1].priorRejections).toEqual([])
+  })
+})
+
+describe('a proposal that outlived the Claim behind it', () => {
+  it('is neither offered as work nor counted as any', async () => {
+    const player = await claimedPlayer('ace', OWNER)
+    await propose(player.id, OWNER, 'orphaned.webp')
+    // Deleting the auth User nulls players.user_id by FK without running
+    // unclaim(), so the proposal survives the Claim it belonged to.
+    await t.db
+      .update(players)
+      .set({ userId: null })
+      .where(eq(players.id, player.id))
+
+    // A Moderator can decide nothing about it — an Approve could only answer
+    // "already settled" — so it must not sit on the queue or the badge.
+    expect(await listPendingAmendments(t.db)).toEqual([])
+    expect(await countPendingAmendments(t.db)).toBe(0)
+  })
+
+  it('is still there to be closed by whoever claims the Player next', async () => {
+    const player = await claimedPlayer('ace', OWNER)
+    await propose(player.id, OWNER, 'orphaned.webp')
+    await t.db
+      .update(players)
+      .set({ userId: null })
+      .where(eq(players.id, player.id))
+
+    // Hidden from the queue is not resolved: the row is the next claim's to
+    // withdraw, and leaving it pending is what keeps its object referenced.
+    const [row] = await t.db
+      .select()
+      .from(playerAmendments)
+      .where(eq(playerAmendments.playerId, player.id))
+    expect(row.state).toBe('pending')
   })
 })
 

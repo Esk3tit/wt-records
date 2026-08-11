@@ -60,9 +60,6 @@ const JUDGEABLE = 200
 
 const DAY_MS = 86_400_000
 
-/** Enough to read a pattern; the rest is a count. */
-const REASONS_SHOWN = 4
-
 /* A row's key across all three lists: a claim id and an Amendment id are both
    small integers, and the busy control must be the one that was pressed. The
    prefix is also which list a failure belongs under. */
@@ -606,7 +603,10 @@ function AmendmentRow({
             </figure>
           </div>
 
-          <PriorRejections rejections={amendment.priorRejections} />
+          <PriorRejections
+            rejections={amendment.priorRejections}
+            total={amendment.priorRejectionCount}
+          />
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -691,28 +691,28 @@ function AgeStamp({ at, now }: { at: Date | string | null; now: number }) {
     its own would say nothing a reason does not say better. */
 function PriorRejections({
   rejections,
+  total,
 }: {
   rejections: QueuedAmendment['priorRejections']
+  total: number
 }) {
-  if (rejections.length === 0) return null
-  const shown = rejections.slice(0, REASONS_SHOWN)
+  if (total === 0) return null
   return (
     <div className="mt-3 max-w-prose rounded-[8px] bg-[var(--tint-strong)] px-3 py-2 text-xs">
       <p className="text-status-warn">
-        Refused {rejections.length} {rejections.length === 1 ? 'time' : 'times'}{' '}
-        before
+        Refused {total} {total === 1 ? 'time' : 'times'} before
       </p>
       <ul className="mt-1 space-y-0.5 text-fg-muted">
-        {shown.map((rejection, at) => (
+        {rejections.map((rejection, at) => (
           <li key={at}>
             {rejection.reason ? `“${rejection.reason}”` : 'No reason recorded'}
             {rejection.reviewedAt &&
               ` · ${formatDayTime(rejection.reviewedAt)}`}
           </li>
         ))}
-        {rejections.length > shown.length && (
+        {total > rejections.length && (
           <li className="text-fg-faint">
-            and {rejections.length - shown.length} older
+            and {total - rejections.length} older
           </li>
         )}
       </ul>

@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm'
+import { and, asc, count, eq, inArray, lte, sql } from 'drizzle-orm'
 import type { Db } from '#/db'
 import { playerAmendments, players, profiles } from '#/db/schema'
 import type { AvatarStore } from '#/claims/avatar'
@@ -148,8 +148,24 @@ export interface AmendmentQueueRow {
   publishedValue: string | null
   submittedAt: Date
   submitterHandle: string | null
+  /** The newest few reasons, not the whole history: enough to read a pattern. */
   priorRejections: AmendmentRejection[]
+  priorRejectionCount: number
 }
+
+/** Enough refusals to read a pattern; beyond this the count is the fact, and
+    shipping every reason a Player ever collected would grow without bound. */
+const REASONS_KEPT = 4
+
+/** A proposal is only work if its submitter still holds the Player. Deleting an
+    auth User nulls `players.user_id` by FK without running `unclaim()`, so a row
+    can outlive the Claim it belonged to — the system's to close, and never a
+    decision a Moderator can take. Counting it would put false work on the badge
+    and offer an Approve that can only ever answer "already settled". */
+const stillHeld = and(
+  eq(playerAmendments.state, 'pending'),
+  eq(playerAmendments.submittedBy, players.userId),
+)
 
 /** The proposals waiting on a Moderator, oldest first ACROSS fields: the unit
     of work is one thing awaiting them, and a panel per field lets a whole pile
@@ -173,7 +189,7 @@ export async function listPendingAmendments(
     .from(playerAmendments)
     .innerJoin(players, eq(players.id, playerAmendments.playerId))
     .leftJoin(profiles, eq(profiles.id, playerAmendments.submittedBy))
-    .where(eq(playerAmendments.state, 'pending'))
+    .where(stillHeld)
     .orderBy(asc(playerAmendments.submittedAt), asc(playerAmendments.id))
   if (rows.length === 0) return []
 
@@ -181,11 +197,18 @@ export async function listPendingAmendments(
   // refused, and counting it would show a history nobody wrote. Scoped to
   // whoever holds the Player NOW — "refused four times" is a judgement about a
   // person, and a revoke hands the row to someone that history is not about.
-  const refusals = await db
+  const ranked = db
     .select({
       playerId: playerAmendments.playerId,
       reason: playerAmendments.reason,
       reviewedAt: playerAmendments.reviewedAt,
+      rank: sql<number>`row_number() over (partition by ${playerAmendments.playerId} order by ${playerAmendments.reviewedAt} desc nulls last, ${playerAmendments.id} desc)`.as(
+        'rank',
+      ),
+      total:
+        sql<number>`(count(*) over (partition by ${playerAmendments.playerId}))::int`.as(
+          'total',
+        ),
     })
     .from(playerAmendments)
     .innerJoin(players, eq(players.id, playerAmendments.playerId))
@@ -198,15 +221,36 @@ export async function listPendingAmendments(
         eq(playerAmendments.submittedBy, players.userId),
       ),
     )
-    .orderBy(desc(playerAmendments.reviewedAt), desc(playerAmendments.id))
-  const byPlayer = new Map<number, AmendmentRejection[]>()
-  for (const { playerId, ...rejection } of refusals) {
-    byPlayer.set(playerId, [...(byPlayer.get(playerId) ?? []), rejection])
+    .as('ranked')
+
+  const refusals = await db
+    .select({
+      playerId: ranked.playerId,
+      reason: ranked.reason,
+      reviewedAt: ranked.reviewedAt,
+      total: ranked.total,
+    })
+    .from(ranked)
+    .where(lte(ranked.rank, REASONS_KEPT))
+    .orderBy(asc(ranked.playerId), asc(ranked.rank))
+
+  const byPlayer = new Map<
+    number,
+    { rejections: AmendmentRejection[]; total: number }
+  >()
+  for (const { playerId, total, ...rejection } of refusals) {
+    const held = byPlayer.get(playerId) ?? { rejections: [], total }
+    held.rejections.push(rejection)
+    byPlayer.set(playerId, held)
   }
-  return rows.map((row) => ({
-    ...row,
-    priorRejections: byPlayer.get(row.playerId) ?? [],
-  }))
+  return rows.map((row) => {
+    const history = byPlayer.get(row.playerId)
+    return {
+      ...row,
+      priorRejections: history?.rejections ?? [],
+      priorRejectionCount: history?.total ?? 0,
+    }
+  })
 }
 
 /** Half of the one number on the Review tab. */
@@ -214,7 +258,8 @@ export async function countPendingAmendments(db: Db): Promise<number> {
   const [{ pending }] = await db
     .select({ pending: count() })
     .from(playerAmendments)
-    .where(eq(playerAmendments.state, 'pending'))
+    .innerJoin(players, eq(players.id, playerAmendments.playerId))
+    .where(stillHeld)
   return pending
 }
 
