@@ -147,43 +147,26 @@ function refusalForCollision(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error))
 }
 
-/** What this User already has going, which is what stops them asking here.
-    Only one can exist: the two rules are one Claim, or one request. */
-export interface ClaimCommitment {
-  kind: 'holds' | 'pending'
-  playerSlug: string
-  playerDisplayName: string
-}
-
-export async function viewerClaimCommitment(
+/** Whether this User is already spoken for — one Claim held, or one request
+    waiting. Either way there is nothing to offer them on another Player. */
+export async function viewerIsCommitted(
   db: Db,
   userId: string,
-): Promise<ClaimCommitment | null> {
-  const held = (
-    await db
-      .select({
-        playerSlug: players.slug,
-        playerDisplayName: players.displayName,
-      })
-      .from(players)
-      .where(eq(players.userId, userId))
-      .limit(1)
-  ).at(0)
-  if (held) return { kind: 'holds', ...held }
-  const waiting = (
-    await db
-      .select({
-        playerSlug: players.slug,
-        playerDisplayName: players.displayName,
-      })
-      .from(playerClaims)
-      .innerJoin(players, eq(players.id, playerClaims.playerId))
-      .where(
-        and(eq(playerClaims.userId, userId), eq(playerClaims.state, 'pending')),
-      )
-      .limit(1)
-  ).at(0)
-  return waiting ? { kind: 'pending', ...waiting } : null
+): Promise<boolean> {
+  const holds = await db
+    .select({ id: players.id })
+    .from(players)
+    .where(eq(players.userId, userId))
+    .limit(1)
+  if (holds.length > 0) return true
+  const waiting = await db
+    .select({ id: playerClaims.id })
+    .from(playerClaims)
+    .where(
+      and(eq(playerClaims.userId, userId), eq(playerClaims.state, 'pending')),
+    )
+    .limit(1)
+  return waiting.length > 0
 }
 
 /** Which of the three the panel shows: the CTA, the pending note, the denied
