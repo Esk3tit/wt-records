@@ -59,17 +59,19 @@ function PlayerDetailInner() {
 
   const refresh = () => router.invalidate()
 
+  /** Reports whether the write landed, so a dialog knows to stay open. */
   const call = async (fn: () => Promise<unknown>) => {
     setError(null)
     try {
       await fn()
     } catch (e) {
       setError(errorMessage(e))
-      return
+      return false
     }
     // The mutation committed — a failed refresh must not read as a failure
     // (e.g. a revoke that succeeded but left the ClaimedChip until reload).
     await refresh().catch(() => undefined)
+    return true
   }
 
   if (player.mergedInto != null) {
@@ -117,6 +119,7 @@ function PlayerDetailInner() {
         <p className="mt-2 text-xs text-fg-faint">Last IGN used: {lastIgn}</p>
         {player.userId && (
           <ClaimStatus
+            error={error}
             hasAvatar={player.avatarKey != null}
             onResetAvatar={() =>
               call(() =>
@@ -346,23 +349,26 @@ function MergePanel({
 }
 
 function ClaimStatus({
+  error,
   hasAvatar,
   onResetAvatar,
   onRevoke,
 }: {
+  error: string | null
   hasAvatar: boolean
-  onResetAvatar: () => Promise<void> | void
-  onRevoke: (reason: string) => Promise<void> | void
+  onResetAvatar: () => Promise<boolean>
+  onRevoke: (reason: string) => Promise<boolean>
 }) {
   const [confirming, setConfirming] = useState<'reset' | 'revoke' | null>(null)
   const [busy, setBusy] = useState(false)
   const [reason, setReason] = useState('')
-  const run = async (action: () => Promise<void> | void) => {
+  const run = async (action: () => Promise<boolean>) => {
     setBusy(true)
-    try {
-      await action()
-    } finally {
-      setBusy(false)
+    const committed = await action()
+    setBusy(false)
+    // A failed write keeps the dialog and the typed reason: retyping one to
+    // retry is the moderator paying for our error.
+    if (committed) {
       setConfirming(null)
       setReason('')
     }
@@ -398,6 +404,7 @@ function ClaimStatus({
           The avatar returns to the Medallion and the stored image is deleted.
           The claim is untouched, and the owner can upload a new one.
         </p>
+        <ErrorNote error={error} />
       </ConfirmDialog>
       <ConfirmDialog
         open={confirming === 'revoke'}
@@ -438,6 +445,7 @@ function ClaimStatus({
             className={inputClass}
           />
         </Field>
+        <ErrorNote error={error} />
       </ConfirmDialog>
     </div>
   )
