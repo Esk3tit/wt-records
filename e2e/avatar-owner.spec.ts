@@ -211,7 +211,11 @@ test.describe('an Avatar awaiting review', () => {
           where player_id = ${id}
         `
         expect(await cacheHeaders()).toEqual(quiet)
+        // Parity alone would hold just as well if the headers vanished
+        // altogether, and `Vary: Cookie` is what keeps a shared cache from
+        // handing this holder's response to the next visitor.
         expect(quiet.cache).toContain('no-store')
+        expect(quiet.vary).toContain('Cookie')
       },
     )
   })
