@@ -3,6 +3,7 @@ import type { Db } from '#/db'
 import { players } from '#/db/schema'
 import type { AvatarStore } from '#/claims/avatar'
 import { deleteAvatarIfUnreferenced } from '#/claims/avatar'
+import { closePendingAmendments, submitAmendment } from '#/claims/amendments'
 import { playerAvatarKey } from '#/storage/avatar-key'
 
 /* What a holder may change on their own page, without a moderator. Every one
@@ -21,10 +22,15 @@ function assertClaimOwnership<
 
 /** The owner uploads a new Avatar for their own Player: the bytes are decoded,
     center-cropped, and re-encoded to a 512×512 WebP (never stored as-is), put
-    under a fresh content-hashed key, and the Player is repointed. The sibling of
-    the seed path — same cap, key scheme, and reference-guarded cleanup. Refuses
-    when no store is configured: persisting a key with no object behind it would
-    render a broken avatar, unlike the best-effort seed which just stays null. */
+    under a fresh content-hashed key, and proposed as an Amendment. The sibling
+    of the seed path — same cap, key scheme, and reference-guarded cleanup.
+    Refuses when no store is configured: persisting a key with no object behind
+    it would render a broken avatar, unlike the best-effort seed which just
+    stays null.
+
+    They see it immediately and are told nothing: the published row is the one a
+    Moderator has accepted, and everything about the wait — including that there
+    is one — stays off the page. */
 export async function setOwnAvatar(
   db: Db,
   store: AvatarStore | null,
@@ -62,22 +68,21 @@ export async function setOwnAvatar(
           .select({
             userId: players.userId,
             mergedInto: players.mergedInto,
-            avatarKey: players.avatarKey,
           })
           .from(players)
           .where(eq(players.id, playerId))
           .for('update')
       ).at(0)
       assertClaimOwnership(player, userId)
-      await tx
-        .update(players)
-        .set({ avatarKey: key })
-        .where(eq(players.id, playerId))
-      // The prior object is now unreferenced unless a concurrent write already
-      // repointed another player at this identical content-hash key.
-      return player.avatarKey && player.avatarKey !== key
-        ? player.avatarKey
-        : null
+      const { supersededValue } = await submitAmendment(tx, {
+        playerId,
+        field: 'avatar',
+        value: key,
+        userId,
+      })
+      // The displaced proposal's object is now unreferenced unless this upload
+      // is the identical picture, which lands on the identical key.
+      return supersededValue && supersededValue !== key ? supersededValue : null
     })
   } catch (error) {
     await deleteAvatarIfUnreferenced(db, store, key)
@@ -87,16 +92,20 @@ export async function setOwnAvatar(
   return { avatarKey: key }
 }
 
-/** The owner removes their Avatar, returning the Player to the Medallion. The
-    dereferenced object is cleaned up when unreferenced; a Player already on the
-    Medallion is a no-op (idempotent), never an error. */
+/** The owner removes their Avatar, returning the Player to the Medallion. This
+    publishes instantly and unconditionally, review or no review: removal can
+    only ever reduce what the site broadcasts, so it is never shadowed — and a
+    picture they regret must never wait on anybody. Any proposal in flight is
+    overtaken by it. The dereferenced objects are cleaned up when unreferenced;
+    a Player already on the Medallion with nothing proposed is a no-op
+    (idempotent), never an error. */
 export async function removeOwnAvatar(
   db: Db,
   store: AvatarStore | null,
   userId: string,
   playerId: number,
 ): Promise<void> {
-  const staleKey = await db.transaction(async (tx) => {
+  const staleKeys = await db.transaction(async (tx) => {
     const player = (
       await tx
         .select({
@@ -109,14 +118,19 @@ export async function removeOwnAvatar(
         .for('update')
     ).at(0)
     assertClaimOwnership(player, userId)
-    if (player.avatarKey == null) return null
+    const dropped = await closePendingAmendments(tx, playerId, 'superseded')
+    if (player.avatarKey == null) return dropped
     await tx
       .update(players)
       .set({ avatarKey: null })
       .where(eq(players.id, playerId))
-    return player.avatarKey
+    return [...dropped, player.avatarKey]
   })
-  if (staleKey && store) await deleteAvatarIfUnreferenced(db, store, staleKey)
+  if (store) {
+    for (const key of staleKeys) {
+      await deleteAvatarIfUnreferenced(db, store, key)
+    }
+  }
 }
 
 /** Unlimited and self-serve with no cooldown: the rule is stated, not verified,

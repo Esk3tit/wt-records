@@ -28,6 +28,7 @@ import { resolveCountryMark } from '#/lib/country-mark-server'
 import { hasAuthCookie, getSessionUser } from '#/auth/supabase-server'
 import { providerAvatarUrl } from '#/auth/profile'
 import { viewerClaimCommitment, viewerClaimState } from '#/claims/claims'
+import { resolveAmendmentViewer } from '#/claims/viewer'
 import { assetUrlIfConfigured } from '#/storage/urls'
 import { toPlayerCardModel } from '#/og/props/player'
 import { playerUnfurl } from '#/og/copy'
@@ -79,12 +80,13 @@ const loadPlayer = createServerFn({ method: 'GET' })
       return { profile: null, redirectTo, viewer: null, enrichment: null }
     }
     const claimed = found.player.userId != null
-    const avatarKey = effectiveAvatarKey(found.player)
     const countryCode = effectiveCountry(found.player)
-    const [viewer, enrichment] = await Promise.all([
+    const [viewer, enrichment, amendmentViewer] = await Promise.all([
       resolveClaimViewer(found.player),
       getPlayerEnrichment(db, found.player.id),
+      resolveAmendmentViewer(),
     ])
+    const avatarKey = effectiveAvatarKey(found.player, amendmentViewer)
     return {
       enrichment,
       profile: {
@@ -98,7 +100,12 @@ const loadPlayer = createServerFn({ method: 'GET' })
         // DB truth, independent of whether the asset host is configured, so the
         // owner's controls reflect the stored state, not the served URL.
         hasAvatar: avatarKey != null,
-        avatarKey,
+        // The share card is excluded from the viewer predicate, so its version
+        // is derived from the REVIEWED key even here, on the owner's own page.
+        // Versioning it off what they alone can see would let their own visit
+        // render and publicly edge-cache an unreviewed picture under a fresh
+        // ?v= — the one surface the site propagates off-site.
+        cardAvatarKey: effectiveAvatarKey(found.player),
         // Resolved server-side (all 250 marks stay off the client), so a code
         // the list has since dropped renders as nothing at all.
         country: resolveCountryMark(countryCode),
@@ -139,7 +146,7 @@ export const Route = createFileRoute('/player/$slug')({
         player: { displayName: loaderData.profile.displayName },
         records: loaderData.profile.records,
       },
-      { avatarKey: loaderData.profile.avatarKey },
+      { avatarKey: loaderData.profile.cardAvatarKey },
     )
     const { title, description } = playerUnfurl(model)
     return {

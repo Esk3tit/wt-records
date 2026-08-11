@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import type { Page } from '@playwright/test'
+import type { BrowserContext, Page } from '@playwright/test'
 import type { Sql } from 'postgres'
 import { withPlayer } from './support/players'
 import { STATE } from './support/states'
@@ -87,6 +87,78 @@ async function expectNonOwnerSeesNothing(page: Page, sql: Sql, slug: string) {
   await page.reload()
   await expectNoOwnerControls(page)
 }
+
+/* The release's one assertion: the holder is served their own unreviewed
+   picture, everybody else the reviewed one, and the share card serves the
+   reviewed one to both — including on the holder's own page, which is where
+   applying the predicate literally would have leaked it off-site. */
+test.describe('an Avatar awaiting review', () => {
+  test.use({ storageState: STATE.viewer })
+
+  const APPROVED = 'avatars/1/aaaaaaaaaaaa.webp'
+  const PENDING = 'avatars/1/bbbbbbbbbbbb.webp'
+
+  /** The picture the page actually points at — an attribute value, not a
+      mention: the reviewed key is on the page either way (the share card's
+      version is computed from it), and that is not the same as rendering it. */
+  const rendered = (key: string) =>
+    new RegExp(`(?:src|href)="[^"]*${key.replaceAll('.', '\\.')}"`)
+
+  async function ogImage(context: BrowserContext, slug: string) {
+    const page = await context.newPage()
+    await page.goto(`/player/${slug}`)
+    const image = await page
+      .locator('meta[property="og:image"]')
+      .first()
+      .getAttribute('content')
+    await page.close()
+    return image
+  }
+
+  test('is the holder’s alone, and never rides out on the share card', async ({
+    page,
+    browser,
+  }) => {
+    const slug = 'e2e-avatar-shadow'
+    await withPlayer(
+      { ...ownedPlayer(slug), avatarKey: APPROVED },
+      async ({ sql, id }) => {
+        await sql`
+          insert into player_amendments (player_id, field, value, submitted_by)
+          values (${id}, 'avatar', ${PENDING},
+                  (select user_id from players where id = ${id}))
+        `
+        const anon = await browser.newContext({ storageState: STATE.anon })
+        try {
+          // The rendered page, not the DOM after hydration: the served HTML is
+          // what a viewer is actually handed.
+          const own = await (await page.request.get(`/player/${slug}`)).text()
+          expect(own).toMatch(rendered(PENDING))
+          expect(own).not.toMatch(rendered(APPROVED))
+
+          const theirs = await (
+            await anon.request.get(`/player/${slug}`)
+          ).text()
+          expect(theirs).toMatch(rendered(APPROVED))
+          expect(theirs).not.toMatch(rendered(PENDING))
+
+          // Same card, versioned off the same (reviewed) key, for both.
+          const ownCard = await ogImage(page.context(), slug)
+          expect(ownCard).toBe(await ogImage(anon, slug))
+
+          // And the version does track the Avatar — otherwise the equality
+          // above would hold no matter what the shadow did.
+          await sql`
+            update players set avatar_key = ${PENDING} where id = ${id}
+          `
+          expect(await ogImage(anon, slug)).not.toBe(ownCard)
+        } finally {
+          await anon.close()
+        }
+      },
+    )
+  })
+})
 
 test.describe('a signed-out visitor sees no avatar controls', () => {
   test.use({ storageState: STATE.anon })

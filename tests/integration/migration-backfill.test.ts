@@ -125,3 +125,60 @@ describe('0014_claim_state on a database carrying legacy claim rows', () => {
     await client.close()
   }, 30_000)
 })
+
+// The shadow's one real migration. Live avatars are grandfathered in as
+// approved with no rows written, so the only row the cutover touches is one no
+// surface publishes: an accountless Player still carrying a key, which a later
+// claim would otherwise resurrect as the new holder's picture.
+describe('0017_player_amendments on a database carrying live avatars', () => {
+  it('keeps a claimed avatar published and nulls an accountless one', async () => {
+    const client = new PGlite({ extensions: { pg_trgm } })
+    await client.exec(read('../supabase-shim.sql'))
+    for (const file of [
+      '0000_init.sql',
+      '0001_realtime_publication.sql',
+      '0002_stats_views.sql',
+      '0003_patches.sql',
+      '0004_vehicle_search_terms.sql',
+      '0005_vehicle_image_key.sql',
+      '0006_records_anon_select_grant.sql',
+      '0007_retired_status_player_merge.sql',
+      '0008_claim_flow.sql',
+      '0009_catalog_sync_runs.sql',
+      '0010_remove_scripted_units.sql',
+      '0011_portrait_columns.sql',
+      '0012_player_country.sql',
+      '0013_drop_image_columns.sql',
+      '0014_claim_state.sql',
+      '0015_one_claim_per_user.sql',
+      '0016_claim_denial_reason.sql',
+    ]) {
+      await applyMigration(client, file)
+    }
+
+    await client.exec(`
+      insert into auth.users (id) values ('00000000-0000-4000-8000-00000000000a');
+      insert into players (slug, display_name, user_id, avatar_key) values
+        ('ace', 'Ace', '00000000-0000-4000-8000-00000000000a', 'avatars/1/held.webp'),
+        ('floppa', 'Floppa', null, 'avatars/2/stranded.webp');
+    `)
+
+    await applyMigration(client, '0017_player_amendments.sql')
+
+    const left = await client.query<{
+      slug: string
+      avatar_key: string | null
+    }>('select slug, avatar_key from players order by slug')
+    expect(left.rows).toEqual([
+      { slug: 'ace', avatar_key: 'avatars/1/held.webp' },
+      { slug: 'floppa', avatar_key: null },
+    ])
+    // A review log, not a value store: the grandfathered avatar gets no row.
+    const rows = await client.query<{ count: number }>(
+      'select count(*)::int as count from player_amendments',
+    )
+    expect(rows.rows[0].count).toBe(0)
+
+    await client.close()
+  }, 30_000)
+})

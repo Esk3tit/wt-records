@@ -72,6 +72,13 @@ export const Route = createFileRoute('/og/player/$slug')({
             }
             return notFoundResponse()
           }
+          // No viewer, deliberately: the card is excluded from the shadow's
+          // viewer predicate and always resolves the reviewed Avatar. It is
+          // `public, s-maxage` and versioned off the key, so an owner rendering
+          // their own card would otherwise render and publicly edge-cache the
+          // picture nobody has approved — the only surface that carries an
+          // image off-site. The route is viewer-independent by construction;
+          // this comment is what keeps it that way.
           const avatarKey = effectiveAvatarKey(player.player)
           const avatarUrl = avatarKey ? assetUrlIfConfigured(avatarKey) : null
           // Independent I/O (DB name lookup vs. R2 avatar fetch) on a path

@@ -219,6 +219,68 @@ export const playerClaims = pgTable(
   ],
 ).enableRLS()
 
+/* One proposed change to one shadowed field of a claimed Player, awaiting a
+   Moderator. Approved values stay on `players`, so this is a review log rather
+   than a value store — a pre-existing value is approved because it sits on the
+   row, and no row here attests to it. */
+export const playerAmendments = pgTable(
+  'player_amendments',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    playerId: integer('player_id')
+      .references(() => players.id)
+      .notNull(),
+    // A column, not a table split: a second shadowed field is a renderer plus a
+    // value here, with no new screen and no new lifecycle.
+    field: text('field', { enum: ['avatar'] }).notNull(),
+    value: text('value').notNull(),
+    state: text('state', {
+      enum: ['pending', 'approved', 'rejected', 'superseded', 'withdrawn'],
+    })
+      .notNull()
+      .default('pending'),
+    // Attribution for the queue, not a cross-Player history: nothing reads a
+    // person's record across the site. Null on delete — the log outlives the
+    // account, like a claim's decidedBy.
+    submittedBy: uuid('submitted_by').references(() => authUsers.id, {
+      onDelete: 'set null',
+    }),
+    submittedAt: timestamp('submitted_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    reviewedBy: uuid('reviewed_by').references(() => authUsers.id, {
+      onDelete: 'set null',
+    }),
+    // The Moderator's optional note on reject, kept here rather than duplicated
+    // into the audit diff. /admin-gated: it must never join a public payload.
+    reason: text('reason'),
+  },
+  (t) => [
+    // What structurally enforces supersede-not-queue: one live proposal per
+    // (Player, field), so a Moderator never reviews N values to reach one.
+    uniqueIndex('amend_one_pending_uq')
+      .on(t.playerId, t.field)
+      .where(sql`${t.state} = 'pending'`),
+    // The submit guard's rolling-hour COUNT.
+    index('amend_submitter_idx').on(t.submittedBy, t.submittedAt),
+    index('amend_player_idx').on(t.playerId),
+    check(
+      'amend_state_valid',
+      sql`${t.state} in ('pending', 'approved', 'rejected', 'superseded', 'withdrawn')`,
+    ),
+    check('amend_field_valid', sql`${t.field} in ('avatar')`),
+    // Only a decision has a reviewer: a pending row is undecided, a supersede
+    // is the owner's own doing, and a withdrawal is the system's.
+    check(
+      'amend_reviewer_valid',
+      sql`case when ${t.state} in ('approved', 'rejected')
+             then true
+             else ${t.reviewedBy} is null and ${t.reviewedAt} is null end`,
+    ),
+  ],
+).enableRLS()
+
 /* Canonical WT game versions — the community's temporal axis. Catalog-sync
    upserts the current one and /admin can add inline, so entry never blocks. */
 export const patches = pgTable('patches', {

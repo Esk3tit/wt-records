@@ -120,6 +120,13 @@
       "when": 1786417185269,
       "tag": "0016_claim_denial_reason",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1786434120712,
+      "tag": "0017_player_amendments",
+      "breakpoints": true
     }
   ]
 }

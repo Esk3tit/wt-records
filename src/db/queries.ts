@@ -32,6 +32,7 @@ import {
   vehicleSearchTerms,
   vehicles,
 } from '#/db/schema'
+import type { AmendmentViewer } from '#/claims/amendments'
 import { titleFrontier } from '#/lib/rules'
 import { rankNations } from '#/lib/standings'
 import { searchKey } from '#/lib/search-terms'
@@ -151,11 +152,14 @@ function countedRecordRows(db: Db) {
 // not a gap.
 function withHolderAvatar<
   T extends { holderUserId: string | null; holderAvatarKey: string | null },
->({ holderUserId, holderAvatarKey, ...row }: T) {
-  const key = effectiveAvatarKey({
-    userId: holderUserId,
-    avatarKey: holderAvatarKey,
-  })
+>(
+  { holderUserId, holderAvatarKey, ...row }: T,
+  viewer?: AmendmentViewer | null,
+) {
+  const key = effectiveAvatarKey(
+    { userId: holderUserId, avatarKey: holderAvatarKey },
+    viewer,
+  )
   return { ...row, holderAvatar: key ? assetUrlIfConfigured(key) : null }
 }
 
@@ -516,11 +520,14 @@ function withPortraitAndAvatar<
     holderUserId: string | null
     holderAvatarKey: string | null
   },
->({ portraitKey, holderUserId, holderAvatarKey, ...row }: T) {
-  const avatarKey = effectiveAvatarKey({
-    userId: holderUserId,
-    avatarKey: holderAvatarKey,
-  })
+>(
+  { portraitKey, holderUserId, holderAvatarKey, ...row }: T,
+  viewer?: AmendmentViewer | null,
+) {
+  const avatarKey = effectiveAvatarKey(
+    { userId: holderUserId, avatarKey: holderAvatarKey },
+    viewer,
+  )
   return {
     ...row,
     vehiclePortrait: portraitKey ? assetUrlIfConfigured(portraitKey) : null,
@@ -650,6 +657,7 @@ export async function browseVehicles(
   db: Db,
   mode: string,
   filters: BrowseFilters,
+  viewer?: AmendmentViewer | null,
 ) {
   const m = await getMode(db, mode)
   if (!m) return null
@@ -697,7 +705,12 @@ export async function browseVehicles(
     .limit(BROWSE_PAGE_SIZE)
     .offset((page - 1) * BROWSE_PAGE_SIZE)
 
-  return { rows: rows.map(withPortraitAndAvatar), total, page, pageCount }
+  return {
+    rows: rows.map((row) => withPortraitAndAvatar(row, viewer)),
+    total,
+    page,
+    pageCount,
+  }
 }
 
 /** The Spotlight's candidates, over the whole filtered set so the ledger's sort
@@ -708,6 +721,7 @@ export async function browseSpotlight(
   mode: string,
   filters: BrowseFilters,
   limit: number,
+  viewer?: AmendmentViewer | null,
 ) {
   const m = await getMode(db, mode)
   if (!m) return null
@@ -733,7 +747,7 @@ export async function browseSpotlight(
     .orderBy(desc(records.kills), asc(vehicles.name))
     .limit(limit)
 
-  return rows.map(withPortraitAndAvatar)
+  return rows.map((row) => withPortraitAndAvatar(row, viewer))
 }
 
 export async function getNationSheet(
@@ -774,7 +788,12 @@ export async function getNationSheet(
   return { nation, rows: rows.map(withVehiclePortrait) }
 }
 
-export async function getVehicle(db: Db, mode: string, slug: string) {
+export async function getVehicle(
+  db: Db,
+  mode: string,
+  slug: string,
+  viewer?: AmendmentViewer | null,
+) {
   const m = await getMode(db, mode)
   if (!m) return null
 
@@ -866,7 +885,7 @@ export async function getVehicle(db: Db, mode: string, slug: string) {
   ])
   const brRow = one(brRows)
   const currentRow = one(currentRows)
-  const current = currentRow ? withHolderAvatar(currentRow) : null
+  const current = currentRow ? withHolderAvatar(currentRow, viewer) : null
 
   // A Difficult vehicle's flat bar beats the class bar (PRD rules semantics).
   const classMin = one(minKillRows)?.minKills ?? null
@@ -1070,12 +1089,23 @@ export async function getPlayerEnrichment(db: Db, playerId: number) {
 }
 
 /** The Avatar key that actually renders: an Avatar belongs to a claim, so an
-    accountless Player shows the Medallion even if a stale key lingers. */
-export function effectiveAvatarKey(player: {
-  userId: string | null
-  avatarKey: string | null
-}): string | null {
-  return player.userId != null ? player.avatarKey : null
+    accountless Player shows the Medallion even if a stale key lingers.
+
+    The one viewer-aware seam. `players.avatarKey` is the reviewed value, and a
+    caller that passes no viewer gets it — the safe direction, by construction,
+    so a call site that forgets the shadow serves what a Moderator accepted. The
+    owner, and nobody else, is served their own proposal instead. */
+export function effectiveAvatarKey(
+  player: {
+    userId: string | null
+    avatarKey: string | null
+  },
+  viewer?: AmendmentViewer | null,
+): string | null {
+  if (player.userId == null) return null
+  return viewer && viewer.userId === player.userId
+    ? viewer.pendingAvatarKey
+    : player.avatarKey
 }
 
 /** A Country is a claimed Player's own statement, so an accountless Player

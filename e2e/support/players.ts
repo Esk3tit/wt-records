@@ -59,6 +59,10 @@ async function dropPlayer(sql: Sql, slug: string): Promise<void> {
     delete from player_aliases
     where player_id in (select id from players where slug = ${slug})
   `
+  await sql`
+    delete from player_amendments
+    where player_id in (select id from players where slug = ${slug})
+  `
   await sql`delete from players where slug = ${slug}`
 }
 
