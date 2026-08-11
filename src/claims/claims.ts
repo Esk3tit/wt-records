@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ne, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, ne, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Db } from '#/db'
 import { playerAliases, playerClaims, players, profiles } from '#/db/schema'
@@ -192,15 +192,21 @@ export async function viewerClaimState(
   return row.state === 'denied' ? 'denied' : 'pending'
 }
 
-/** Approve a pending claim: link the User, seed the avatar if they asked for it,
-    and clear every pending request on that Player (the winner and the losers).
-    Denied rows on that Player survive it — approving is not an amnesty. */
+/** Approve a pending claim: link the User, seed the avatar if they asked for it
+    and the Moderator accepted it, and clear every pending request on that
+    Player (the winner and the losers). Denied rows on that Player survive it —
+    approving is not an amnesty.
+
+    The seed is a second, independent decision: a good claim with a bad picture
+    is not a dilemma, so `acceptSeed: false` links the User onto the Medallion.
+    It can only ever refuse the picture the request already carried — nothing a
+    caller passes can point the mirror somewhere else. */
 export async function approveClaim(
   db: Db,
   store: AvatarStore | null,
   actorId: string,
   claimId: number,
-  opts: { fetchImpl?: typeof fetch } = {},
+  opts: { fetchImpl?: typeof fetch; acceptSeed?: boolean } = {},
 ): Promise<{ playerId: number; avatarSeeded: boolean }> {
   const claim = (
     await db
@@ -220,7 +226,7 @@ export async function approveClaim(
   // Mirror the avatar BEFORE the transaction so a 15s fetch never holds the
   // player row locked; the object is cleaned up if the write below fails.
   const avatarKey =
-    store && claim.seedAvatarUrl
+    store && claim.seedAvatarUrl && opts.acceptSeed !== false
       ? await seedAvatar(
           store,
           claim.playerId,
@@ -477,7 +483,9 @@ export interface ClaimQueueRow {
   playerDisplayName: string
   aliases: string[]
   note: string | null
-  wantsAvatarSeed: boolean
+  /** The picture itself, not a boolean: no Moderator can judge an image they
+      have not been shown. Null is the Medallion. /admin-gated. */
+  seedAvatarUrl: string | null
   requesterHandle: string | null
   requesterDiscordId: string | null
   createdAt: Date | null
@@ -501,7 +509,7 @@ function claimQueueSelect(db: Db) {
         string[]
       >`coalesce(array_agg(distinct ${playerAliases.name}) filter (where ${playerAliases.name} is not null), '{}')`,
       note: playerClaims.note,
-      wantsAvatarSeed: sql<boolean>`${playerClaims.seedAvatarUrl} is not null`,
+      seedAvatarUrl: playerClaims.seedAvatarUrl,
       requesterHandle: profiles.handle,
       requesterDiscordId: profiles.discordId,
       createdAt: playerClaims.createdAt,
@@ -530,6 +538,15 @@ export async function listPendingClaims(db: Db): Promise<ClaimQueueRow[]> {
   return claimQueueSelect(db)
     .where(eq(playerClaims.state, 'pending'))
     .orderBy(asc(playerClaims.createdAt), asc(playerClaims.id))
+}
+
+/** The other half of the one number on the Review tab. */
+export async function countPendingClaims(db: Db): Promise<number> {
+  const [{ pending }] = await db
+    .select({ pending: count() })
+    .from(playerClaims)
+    .where(eq(playerClaims.state, 'pending'))
+  return pending
 }
 
 /** The denials, most recent first. The pending queue drains; this only ever

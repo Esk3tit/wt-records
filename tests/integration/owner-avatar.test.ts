@@ -10,6 +10,8 @@ import {
   AMENDMENT_HOURLY_LIMIT,
   loadAmendmentViewer,
 } from '#/claims/amendments'
+import { REVIEW_QUEUE_PATH, registerAmendmentNotifier } from '#/claims/notify'
+import type { AmendmentNotice } from '#/claims/notify'
 
 const USER_A = '00000000-0000-4000-8000-00000000000a'
 const USER_B = '00000000-0000-4000-8000-00000000000b'
@@ -367,5 +369,63 @@ describe('removeOwnAvatar', () => {
     await expect(removeOwnAvatar(t.db, store, USER_A, ace.id)).rejects.toThrow(
       /do not hold/i,
     )
+  })
+})
+
+describe('the notification seam', () => {
+  it('tells a channel the name and where to decide, and never the picture', async () => {
+    const ace = await claim('ace', USER_A)
+    const notices: AmendmentNotice[] = []
+    const unplug = registerAmendmentNotifier((notice) => {
+      notices.push(notice)
+    })
+    try {
+      const { avatarKey } = await setOwnAvatar(
+        t.db,
+        fakeStore(),
+        USER_A,
+        ace.id,
+        await png(RED),
+      )
+      expect(notices).toEqual([
+        {
+          playerId: ace.id,
+          playerDisplayName: ace.displayName,
+          reviewPath: REVIEW_QUEUE_PATH,
+        },
+      ])
+      expect(JSON.stringify(notices)).not.toContain(avatarKey)
+    } finally {
+      unplug()
+    }
+  })
+
+  it('cannot fail the upload it is announcing', async () => {
+    const ace = await claim('ace', USER_A)
+    const unplug = registerAmendmentNotifier(() => {
+      throw new Error('the mod channel is down')
+    })
+    const rejecting = registerAmendmentNotifier(async () => {
+      throw new Error('and its retry is too')
+    })
+    try {
+      const store = fakeStore()
+      const { avatarKey } = await setOwnAvatar(
+        t.db,
+        store,
+        USER_A,
+        ace.id,
+        await png(RED),
+      )
+      // The proposal is filed and its object is in place: a ping nobody
+      // received changed nothing about either.
+      expect(store.objects.has(avatarKey)).toBe(true)
+      expect((await amendments(ace.id)).map((a) => a.value)).toEqual([
+        avatarKey,
+      ])
+    } finally {
+      unplug()
+      rejecting()
+    }
   })
 })

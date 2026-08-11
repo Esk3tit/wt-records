@@ -91,18 +91,26 @@ describe('requestClaim', () => {
       note: 'it is me',
       requesterHandle: 'AceIRL',
       requesterDiscordId: '111',
-      wantsAvatarSeed: false,
+      seedAvatarUrl: null,
     })
     expect(row.aliases).toContain('Ace')
   })
 
-  it('records the seed intent from the presence of a picture URL', async () => {
+  it('hands the reviewer the picture itself, not the intent to seed one', async () => {
     const ace = await playerBySlug('ace')
-    await requestClaim(t.db, USER_A, ace.id, {
-      seedAvatarUrl: 'https://cdn.discordapp.com/avatars/1/x.png',
-    })
+    const picture = 'https://cdn.discordapp.com/avatars/1/x.png'
+    await requestClaim(t.db, USER_A, ace.id, { seedAvatarUrl: picture })
     const [row] = await listPendingClaims(t.db)
-    expect(row.wantsAvatarSeed).toBe(true)
+    // A boolean is what let a seed go live unseen: no Moderator can judge an
+    // image they were only told about.
+    expect(row.seedAvatarUrl).toBe(picture)
+  })
+
+  it('says the Medallion by carrying no picture at all', async () => {
+    const ace = await playerBySlug('ace')
+    await requestClaim(t.db, USER_A, ace.id, {})
+    const [row] = await listPendingClaims(t.db)
+    expect(row.seedAvatarUrl).toBeNull()
   })
 
   it('refuses a duplicate pending request, a claimed player, and a tombstone', async () => {
@@ -213,6 +221,26 @@ describe('approveClaim', () => {
     const claimed = await playerBySlug('ace')
     expect(claimed.avatarKey).toMatch(/^avatars\/\d+\/[0-9a-f]{12}\.png$/)
     expect(store.objects.has(claimed.avatarKey!)).toBe(true)
+  })
+
+  it('links the User onto the Medallion when the reviewer declines the seed', async () => {
+    const ace = await playerBySlug('ace')
+    const store = fakeStore()
+    const { id } = await requestClaim(t.db, USER_A, ace.id, {
+      seedAvatarUrl: 'https://cdn.discordapp.com/avatars/1/x.png',
+    })
+    // A good claim with a bad picture is not a dilemma: the claim still
+    // approves, and nothing is mirrored.
+    const result = await approveClaim(t.db, store, MOD, id, {
+      fetchImpl: pngFetch,
+      acceptSeed: false,
+    })
+    expect(result.avatarSeeded).toBe(false)
+
+    const claimed = await playerBySlug('ace')
+    expect(claimed.userId).toBe(USER_A)
+    expect(claimed.avatarKey).toBeNull()
+    expect(store.objects.size).toBe(0)
   })
 
   it('falls back to the Medallion when the picture fetch fails', async () => {

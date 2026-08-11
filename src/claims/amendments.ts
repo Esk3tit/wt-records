@@ -1,6 +1,6 @@
-import { and, count, eq, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm'
 import type { Db } from '#/db'
-import { playerAmendments, players } from '#/db/schema'
+import { playerAmendments, players, profiles } from '#/db/schema'
 import type { AvatarStore } from '#/claims/avatar'
 import { deleteAvatarsIfUnreferenced } from '#/claims/avatar'
 import { writeAudit } from '#/admin/audit'
@@ -127,6 +127,97 @@ export async function closePendingAmendments(
     )
     .returning({ value: playerAmendments.value })
   return closed.map((row) => row.value)
+}
+
+/** A refusal this Player already collected. Four rejections mean nothing until
+    you can see that they were all *blurry* rather than all *hateful*. */
+export interface AmendmentRejection {
+  reason: string | null
+  reviewedAt: Date | null
+}
+
+/** One row of the Moderator's amendments panel: the proposal, what it would
+    displace, and the history that makes a refusal mean something. */
+export interface AmendmentQueueRow {
+  id: number
+  playerId: number
+  playerDisplayName: string
+  field: AmendmentField
+  value: string
+  /** What is live now for this field — null is the Medallion, not an absence. */
+  publishedValue: string | null
+  submittedAt: Date
+  submitterHandle: string | null
+  priorRejections: AmendmentRejection[]
+}
+
+/** The proposals waiting on a Moderator, oldest first ACROSS fields: the unit
+    of work is one thing awaiting them, and a panel per field lets a whole pile
+    age unseen behind another. */
+export async function listPendingAmendments(
+  db: Db,
+): Promise<AmendmentQueueRow[]> {
+  const rows = await db
+    .select({
+      id: playerAmendments.id,
+      playerId: playerAmendments.playerId,
+      playerDisplayName: players.displayName,
+      field: playerAmendments.field,
+      value: playerAmendments.value,
+      // The published column for this row's field. A second field selects its
+      // own here, keyed the way the renderer is.
+      publishedValue: players.avatarKey,
+      submittedAt: playerAmendments.submittedAt,
+      submitterHandle: profiles.handle,
+    })
+    .from(playerAmendments)
+    .innerJoin(players, eq(players.id, playerAmendments.playerId))
+    .leftJoin(profiles, eq(profiles.id, playerAmendments.submittedBy))
+    .where(eq(playerAmendments.state, 'pending'))
+    .orderBy(asc(playerAmendments.submittedAt), asc(playerAmendments.id))
+  return withPriorRejections(db, rows)
+}
+
+/** Only `rejected` counts: a `withdrawn` or `superseded` row was never refused,
+    and counting it would show a Moderator a history nobody wrote. */
+async function withPriorRejections<T extends { playerId: number }>(
+  db: Db,
+  rows: T[],
+): Promise<(T & { priorRejections: AmendmentRejection[] })[]> {
+  if (rows.length === 0) return []
+  const refusals = await db
+    .select({
+      playerId: playerAmendments.playerId,
+      reason: playerAmendments.reason,
+      reviewedAt: playerAmendments.reviewedAt,
+    })
+    .from(playerAmendments)
+    .where(
+      and(
+        inArray(playerAmendments.playerId, [
+          ...new Set(rows.map((row) => row.playerId)),
+        ]),
+        eq(playerAmendments.state, 'rejected'),
+      ),
+    )
+    .orderBy(desc(playerAmendments.reviewedAt), desc(playerAmendments.id))
+  const byPlayer = new Map<number, AmendmentRejection[]>()
+  for (const { playerId, ...rejection } of refusals) {
+    byPlayer.set(playerId, [...(byPlayer.get(playerId) ?? []), rejection])
+  }
+  return rows.map((row) => ({
+    ...row,
+    priorRejections: byPlayer.get(row.playerId) ?? [],
+  }))
+}
+
+/** Half of the one number on the Review tab. */
+export async function countPendingAmendments(db: Db): Promise<number> {
+  const [{ pending }] = await db
+    .select({ pending: count() })
+    .from(playerAmendments)
+    .where(eq(playerAmendments.state, 'pending'))
+  return pending
 }
 
 /** Promote a proposal to the published row — pure metadata, nothing is moved

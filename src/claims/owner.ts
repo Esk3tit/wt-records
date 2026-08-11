@@ -7,6 +7,7 @@ import {
   deleteAvatarsIfUnreferenced,
 } from '#/claims/avatar'
 import { closePendingAmendments, submitAmendment } from '#/claims/amendments'
+import { REVIEW_QUEUE_PATH, notifyAmendmentSubmitted } from '#/claims/notify'
 import { playerAvatarKey } from '#/storage/avatar-key'
 
 /* What a holder may change on their own page, without a moderator. Every one
@@ -63,14 +64,15 @@ export async function setOwnAvatar(
   // the object is cleaned up below if that write fails.
   await store.put('assets', key, processed, 'image/webp')
 
-  let staleKey: string | null = null
+  let proposed: { staleKey: string | null; displayName: string }
   try {
-    staleKey = await db.transaction(async (tx) => {
+    proposed = await db.transaction(async (tx) => {
       const player = (
         await tx
           .select({
             userId: players.userId,
             mergedInto: players.mergedInto,
+            displayName: players.displayName,
           })
           .from(players)
           .where(eq(players.id, playerId))
@@ -85,13 +87,26 @@ export async function setOwnAvatar(
       })
       // The displaced proposal's object is now unreferenced unless this upload
       // is the identical picture, which lands on the identical key.
-      return supersededValue && supersededValue !== key ? supersededValue : null
+      return {
+        staleKey:
+          supersededValue && supersededValue !== key ? supersededValue : null,
+        displayName: player.displayName,
+      }
     })
   } catch (error) {
     await deleteAvatarIfUnreferenced(db, store, key)
     throw error
   }
-  if (staleKey) await deleteAvatarIfUnreferenced(db, store, staleKey)
+  if (proposed.staleKey) {
+    await deleteAvatarIfUnreferenced(db, store, proposed.staleKey)
+  }
+  // After the commit, and unable to fail it: there is one Moderator, and
+  // nothing today tells them anything is waiting.
+  notifyAmendmentSubmitted({
+    playerId,
+    playerDisplayName: proposed.displayName,
+    reviewPath: REVIEW_QUEUE_PATH,
+  })
   return { avatarKey: key }
 }
 
