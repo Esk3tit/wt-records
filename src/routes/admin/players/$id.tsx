@@ -120,6 +120,7 @@ function PlayerDetailInner() {
         {player.userId && (
           <ClaimStatus
             error={error}
+            onDismissError={() => setError(null)}
             hasAvatar={player.avatarKey != null}
             onResetAvatar={() =>
               call(() =>
@@ -350,11 +351,14 @@ function MergePanel({
 
 function ClaimStatus({
   error,
+  onDismissError,
   hasAvatar,
   onResetAvatar,
   onRevoke,
 }: {
   error: string | null
+  /** The error is route-wide, so a dialog must not open onto someone else's. */
+  onDismissError: () => void
   hasAvatar: boolean
   onResetAvatar: () => Promise<boolean>
   onRevoke: (reason: string) => Promise<boolean>
@@ -362,6 +366,15 @@ function ClaimStatus({
   const [confirming, setConfirming] = useState<'reset' | 'revoke' | null>(null)
   const [busy, setBusy] = useState(false)
   const [reason, setReason] = useState('')
+  const open = (dialog: 'reset' | 'revoke') => {
+    onDismissError()
+    setConfirming(dialog)
+  }
+  const close = () => {
+    onDismissError()
+    setConfirming(null)
+    setReason('')
+  }
   const run = async (action: () => Promise<boolean>) => {
     setBusy(true)
     const committed = await action()
@@ -380,7 +393,7 @@ function ClaimStatus({
         <button
           type="button"
           className="text-sm text-fg-muted transition-colors duration-200 hover:text-fg"
-          onClick={() => setConfirming('reset')}
+          onClick={() => open('reset')}
         >
           Reset avatar
         </button>
@@ -388,7 +401,7 @@ function ClaimStatus({
       <button
         type="button"
         className="text-sm text-status-danger transition-[filter] duration-200 hover:brightness-110"
-        onClick={() => setConfirming('revoke')}
+        onClick={() => open('revoke')}
       >
         Revoke claim
       </button>
@@ -398,7 +411,7 @@ function ClaimStatus({
         confirmLabel="Reset"
         busy={busy}
         onConfirm={() => run(onResetAvatar)}
-        onCancel={() => setConfirming(null)}
+        onCancel={close}
       >
         <p>
           The avatar returns to the Medallion and the stored image is deleted.
@@ -413,10 +426,7 @@ function ClaimStatus({
         busy={busy}
         confirmDisabled={reason.trim().length === 0}
         onConfirm={() => run(() => onRevoke(reason))}
-        onCancel={() => {
-          setConfirming(null)
-          setReason('')
-        }}
+        onCancel={close}
       >
         <p>
           The player returns to the accountless state and its avatar resets to
