@@ -4,7 +4,7 @@ import { BadgeCheck, Clock, Loader2, ShieldOff } from 'lucide-react'
 import { Medallion } from '#/components/medallion'
 import { MAX_NOTE_LENGTH } from '#/claims/limits'
 import { errorMessage } from '#/lib/errors'
-import type { ViewerClaimState } from '#/claims/claims'
+import type { ClaimCommitment, ViewerClaimState } from '#/claims/claims'
 import { submitClaimRequest } from '#/claims/api'
 
 export type ClaimViewer =
@@ -14,6 +14,8 @@ export type ClaimViewer =
       isOwner: boolean
       /** Where this viewer's own request on this Player stands. */
       claimState: ViewerClaimState
+      /** What they hold or await elsewhere, which is what blocks them here. */
+      commitment: ClaimCommitment | null
       canClaim: boolean
       providerAvatarUrl: string | null
     }
@@ -101,6 +103,8 @@ export function ClaimPanel({
         was a mistake.
       </ClaimNote>
     )
+  } else if (viewer.commitment) {
+    content = <CommittedElsewhere commitment={viewer.commitment} />
   } else if (viewer.canClaim) {
     content = (
       <ClaimForm
@@ -119,6 +123,34 @@ export function ClaimPanel({
   if (!content) return null
   return (
     <div className="mt-5 border-t border-hairline-soft pt-5">{content}</div>
+  )
+}
+
+/* Naming the page they are held by: without it "you already hold a claim"
+   reads as a refusal they cannot act on. */
+function CommittedElsewhere({ commitment }: { commitment: ClaimCommitment }) {
+  const held = commitment.kind === 'holds'
+  return (
+    <ClaimNote
+      icon={
+        held ? (
+          <BadgeCheck size={15} className="shrink-0" aria-hidden />
+        ) : (
+          <Clock size={15} className="shrink-0" aria-hidden />
+        )
+      }
+    >
+      {held ? 'Your claim is on ' : 'Your claim request on '}
+      <a
+        className="underline decoration-hairline underline-offset-2 hover:text-fg"
+        href={`/player/${commitment.playerSlug}`}
+      >
+        {commitment.playerDisplayName}
+      </a>
+      {held
+        ? ' — a moderator has to revoke it before you can claim another page.'
+        : ' is still waiting on a moderator. One at a time.'}
+    </ClaimNote>
   )
 }
 

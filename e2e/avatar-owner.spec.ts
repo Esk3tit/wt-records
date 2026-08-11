@@ -113,3 +113,32 @@ test.describe('a signed-in non-owner sees no avatar controls', () => {
     )
   })
 })
+
+/* One User holds one Player, so every other page has to say so rather than
+   offer a form the server will refuse. */
+test.describe('a holder looking at somebody else’s page', () => {
+  test.use({ storageState: STATE.viewer })
+
+  test('is told where their claim is, instead of a claim form', async ({
+    page,
+  }) => {
+    const held = 'e2e-holder-elsewhere'
+    const other = 'e2e-holder-other-page'
+    await withPlayer(ownedPlayer(held), async () => {
+      await withPlayer(
+        { slug: other, displayName: 'E2E Unclaimed Page' },
+        async () => {
+          await page.goto(`/player/${other}`)
+
+          await expect(
+            page.getByRole('link', { name: 'E2E Avatar Owner' }),
+          ).toBeVisible()
+          await expect(page.getByText('has to revoke it')).toBeVisible()
+          await expect(
+            page.getByRole('button', { name: 'Claim this page' }),
+          ).toHaveCount(0)
+        },
+      )
+    })
+  })
+})

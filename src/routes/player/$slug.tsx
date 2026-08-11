@@ -27,7 +27,7 @@ import {
 import { resolveCountryMark } from '#/lib/country-mark-server'
 import { hasAuthCookie, getSessionUser } from '#/auth/supabase-server'
 import { providerAvatarUrl } from '#/auth/profile'
-import { viewerClaimState } from '#/claims/claims'
+import { viewerClaimCommitment, viewerClaimState } from '#/claims/claims'
 import { assetUrlIfConfigured } from '#/storage/urls'
 import { toPlayerCardModel } from '#/og/props/player'
 import { playerUnfurl } from '#/og/copy'
@@ -47,11 +47,18 @@ async function resolveClaimViewer(player: {
   const claimState = claimed
     ? 'none'
     : await viewerClaimState(db, user.id, player.id)
-  const canClaim = !claimed && claimState === 'none'
+  // Only asked when the form would otherwise render: what they hold elsewhere
+  // is the difference between offering a claim and offering a dead end.
+  const commitment =
+    !claimed && claimState === 'none'
+      ? await viewerClaimCommitment(db, user.id)
+      : null
+  const canClaim = !claimed && claimState === 'none' && commitment == null
   return {
     signedIn: true,
     isOwner: player.userId === user.id,
     claimState,
+    commitment,
     canClaim,
     // Offered only when a claim is actually possible — never leaked otherwise.
     providerAvatarUrl: canClaim ? providerAvatarUrl(user) : null,
