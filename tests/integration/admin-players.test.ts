@@ -5,6 +5,7 @@ import type { TestDb } from './pglite'
 import { seed } from '#/db/seed'
 import {
   playerAliases,
+  playerAmendments,
   playerClaims,
   players,
   profiles,
@@ -322,6 +323,65 @@ describe('mergePlayers', () => {
     })
     expect((await playerBySlug('ace')).avatarKey).toBe(dupKey)
     expect(result.orphanedAvatarKeys).toEqual([staleKey])
+  })
+
+  it('withdraws a proposal made against the row that becomes a tombstone', async () => {
+    const ace = await playerBySlug('ace')
+    const floppa = await playerBySlug('floppa')
+    const dupProposal = `avatars/${floppa.id}/proposed.webp`
+    await t.db
+      .update(players)
+      .set({ userId: USER_A })
+      .where(eq(players.id, floppa.id))
+    await t.db.insert(playerAmendments).values({
+      playerId: floppa.id,
+      field: 'avatar',
+      value: dupProposal,
+      submittedBy: USER_A,
+    })
+
+    const result = await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
+
+    // The claim rides to the survivor; what was proposed against the duplicate
+    // does not — an incoming claim never inherits a value nobody reviewed.
+    expect((await playerBySlug('ace')).userId).toBe(USER_A)
+    const [amendment] = await t.db
+      .select()
+      .from(playerAmendments)
+      .where(eq(playerAmendments.playerId, floppa.id))
+    expect(amendment).toMatchObject({ state: 'withdrawn', reviewedBy: null })
+    expect(result.orphanedAvatarKeys).toEqual([dupProposal])
+  })
+
+  it('keeps the survivor’s own proposal, whose Claim the merge leaves in place', async () => {
+    const ace = await playerBySlug('ace')
+    const floppa = await playerBySlug('floppa')
+    const proposal = `avatars/${ace.id}/proposed.webp`
+    await t.db
+      .update(players)
+      .set({ userId: USER_A })
+      .where(eq(players.id, ace.id))
+    await t.db.insert(playerAmendments).values({
+      playerId: ace.id,
+      field: 'avatar',
+      value: proposal,
+      submittedBy: USER_A,
+    })
+
+    const result = await mergePlayers(t.db, MOD, {
+      survivorId: ace.id,
+      duplicateId: floppa.id,
+    })
+
+    const [amendment] = await t.db
+      .select()
+      .from(playerAmendments)
+      .where(eq(playerAmendments.playerId, ace.id))
+    expect(amendment).toMatchObject({ state: 'pending' })
+    expect(result.orphanedAvatarKeys).toEqual([])
   })
 
   it('drops the duplicate pending claims so they never orphan the queue', async () => {

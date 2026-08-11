@@ -72,6 +72,9 @@ export const Route = createFileRoute('/og/player/$slug')({
             }
             return notFoundResponse()
           }
+          // No viewer, deliberately: this card is edge-cached under a key-derived
+          // ?v=, so serving an owner their own unreviewed Avatar here would
+          // publish it to everyone through the one surface that leaves the site.
           const avatarKey = effectiveAvatarKey(player.player)
           const avatarUrl = avatarKey ? assetUrlIfConfigured(avatarKey) : null
           // Independent I/O (DB name lookup vs. R2 avatar fetch) on a path

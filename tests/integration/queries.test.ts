@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { and, eq, inArray } from 'drizzle-orm'
 import { freshDb } from './pglite'
 import type { TestDb } from './pglite'
@@ -6,8 +6,17 @@ import { seed } from '#/db/seed'
 import { seedDemo } from '#/db/seed-demo'
 import { replaceSearchTerms } from '#/db/search-terms'
 import { browseFilters } from '#/lib/browse-params'
-import { modes, nations, records, players, vehicles } from '#/db/schema'
+import { loadAmendmentViewer } from '#/claims/amendments'
 import {
+  modes,
+  nations,
+  playerAmendments,
+  records,
+  players,
+  vehicles,
+} from '#/db/schema'
+import {
+  browseSpotlight,
   browseVehicles,
   lookupVehicles,
   getLeaderboard,
@@ -1444,5 +1453,104 @@ describe('mode scoping', () => {
     })
     const p = await getPlayer(t.db, 'ace')
     expect(p?.records.map((r) => r.vehicleSlug)).toEqual(['m4a1', 'panther-d'])
+  })
+})
+
+describe('the shadow, across every avatar-bearing surface', () => {
+  const OWNER = '00000000-0000-4000-8000-0000000000aa'
+  const OTHER = '00000000-0000-4000-8000-0000000000bb'
+  const approved = 'avatars/1/approved0000.webp'
+  const pending = 'avatars/1/pending00000.webp'
+
+  /** Through the real resolver, not a hand-built override: what a request
+      would actually carry for each of the four viewer classes. Anonymous, a
+      signed-in non-holder, and a Moderator browsing the public site all
+      resolve to the same nothing — being signed in is not a side channel. */
+  const asViewer = (userId: string) => loadAmendmentViewer(t.db, userId)
+  const anonymous = null
+
+  const url = (key: string) => `https://assets.test/${key}`
+
+  beforeEach(async () => {
+    vi.stubEnv('R2_ASSETS_BASE_URL', 'https://assets.test')
+    for (const id of [OWNER, OTHER]) {
+      await t.client.query('insert into auth.users (id) values ($1)', [id])
+    }
+    const [ace] = await t.db
+      .select()
+      .from(players)
+      .where(eq(players.slug, 'ace'))
+    await t.db
+      .update(players)
+      .set({ userId: OWNER, avatarKey: approved })
+      .where(eq(players.id, ace.id))
+    await t.db.insert(playerAmendments).values({
+      playerId: ace.id,
+      field: 'avatar',
+      value: pending,
+      submittedBy: OWNER,
+    })
+  })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  type Viewer = Awaited<ReturnType<typeof loadAmendmentViewer>>
+
+  const ledgerAvatar = async (viewer: Viewer) => {
+    const r = await browseVehicles(
+      t.db,
+      'grb',
+      browseFilters({ q: 'm4a1' }),
+      viewer,
+    )
+    return r?.rows.at(0)?.holderAvatar ?? null
+  }
+
+  const spotlightAvatar = async (viewer: Viewer) => {
+    const rows = await browseSpotlight(
+      t.db,
+      'grb',
+      browseFilters({ q: 'm4a1' }),
+      3,
+      viewer,
+    )
+    return rows?.at(0)?.holderAvatar ?? null
+  }
+
+  const deedAvatar = async (viewer: Viewer) =>
+    (await getVehicle(t.db, 'grb', 'm4a1', viewer))?.current?.holderAvatar
+
+  it('serves the holder their own proposal on every one of them', async () => {
+    const owner = await asViewer(OWNER)
+    expect(await ledgerAvatar(owner)).toBe(url(pending))
+    expect(await spotlightAvatar(owner)).toBe(url(pending))
+    expect(await deedAvatar(owner)).toBe(url(pending))
+  })
+
+  it('serves everybody else the reviewed one, signed in or not', async () => {
+    for (const viewer of [anonymous, await asViewer(OTHER)]) {
+      expect(await ledgerAvatar(viewer)).toBe(url(approved))
+      expect(await spotlightAvatar(viewer)).toBe(url(approved))
+      expect(await deedAvatar(viewer)).toBe(url(approved))
+    }
+  })
+
+  it('serves a grandfathered avatar to the holder too, with no rows at all', async () => {
+    // The backfill writes nothing: a value is approved because it sits on
+    // `players`, so an avatar that predates the shadow is everyone's.
+    await t.db.delete(playerAmendments)
+    expect(await ledgerAvatar(await asViewer(OWNER))).toBe(url(approved))
+    expect(await deedAvatar(await asViewer(OWNER))).toBe(url(approved))
+  })
+
+  it('serves the Medallion to everyone once the Claim is gone', async () => {
+    const owner = await asViewer(OWNER)
+    await t.db
+      .update(players)
+      .set({ userId: null })
+      .where(eq(players.slug, 'ace'))
+    expect(await ledgerAvatar(owner)).toBeNull()
+    expect(await deedAvatar(owner)).toBeNull()
   })
 })

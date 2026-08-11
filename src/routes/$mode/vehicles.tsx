@@ -25,6 +25,7 @@ import {
 } from '#/components/vehicle-filters'
 import { db } from '#/db'
 import { browseFacets, browseSpotlight, browseVehicles } from '#/db/queries'
+import { resolveAmendmentViewer } from '#/claims/viewer'
 import {
   BROWSE_PAGE_SIZE,
   browseFilters,
@@ -43,11 +44,14 @@ const loadBrowse = createServerFn({ method: 'GET' })
     // shows one, and filtering to open bounties excludes every held title.
     const wantsSpotlight =
       countActiveFilters(search) > 0 && search.status !== 'open'
+    // Resolved before the reads, once: the ledger's Avatars are the holder's
+    // own on the holder's screen, and the reviewed ones on everybody else's.
+    const viewer = await resolveAmendmentViewer()
     const [result, facets, spotlight] = await Promise.all([
-      browseVehicles(db, data.mode, filters),
+      browseVehicles(db, data.mode, filters, viewer),
       browseFacets(db, data.mode),
       wantsSpotlight
-        ? browseSpotlight(db, data.mode, filters, SPOTLIGHT_MIN_HELD)
+        ? browseSpotlight(db, data.mode, filters, SPOTLIGHT_MIN_HELD, viewer)
         : null,
     ])
     if (!result || !facets) throw notFound()

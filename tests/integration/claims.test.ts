@@ -5,7 +5,13 @@ import { asc, eq } from 'drizzle-orm'
 import { freshDb } from './pglite'
 import type { TestDb } from './pglite'
 import { seed } from '#/db/seed'
-import { auditLog, playerClaims, players, profiles } from '#/db/schema'
+import {
+  auditLog,
+  playerAmendments,
+  playerClaims,
+  players,
+  profiles,
+} from '#/db/schema'
 import {
   approveClaim,
   clearClaimDenial,
@@ -402,6 +408,36 @@ describe('revokeClaim', () => {
 
     await revokeClaim(t.db, store, MOD, ace.id, 'impersonation')
     expect(store.objects.has(key)).toBe(true)
+  })
+
+  it('withdraws a proposal in flight, rather than rejecting it', async () => {
+    // `rejected` would inflate the very count a Moderator reads, and nothing
+    // about this proposal was refused — the Claim behind it simply ended.
+    const ace = await playerBySlug('ace')
+    const store = fakeStore()
+    const { id } = await requestClaim(t.db, USER_A, ace.id, {})
+    await approveClaim(t.db, store, MOD, id)
+    const proposed = `avatars/${ace.id}/proposed.webp`
+    await store.put('assets', proposed, new Uint8Array([2]))
+    await t.db.insert(playerAmendments).values({
+      playerId: ace.id,
+      field: 'avatar',
+      value: proposed,
+      submittedBy: USER_A,
+    })
+
+    await revokeClaim(t.db, store, MOD, ace.id, 'impersonation')
+
+    const [amendment] = await t.db
+      .select()
+      .from(playerAmendments)
+      .where(eq(playerAmendments.playerId, ace.id))
+    expect(amendment).toMatchObject({
+      state: 'withdrawn',
+      reviewedBy: null,
+      reviewedAt: null,
+    })
+    expect(store.objects.has(proposed)).toBe(false)
   })
 
   it('demands a reason, since the reason is what tells the three cases apart', async () => {

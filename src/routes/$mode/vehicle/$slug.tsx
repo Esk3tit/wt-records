@@ -5,6 +5,7 @@ import { TitleDeed } from '#/components/title-deed'
 import { TitleHistory } from '#/components/title-history'
 import { db } from '#/db'
 import { getVehicle } from '#/db/queries'
+import { resolveAmendmentViewer } from '#/claims/viewer'
 import { standingKills } from '#/lib/rules'
 import { toVehicleCardModel } from '#/og/props/vehicle'
 import { vehicleUnfurl } from '#/og/copy'
@@ -14,7 +15,12 @@ import { cardMeta } from '#/og/meta'
 const loadVehicle = createServerFn({ method: 'GET' })
   .validator((data: { mode: string; slug: string }) => data)
   .handler(async ({ data }) => {
-    const vehicle = await getVehicle(db, data.mode, data.slug)
+    const vehicle = await getVehicle(
+      db,
+      data.mode,
+      data.slug,
+      await resolveAmendmentViewer(),
+    )
     if (!vehicle) throw notFound()
     return vehicle
   })

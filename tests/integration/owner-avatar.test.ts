@@ -1,11 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import sharp from 'sharp'
 import { freshDb } from './pglite'
 import type { TestDb } from './pglite'
 import { seed } from '#/db/seed'
-import { players, profiles } from '#/db/schema'
+import { playerAmendments, players, profiles } from '#/db/schema'
 import { removeOwnAvatar, setOwnAvatar } from '#/claims/owner'
+import {
+  AMENDMENT_HOURLY_LIMIT,
+  loadAmendmentViewer,
+} from '#/claims/amendments'
 
 const USER_A = '00000000-0000-4000-8000-00000000000a'
 const USER_B = '00000000-0000-4000-8000-00000000000b'
@@ -55,6 +59,19 @@ async function claim(slug: string, userId: string) {
   return p
 }
 
+async function amendments(playerId: number) {
+  return t.db
+    .select()
+    .from(playerAmendments)
+    .where(eq(playerAmendments.playerId, playerId))
+    .orderBy(playerAmendments.id)
+}
+
+/** What the owner is served, straight through the shadow's own resolver. */
+async function pendingFor(userId: string) {
+  return (await loadAmendmentViewer(t.db, userId))?.pendingAvatarKey ?? null
+}
+
 beforeEach(async () => {
   t = await freshDb()
   await seed(t.db)
@@ -71,7 +88,7 @@ afterEach(async () => {
 })
 
 describe('setOwnAvatar', () => {
-  it('stores a 512×512 WebP under a content-hashed key and repoints the player', async () => {
+  it('stores a 512×512 WebP under a content-hashed key and proposes it', async () => {
     const ace = await claim('ace', USER_A)
     const store = fakeStore()
 
@@ -84,13 +101,18 @@ describe('setOwnAvatar', () => {
     )
 
     expect(avatarKey).toMatch(/^avatars\/\d+\/[0-9a-f]{12}\.webp$/)
-    expect((await playerBySlug('ace')).avatarKey).toBe(avatarKey)
+    // Published state is untouched — the owner sees it, nobody else does.
+    expect((await playerBySlug('ace')).avatarKey).toBeNull()
+    expect(await pendingFor(USER_A)).toBe(avatarKey)
+    expect(await amendments(ace.id)).toMatchObject([
+      { field: 'avatar', value: avatarKey, state: 'pending', reviewedBy: null },
+    ])
     const stored = store.objects.get(avatarKey)!
     const meta = await sharp(Buffer.from(stored)).metadata()
     expect(meta).toMatchObject({ format: 'webp', width: 512, height: 512 })
   })
 
-  it('replaces the avatar and deletes the now-unreferenced prior object', async () => {
+  it('supersedes a proposal in flight instead of queueing a second one', async () => {
     const ace = await claim('ace', USER_A)
     const store = fakeStore()
 
@@ -110,9 +132,71 @@ describe('setOwnAvatar', () => {
     )
 
     expect(second.avatarKey).not.toBe(first.avatarKey)
-    expect((await playerBySlug('ace')).avatarKey).toBe(second.avatarKey)
+    // A Moderator only ever sees the value the owner currently wants.
+    expect(await amendments(ace.id)).toMatchObject([
+      { value: first.avatarKey, state: 'superseded', reviewedBy: null },
+      { value: second.avatarKey, state: 'pending' },
+    ])
+    expect(await pendingFor(USER_A)).toBe(second.avatarKey)
     expect(store.objects.has(second.avatarKey)).toBe(true)
     expect(store.objects.has(first.avatarKey)).toBe(false)
+  })
+
+  it('never refuses a change while one is in flight', async () => {
+    // A refusal is feedback, and feedback is the one thing that would reveal
+    // the queue — so the third and fourth attempts must land like the first.
+    const ace = await claim('ace', USER_A)
+    const store = fakeStore()
+    for (const colour of [RED, BLUE, RED, BLUE]) {
+      await expect(
+        setOwnAvatar(t.db, store, USER_A, ace.id, await png(colour)),
+      ).resolves.toMatchObject({ avatarKey: expect.any(String) })
+    }
+    const rows = await amendments(ace.id)
+    expect(rows.filter((r) => r.state === 'pending')).toHaveLength(1)
+  })
+
+  it('trips a generic throttle at the eleventh change in an hour', async () => {
+    const ace = await claim('ace', USER_A)
+    const store = fakeStore()
+    // Superseded rows count: the guard counts submissions, not survivors.
+    await t.db.insert(playerAmendments).values(
+      Array.from({ length: AMENDMENT_HOURLY_LIMIT }, (_, i) => ({
+        playerId: ace.id,
+        field: 'avatar' as const,
+        value: `avatars/${ace.id}/spent${i}.webp`,
+        state: 'superseded' as const,
+        submittedBy: USER_A,
+      })),
+    )
+
+    await expect(
+      setOwnAvatar(t.db, store, USER_A, ace.id, await png(RED)),
+    ).rejects.toThrow(/too many changes/i)
+    // Nothing about review, and nothing about the submitter.
+    await expect(
+      setOwnAvatar(t.db, store, USER_A, ace.id, await png(RED)),
+    ).rejects.not.toThrow(/review|pending|moderat/i)
+    expect(store.objects.size).toBe(0)
+  })
+
+  it('counts the window from now, not from the whole history', async () => {
+    const ace = await claim('ace', USER_A)
+    const store = fakeStore()
+    await t.db.insert(playerAmendments).values(
+      Array.from({ length: AMENDMENT_HOURLY_LIMIT }, (_, i) => ({
+        playerId: ace.id,
+        field: 'avatar' as const,
+        value: `avatars/${ace.id}/old${i}.webp`,
+        state: 'superseded' as const,
+        submittedBy: USER_A,
+        submittedAt: sql`now() - interval '2 hours'`,
+      })),
+    )
+
+    await expect(
+      setOwnAvatar(t.db, store, USER_A, ace.id, await png(RED)),
+    ).resolves.toMatchObject({ avatarKey: expect.any(String) })
   })
 
   it('keeps the prior object when another player still references its key', async () => {
@@ -200,9 +284,34 @@ describe('setOwnAvatar', () => {
 })
 
 describe('removeOwnAvatar', () => {
-  it('removes the avatar and cleans up the object', async () => {
+  it('publishes instantly, with no rows required for it to work', async () => {
+    // The grandfathered case too: an avatar that predates the shadow carries no
+    // Amendment, and taking it down must still not wait on anybody.
     const ace = await claim('ace', USER_A)
     const store = fakeStore()
+    const published = `avatars/${ace.id}/published.webp`
+    await store.put('assets', published, new Uint8Array([1]))
+    await t.db
+      .update(players)
+      .set({ avatarKey: published })
+      .where(eq(players.id, ace.id))
+
+    await removeOwnAvatar(t.db, store, USER_A, ace.id)
+
+    expect((await playerBySlug('ace')).avatarKey).toBeNull()
+    expect(store.objects.has(published)).toBe(false)
+    expect(await amendments(ace.id)).toEqual([])
+  })
+
+  it('takes a proposal in flight down with it', async () => {
+    const ace = await claim('ace', USER_A)
+    const store = fakeStore()
+    const published = `avatars/${ace.id}/published.webp`
+    await store.put('assets', published, new Uint8Array([1]))
+    await t.db
+      .update(players)
+      .set({ avatarKey: published })
+      .where(eq(players.id, ace.id))
     const { avatarKey } = await setOwnAvatar(
       t.db,
       store,
@@ -212,8 +321,15 @@ describe('removeOwnAvatar', () => {
     )
 
     await removeOwnAvatar(t.db, store, USER_A, ace.id)
+
     expect((await playerBySlug('ace')).avatarKey).toBeNull()
+    // Nothing left proposed, or the owner would keep seeing what they removed.
+    expect(await pendingFor(USER_A)).toBeNull()
+    expect(await amendments(ace.id)).toMatchObject([
+      { value: avatarKey, state: 'superseded', reviewedBy: null },
+    ])
     expect(store.objects.has(avatarKey)).toBe(false)
+    expect(store.objects.has(published)).toBe(false)
   })
 
   it('keeps the object when another player references the key', async () => {

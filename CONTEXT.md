@@ -18,7 +18,7 @@ _Avoid_: account, user record.
 The default role a Profile carries: signed in, no moderation rights. Distinct from a visitor, who has no Profile at all.
 
 **Moderator**:
-A User whose Profile role grants the moderation surface — entering and verifying Records, approving Claim requests, resetting Avatars. Every Admin is also a Moderator.
+A User whose Profile role grants the moderation surface — entering and verifying Records, approving Claim requests, reviewing Amendments, resetting Avatars. Every Admin is also a Moderator.
 _Avoid_: admin (which is both the role above it and the name of the surface).
 
 **Admin**:
@@ -46,11 +46,21 @@ _Avoid_ in product and interface copy: release, unclaim, self-service unlinking 
 Collapsing duplicate Player rows for the same person into one survivor: Records repoint, the duplicate's names become survivor Aliases, and the duplicate leaves a tombstone redirecting its old page. Records' Snapshots never change. Two claimed Players are never mergeable — two claims are two people (the User is the identity source of truth), and one User holds one Player, so a same-User pair cannot exist to begin with.
 
 **Avatar**:
-A claimed Player's site-owned picture. Seeded once, at claim, from the login provider's picture — only by the claimant's explicit choice, never auto-published — then changed by uploading on the site, fully detached from the provider thereafter. Moderators can reset any Avatar to the Medallion.
+A claimed Player's site-owned picture. Seeded once, at claim, from the login provider's picture — only by the claimant's explicit choice, never auto-published — then changed by uploading on the site, fully detached from the provider thereafter. An uploaded Avatar is **proposed**, not published: it is an Amendment until a Moderator accepts it, and the **approved** one is what the site shows. Removing an Avatar is not a proposal and publishes at once. Moderators can reset any Avatar to the Medallion.
 
 **Medallion**:
-The designed fallback identity mark for any Player without an Avatar — accountless, claimed without choosing one, or reset by a moderator. A first-class permanent state, not a placeholder.
+The designed fallback identity mark for any Player without an Avatar — accountless, claimed without choosing one, reset by a moderator, or claimed with no approved Avatar yet. A first-class permanent state, not a placeholder.
 _Avoid_: default avatar, placeholder.
+
+**Amendment**:
+One proposed change to one Shadowed field of a claimed Player's profile, awaiting a Moderator. It is either pending, approved, rejected, **superseded** (the holder proposed something else, or overtook it by removing the value), or **withdrawn** (the Claim behind it ended — never a rejection, which would inflate a count nobody earned). One pending Amendment per (Player, field), always: a second proposal supersedes the first rather than queueing behind it, so a Moderator never reviews N values to reach one outcome. Approved values live on the Player, so the Amendment table is a **review log, not a value store** — a value that predates the queue is approved because it sits on the Player, and no Amendment attests to it.
+_Avoid_ as names for the thing itself: request, edit, and **Submission** — which is a pending Record, not this. (One is still *submitted*, which is why the row records who submitted it and when.)
+
+**Shadow** (the):
+That an Amendment is invisible to the person who made it: they are served their own pending value on every surface the site draws for them, immediately and everywhere, while everyone else is served the approved one — and nothing tells them a review exists. No status, no toast, no wait, and no refusal about the review, because a queue whose existence is known is a queue to route around. A holder meets a rejection as a plain revert on their next reload. Two things sit outside it, both deliberately: a **share card** always carries the approved value, to the holder as much as to anyone, because it is publicly cached and leaves the site; and a generic throttle refuses an eleventh change in an hour, which says nothing about review and is what every site says.
+
+**Shadowed field**:
+A profile field whose changes go through the Shadow. Today: the Avatar, and nothing else. Pre-existing values of a newly-shadowed field enter as approved and write no rows — the queue has no retroactive reach.
 
 **Country**:
 A citizenship a claimed Player states — not where they live, not where their family is from, not where they play. Set and cleared freely by the claim holder alone; the site states the rule and does not verify it, so a dispute is judged against the rule rather than argued on taste. Distinct from a **Nation**, the in-game tree a vehicle belongs to: the two share a page and mean nothing alike. A Country's flag always appears with the country's full name as text, which is what separates it at a glance from a Nation's mark-only chip. An absent Country renders nothing at all — never a placeholder, never a neutral mark. It leaves with the claim: Revoke and approving a new Claim both **delete** the stored value, so it can never resurface as a later holder's statement.

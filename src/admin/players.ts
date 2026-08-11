@@ -20,6 +20,7 @@ import {
 import { slugify } from '#/lib/slug'
 import { likeContains } from '#/lib/like'
 import { writeAudit } from '#/admin/audit'
+import { closePendingAmendments } from '#/claims/amendments'
 import { ADMIN_PAGE_SIZE } from '#/lib/paging'
 
 export async function uniquePlayerSlug(db: Db, name: string): Promise<string> {
@@ -409,6 +410,20 @@ export async function mergePlayers(
     }
     if (duplicate.avatarKey && duplicate.avatarKey !== finalAvatar) {
       dereferenced.add(duplicate.avatarKey)
+    }
+    // A proposal can't survive the row it was made against: the duplicate is a
+    // tombstone from here on, and a claim arriving from it never inherits what
+    // an earlier holder of the survivor left in flight.
+    const stranded = [duplicate.id]
+    if (survivor.userId == null) stranded.push(survivor.id)
+    for (const playerId of stranded) {
+      for (const value of await closePendingAmendments(
+        tx,
+        playerId,
+        'withdrawn',
+      )) {
+        if (value !== finalAvatar) dereferenced.add(value)
+      }
     }
     const orphanedAvatarKeys = [...dereferenced]
     // Drop pending claims that can no longer resolve: the duplicate's (it

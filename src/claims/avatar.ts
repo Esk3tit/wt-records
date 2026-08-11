@@ -1,6 +1,6 @@
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import type { Db } from '#/db'
-import { players } from '#/db/schema'
+import { playerAmendments, players } from '#/db/schema'
 import type { Storage } from '#/storage/r2'
 import { fetchUpstream } from '#/catalog/upstream-fetch'
 import {
@@ -94,26 +94,57 @@ async function readCapped(
   return out
 }
 
-/** Delete an avatar object only when no player row still references its key —
-    a content-addressed key can be re-referenced by a concurrent seed. Fully
-    best-effort: it runs after the owning write has committed at every call
-    site, so a leaked object must never surface as an error. */
+/** Delete an avatar object only when nothing live still references its key — a
+    published row or a pending Amendment, either of which a content-addressed
+    key can be re-referenced by (re-uploading a picture you already have lands
+    on the very key a reject would otherwise delete). Fully best-effort: it runs
+    after the owning write has committed at every call site, so a leaked object
+    must never surface as an error.
+
+    The check and the delete are not atomic, and deliberately so: an upload of
+    the identical picture that commits between them loses its object and renders
+    broken until the next upload. Closing that costs either a lock held across a
+    round-trip to R2 or a reclamation lifecycle this site has refused to own. */
 export async function deleteAvatarIfUnreferenced(
   db: Db,
   store: AvatarStore,
   key: string,
 ): Promise<void> {
   try {
-    const referenced =
-      (
-        await db
-          .select({ id: players.id })
-          .from(players)
-          .where(eq(players.avatarKey, key))
-          .limit(1)
-      ).length > 0
-    if (!referenced) await store.delete('assets', key)
+    const [published, proposed] = await Promise.all([
+      db
+        .select({ id: players.id })
+        .from(players)
+        .where(eq(players.avatarKey, key))
+        .limit(1),
+      db
+        .select({ id: playerAmendments.id })
+        .from(playerAmendments)
+        .where(
+          and(
+            eq(playerAmendments.value, key),
+            eq(playerAmendments.state, 'pending'),
+          ),
+        )
+        .limit(1),
+    ])
+    if (published.length === 0 && proposed.length === 0) {
+      await store.delete('assets', key)
+    }
   } catch {
     // A post-commit cleanup failure only leaks bytes; never fail the caller.
+  }
+}
+
+/** Every key one committed write dereferenced — an avatar replaced, removed,
+    refused, superseded, or left behind by a Claim that ended. */
+export async function deleteAvatarsIfUnreferenced(
+  db: Db,
+  store: AvatarStore | null,
+  keys: readonly string[],
+): Promise<void> {
+  if (!store) return
+  for (const key of keys) {
+    await deleteAvatarIfUnreferenced(db, store, key)
   }
 }

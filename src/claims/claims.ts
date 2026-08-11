@@ -4,7 +4,12 @@ import type { Db } from '#/db'
 import { playerAliases, playerClaims, players, profiles } from '#/db/schema'
 import { writeAudit } from '#/admin/audit'
 import type { AvatarStore } from '#/claims/avatar'
-import { deleteAvatarIfUnreferenced, seedAvatar } from '#/claims/avatar'
+import {
+  deleteAvatarIfUnreferenced,
+  deleteAvatarsIfUnreferenced,
+  seedAvatar,
+} from '#/claims/avatar'
+import { closePendingAmendments } from '#/claims/amendments'
 import { MAX_NOTE_LENGTH } from '#/claims/limits'
 import { ADMIN_PAGE_SIZE } from '#/lib/paging'
 import { optionalNote, requiredReason } from '#/claims/validate'
@@ -224,9 +229,9 @@ export async function approveClaim(
         )
       : null
 
-  let staleKey: string | null = null
+  let staleKeys: string[] = []
   try {
-    staleKey = await db.transaction(async (tx) => {
+    staleKeys = await db.transaction(async (tx) => {
       await lockClaimant(tx, claim.userId)
       const player = (
         await tx
@@ -262,9 +267,15 @@ export async function approveClaim(
       ).at(0)
       if (!stillPending) throw new Error('This claim was already resolved')
 
-      // A fresh owner gets a fresh identity: seed or Medallion, and no country.
-      // Deleting an auth user nulls user_id by FK without running unclaim(), so
-      // this is the only thing standing between that row and its next claimant.
+      // A fresh owner gets a fresh identity: seed or Medallion, no country, and
+      // nothing a previous holder proposed. Deleting an auth user nulls user_id
+      // by FK without running unclaim(), so this is the only thing standing
+      // between that row and its next claimant.
+      const orphaned = await closePendingAmendments(
+        tx,
+        claim.playerId,
+        'withdrawn',
+      )
       await tx
         .update(players)
         .set({ userId: claim.userId, avatarKey, countryCode: null })
@@ -289,10 +300,11 @@ export async function approveClaim(
           context: { claimId, avatarSeeded: avatarKey != null },
         },
       })
-      // The prior owner's object is now unreferenced (keys are per-player).
+      // The prior owner's object and anything they left proposed are now
+      // unreferenced (keys are per-player).
       return player.avatarKey && player.avatarKey !== avatarKey
-        ? player.avatarKey
-        : null
+        ? [...orphaned, player.avatarKey]
+        : orphaned
     })
   } catch (error) {
     // Roll back the just-seeded object — but never one a concurrent approval
@@ -301,9 +313,9 @@ export async function approveClaim(
       await deleteAvatarIfUnreferenced(db, store, avatarKey)
     throw error
   }
-  // Same collision guard on the prior owner's object: a concurrent re-seed of
-  // the identical image could have re-referenced this same content-hash key.
-  if (staleKey && store) await deleteAvatarIfUnreferenced(db, store, staleKey)
+  // Same collision guard on the prior owner's objects: a concurrent re-seed of
+  // the identical image could have re-referenced the same content-hash key.
+  await deleteAvatarsIfUnreferenced(db, store, staleKeys)
   return { playerId: claim.playerId, avatarSeeded: avatarKey != null }
 }
 
@@ -392,15 +404,18 @@ export async function clearClaimDenial(
   })
 }
 
-/** THE single path back to accountless: link, Avatar and Country all go, or
-    a value left behind resurrects on the next claim. */
+/** THE single path back to accountless: link, Avatar, Country and any
+    Amendment in flight all go, or a value left behind resurrects on the next
+    claim. A pending Amendment is written `withdrawn`, never `rejected`:
+    nothing about it was refused, and inflating the rejection count would show
+    a Moderator "3 rejected" for someone never rejected once. */
 async function unclaim(
   db: Db,
   store: AvatarStore | null,
   playerId: number,
   audit: { actorId: string; reason: string },
 ): Promise<void> {
-  const staleKey = await db.transaction(async (tx) => {
+  const staleKeys = await db.transaction(async (tx) => {
     const player = (
       await tx
         .select({
@@ -414,6 +429,7 @@ async function unclaim(
     ).at(0)
     if (!player) throw new Error(`Unknown player ${playerId}`)
     if (player.userId == null) throw new Error('This player is not claimed')
+    const withdrawn = await closePendingAmendments(tx, playerId, 'withdrawn')
     await tx
       .update(players)
       .set({ userId: null, avatarKey: null, countryCode: null })
@@ -432,10 +448,10 @@ async function unclaim(
         context: { reason: audit.reason },
       },
     })
-    return player.avatarKey
+    return player.avatarKey ? [...withdrawn, player.avatarKey] : withdrawn
   })
   // After commit, and only if a concurrent re-claim hasn't taken the key.
-  if (staleKey && store) await deleteAvatarIfUnreferenced(db, store, staleKey)
+  await deleteAvatarsIfUnreferenced(db, store, staleKeys)
 }
 
 /** A moderator severs a Claim. It frees the Player, not the User: a revoked

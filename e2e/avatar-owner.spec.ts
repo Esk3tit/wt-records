@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import type { Page } from '@playwright/test'
+import type { BrowserContext, Page } from '@playwright/test'
 import type { Sql } from 'postgres'
 import { withPlayer } from './support/players'
 import { STATE } from './support/states'
@@ -87,6 +87,196 @@ async function expectNonOwnerSeesNothing(page: Page, sql: Sql, slug: string) {
   await page.reload()
   await expectNoOwnerControls(page)
 }
+
+/* The release's one assertion: the holder is served their own unreviewed
+   picture, everybody else the reviewed one, and the share card serves the
+   reviewed one to both — including on the holder's own page, which is where
+   applying the predicate literally would have leaked it off-site. */
+test.describe('an Avatar awaiting review', () => {
+  test.use({ storageState: STATE.viewer })
+
+  const APPROVED = 'avatars/1/aaaaaaaaaaaa.webp'
+  const PENDING = 'avatars/1/bbbbbbbbbbbb.webp'
+
+  /** The picture the page actually points at — an attribute value, not a
+      mention: the reviewed key is on the page either way (the share card's
+      version is computed from it), and that is not the same as rendering it. */
+  const rendered = (key: string) =>
+    new RegExp(`(?:src|href)="[^"]*${key.replaceAll('.', '\\.')}"`)
+
+  async function ogImage(context: BrowserContext, slug: string) {
+    const page = await context.newPage()
+    await page.goto(`/player/${slug}`)
+    const image = await page
+      .locator('meta[property="og:image"]')
+      .first()
+      .getAttribute('content')
+    await page.close()
+    return image
+  }
+
+  /** Hands the current holder of a grb title to our owned Player for the body,
+      then puts the title back — the ledger and the vehicle sheet only render an
+      Avatar beside a holder, and the seed's holders are not ours to claim. */
+  async function asTitleHolder(
+    sql: Sql,
+    playerId: number,
+    body: (vehicleSlug: string) => Promise<void>,
+  ) {
+    const [held] = await sql<{ id: number; player_id: number; slug: string }[]>`
+      select r.id, r.player_id, v.slug
+      from records r join vehicles v on v.id = r.vehicle_id
+      where r.mode = 'grb' and r.is_current and r.status = 'verified'
+      order by r.id limit 1
+    `
+    await sql`update records set player_id = ${playerId} where id = ${held.id}`
+    try {
+      await body(held.slug)
+    } finally {
+      await sql`
+        update records set player_id = ${held.player_id} where id = ${held.id}
+      `
+    }
+  }
+
+  /* The profile page is not the only surface, and it is the only one whose
+     route was already viewer-aware. Dropping the viewer argument in the ledger
+     or the sheet loader is a one-line regression that every other case here
+     still passes. */
+  test('follows the holder onto the ledger and the vehicle sheet', async ({
+    page,
+    browser,
+  }) => {
+    const slug = 'e2e-avatar-shadow-ledger'
+    await withPlayer(
+      { ...ownedPlayer(slug), avatarKey: APPROVED },
+      async ({ sql, id }) => {
+        await sql`
+          insert into player_amendments (player_id, field, value, submitted_by)
+          values (${id}, 'avatar', ${PENDING},
+                  (select user_id from players where id = ${id}))
+        `
+        await asTitleHolder(sql, id, async (vehicleSlug) => {
+          const anon = await browser.newContext({ storageState: STATE.anon })
+          try {
+            for (const path of [
+              '/grb/vehicles',
+              `/grb/vehicle/${vehicleSlug}`,
+            ]) {
+              const own = await (await page.request.get(path)).text()
+              expect(own, path).toMatch(rendered(PENDING))
+              expect(own, path).not.toMatch(rendered(APPROVED))
+
+              const theirs = await (await anon.request.get(path)).text()
+              expect(theirs, path).toMatch(rendered(APPROVED))
+              expect(theirs, path).not.toMatch(rendered(PENDING))
+            }
+          } finally {
+            await anon.close()
+          }
+        })
+      },
+    )
+  })
+
+  /* The headers must not time the review for the holder: one that appeared
+     when they uploaded and vanished when a Moderator decided would tell them
+     everything the shadow exists to withhold. */
+  test('answers a holder in the same headers whether or not one is in flight', async ({
+    page,
+  }) => {
+    const slug = 'e2e-avatar-shadow-headers'
+    await withPlayer(
+      { ...ownedPlayer(slug), avatarKey: APPROVED },
+      async ({ sql, id }) => {
+        const cacheHeaders = async () => {
+          const res = await page.request.get('/grb/vehicles')
+          const h = res.headers()
+          return { cache: h['cache-control'] ?? null, vary: h['vary'] ?? null }
+        }
+
+        const quiet = await cacheHeaders()
+        await sql`
+          insert into player_amendments (player_id, field, value, submitted_by)
+          values (${id}, 'avatar', ${PENDING},
+                  (select user_id from players where id = ${id}))
+        `
+        expect(await cacheHeaders()).toEqual(quiet)
+
+        // And after the decision lands, which is the other half of the tell.
+        // Written as a decision actually is — a decided row carries its time.
+        await sql`
+          update player_amendments
+          set state = 'rejected', reviewed_at = now()
+          where player_id = ${id}
+        `
+        expect(await cacheHeaders()).toEqual(quiet)
+        // Parity alone would hold just as well if the headers vanished
+        // altogether, and `Vary: Cookie` is what keeps a shared cache from
+        // handing this holder's response to the next visitor.
+        expect(quiet.cache).toContain('no-store')
+        expect(quiet.vary).toContain('Cookie')
+      },
+    )
+  })
+
+  test('is the holder’s alone, and never rides out on the share card', async ({
+    page,
+    browser,
+  }) => {
+    const slug = 'e2e-avatar-shadow'
+    await withPlayer(
+      { ...ownedPlayer(slug), avatarKey: APPROVED },
+      async ({ sql, id }) => {
+        await sql`
+          insert into player_amendments (player_id, field, value, submitted_by)
+          values (${id}, 'avatar', ${PENDING},
+                  (select user_id from players where id = ${id}))
+        `
+        const anon = await browser.newContext({ storageState: STATE.anon })
+        try {
+          // The rendered page, not the DOM after hydration: the served HTML is
+          // what a viewer is actually handed.
+          const own = await (await page.request.get(`/player/${slug}`)).text()
+          expect(own).toMatch(rendered(PENDING))
+          expect(own).not.toMatch(rendered(APPROVED))
+
+          const theirs = await (
+            await anon.request.get(`/player/${slug}`)
+          ).text()
+          expect(theirs).toMatch(rendered(APPROVED))
+          expect(theirs).not.toMatch(rendered(PENDING))
+
+          // Same card, versioned off the same (reviewed) key, for both.
+          const ownCard = await ogImage(page.context(), slug)
+          expect(ownCard).toBe(await ogImage(anon, slug))
+
+          // The card route itself, under the holder's own session: it renders,
+          // and it renders the same card an anonymous scraper is served. (This
+          // stack has no bucket, so both Avatars resolve to the Medallion —
+          // comparing the drawn pictures is child 7's.)
+          const cardUrl = new URL(ownCard!)
+          const cardPath = `${cardUrl.pathname}${cardUrl.search}`
+          const card = await page.request.get(cardPath)
+          expect(card.status()).toBe(200)
+          expect(card.headers()['content-type']).toContain('image/png')
+          expect((await card.body()).length).toBe(
+            (await (await anon.request.get(cardPath)).body()).length,
+          )
+
+          // And the version does track the Avatar — otherwise the equality
+          // above would hold no matter what the shadow did.
+          await sql`
+            update players set avatar_key = ${PENDING} where id = ${id}
+          `
+          expect(await ogImage(anon, slug)).not.toBe(ownCard)
+        } finally {
+          await anon.close()
+        }
+      },
+    )
+  })
+})
 
 test.describe('a signed-out visitor sees no avatar controls', () => {
   test.use({ storageState: STATE.anon })

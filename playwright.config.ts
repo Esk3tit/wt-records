@@ -66,7 +66,15 @@ export default defineConfig({
     : {
         command: 'bun run start',
         url: `${BASE_URL}/healthz`,
-        env: { PORT: new URL(BASE_URL).port },
+        env: {
+          PORT: new URL(BASE_URL).port,
+          // Avatar URLs exist only where an asset host is configured, and which
+          // Avatar a viewer is served is an assertion the suite makes. A fake
+          // host keeps that observable with no bucket behind it: the images
+          // 404 and fall back to the Medallion, which no case depends on.
+          R2_ASSETS_BASE_URL:
+            process.env.R2_ASSETS_BASE_URL ?? 'https://assets.e2e.test',
+        },
         // Never adopt a server already on this port: two checkouts can hash to
         // the same one, and adopting it silently tests the wrong branch.
         reuseExistingServer: false,
