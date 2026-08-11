@@ -12,7 +12,7 @@ CREATE TABLE "player_amendments" (
 	CONSTRAINT "amend_state_valid" CHECK ("player_amendments"."state" in ('pending', 'approved', 'rejected', 'superseded', 'withdrawn')),
 	CONSTRAINT "amend_field_valid" CHECK ("player_amendments"."field" in ('avatar')),
 	CONSTRAINT "amend_reviewer_valid" CHECK (case when "player_amendments"."state" in ('approved', 'rejected')
-             then true
+             then "player_amendments"."reviewed_at" is not null
              else "player_amendments"."reviewed_by" is null and "player_amendments"."reviewed_at" is null end)
 );
 --> statement-breakpoint

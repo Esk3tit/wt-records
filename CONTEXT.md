@@ -57,7 +57,7 @@ One proposed change to one Shadowed field of a claimed Player's profile, awaitin
 _Avoid_ as names for the thing itself: request, edit, and **Submission** — which is a pending Record, not this. (One is still *submitted*, which is why the row records who submitted it and when.)
 
 **Shadow** (the):
-That an Amendment is invisible to the person who made it: they are served their own pending value on every surface, immediately and everywhere, while everyone else is served the approved one — and nothing tells them a review exists. No status, no toast, no wait, and no refusal, because a queue whose existence is known is a queue to route around. A holder meets a rejection as a plain revert on their next reload.
+That an Amendment is invisible to the person who made it: they are served their own pending value on every surface the site draws for them, immediately and everywhere, while everyone else is served the approved one — and nothing tells them a review exists. No status, no toast, no wait, and no refusal about the review, because a queue whose existence is known is a queue to route around. A holder meets a rejection as a plain revert on their next reload. Two things sit outside it, both deliberately: a **share card** always carries the approved value, to the holder as much as to anyone, because it is publicly cached and leaves the site; and a generic throttle refuses an eleventh change in an hour, which says nothing about review and is what every site says.
 
 **Shadowed field**:
 A profile field whose changes go through the Shadow. Today: the Avatar, and nothing else. Pre-existing values of a newly-shadowed field enter as approved and write no rows — the queue has no retroactive reach.

@@ -248,14 +248,13 @@ test.describe('an Avatar awaiting review', () => {
           // and it renders the same card an anonymous scraper is served. (This
           // stack has no bucket, so both Avatars resolve to the Medallion —
           // comparing the drawn pictures is child 7's.)
-          const card = await page.request.get(
-            `${new URL(ownCard!).pathname}${new URL(ownCard!).search}`,
-          )
+          const cardUrl = new URL(ownCard!)
+          const cardPath = `${cardUrl.pathname}${cardUrl.search}`
+          const card = await page.request.get(cardPath)
           expect(card.status()).toBe(200)
           expect(card.headers()['content-type']).toContain('image/png')
           expect((await card.body()).length).toBe(
-            (await (await anon.request.get(new URL(ownCard!).pathname)).body())
-              .length,
+            (await (await anon.request.get(cardPath)).body()).length,
           )
 
           // And the version does track the Avatar — otherwise the equality

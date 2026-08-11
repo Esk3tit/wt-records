@@ -663,7 +663,7 @@
         },
         "amend_reviewer_valid": {
           "name": "amend_reviewer_valid",
-          "value": "case when \"player_amendments\".\"state\" in ('approved', 'rejected')\n             then true\n             else \"player_amendments\".\"reviewed_by\" is null and \"player_amendments\".\"reviewed_at\" is null end"
+          "value": "case when \"player_amendments\".\"state\" in ('approved', 'rejected')\n             then \"player_amendments\".\"reviewed_at\" is not null\n             else \"player_amendments\".\"reviewed_by\" is null and \"player_amendments\".\"reviewed_at\" is null end"
         }
       },
       "isRLSEnabled": true

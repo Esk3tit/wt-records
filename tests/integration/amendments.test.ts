@@ -200,6 +200,55 @@ describe('resolving a row that is no longer pending', () => {
   })
 })
 
+/** Drizzle wraps the driver error, so the constraint that actually bit is on
+    the cause — asserting only that *something* threw would pass on a typo. */
+async function violates(name: string, write: Promise<unknown>) {
+  const error = await write.then(
+    () => null,
+    (e: unknown) => e as { cause?: { message?: string } },
+  )
+  expect(error, `expected ${name} to reject the write`).not.toBeNull()
+  expect(error?.cause?.message ?? String(error)).toContain(name)
+}
+
+describe('the row a decision leaves behind', () => {
+  it('cannot claim a decision it has no time for', async () => {
+    // A decided Amendment is the whole record of the review, so one that says
+    // `rejected` while saying nothing about when is not a state to allow.
+    const ace = await claimedPlayer('ace', OWNER)
+    const row = await propose(ace.id, OWNER, `avatars/${ace.id}/a.webp`)
+
+    await violates(
+      'amend_reviewer_valid',
+      t.db
+        .update(playerAmendments)
+        .set({ state: 'rejected', reviewedBy: MOD })
+        .where(eq(playerAmendments.id, row.id)),
+    )
+
+    // Who is allowed to go — a reviewer's account can be deleted — but only
+    // once the decision itself is on the row.
+    await t.db
+      .update(playerAmendments)
+      .set({ state: 'rejected', reviewedAt: new Date(), reviewedBy: null })
+      .where(eq(playerAmendments.id, row.id))
+    expect(await amendment(row.id)).toMatchObject({ state: 'rejected' })
+  })
+
+  it('refuses a reviewer on a row nobody decided', async () => {
+    const ace = await claimedPlayer('ace', OWNER)
+    const row = await propose(ace.id, OWNER, `avatars/${ace.id}/b.webp`)
+
+    await violates(
+      'amend_reviewer_valid',
+      t.db
+        .update(playerAmendments)
+        .set({ state: 'withdrawn', reviewedAt: new Date(), reviewedBy: MOD })
+        .where(eq(playerAmendments.id, row.id)),
+    )
+  })
+})
+
 describe('a proposal that outlived its Claim', () => {
   it('is withdrawn by the system rather than approved onto the row', async () => {
     // Deleting an auth User nulls players.user_id by FK without running

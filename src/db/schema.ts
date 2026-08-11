@@ -271,11 +271,12 @@ export const playerAmendments = pgTable(
     ),
     check('amend_field_valid', sql`${t.field} in ('avatar')`),
     // Only a decision has a reviewer: a pending row is undecided, a supersede
-    // is the owner's own doing, and a withdrawal is the system's.
+    // is the owner's own doing, and a withdrawal is the system's. A decided row
+    // must say when — but not by whom, which goes null with a deleted account.
     check(
       'amend_reviewer_valid',
       sql`case when ${t.state} in ('approved', 'rejected')
-             then true
+             then ${t.reviewedAt} is not null
              else ${t.reviewedBy} is null and ${t.reviewedAt} is null end`,
     ),
   ],
