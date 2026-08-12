@@ -13,7 +13,7 @@ import {
 import { removeOwnLink, setOwnLink } from '#/claims/links'
 import { approveClaim, revokeClaim } from '#/claims/claims'
 import { AMENDMENT_HOURLY_LIMIT } from '#/claims/amendments'
-import { clearPlayerLinks } from '#/admin/players'
+import { clearPlayerCountry, clearPlayerLinks } from '#/admin/players'
 import { effectiveLinks, getPlayerLinks } from '#/db/queries'
 import { MAX_NAMED_LINKS } from '#/links/platforms'
 
@@ -304,14 +304,44 @@ describe('the Moderator clears, never authors', () => {
     )
   })
 
-  // Asserted, not merely absent from the UI: a mod-authored link has no author
+  // Asserted, not merely absent from the UI: a mod-authored value has no author
   // for a dispute to be judged against, and would force provenance columns on
   // every row, to tell what unclaim must clear from what it must keep.
-  it('offers no moderator path that sets a link', async () => {
+  it('offers no moderator path that sets either self-stated field', async () => {
     const admin = await import('#/admin/players')
-    expect(Object.keys(admin).filter((name) => /link/i.test(name))).toEqual([
-      'clearPlayerLinks',
+    expect(
+      Object.keys(admin).filter((name) => /link|country/i.test(name)),
+    ).toEqual(['clearPlayerLinks', 'clearPlayerCountry'])
+  })
+
+  /* The Country takes the same lever, because it carries the same rule — and
+     because shipping one field clearable and the other not would leave a
+     Moderator two identical rules with two different surfaces. */
+  it('clears the country the same way, and audits it', async () => {
+    const ace = await claim('ace', USER_A)
+    await t.db
+      .update(players)
+      .set({ countryCode: 'JP' })
+      .where(eq(players.id, ace.id))
+
+    await expect(clearPlayerCountry(t.db, MOD, ace.id)).resolves.toEqual({
+      clearedCountry: 'JP',
+    })
+    expect((await playerBySlug('ace')).countryCode).toBeNull()
+    expect((await playerBySlug('ace')).userId).toBe(USER_A)
+    const audit = await t.client.query(
+      `select action, entity from audit_log where action = 'player.clear_country'`,
+    )
+    expect(audit.rows).toEqual([
+      { action: 'player.clear_country', entity: 'player' },
     ])
+  })
+
+  it('refuses a country clear on a player stating none', async () => {
+    const ace = await claim('ace', USER_A)
+    await expect(clearPlayerCountry(t.db, MOD, ace.id)).rejects.toThrow(
+      /states no country/,
+    )
   })
 
   it('cannot reach the owner’s own path either, moderator or not', async () => {

@@ -324,6 +324,50 @@ export async function clearPlayerLinks(
   })
 }
 
+/** Clear a Player's stated Country, leaving the Claim intact. The Country's
+    twin of the above, and it exists for the reason the narrow lever was chosen
+    over an editable one: a mod-authored country is not self-picked, so the
+    whole stated rule — a citizenship its holder claims — loses its subject, and
+    telling a holder's value from a Moderator's afterwards would cost a
+    provenance column beside every field `unclaim()` has to clear. */
+export async function clearPlayerCountry(
+  db: Db,
+  actorId: string,
+  playerId: number,
+): Promise<{ clearedCountry: string }> {
+  return db.transaction(async (tx) => {
+    const player = (
+      await tx
+        .select({
+          countryCode: players.countryCode,
+          mergedInto: players.mergedInto,
+        })
+        .from(players)
+        .where(eq(players.id, playerId))
+        .for('update')
+    ).at(0)
+    if (!player) throw new Error(`Unknown player ${playerId}`)
+    if (player.mergedInto != null) {
+      throw new Error('This player was merged — edit the surviving player')
+    }
+    if (player.countryCode == null) {
+      throw new Error('This player states no country')
+    }
+    await tx
+      .update(players)
+      .set({ countryCode: null })
+      .where(eq(players.id, playerId))
+    await writeAudit(tx, {
+      actorId,
+      action: 'player.clear_country',
+      entity: 'player',
+      entityId: playerId,
+      diff: { before: { countryCode: player.countryCode } },
+    })
+    return { clearedCountry: player.countryCode }
+  })
+}
+
 /* ── Merge (survivor ← duplicate), one transaction ───────────── */
 
 export async function mergePlayers(

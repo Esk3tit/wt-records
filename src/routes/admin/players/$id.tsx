@@ -19,6 +19,7 @@ import { AsyncCombobox } from '#/components/admin/combobox'
 import { ConfirmDialog } from '#/components/admin/confirm-dialog'
 import {
   adminAddAlias,
+  adminClearPlayerCountry,
   adminClearPlayerLinks,
   adminMergePlayers,
   adminPlayerDetail,
@@ -125,6 +126,7 @@ function PlayerDetailInner() {
             onDismissError={() => setError(null)}
             hasAvatar={player.avatarKey != null}
             links={links}
+            countryCode={player.countryCode}
             onResetAvatar={() =>
               call(() =>
                 adminResetPlayerAvatar({ data: { playerId: player.id } }),
@@ -133,6 +135,11 @@ function PlayerDetailInner() {
             onClearLinks={() =>
               call(() =>
                 adminClearPlayerLinks({ data: { playerId: player.id } }),
+              )
+            }
+            onClearCountry={() =>
+              call(() =>
+                adminClearPlayerCountry({ data: { playerId: player.id } }),
               )
             }
             onRevoke={(reason) =>
@@ -362,8 +369,10 @@ function ClaimStatus({
   onDismissError,
   hasAvatar,
   links,
+  countryCode,
   onResetAvatar,
   onClearLinks,
+  onClearCountry,
   onRevoke,
 }: {
   error: string | null
@@ -371,16 +380,18 @@ function ClaimStatus({
   onDismissError: () => void
   hasAvatar: boolean
   links: ReadonlyArray<{ platform: string; handle: string }>
+  countryCode: string | null
   onResetAvatar: () => Promise<boolean>
   onClearLinks: () => Promise<boolean>
+  onClearCountry: () => Promise<boolean>
   onRevoke: (reason: string) => Promise<boolean>
 }) {
   const [confirming, setConfirming] = useState<
-    'reset' | 'links' | 'revoke' | null
+    'reset' | 'links' | 'country' | 'revoke' | null
   >(null)
   const [busy, setBusy] = useState(false)
   const [reason, setReason] = useState('')
-  const open = (dialog: 'reset' | 'links' | 'revoke') => {
+  const open = (dialog: 'reset' | 'links' | 'country' | 'revoke') => {
     onDismissError()
     setConfirming(dialog)
   }
@@ -419,6 +430,15 @@ function ClaimStatus({
           onClick={() => open('links')}
         >
           Clear links
+        </button>
+      )}
+      {countryCode != null && (
+        <button
+          type="button"
+          className="text-sm text-fg-muted transition-colors duration-200 hover:text-fg"
+          onClick={() => open('country')}
+        >
+          Clear country
         </button>
       )}
       <button
@@ -462,6 +482,21 @@ function ClaimStatus({
             </li>
           ))}
         </ul>
+        <ErrorNote error={error} />
+      </ConfirmDialog>
+      <ConfirmDialog
+        open={confirming === 'country'}
+        title="Clear this country?"
+        confirmLabel="Clear"
+        busy={busy}
+        onConfirm={() => run(onClearCountry)}
+        onCancel={close}
+      >
+        <p>
+          The country stops showing beside the name. The claim is untouched, and
+          the holder can state it again — clearing is the only lever here,
+          because a country nobody picked for themselves is not a statement.
+        </p>
         <ErrorNote error={error} />
       </ConfirmDialog>
       <ConfirmDialog
