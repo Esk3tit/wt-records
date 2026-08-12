@@ -24,5 +24,8 @@ describe('monogram', () => {
     expect(monogram('Vasiliy "Grom" Antonov')).toBe('VG')
     expect(monogram('(anon)')).toBe('AN')
     expect(monogram('!!!')).toBe('?')
+    // Inside a word, not only at its edges — and the commonest case by far.
+    expect(monogram("O'Connor")).toBe('OC')
+    expect(monogram('D’Angelo Russell')).toBe('DR')
   })
 })
