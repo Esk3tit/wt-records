@@ -147,6 +147,21 @@ describe.each(PLATFORMS)('$name builds', (p) => {
       expect(p.pattern.test(SAMPLE[p.id] + hostile)).toBe(false)
     }
   })
+
+  /* Clause 1 is not "the string we concatenated" — it is what a browser
+     resolves. `.` and `..` are path segments the URL parser REMOVES, so a
+     grammar admitting either publishes a link to the platform's homepage (or
+     above it) under somebody's asserted handle. Asserted for every platform,
+     because it is the config that decides: a prefix of `/` plus a grammar with
+     dots is all it takes to reopen this. */
+  it('a URL a browser still resolves to the handle it names', () => {
+    const survives = (handle: string) =>
+      new URL(buildLinkUrl(p, handle)).pathname.includes(handle)
+    expect(survives(SAMPLE[p.id])).toBe(true)
+    for (const dots of ['.', '..', '...', '.a', 'a.', 'a..b']) {
+      if (p.pattern.test(dots)) expect(survives(dots)).toBe(true)
+    }
+  })
 })
 
 describe('the cap', () => {

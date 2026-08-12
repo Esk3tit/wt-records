@@ -60,6 +60,20 @@ describe('a typed handle', () => {
     )
   })
 
+  /* `.` and `..` are path segments a browser REMOVES, so a handle of either
+     would render as an asserted Instagram identity while sending the visitor
+     to the platform's homepage. Instagram is the one shipped platform whose
+     handle sits directly under `/` and may contain dots. */
+  it('is refused when it is only dots', () => {
+    for (const dots of ['.', '..', '...']) {
+      expect(() => stored('instagram', dots)).toThrow()
+    }
+    expect(() => stored('instagram', '.phlydaily')).toThrow()
+    expect(() => stored('instagram', 'phlydaily.')).toThrow()
+    expect(() => stored('instagram', 'phly..daily')).toThrow()
+    expect(stored('instagram', 'phly.daily').handle).toBe('phly.daily')
+  })
+
   it('is refused when it is empty', () => {
     expect(() => stored('twitch', '   ')).toThrow(/Enter your Twitch handle/)
   })

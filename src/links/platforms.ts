@@ -168,7 +168,13 @@ export const PLATFORMS: ReadonlyArray<Platform> = [
     pathPrefix: '/',
     pastePathPrefixes: ['/'],
     fieldPrefix: 'instagram.com/',
-    pattern: /^[A-Za-z0-9_.]{1,30}$/,
+    // Instagram's published rule: no leading or trailing dot, and no two in a
+    // row. Enforced rather than approximated because this is the one shipped
+    // platform whose handle sits directly under `/` AND may contain dots — so
+    // a laxer grammar admits `.` and `..`, which are path segments the URL
+    // parser removes, publishing a link to the platform's homepage under
+    // somebody's asserted handle.
+    pattern: /^(?!.*\.\.)[A-Za-z0-9_](?:[A-Za-z0-9_.]{0,28}[A-Za-z0-9_])?$/,
     fold: 'lower',
     grammarVerified: true,
     sigil: '@',
