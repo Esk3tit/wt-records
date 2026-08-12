@@ -1,4 +1,4 @@
-import { and, count, eq, inArray, ne } from 'drizzle-orm'
+import { and, count, eq, inArray, ne, sql } from 'drizzle-orm'
 import type { Db } from '#/db'
 import { playerLinks, players } from '#/db/schema'
 import { assertClaimOwnership } from '#/claims/owner'
@@ -52,7 +52,11 @@ export async function setOwnLink(
         set: {
           handle: stored.handle,
           normalizedHandle: stored.normalized,
-          updatedAt: new Date(),
+          // The database's clock, matching the column default the insert path
+          // takes — and the one the write budget's rolling window compares
+          // against. Stamping the application's here would put a row outside
+          // that window, or hold it inside, by however far the hosts drift.
+          updatedAt: sql`now()`,
         },
       })
       .catch((error: unknown) => {

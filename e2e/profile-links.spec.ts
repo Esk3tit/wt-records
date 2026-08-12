@@ -29,6 +29,15 @@ const RAIL = '[data-profile-links]'
     platform, including the one that does not fold at all. */
 const token = (slug: string) => slug.replace(/[^a-z0-9]/g, '')
 
+/** X caps a handle at 15 characters, which is shorter than these slugs — so
+    truncating one would throw away the part that made it unique, and two specs
+    sharing a prefix would meet on `plink_handle_uq` in whichever shard lost.
+    Folded over the whole token instead, so the cap cannot discard it. */
+const shortToken = (slug: string) =>
+  `x${[...token(slug)]
+    .reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 0xffffffff, 7)
+    .toString(36)}`
+
 /** The full shippable spread, so the row is measured at the width it can
     actually reach: five named platforms plus the personal site. */
 const fullRail = (slug: string) => [
@@ -36,7 +45,7 @@ const fullRail = (slug: string) => [
   { platform: 'discord', handle: `dc${token(slug)}` },
   { platform: 'twitch', handle: `tw${token(slug)}` },
   { platform: 'tiktok', handle: `tt${token(slug)}` },
-  { platform: 'x', handle: `x${token(slug)}`.slice(0, 15) },
+  { platform: 'x', handle: shortToken(slug) },
   { platform: 'website', handle: `https://${token(slug)}.example/shop` },
 ]
 

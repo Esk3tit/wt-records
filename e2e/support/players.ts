@@ -1,6 +1,7 @@
 import postgres from 'postgres'
 import type { Sql } from 'postgres'
 import { requireEnv } from './env'
+import { parseLinkValue } from '#/links/parse'
 
 /** A Player a spec brings with it, rather than one the seed happened to leave:
     isolated on its own slug so parallel specs never touch each other's row. */
@@ -66,12 +67,16 @@ async function seedPlayer(
     `
   }
   for (const link of links) {
-    /* The fold every platform but Discord takes. A fixture handle is written
-       lower-case so the two agree — a slug is per-spec, but a handle is global,
-       and two specs seeding the same one meet on plink_handle_uq. */
+    /* Through the production parser rather than a hand-rolled fold: Discord
+       does not fold at all and a personal site's path is case-sensitive, so
+       lower-casing the raw value would both corrupt the path and let a fixture
+       store something the write path would have refused. A slug is per-spec,
+       but a handle is global — the caller derives one from its own slug, or two
+       specs meet on plink_handle_uq. */
+    const stored = parseLinkValue(link.platform, link.handle)
     await sql`
       insert into player_links (player_id, platform, handle, normalized_handle)
-      values (${player.id}, ${link.platform}, ${link.handle}, ${link.handle.toLowerCase()})
+      values (${player.id}, ${stored.platform}, ${stored.handle}, ${stored.normalized})
     `
   }
   return player.id

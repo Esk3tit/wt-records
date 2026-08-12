@@ -333,8 +333,10 @@ describe('the Moderator clears, never authors', () => {
   it('offers no moderator path that sets either self-stated field', async () => {
     const admin = await import('#/admin/players')
     expect(
-      Object.keys(admin).filter((name) => /link|country/i.test(name)),
-    ).toEqual(['clearPlayerLinks', 'clearPlayerCountry'])
+      Object.keys(admin)
+        .filter((name) => /link|country/i.test(name))
+        .sort(),
+    ).toEqual(['clearPlayerCountry', 'clearPlayerLinks'])
   })
 
   /* The Country takes the same lever, because it carries the same rule — and
