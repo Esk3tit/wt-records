@@ -144,11 +144,16 @@ const PENDING_ELSEWHERE =
   'You already have a claim request awaiting review — one at a time'
 const DENIED_ALREADY =
   'This request was denied. Ask a moderator on Discord if that was a mistake'
+/* The grant side of the same rule: one approved Claim per User. Reachable when
+   the claimant was given another Player after this request was filed. */
+const HOLDS_ANOTHER =
+  'That user already holds another player — revoke that claim before granting this one'
 
 function refusalForCollision(error: unknown): Error {
   const text = String((error as { cause?: unknown }).cause ?? error)
   if (text.includes('claim_one_pending_uq')) return new Error(PENDING_ELSEWHERE)
   if (text.includes('claim_user_player_uq')) return new Error(PENDING_HERE)
+  if (text.includes('ply_user_uq')) return new Error(HOLDS_ANOTHER)
   return error instanceof Error ? error : new Error(String(error))
 }
 
@@ -284,10 +289,16 @@ export async function approveClaim(
         claim.playerId,
         'withdrawn',
       )
-      await tx
-        .update(players)
-        .set({ userId: claim.userId, avatarKey, countryCode: null })
-        .where(eq(players.id, claim.playerId))
+      try {
+        await tx
+          .update(players)
+          .set({ userId: claim.userId, avatarKey, countryCode: null })
+          .where(eq(players.id, claim.playerId))
+      } catch (error) {
+        // ply_user_uq catches a claimant who gained another Player since they
+        // asked. Unmapped, the driver hands its statement to the moderator.
+        throw refusalForCollision(error)
+      }
       // The winner's row and the losers'. Pending only: a denial is a
       // decision, and it outlives whoever wins the page.
       await tx

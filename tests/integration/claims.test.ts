@@ -192,6 +192,27 @@ describe('requestClaim', () => {
 })
 
 describe('approveClaim', () => {
+  it('refuses a claimant who gained another player in words, never in SQL', async () => {
+    const ace = await playerBySlug('ace')
+    const { id } = await requestClaim(t.db, USER_A, ace.id, {})
+    // Granted another Player after they asked — `ply_user_uq` is the rule, and
+    // unmapped it hands the moderator the statement it failed on.
+    const floppa = await playerBySlug('floppa')
+    await t.db
+      .update(players)
+      .set({ userId: USER_A })
+      .where(eq(players.id, floppa.id))
+
+    const refusal = await approveClaim(t.db, fakeStore(), MOD, id).catch(
+      (e: Error) => e,
+    )
+
+    expect(refusal).toBeInstanceOf(Error)
+    expect((refusal as Error).message).toMatch(/already holds another player/i)
+    expect((refusal as Error).message).not.toMatch(/Failed query|players|\$1/)
+    expect((await playerBySlug('ace')).userId).toBeNull()
+  })
+
   it('links the user and clears every pending request on the player', async () => {
     const ace = await playerBySlug('ace')
     const { id } = await requestClaim(t.db, USER_A, ace.id, {})
