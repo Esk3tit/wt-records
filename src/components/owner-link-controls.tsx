@@ -132,8 +132,14 @@ function LinkField({
   // What is stored, in the form the field shows it: the personal site stores a
   // whole canonical URL under a prefix that already draws its scheme, so the
   // raw value is neither what belongs in the field nor what "unchanged" means.
-  const settled = fieldValue(platform, stored)
-  const [draft, setDraft] = useState(settled)
+  const fromProps = fieldValue(platform, stored)
+  // What the server last confirmed, which the prop only catches up to once the
+  // reload lands — and that reload is allowed to fail. Without this the field
+  // stays dirty after a successful save, and a second press spends another
+  // write from the profile's hourly budget to store what is already there.
+  const [written, setWritten] = useState<string | null>(null)
+  const settled = written ?? fromProps
+  const [draft, setDraft] = useState(fromProps)
   const [busy, setBusy] = useState<'save' | 'remove' | null>(null)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -151,12 +157,16 @@ function LinkField({
     setError(null)
     setSaved(false)
     try {
-      const written = await write()
+      const result = await write()
       // The field takes what the server actually stored, which is the whole
       // "echo back exactly what was stored" promise — and without it a save
       // that canonicalised anything (`@name`, a pasted URL, stray spaces)
       // leaves the field looking dirty and Save enabled against nothing.
-      if (written) setDraft(fieldValue(platform, written.handle))
+      if (result) {
+        const echoed = fieldValue(platform, result.handle)
+        setDraft(echoed)
+        setWritten(echoed)
+      }
     } catch (e) {
       // The draft stays in the field: it is an unsaved edit, and snapping it
       // back would make the owner type their handle again to retry.
