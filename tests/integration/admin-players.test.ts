@@ -7,6 +7,7 @@ import {
   playerAliases,
   playerAmendments,
   playerClaims,
+  playerLinks,
   players,
   profiles,
   records,
@@ -534,6 +535,104 @@ describe('mergePlayers', () => {
     expect(
       aceAliases.filter((a) => a.name === 'SharedName' && a.kind === 'ign'),
     ).toHaveLength(1)
+  })
+})
+
+/* Links take the Aliases' rule, not the Avatar's: a union, with the survivor
+   winning any per-platform collision. Pick-a-side differs only when both sides
+   are claimed by the same User — and there it is the difference between keeping
+   a person's YouTube AND their Twitch, and destroying half of what they set. */
+describe('mergePlayers folds both link sets', () => {
+  const linkRow = (playerId: number, platform: string, handle: string) => ({
+    playerId,
+    platform,
+    handle,
+    normalizedHandle: handle.toLowerCase(),
+  })
+
+  async function linksOf(playerId: number) {
+    return t.db
+      .select({ platform: playerLinks.platform, handle: playerLinks.handle })
+      .from(playerLinks)
+      .where(eq(playerLinks.playerId, playerId))
+      .orderBy(asc(playerLinks.platform))
+  }
+
+  /* The union's collision arm needs both sides claimed by the same User, and
+     that fixture can no longer be built — one User holds one Player. The rule
+     is kept in the code because it is what the merge means; what is reachable
+     is the lone claim, on either side, and that is what is asserted here. */
+
+  it('carries a lone claim’s links across with the claim', async () => {
+    const ace = await playerBySlug('ace')
+    const dup = await playerBySlug('floppa')
+    await t.db
+      .update(players)
+      .set({ userId: USER_A })
+      .where(eq(players.id, dup.id))
+    await t.db.insert(playerLinks).values([linkRow(dup.id, 'youtube', 'AceTV')])
+
+    await mergePlayers(t.db, MOD, { survivorId: ace.id, duplicateId: dup.id })
+    expect(await linksOf(ace.id)).toEqual([
+      { platform: 'youtube', handle: 'AceTV' },
+    ])
+    expect((await playerBySlug('ace')).userId).toBe(USER_A)
+  })
+
+  // An unclaimed side carries no links, so a row stranded there by the
+  // account-deletion path must not ride the merge into a claimed survivor.
+  it('keeps the survivor’s own set and drops the duplicate’s stranded rows', async () => {
+    const ace = await playerBySlug('ace')
+    const dup = await playerBySlug('floppa')
+    await t.db
+      .update(players)
+      .set({ userId: USER_A })
+      .where(eq(players.id, ace.id))
+    await t.db
+      .insert(playerLinks)
+      .values([
+        linkRow(ace.id, 'youtube', 'AceTV'),
+        linkRow(dup.id, 'twitch', 'Ghost'),
+      ])
+
+    await mergePlayers(t.db, MOD, { survivorId: ace.id, duplicateId: dup.id })
+    expect(await linksOf(ace.id)).toEqual([
+      { platform: 'youtube', handle: 'AceTV' },
+    ])
+    expect(await linksOf(dup.id)).toHaveLength(0)
+  })
+
+  it('records what it moved and dropped in the audit diff', async () => {
+    const ace = await playerBySlug('ace')
+    const dup = await playerBySlug('floppa')
+    await t.db
+      .update(players)
+      .set({ userId: USER_A })
+      .where(eq(players.id, dup.id))
+    await t.db.insert(playerLinks).values([linkRow(dup.id, 'youtube', 'AceTV')])
+
+    await mergePlayers(t.db, MOD, { survivorId: ace.id, duplicateId: dup.id })
+    const audit = await listAudit(t.db, { entity: 'player' })
+    const row = audit.rows.find((r) => r.action === 'player.merge')!
+    expect(row.diff).toMatchObject({
+      context: { links: { moved: 1, dropped: 0, collided: [] } },
+    })
+  })
+
+  it('leaves nothing behind on the tombstone to resurrect', async () => {
+    const ace = await playerBySlug('ace')
+    const dup = await playerBySlug('floppa')
+    await t.db
+      .insert(playerLinks)
+      .values([
+        linkRow(ace.id, 'youtube', 'AceTV'),
+        linkRow(dup.id, 'twitch', 'AceLive'),
+      ])
+
+    await mergePlayers(t.db, MOD, { survivorId: ace.id, duplicateId: dup.id })
+    // Neither side was claimed, so neither set was anybody's statement.
+    expect(await linksOf(ace.id)).toHaveLength(0)
+    expect(await linksOf(dup.id)).toHaveLength(0)
   })
 })
 

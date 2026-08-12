@@ -15,7 +15,7 @@ import { playerAvatarKey } from '#/storage/avatar-key'
 
 /** The acting User must be the Player's current owner for a self-service avatar
     change — a merged, accountless, or someone-else's Player is refused. */
-function assertClaimOwnership<
+export function assertClaimOwnership<
   T extends { userId: string | null; mergedInto: number | null },
 >(player: T | undefined, userId: string): asserts player is T {
   if (!player) throw new Error('Unknown player')

@@ -22,6 +22,7 @@ import type {
   TitlePreviewRequest,
 } from '#/admin/records'
 import {
+  clearPlayerLinks,
   getAdminPlayer,
   listAdminPlayers,
   mergePlayers,
@@ -350,6 +351,15 @@ export const adminResetPlayerAvatar = createServerFn({ method: 'POST' })
       result.clearedAvatarKey ? [result.clearedAvatarKey] : [],
     )
     return result
+  })
+
+/* Clear, never author: a Moderator can remove what a holder published, and has
+   no path to publish in their name. */
+export const adminClearPlayerLinks = createServerFn({ method: 'POST' })
+  .validator((data: { playerId: number }) => data)
+  .handler(async ({ data }) => {
+    const { userId } = await requireModerator()
+    return clearPlayerLinks(db, userId, data.playerId)
   })
 
 export const adminMergePlayers = createServerFn({ method: 'POST' })

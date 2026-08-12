@@ -19,6 +19,7 @@ import { AsyncCombobox } from '#/components/admin/combobox'
 import { ConfirmDialog } from '#/components/admin/confirm-dialog'
 import {
   adminAddAlias,
+  adminClearPlayerLinks,
   adminMergePlayers,
   adminPlayerDetail,
   adminPlayerSearch,
@@ -55,7 +56,7 @@ function PlayerDetailInner() {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   if (!detail) return null
-  const { player, aliases, records, lastIgn } = detail
+  const { player, aliases, links, records, lastIgn } = detail
 
   const refresh = () => router.invalidate()
 
@@ -122,9 +123,15 @@ function PlayerDetailInner() {
             error={error}
             onDismissError={() => setError(null)}
             hasAvatar={player.avatarKey != null}
+            links={links}
             onResetAvatar={() =>
               call(() =>
                 adminResetPlayerAvatar({ data: { playerId: player.id } }),
+              )
+            }
+            onClearLinks={() =>
+              call(() =>
+                adminClearPlayerLinks({ data: { playerId: player.id } }),
               )
             }
             onRevoke={(reason) =>
@@ -353,20 +360,26 @@ function ClaimStatus({
   error,
   onDismissError,
   hasAvatar,
+  links,
   onResetAvatar,
+  onClearLinks,
   onRevoke,
 }: {
   error: string | null
   /** The error is route-wide, so a dialog must not open onto someone else's. */
   onDismissError: () => void
   hasAvatar: boolean
+  links: ReadonlyArray<{ platform: string; handle: string }>
   onResetAvatar: () => Promise<boolean>
+  onClearLinks: () => Promise<boolean>
   onRevoke: (reason: string) => Promise<boolean>
 }) {
-  const [confirming, setConfirming] = useState<'reset' | 'revoke' | null>(null)
+  const [confirming, setConfirming] = useState<
+    'reset' | 'links' | 'revoke' | null
+  >(null)
   const [busy, setBusy] = useState(false)
   const [reason, setReason] = useState('')
-  const open = (dialog: 'reset' | 'revoke') => {
+  const open = (dialog: 'reset' | 'links' | 'revoke') => {
     onDismissError()
     setConfirming(dialog)
   }
@@ -398,6 +411,15 @@ function ClaimStatus({
           Reset avatar
         </button>
       )}
+      {links.length > 0 && (
+        <button
+          type="button"
+          className="text-sm text-fg-muted transition-colors duration-200 hover:text-fg"
+          onClick={() => open('links')}
+        >
+          Clear links
+        </button>
+      )}
       <button
         type="button"
         className="text-sm text-status-danger transition-[filter] duration-200 hover:brightness-110"
@@ -417,6 +439,28 @@ function ClaimStatus({
           The avatar returns to the Medallion and the stored image is deleted.
           The claim is untouched, and the owner can upload a new one.
         </p>
+        <ErrorNote error={error} />
+      </ConfirmDialog>
+      <ConfirmDialog
+        open={confirming === 'links'}
+        title="Clear these links?"
+        confirmLabel="Clear"
+        busy={busy}
+        onConfirm={() => run(onClearLinks)}
+        onCancel={close}
+      >
+        <p>
+          Every link this player shows is removed. The claim is untouched, and
+          they can add links again — clearing is the only lever here, because
+          setting one would be speaking as them.
+        </p>
+        <ul className="text-sm text-fg-muted">
+          {links.map((link) => (
+            <li key={link.platform}>
+              {link.platform} · {link.handle}
+            </li>
+          ))}
+        </ul>
         <ErrorNote error={error} />
       </ConfirmDialog>
       <ConfirmDialog

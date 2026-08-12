@@ -10,7 +10,14 @@ export interface PlayerSeed {
   aliases?: string[]
   /** Claims the page for that user, which is what `isClaimed` reads. */
   ownerEmail?: string
+  /** Users the *body* will file or approve a claim for, rather than the seed.
+      Named so they queue behind the same lock `ownerEmail` takes: a claim
+      arriving through the flow lands on the same one-claim-per-user index, and
+      a fixture that does not declare it races every fixture that does. */
+  claimsAs?: ReadonlyArray<string>
   avatarKey?: string
+  /** Profile links, as the write path would have stored them. */
+  links?: Array<{ platform: string; handle: string }>
 }
 
 /* One connection, not the default pool of ten: a fixture runs its statements in
@@ -37,7 +44,14 @@ async function userId(sql: Sql, email: string): Promise<string> {
 /** Delete-first, so a slug left behind by a prior failure isn't taken. */
 async function seedPlayer(
   sql: Sql,
-  { slug, displayName, aliases = [], ownerEmail, avatarKey }: PlayerSeed,
+  {
+    slug,
+    displayName,
+    aliases = [],
+    ownerEmail,
+    avatarKey,
+    links = [],
+  }: PlayerSeed,
 ): Promise<number> {
   await dropPlayer(sql, slug)
   const owner = ownerEmail ? await userId(sql, ownerEmail) : null
@@ -51,6 +65,15 @@ async function seedPlayer(
       insert into player_aliases (player_id, name) values (${player.id}, ${alias})
     `
   }
+  for (const link of links) {
+    /* The fold every platform but Discord takes. A fixture handle is written
+       lower-case so the two agree — a slug is per-spec, but a handle is global,
+       and two specs seeding the same one meet on plink_handle_uq. */
+    await sql`
+      insert into player_links (player_id, platform, handle, normalized_handle)
+      values (${player.id}, ${link.platform}, ${link.handle}, ${link.handle.toLowerCase()})
+    `
+  }
   return player.id
 }
 
@@ -61,6 +84,10 @@ async function dropPlayer(sql: Sql, slug: string): Promise<void> {
   `
   await sql`
     delete from player_amendments
+    where player_id in (select id from players where slug = ${slug})
+  `
+  await sql`
+    delete from player_links
     where player_id in (select id from players where slug = ${slug})
   `
   // A request left on the row is a foreign key: the delete below fails
@@ -81,10 +108,27 @@ export async function withPlayer(
 ): Promise<void> {
   const sql = connect()
   try {
-    // Two parallel cases claiming as the same user collide on ply_user_uq;
-    // this queues them. Session-scoped — the disconnect below frees it.
-    if (seed.ownerEmail) {
-      await sql`select pg_advisory_lock(hashtext(${`e2e-owner:${seed.ownerEmail}`}))`
+    /* Two parallel cases claiming as the same user collide on ply_user_uq;
+       this queues them. Session-scoped — the disconnect below frees it. Taken
+       in a fixed order, so a case naming two users cannot deadlock against one
+       naming them the other way round. */
+    const claimants = [
+      ...new Set([seed.ownerEmail, ...(seed.claimsAs ?? [])]),
+    ].filter((email): email is string => email != null)
+    for (const email of claimants.sort()) {
+      await sql`select pg_advisory_lock(hashtext(${`e2e-owner:${email}`}))`
+    }
+    /* Delete-first covers the slug; the claim is the other thing a killed run
+       leaves behind, and `ply_user_uq` then makes one stray row fatal to every
+       later fixture claiming as that user — the suite reports a constraint
+       violation rather than whatever actually broke. Freed for the same reason
+       the slug is, and safely: the locks above are held by every case that
+       claims, so the only claim this can take is a dead one. */
+    for (const email of claimants) {
+      await sql`
+        update players set user_id = null
+        where user_id = (select id from auth.users where email = ${email})
+      `
     }
     const id = await seedPlayer(sql, seed)
     await body({ sql, id })

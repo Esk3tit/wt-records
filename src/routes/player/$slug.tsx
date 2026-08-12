@@ -12,7 +12,10 @@ import { ClaimedChip } from '#/components/claimed-chip'
 import { ClaimPanel } from '#/components/claim-panel'
 import { OwnerAvatarControls } from '#/components/owner-avatar-controls'
 import { OwnerCountryControls } from '#/components/owner-country-controls'
+import { OwnerLinkControls } from '#/components/owner-link-controls'
 import { PlayerCountry } from '#/components/player-country'
+import { ProfileLinks } from '#/components/profile-links'
+import { renderLinks } from '#/links/render'
 import { PlayerMonument, hasMonument } from '#/components/player-monument'
 import { ProfileEnrichment } from '#/components/profile-enrichment'
 import type { User } from '@supabase/supabase-js'
@@ -21,8 +24,10 @@ import { db } from '#/db'
 import {
   effectiveAvatarKey,
   effectiveCountry,
+  effectiveLinks,
   getPlayer,
   getPlayerEnrichment,
+  getPlayerLinks,
   playerMergeRedirect,
 } from '#/db/queries'
 import { resolveCountryMark } from '#/lib/country-mark-server'
@@ -83,10 +88,11 @@ const loadPlayer = createServerFn({ method: 'GET' })
     // Anonymous requests skip the auth round-trip entirely (getSessionUser
     // answers null off the cookie alone), so a visitor pays nothing for either.
     const user = await getSessionUser()
-    const [viewer, enrichment, shadowed] = await Promise.all([
+    const [viewer, enrichment, shadowed, links] = await Promise.all([
       resolveClaimViewer(found.player, user),
       getPlayerEnrichment(db, found.player.id),
       user ? loadAmendmentViewer(db, user.id) : null,
+      getPlayerLinks(db, found.player.id),
     ])
     const avatarKey = effectiveAvatarKey(found.player, shadowed)
     return {
@@ -114,6 +120,12 @@ const loadPlayer = createServerFn({ method: 'GET' })
         // picker from the resolved mark instead cost the owner the ability to
         // clear a dropped code — the field looked clean because it was empty.
         countryCode,
+        // Rendered for anonymous visitors too: gating them would defeat the
+        // shareability that motivated the breadth, and gains nothing since
+        // anyone can make an account. An unclaimed Player carries none —
+        // for a child table this gate is the only cover on the
+        // account-deletion path, since the FK cannot reach player_links.
+        links: effectiveLinks(found.player, links),
         isClaimed: claimed,
       },
       redirectTo: null,
@@ -216,6 +228,7 @@ function PlayerProfile() {
                   previously known as {formerNames.join(', ')}
                 </p>
               )}
+              <ProfileLinks links={renderLinks(profile.links)} />
             </div>
           </div>
 
@@ -239,6 +252,11 @@ function PlayerProfile() {
                 key={profile.id}
                 playerId={profile.id}
                 countryCode={profile.countryCode}
+              />
+              <OwnerLinkControls
+                key={profile.id}
+                playerId={profile.id}
+                links={profile.links}
               />
             </>
           )}

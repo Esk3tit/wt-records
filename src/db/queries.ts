@@ -25,6 +25,7 @@ import {
   nations,
   patches,
   playerAliases,
+  playerLinks,
   players,
   recordProof,
   records,
@@ -1116,6 +1117,31 @@ export function effectiveCountry(player: {
   countryCode: string | null
 }): string | null {
   return player.userId != null ? player.countryCode : null
+}
+
+/** A stored row per platform, for one Player. Ordered by the config, not by
+    the table: what is stored carries no position. */
+export async function getPlayerLinks(
+  db: Db,
+  playerId: number,
+): Promise<Array<{ platform: string; handle: string }>> {
+  return db
+    .select({ platform: playerLinks.platform, handle: playerLinks.handle })
+    .from(playerLinks)
+    .where(eq(playerLinks.playerId, playerId))
+}
+
+/** Profile links belong to a claim, so an accountless Player shows none —
+    and an unclaimed Player's page never implies somebody is behind it.
+
+    For a child table this gate is the ONLY cover on the account-deletion path:
+    deleting an auth User nulls `players.user_id` by FK, which cannot reach
+    `player_links` at all. `unclaim()` deletes the rows for every other path. */
+export function effectiveLinks<T>(
+  player: { userId: string | null },
+  links: ReadonlyArray<T>,
+): T[] {
+  return player.userId != null ? [...links] : []
 }
 
 /** Survivor slug for a merged player's slug, following later merges of the

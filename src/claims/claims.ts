@@ -11,6 +11,7 @@ import {
   seedAvatar,
 } from '#/claims/avatar'
 import { closePendingAmendments } from '#/claims/amendments'
+import { deletePlayerLinks } from '#/claims/links'
 import { MAX_NOTE_LENGTH } from '#/claims/limits'
 import { ADMIN_PAGE_SIZE } from '#/lib/paging'
 import { optionalNote, requiredReason } from '#/claims/validate'
@@ -280,8 +281,9 @@ export async function approveClaim(
       ).at(0)
       if (!stillPending) throw new Error('This claim was already resolved')
 
-      // A fresh owner gets a fresh identity: seed or Medallion, no country, and
-      // nothing a previous holder proposed. Deleting an auth user nulls user_id
+      // A fresh owner gets a fresh identity: seed or Medallion, no country, no
+      // links, and nothing a previous holder proposed. Deleting an auth user
+      // nulls user_id
       // by FK without running unclaim(), so this is the only thing standing
       // between that row and its next claimant.
       const orphaned = await closePendingAmendments(
@@ -289,6 +291,7 @@ export async function approveClaim(
         claim.playerId,
         'withdrawn',
       )
+      await deletePlayerLinks(tx, claim.playerId)
       try {
         await tx
           .update(players)
@@ -449,6 +452,9 @@ async function unclaim(
     if (!player) throw new Error(`Unknown player ${playerId}`)
     if (player.userId == null) throw new Error('This player is not claimed')
     const withdrawn = await closePendingAmendments(tx, playerId, 'withdrawn')
+    // The read gate alone would let these resurrect on the next claim, and for
+    // a child table the FK cannot reach them at all.
+    const links = await deletePlayerLinks(tx, playerId)
     await tx
       .update(players)
       .set({ userId: null, avatarKey: null, countryCode: null })
@@ -463,6 +469,7 @@ async function unclaim(
           userId: player.userId,
           avatarKey: player.avatarKey,
           countryCode: player.countryCode,
+          links,
         },
         context: { reason: audit.reason },
       },

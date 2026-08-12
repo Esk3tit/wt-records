@@ -164,7 +164,11 @@ test('the tab is Review, and its badge is both queues in one number', async ({
       // One of each: a badge that counted only one queue would now be short.
       await propose(sql, id, VIEWER, `avatars/${id}/badge.webp`)
       await withPlayer(
-        { slug: 'e2e-review-badge-claim', displayName: 'Badge Asker' },
+        {
+          slug: 'e2e-review-badge-claim',
+          displayName: 'Badge Asker',
+          claimsAs: [MODERATOR],
+        },
         async (other) => {
           try {
             await fileClaim(other.sql, other.id, MODERATOR, null)
@@ -246,10 +250,18 @@ test('the seed picture is rendered inline, and a dead link is plainly missing', 
   page,
 }) => {
   await withPlayer(
-    { slug: 'e2e-review-seed-live', displayName: 'Seed Live' },
+    {
+      slug: 'e2e-review-seed-live',
+      displayName: 'Seed Live',
+      claimsAs: [VIEWER],
+    },
     async (live) => {
       await withPlayer(
-        { slug: 'e2e-review-seed-dead', displayName: 'Seed Dead' },
+        {
+          slug: 'e2e-review-seed-dead',
+          displayName: 'Seed Dead',
+          claimsAs: [MODERATOR],
+        },
         async (dead) => {
           await fileClaim(live.sql, live.id, VIEWER, '/logo192.png')
           await fileClaim(dead.sql, dead.id, MODERATOR, '/no-such-picture.png')
@@ -341,7 +353,11 @@ test('the seed is a second decision: declined, the claim still approves onto the
   page,
 }) => {
   await withPlayer(
-    { slug: 'e2e-review-decline', displayName: 'Decline Seed' },
+    {
+      slug: 'e2e-review-decline',
+      displayName: 'Decline Seed',
+      claimsAs: [VIEWER],
+    },
     async ({ sql, id }) => {
       await fileClaim(sql, id, VIEWER, '/logo192.png')
       try {
@@ -505,7 +521,11 @@ test('a claim another moderator denied says so rather than looking approved', as
   page,
 }) => {
   await withPlayer(
-    { slug: 'e2e-review-raced-claim', displayName: 'Raced Claimant' },
+    {
+      slug: 'e2e-review-raced-claim',
+      displayName: 'Raced Claimant',
+      claimsAs: [VIEWER],
+    },
     async ({ sql, id }) => {
       await fileClaim(sql, id, VIEWER, null)
       try {
