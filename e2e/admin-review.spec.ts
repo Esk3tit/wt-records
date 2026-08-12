@@ -577,6 +577,9 @@ test('prior refusals are shown with their reasons, and hidden when there are non
           const quiet = amendments
             .getByRole('listitem')
             .filter({ hasText: 'Clean Holder' })
+          // Anchored first: a row that failed to render says nothing about
+          // refusals either, and would pass the silence below for free.
+          await expect(quiet).toBeVisible()
           await expect(quiet).not.toContainText('Refused')
         },
       )

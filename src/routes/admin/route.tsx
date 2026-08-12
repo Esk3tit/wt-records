@@ -10,9 +10,13 @@ export const Route = createFileRoute('/admin')({
   beforeLoad: async () => ({ gate: await getAdminGate() }),
   // Counted on every admin view, so the one place things await a Moderator
   // says so from wherever they are. A resolve refetches it on the way through;
-  // nothing polls, and nothing subscribes.
+  // nothing polls, and nothing subscribes. A count that fails costs the badge
+  // and nothing else: it is the layout every admin screen renders inside, and
+  // Records must not go down because a number could not be fetched.
   loader: async ({ context }) =>
-    context.gate.state === 'moderator' ? reviewQueueCount() : null,
+    context.gate.state === 'moderator'
+      ? reviewQueueCount().catch(() => null)
+      : null,
   component: AdminShell,
   head: () => ({ meta: [{ title: 'Admin · WT Records' }] }),
 })

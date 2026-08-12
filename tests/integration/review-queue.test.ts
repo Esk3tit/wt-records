@@ -96,10 +96,11 @@ describe('the amendments panel', () => {
 
     const rows = await listPendingAmendments(t.db)
 
+    // The ordering key is the submission, and nothing else — not the player,
+    // and not the field. The cross-field half cannot be asserted here: the
+    // `amend_field_valid` CHECK admits only 'avatar', so a fixture for a second
+    // field cannot be written until one exists.
     expect(rows.map((r) => r.id)).toEqual([older.id, newer.id])
-    // The ordering key is the submission, never the field: a second field
-    // interleaves into this list rather than piling up behind it.
-    expect(rows.map((r) => r.field)).toEqual(['avatar', 'avatar'])
   })
 
   it('carries what is live now beside what is proposed', async () => {
@@ -298,6 +299,10 @@ describe('the reject reason', () => {
     // ride out on anything the profile page serialises to a visitor.
     const profile = await getPlayer(t.db, player.slug)
     const enrichment = await getPlayerEnrichment(t.db, player.id)
+    // Anchored: a loader answering null would carry no reason either, and pass
+    // both silences below without serving the page this is about.
+    expect(profile?.player.displayName).toBe(player.displayName)
+    expect(profile?.player.avatarKey).toBe('live.webp')
     expect(JSON.stringify({ profile, enrichment })).not.toContain('hateful')
     expect(JSON.stringify({ profile, enrichment })).not.toContain('proposed')
   })
