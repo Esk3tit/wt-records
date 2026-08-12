@@ -728,7 +728,10 @@ export async function getAdminPlayer(db: Db, playerId: number) {
         handle: playerLinks.handle,
       })
       .from(playerLinks)
-      .where(eq(playerLinks.playerId, playerId)),
+      .where(eq(playerLinks.playerId, playerId))
+      // Stable, like the aliases beside it: a confirm dialog that reshuffles
+      // between renders is one a Moderator has to re-read before pressing.
+      .orderBy(asc(playerLinks.platform)),
     db
       .select({
         id: records.id,

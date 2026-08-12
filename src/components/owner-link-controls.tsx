@@ -232,12 +232,12 @@ function LinkField({
           </button>
         )}
       </div>
-      <p
-        role="status"
-        aria-live="polite"
-        className="mt-1 text-xs break-all text-fg-faint"
-      >
-        {saved ? `Saved — ${preview ?? ''}` : preview}
+      {/* The preview changes on every keystroke, so it must not sit inside the
+          live region: a reader would hear the whole URL re-announced per
+          character. The region carries the one thing worth interrupting for. */}
+      <p className="mt-1 text-xs break-all text-fg-faint">{preview}</p>
+      <p role="status" aria-live="polite" className="text-xs text-fg-faint">
+        {saved ? 'Saved' : ''}
       </p>
       {error && (
         <p role="alert" className="mt-1 text-sm text-status-danger">

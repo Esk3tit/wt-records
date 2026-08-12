@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { buildMarks } from '../../scripts/generate-brand-marks'
 import { BRAND_MARKS } from '#/links/brand-marks.generated'
@@ -49,9 +50,19 @@ describe('the brand marks', () => {
 
   it('fill every glyph with an official form of the mark', () => {
     for (const mark of Object.values(BRAND_MARKS)) {
-      expect(mark.hex).toMatch(/^#[0-9a-f]{6}$/i)
-      expect(mark.path.length).toBeGreaterThan(0)
+      expect(mark?.hex).toMatch(/^#[0-9a-f]{6}$/i)
+      expect(mark?.path.length).toBeGreaterThan(0)
     }
+  })
+
+  /* The map is partial, so an id nobody configured reads as undefined rather
+     than as a typed entry — and an inherited Object.prototype key is not an
+     entry at all. `brandMark('constructor')` returning `Object` would render
+     a <path> with no `d`. */
+  it('answer for an id nobody configured, inherited keys included', () => {
+    expect(brandMark('kick')).toBeNull()
+    expect(brandMark('constructor')).toBeNull()
+    expect(brandMark('toString')).toBeNull()
   })
 })
 
@@ -68,7 +79,11 @@ describe('the platform config', () => {
     expect(p.pasteHosts[0]).toBe(p.host)
     expect(p.pathPrefix.startsWith('/')).toBe(true)
     expect(p.pastePathPrefixes[0]).toBe(p.pathPrefix)
-    expect(p.fieldPrefix.endsWith(p.pathPrefix.slice(1))).toBe(true)
+    // The whole welded prefix, host included. `endsWith(pathPrefix.slice(1))`
+    // is `endsWith('')` for every platform whose path is '/', so it passed for
+    // a fieldPrefix naming any host at all — and this field is what makes a
+    // pasted URL look wrong before it is submitted.
+    expect(p.fieldPrefix).toBe(p.host.replace(/^www\./, '') + p.pathPrefix)
     expect(p.pattern.source.startsWith('^')).toBe(true)
     expect(p.pattern.source.endsWith('$')).toBe(true)
     expect(['lower', 'none']).toContain(p.fold)
@@ -109,6 +124,18 @@ describe('the platform config', () => {
     expect(
       PLATFORMS.filter((p) => !p.grammarVerified).map((p) => p.id),
     ).toEqual(['twitch', 'tiktok'])
+  })
+
+  /* `plink_handle_uq` carves the personal site out by literal, in a migration
+     that has already been applied — so this constant is not free to change.
+     Read from the committed SQL rather than restated, or the pin is just a
+     second copy of the same string. */
+  it('names the personal site exactly as the applied migration does', () => {
+    // Read from the repo root: the unit project rewrites import.meta.url to a
+    // scheme node:fs will not open.
+    const migration = readFileSync('drizzle/0018_player_links.sql', 'utf8')
+    expect(WEBSITE_PLATFORM).toBe('website')
+    expect(migration).toContain(`<> '${WEBSITE_PLATFORM}'`)
   })
 
   it('refuses a platform nobody configured', () => {

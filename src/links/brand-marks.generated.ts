@@ -37,7 +37,7 @@
 // 24×24, one path each, inlined without their <svg> wrapper.
 
 export const BRAND_MARKS: Readonly<
-  Record<string, { title: string; hex: string; path: string }>
+  Partial<Record<string, { title: string; hex: string; path: string }>>
 > = {
   youtube: {
     title: 'YouTube',

@@ -95,7 +95,7 @@ function main() {
       licenceNotice() +
       '\n// 24×24, one path each, inlined without their <svg> wrapper.\n\n' +
       'export const BRAND_MARKS: Readonly<\n' +
-      '  Record<string, { title: string; hex: string; path: string }>\n' +
+      '  Partial<Record<string, { title: string; hex: string; path: string }>>\n' +
       '> = {\n' +
       marks
         .map(

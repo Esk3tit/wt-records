@@ -321,5 +321,8 @@ export function platformOrder(id: string): number {
 export function brandMark(
   id: string,
 ): { title: string; hex: string; path: string } | null {
-  return BRAND_MARKS[id] ?? null
+  // hasOwn, not a bare lookup: the generated map is an object literal, so it
+  // inherits Object.prototype — `BRAND_MARKS['constructor']` is `Object`, which
+  // is truthy and would render a <path> carrying no `d` at all.
+  return Object.hasOwn(BRAND_MARKS, id) ? (BRAND_MARKS[id] ?? null) : null
 }
