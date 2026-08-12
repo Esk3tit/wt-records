@@ -37,18 +37,18 @@ export function normalizeWebsite(raw: string): string {
   // would guess at or an attempt to smuggle one past a later reader.
   // eslint-disable-next-line no-control-regex
   if (/[\s\u0000-\u001f\u007f]/.test(input)) {
-    throw new Error('An address cannot contain spaces or control characters')
+    throw new Error('Remove the spaces from that address')
   }
 
   const scheme = /^([A-Za-z][A-Za-z0-9+.-]*):/.exec(input)
   // Read before parsing, and matched on the whole scheme rather than a prefix:
   // this is what refuses javascript:, data:, vbscript: and plain http:.
   if (scheme && scheme[1].toLowerCase() !== 'https') {
-    throw new Error('A personal site must be an https:// address')
+    throw new Error('Your address has to start with https://')
   }
   const schemed = scheme ? input : `https://${input}`
   if (!/^https:\/\//i.test(schemed)) {
-    throw new Error('A personal site must be an https:// address')
+    throw new Error('Your address has to start with https://')
   }
 
   const afterScheme = schemed.slice(schemed.indexOf('//') + 2)
@@ -56,32 +56,33 @@ export function normalizeWebsite(raw: string): string {
   // One trailing dot, stripped before anything else looks at the host: it is a
   // valid FQDN that resolves identically and silently defeats any comparison.
   const authority = typed.replace(/\.$/, '')
-  if (!authority) throw new Error('That address names no site')
+  if (!authority) throw new Error('That is not a web address')
 
   let url: URL
   try {
     url = new URL(`https://${authority}${afterScheme.slice(typed.length)}`)
   } catch {
-    throw new Error('That is not an address a browser could open')
+    throw new Error('That is not a web address')
   }
   if (url.protocol !== 'https:') {
-    throw new Error('A personal site must be an https:// address')
+    throw new Error('Your address has to start with https://')
   }
   // `https://youtube.com@evil.com/x` parses to evil.com but reads as YouTube.
   if (url.username !== '' || url.password !== '') {
-    throw new Error('An address cannot carry a username or password')
+    throw new Error('Remove the username and password from that address')
   }
-  if (url.port !== '') throw new Error('An address cannot name a port')
+  if (url.port !== '')
+    throw new Error('Remove the port number from that address')
   // Every measured open redirector carries its payload in the query, so the
   // one field that is not built from a handle refuses one outright.
   if (url.search !== '' || url.hash !== '') {
-    throw new Error('An address cannot carry a query string or a #fragment')
+    throw new Error('Remove anything after the ? or # in that address')
   }
   // The parser punycodes an internationalised host, so a form that differs
   // from what was typed is a homograph — `уoutube.com` with a Cyrillic у
   // becomes `xn--outube-vrf.com`. This catches the whole class for free.
   if (authority.toLowerCase() !== url.hostname) {
-    throw new Error('That address does not name the site it appears to')
+    throw new Error('That address does not go where it looks like it goes')
   }
   assertRealDomain(url.hostname)
   assertNotCovered(url.hostname)
@@ -100,14 +101,14 @@ export function normalizeWebsite(raw: string): string {
     reach somewhere a reader cannot judge from the text. */
 function assertRealDomain(hostname: string): void {
   if (hostname.startsWith('[')) {
-    throw new Error('Link a domain, not an address')
+    throw new Error('Enter a website address, like example.com')
   }
   const labels = hostname.split('.')
   if (labels.length < 2 || labels.some((label) => label === '')) {
-    throw new Error('Link a domain, not an address')
+    throw new Error('Enter a website address, like example.com')
   }
   if (labels.every((label) => /^\d+$/.test(label))) {
-    throw new Error('Link a domain, not an address')
+    throw new Error('Enter a website address, like example.com')
   }
 }
 
@@ -122,6 +123,6 @@ function assertNotCovered(hostname: string): void {
     labels.some((_, i) => host.every((label, j) => labels[i + j] === label)),
   )
   if (covered) {
-    throw new Error('That platform has its own slot — use it instead')
+    throw new Error('That one has its own field — add it there instead')
   }
 }

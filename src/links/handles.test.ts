@@ -45,9 +45,7 @@ describe('a typed handle', () => {
   })
 
   it('is refused when it does not fit the platform grammar', () => {
-    expect(() => stored('x', 'sixteen_chars_xx')).toThrow(
-      /not a valid handle for X/,
-    )
+    expect(() => stored('x', 'sixteen_chars_xx')).toThrow(/Check your X handle/)
     expect(() => stored('telegram', '1starts_with_digit')).toThrow()
     expect(() => stored('youtube', 'ab')).toThrow()
     expect(() => stored('bluesky', 'notadomain')).toThrow()
@@ -56,7 +54,7 @@ describe('a typed handle', () => {
 
   it('is refused without echoing what was typed back into the message', () => {
     expect(() => stored('x', '<script>alert(1)</script>')).toThrow(
-      'That is not a valid handle for X — check it and try again.',
+      'Check your X handle — that does not look right.',
     )
   })
 

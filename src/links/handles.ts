@@ -55,7 +55,7 @@ export function fold(p: Platform, handle: string): string {
 /** Names the grammar rather than the input: echoing back what someone typed is
     how a refusal message becomes a reflected-content surface. */
 function refusal(p: Platform): string {
-  return `That is not a valid handle for ${p.name} — check it and try again.`
+  return `Check your ${p.name} handle — that does not look right.`
 }
 
 /** The handle inside a pasted URL, or null when the input is not one this

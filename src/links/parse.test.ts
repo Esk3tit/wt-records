@@ -57,7 +57,7 @@ describe('what the field would publish, as it is typed', () => {
     expect(previewLinkUrl('kick', 'phlydaily')).toBeNull()
     expect(previewLinkUrl('constructor', 'phlydaily')).toBeNull()
     expect(() => parseLinkValue('kick', 'phlydaily')).toThrow(
-      /not one this site links/,
+      /cannot add that one here/,
     )
   })
 })

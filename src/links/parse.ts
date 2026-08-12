@@ -17,7 +17,7 @@ export interface StoredLink {
 
 export function parseLinkValue(platformId: string, raw: string): StoredLink {
   const target = slot(platformId)
-  if (!target) throw new Error('That platform is not one this site links')
+  if (!target) throw new Error('You cannot add that one here')
   if (target.kind === 'url') {
     // The one slot that stores a URL rather than a handle, and the reason it
     // carries its own rules.

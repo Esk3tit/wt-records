@@ -456,10 +456,7 @@ function ClaimStatus({
         onConfirm={() => run(onResetAvatar)}
         onCancel={close}
       >
-        <p>
-          The avatar returns to the Medallion and the stored image is deleted.
-          The claim is untouched, and the owner can upload a new one.
-        </p>
+        <p>Deletes the picture for good. They can upload another.</p>
         <ErrorNote error={error} />
       </ConfirmDialog>
       <ConfirmDialog
@@ -470,11 +467,7 @@ function ClaimStatus({
         onConfirm={() => run(onClearLinks)}
         onCancel={close}
       >
-        <p>
-          Every link this player shows is removed. The claim is untouched, and
-          they can add links again — clearing is the only lever here, because
-          setting one would be speaking as them.
-        </p>
+        <p>They can add links again.</p>
         <ul className="text-sm text-fg-muted">
           {links.map((link) => (
             <li key={link.platform}>
@@ -492,11 +485,7 @@ function ClaimStatus({
         onConfirm={() => run(onClearCountry)}
         onCancel={close}
       >
-        <p>
-          The country stops showing beside the name. The claim is untouched, and
-          the holder can state it again — clearing is the only lever here,
-          because a country nobody picked for themselves is not a statement.
-        </p>
+        <p>They can set it again.</p>
         <ErrorNote error={error} />
       </ConfirmDialog>
       <ConfirmDialog
@@ -509,23 +498,14 @@ function ClaimStatus({
         onCancel={close}
       >
         <p>
-          The player returns to the accountless state and its avatar resets to
-          the Medallion. Records and snapshots are untouched.
+          This player goes back to having no account. Their picture, country and
+          links are removed. Their records are not.
         </p>
         <p>
-          Revoking is the only way out of a claim — a mistake, a request to
-          leave and a punishment all come through here, so the reason is what
-          tells them apart later.
+          They can ask for this player again. To stop that, deny the request
+          when it arrives.
         </p>
-        <p>
-          It frees the player, not the user: they may request this one again, or
-          any other. If this is a punishment, deny that request when it comes —
-          a denial is what makes the refusal stick.
-        </p>
-        <Field
-          label="Reason"
-          hint="Required — recorded in the audit log against this player."
-        >
+        <Field label="Reason" hint="Required. Only moderators can see it.">
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}

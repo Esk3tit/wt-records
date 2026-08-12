@@ -42,7 +42,7 @@ describe('the hostile-input table', () => {
      judged, or `youtube.com.` reads as some site nobody has heard of. */
   it('strips the trailing dot before anything else judges the host', () => {
     expect(() => normalizeWebsite('https://youtube.com./')).toThrow(
-      /its own slot/,
+      /its own field/,
     )
   })
 })
@@ -90,7 +90,7 @@ describe('what the personal site accepts', () => {
 })
 
 describe('what the personal site refuses beyond the table', () => {
-  it('refuses a platform that already has its own slot', () => {
+  it('refuses a platform that already has its own field', () => {
     for (const covered of [
       'https://www.youtube.com/@phlydaily',
       'https://twitch.tv/phlydaily',
@@ -98,7 +98,7 @@ describe('what the personal site refuses beyond the table', () => {
       'https://bsky.app/profile/phly.bsky.social',
       'https://t.me/phlydaily',
     ]) {
-      expect(() => normalizeWebsite(covered)).toThrow(/its own slot/)
+      expect(() => normalizeWebsite(covered)).toThrow(/its own field/)
     }
   })
 

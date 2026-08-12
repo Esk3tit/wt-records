@@ -80,12 +80,12 @@ describe('storablePlatform', () => {
   })
 
   it('refuses one that is admissible but not shipped', () => {
-    expect(() => storablePlatform('kick')).toThrow(/not one this site links/)
+    expect(() => storablePlatform('kick')).toThrow(/cannot add that one here/)
   })
 
   it('refuses one refused by a clause, and one nobody has heard of', () => {
     for (const bad of ['steam', 'mastodon', 'lemmy', 'matrix', 'myspace']) {
-      expect(() => storablePlatform(bad)).toThrow(/not one this site links/)
+      expect(() => storablePlatform(bad)).toThrow(/cannot add that one here/)
     }
   })
 
@@ -96,7 +96,7 @@ describe('storablePlatform', () => {
     }
     for (const inherited of ['constructor', 'toString', '__proto__']) {
       expect(() => storablePlatform(inherited)).toThrow(
-        /not one this site links/,
+        /cannot add that one here/,
       )
     }
   })
@@ -117,6 +117,6 @@ describe('linkValue', () => {
       expect(() => linkValue(bad)).toThrow(/must be text/)
     }
     expect(linkValue('x'.repeat(MAX_LINK_INPUT))).toHaveLength(MAX_LINK_INPUT)
-    expect(() => linkValue('x'.repeat(MAX_LINK_INPUT + 1))).toThrow(/longer/)
+    expect(() => linkValue('x'.repeat(MAX_LINK_INPUT + 1))).toThrow(/too long/)
   })
 })

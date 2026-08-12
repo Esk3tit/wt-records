@@ -127,11 +127,11 @@ describe('the holder authors, and only the holder', () => {
     const ace = await claim('ace', USER_A)
     await expect(
       setOwnLink(t.db, USER_A, ace.id, 'steam', 'phlydaily'),
-    ).rejects.toThrow(/not one this site links/)
+    ).rejects.toThrow(/cannot add that one here/)
     // Admissible, but not shippable.
     await expect(
       setOwnLink(t.db, USER_A, ace.id, 'kick', 'phlydaily'),
-    ).rejects.toThrow(/not one this site links/)
+    ).rejects.toThrow(/cannot add that one here/)
   })
 })
 

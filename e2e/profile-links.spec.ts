@@ -398,7 +398,7 @@ test.describe('the holder authors them', () => {
         await page.getByRole('button', { name: 'Save YouTube link' }).click()
 
         await expect(page.getByRole('alert')).toContainText(
-          'not a valid handle for YouTube',
+          'Check your YouTube handle',
         )
         const rows = await sql`
           select 1 from player_links

@@ -335,7 +335,21 @@ A claimed Player's profile carries a rail of links — five named platforms plus
 ### Page Eyebrow
 List pages introduce themselves with a mode eyebrow above the h1 — kicker-size (0.6875rem), semibold, uppercase, tracked at the section-label's 0.2em, muted ink: `GRB · GROUND REALISTIC BATTLES`. It is context, never a link, and never amber.
 
-## 6. Do's and Don'ts
+## 6. Copy
+
+**Earn the sentence, or delete it.** The default is no explanatory text. A dialog titled "Clear these links?" with a **Clear** button has already said what it does; a paragraph under it restating that costs the reader time and tells them nothing. Write a sentence only when it carries something they cannot see: a consequence, an irreversibility, a limit, or what to do next. **If it is obvious, do not say it.**
+
+**Say it the way you would say it out loud.** If you would not say the sentence to somebody sitting at the desk beside you, it does not ship. Prose that reaches for cadence — stacked em-dash clauses, a second thought bolted onto a first, a flourish explaining *why* the rule is the rule — reads as evasive and is usually a sign the sentence was not needed.
+
+**The glossary is for the codebase, not the screen.** `CONTEXT.md`'s Language section fixes precise internal vocabulary — *Claim*, *Amendment*, *Medallion*, *Shadowed field*, *accountless* — and that precision is what the code needs, not what a reader needs. On screen, name what they can see: "their account link", "no picture", "the change they asked for". A term the glossary marks `_Avoid_` never appears in user-facing text, and neither do implementation words like *slot*, *lever*, *field grammar* or *the row*.
+
+**An error says what to do**, not what a parser objected to. "Enter a website address, like example.com" over "Link a domain, not an address". Lead with the action where there is one. Never echo back what the reader typed — a refusal that quotes its input is a reflected-content surface.
+
+**One idea per sentence**, and no more sentences than ideas.
+
+The reader is a War Thunder player or a moderator, not a colleague who has read the tickets.
+
+## 7. Do's and Don'ts
 
 ### Do:
 - **Do** treat the Spatial Scene as first-class: every background ships as `image.jpg` + `image-depth.png` with a static fallback and a reduced-motion path; scenes swap per nation/branch.
@@ -355,5 +369,6 @@ List pages introduce themselves with a mode eyebrow above the h1 — kicker-size
 - **Don't** put text directly on scene imagery — no exceptions (The Sandwich Rule).
 - **Don't** use raw Medal Amber or the night metals as text on Daylight Hall — their Deep/Day forms exist precisely for that.
 - **Don't** warm the light base toward cream/sand/beige; Daylight Hall stays cool and chroma-neutral.
+- **Don't** explain a control that has already explained itself, and don't write copy that sounds considered instead of being clear (§6).
 - **Don't** use side-stripe borders (`border-left` > 1px as accent), gradient text, or the hero-metric template.
 - **Don't** put shadows on anything that isn't a glass pane (The Floating Pane Rule) or metal colors on anything that isn't a rank.

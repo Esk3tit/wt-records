@@ -38,7 +38,7 @@ export function selectableCountryCode(value: unknown): string | null {
 export function storablePlatform(value: unknown): string {
   if (typeof value !== 'string') throw new Error('A platform must be a name')
   if (!isStorablePlatform(value)) {
-    throw new Error('That platform is not one this site links')
+    throw new Error('You cannot add that one here')
   }
   return value
 }
@@ -48,7 +48,7 @@ export function storablePlatform(value: unknown): string {
 export function linkValue(value: unknown): string {
   if (typeof value !== 'string') throw new Error('A link must be text')
   if (value.length > MAX_LINK_INPUT) {
-    throw new Error('That is longer than any handle or address')
+    throw new Error('That is too long')
   }
   return value
 }
