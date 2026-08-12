@@ -1,4 +1,4 @@
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight, Globe } from 'lucide-react'
 import type { RenderedLink } from '#/links/render'
 import { linkAccessibleName } from '#/links/render'
 
@@ -84,10 +84,11 @@ function BrandPlate({ link }: { link: RenderedLink }) {
   }
   if (!link.mark) {
     // The personal site: no brand, so no brand mark — a neutral glyph in the
-    // same plate, which is what keeps the row aligned.
+    // same plate, which is what keeps the row aligned. Never the new-tab arrow:
+    // every link already carries one, and this row then drew it twice.
     return (
       <span className={`${PLATE} w-8`}>
-        <ArrowUpRight size={18} className="text-[#3f3f46]" aria-hidden />
+        <Globe size={18} className="text-[#3f3f46]" aria-hidden />
       </span>
     )
   }

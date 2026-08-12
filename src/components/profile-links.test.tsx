@@ -49,8 +49,11 @@ describe('what a visitor is shown', () => {
     expect(one('youtube', 'PhlyDaily').getAttribute('aria-label')).toBe(
       'YouTube: @PhlyDaily (opens in a new tab)',
     )
+    // An invite code is not a name, so it carries its host: prototyped against
+    // the real rail, where the bare code read as a loose word among handles and
+    // said nothing about whether it was a server or a personal tag.
     expect(one('discord', 'wtrecords').getAttribute('aria-label')).toBe(
-      'Discord: wtrecords (opens in a new tab)',
+      'Discord: discord.gg/wtrecords (opens in a new tab)',
     )
   })
 
@@ -99,6 +102,15 @@ describe('what a visitor is shown', () => {
     const anchor = one('website', 'https://phlydaily.example/links')
     expect(anchor.textContent).toContain('phlydaily.example/links')
     expect(anchor.getAttribute('href')).toBe('https://phlydaily.example/links')
+  })
+
+  /* Every link carries the new-tab arrow, so the plate must not also be one —
+     the personal-site row drew the same arrow twice, which read as a bug. */
+  it('gives the personal site a plate glyph that is not the new-tab arrow', () => {
+    const anchor = one('website', 'https://phlydaily.example')
+    const plate = anchor.firstElementChild!
+    expect(plate.querySelector('svg.lucide-globe')).not.toBeNull()
+    expect(plate.querySelector('svg.lucide-arrow-up-right')).toBeNull()
   })
 
   it('renders nothing at all when a Player has no links', () => {

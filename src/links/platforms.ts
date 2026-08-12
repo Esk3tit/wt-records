@@ -89,7 +89,12 @@ export const PLATFORMS: ReadonlyArray<Platform> = [
     // genuinely different servers on the uniqueness index.
     fold: 'none',
     grammarVerified: true,
-    sigil: '',
+    // The one platform whose identifier is not a name, so the bare code says
+    // nothing: on the rail it reads as a loose word among handles, and a
+    // visitor cannot tell a server invite from a personal tag. Prototyped
+    // against the real rail — the host is what makes it legible, and it is
+    // the only reading a visitor can check before clicking.
+    sigil: 'discord.gg/',
     mark: 'glyph',
     plate: 'white',
   },
