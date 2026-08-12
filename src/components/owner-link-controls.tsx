@@ -162,7 +162,11 @@ function LinkField({
       // "echo back exactly what was stored" promise — and without it a save
       // that canonicalised anything (`@name`, a pasted URL, stray spaces)
       // leaves the field looking dirty and Save enabled against nothing.
-      if (result) {
+      // A removal reports the same way, as nothing being stored any more.
+      if (which === 'remove') {
+        setDraft('')
+        setWritten('')
+      } else if (result) {
         const echoed = fieldValue(platform, result.handle)
         setDraft(echoed)
         setWritten(echoed)
@@ -223,7 +227,7 @@ function LinkField({
           )}
           Save
         </button>
-        {stored !== '' && (
+        {settled !== '' && (
           <button
             type="button"
             className={actionButton}

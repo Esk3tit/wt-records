@@ -17,15 +17,23 @@ const field = (name: string) =>
   screen.getByLabelText<HTMLInputElement>(new RegExp(`^${name} — `))
 const saveButton = (name: string) =>
   screen.getByRole<HTMLButtonElement>('button', { name: `Save ${name} link` })
+/* Every region a reader would be interrupted by, not just the one this
+   component happens to use today — the claim under test is that the preview is
+   outside ALL of them, and a helper that only knows `role="status"` would go on
+   passing if a later change moved it into an `aria-live` element or an alert. */
 const liveRegions = () =>
-  screen.getAllByRole('status').map((el) => el.textContent)
+  Array.from(
+    document.querySelectorAll<HTMLElement>(
+      '[aria-live], [role="status"], [role="alert"], [role="log"]',
+    ),
+  ).map((el) => el.textContent)
 
 const flush = () => act(async () => undefined)
 
 beforeEach(() => {
   setMyLink.mockReset().mockResolvedValue({ handle: 'PhlyDaily' })
   removeMyLink.mockReset().mockResolvedValue(undefined)
-  invalidate.mockClear()
+  invalidate.mockReset().mockResolvedValue(undefined)
 })
 
 /* The editor publishes instantly, so what it owes its owner is certainty about
@@ -128,5 +136,44 @@ describe('what the field settles on', () => {
 
     expect(field('YouTube').value).toBe('Taken')
     expect(screen.getByRole('alert').textContent).toMatch(/already shows/)
+  })
+})
+
+/* The reload after a write is allowed to fail (`router.invalidate()` is called
+   with `.catch(() => undefined)`), and when it does the props never catch up.
+   Modelled here by the parent simply never re-rendering, which is the same
+   thing from the control's side: it has to describe what the server confirmed
+   rather than what it was last handed. */
+describe('when the parent’s props have not caught up', () => {
+  it('stops offering Remove for a link that is already gone', async () => {
+    render(
+      <OwnerLinkControls
+        playerId={1}
+        links={[{ platform: 'youtube', handle: 'PhlyDaily' }]}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Remove YouTube link' }))
+    await flush()
+
+    expect(removeMyLink).toHaveBeenCalledTimes(1)
+    expect(
+      screen.queryByRole('button', { name: 'Remove YouTube link' }),
+    ).toBeNull()
+    expect(field('YouTube').value).toBe('')
+  })
+
+  it('offers Remove for a link just added, without waiting for a reload', async () => {
+    setMyLink.mockResolvedValue({ handle: 'PhlyDaily' })
+    render(<OwnerLinkControls playerId={1} links={[]} />)
+
+    fireEvent.change(field('YouTube'), { target: { value: 'PhlyDaily' } })
+    fireEvent.click(saveButton('YouTube'))
+    await flush()
+
+    // Without this the owner has published something they cannot take down
+    // until they reload the page themselves.
+    expect(
+      screen.getByRole('button', { name: 'Remove YouTube link' }),
+    ).toBeTruthy()
   })
 })
