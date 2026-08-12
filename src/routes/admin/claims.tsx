@@ -687,14 +687,24 @@ function ProposedImage({
         role="img"
         aria-label="Image missing"
         style={{ width: JUDGEABLE, height: JUDGEABLE }}
-        className="flex items-center justify-center rounded-[10px] border border-dashed border-hairline-soft bg-[var(--tint-strong)] px-4 text-center text-sm text-fg-muted"
+        className="flex items-center justify-center rounded-full border border-dashed border-hairline-soft bg-[var(--tint-strong)] px-8 text-center text-sm text-fg-muted"
       >
         Image missing — nothing is there to look at.
       </div>
     )
   }
   return (
-    <a href={url} target="_blank" rel="noreferrer" title="Open full size">
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      title="Open full size"
+      // Judged in the shape it will be published in: the stored object is a
+      // square, but every surface masks it to a disc, so square corners here
+      // would show what nobody will see and hide the crop being approved.
+      className="relative block shrink-0 overflow-hidden rounded-full"
+      style={{ width: JUDGEABLE, height: JUDGEABLE }}
+    >
       <img
         src={url}
         alt={alt}
@@ -703,8 +713,7 @@ function ProposedImage({
         // The seed is a third-party CDN URL, and a Referer would tell that host
         // the review path exists. The queue's existence is not public.
         referrerPolicy="no-referrer"
-        style={{ width: JUDGEABLE, height: JUDGEABLE }}
-        className="rounded-[10px] border border-hairline-soft object-cover"
+        className="h-full w-full object-cover"
         // A picture already decoded before React arrived fires no load event,
         // so the ref asks; `alreadyBroken` is the failed half of that question.
         ref={(node) => {
@@ -712,6 +721,14 @@ function ProposedImage({
         }}
         onLoad={() => settle(true)}
         onError={() => settle(false)}
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-full"
+        style={{
+          boxShadow:
+            'inset 0 0 0 1px var(--hairline), inset 0 1.5px 0 var(--glass-highlight)',
+        }}
       />
     </a>
   )
