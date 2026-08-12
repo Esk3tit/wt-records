@@ -204,7 +204,7 @@
         "role": "tertiary",
         "displayName": "Status Warn",
         "canonical": "#FCD34D",
-        "note": "Day form #825E0F, measured on the glass admin panels it is set on rather than on the base."
+        "note": "Day form #684C0C, measured on the tinted blocks it is set on inside the admin panels — not on the panel, which is a lighter backdrop and passed while the ink on the block did not."
       },
       "veteran-bronze-material": {
         "role": "tertiary",

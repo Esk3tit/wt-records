@@ -9,12 +9,20 @@ import { MAX_AVATAR_BYTES } from '#/storage/image-types'
 import {
   approveClaim,
   clearClaimDenial,
+  countPendingClaims,
   denyClaim,
   listDeniedClaims,
   listPendingClaims,
   requestClaim,
   revokeClaim,
 } from '#/claims/claims'
+import {
+  approveAmendment,
+  countPendingAmendments,
+  listPendingAmendments,
+  rejectAmendment,
+} from '#/claims/amendments'
+import type { AmendmentQueueRow } from '#/claims/amendments'
 import { removeOwnAvatar, setOwnAvatar, setOwnCountry } from '#/claims/owner'
 import {
   nonNegativeInt,
@@ -90,27 +98,89 @@ export const setMyCountry = createServerFn({ method: 'POST' })
 
 /* ── Moderator ───────────────────────────────────────────────── */
 
-/* One round trip: the work waiting, and the denials, which are not work. */
-export const claimQueue = createServerFn({ method: 'GET' })
+/* One round trip for the Review screen. Two lists, never merged: an identity
+   judgement and a content judgement are not the same act. */
+export const reviewQueue = createServerFn({ method: 'GET' })
   .validator((data?: { deniedOffset?: number }) => ({
     deniedOffset: nonNegativeInt(data?.deniedOffset ?? 0, 'deniedOffset'),
   }))
   .handler(async ({ data }) => {
     await requireModerator()
-    const [pending, denied] = await Promise.all([
+    const [claims, denied, amendments] = await Promise.all([
       listPendingClaims(db),
       listDeniedClaims(db, { offset: data.deniedOffset }),
+      listPendingAmendments(db),
     ])
-    return { pending, denied }
+    // The clock the age nag is measured against. Stamped here because a loader
+    // also runs in the browser, where the moderator's own clock could hide
+    // overdue work or invent it.
+    return {
+      claims,
+      denied,
+      amendments: amendments.map(withAssetUrls),
+      now: Date.now(),
+    }
   })
 
+/* Keys are the store's business; the panel needs something to render. */
+function withAssetUrls(row: AmendmentQueueRow) {
+  const url = (value: string | null) =>
+    value ? assetUrlIfConfigured(value) : null
+  return {
+    ...row,
+    valueUrl: url(row.value),
+    publishedUrl: url(row.publishedValue),
+  }
+}
+
+/* Counted rather than listed: this is read on every /admin view. */
+export const reviewQueueCount = createServerFn({ method: 'GET' }).handler(
+  async () => {
+    await requireModerator()
+    const [claims, amendments] = await Promise.all([
+      countPendingClaims(db),
+      countPendingAmendments(db),
+    ])
+    return { waiting: claims + amendments }
+  },
+)
+
 export const approveClaimRequest = createServerFn({ method: 'POST' })
-  .validator((data: { claimId: number }) => ({
+  .validator((data: { claimId: number; acceptSeed?: boolean }) => ({
     claimId: positiveInt(data.claimId, 'claimId'),
+    // The seed decision, taken beside the claim decision rather than inside it.
+    acceptSeed: data.acceptSeed !== false,
   }))
   .handler(async ({ data }) => {
     const { userId } = await requireModerator()
-    return approveClaim(db, avatarStore(), userId, data.claimId)
+    return approveClaim(db, avatarStore(), userId, data.claimId, {
+      acceptSeed: data.acceptSeed,
+    })
+  })
+
+export const approvePendingAmendment = createServerFn({ method: 'POST' })
+  .validator((data: { amendmentId: number }) => ({
+    amendmentId: positiveInt(data.amendmentId, 'amendmentId'),
+  }))
+  .handler(async ({ data }) => {
+    const { userId } = await requireModerator()
+    return approveAmendment(db, avatarStore(), userId, data.amendmentId)
+  })
+
+export const rejectPendingAmendment = createServerFn({ method: 'POST' })
+  .validator((data: { amendmentId: number; reason?: string }) => ({
+    amendmentId: positiveInt(data.amendmentId, 'amendmentId'),
+    reason: optionalNote(data.reason),
+  }))
+  .handler(async ({ data }) => {
+    const { userId } = await requireModerator()
+    return rejectAmendment(
+      db,
+      avatarStore(),
+      userId,
+      data.amendmentId,
+      data.reason,
+    )
   })
 
 export const denyClaimRequest = createServerFn({ method: 'POST' })

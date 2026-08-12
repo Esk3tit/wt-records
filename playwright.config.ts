@@ -69,11 +69,13 @@ export default defineConfig({
         env: {
           PORT: new URL(BASE_URL).port,
           // Avatar URLs exist only where an asset host is configured, and which
-          // Avatar a viewer is served is an assertion the suite makes. A fake
-          // host keeps that observable with no bucket behind it: the images
-          // 404 and fall back to the Medallion, which no case depends on.
-          R2_ASSETS_BASE_URL:
-            process.env.R2_ASSETS_BASE_URL ?? 'https://assets.e2e.test',
+          // Avatar a viewer is served is an assertion the suite makes. The test
+          // server stands in for the bucket with no bucket behind it: every
+          // invented key 404s and falls back to the Medallion, while a case
+          // that needs an image that genuinely loads — the Review screen will
+          // not let a Moderator publish one nobody could see — can name a file
+          // under `public/`.
+          R2_ASSETS_BASE_URL: process.env.R2_ASSETS_BASE_URL ?? BASE_URL,
         },
         // Never adopt a server already on this port: two checkouts can hash to
         // the same one, and adopting it silently tests the wrong branch.

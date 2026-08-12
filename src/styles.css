@@ -163,7 +163,10 @@
   /* Status ink, day forms — set inside the admin panels, which are glass, so
      these are calibrated on a pane like everything else and measured there. */
   --status-verified: #1d6b47;
-  --status-warn: #825e0f;
+  /* Dark enough to clear 4.5:1 at 12px over the tinted blocks it is set on,
+     not only over the bare pane — measured, because the pane is not the
+     backdrop the ink actually stands on. */
+  --status-warn: #684c0c;
   --status-danger: #9f3428;
   --status-danger-border: rgba(159, 52, 40, 0.5);
 

@@ -63,6 +63,12 @@ async function dropPlayer(sql: Sql, slug: string): Promise<void> {
     delete from player_amendments
     where player_id in (select id from players where slug = ${slug})
   `
+  // A request left on the row is a foreign key: the delete below fails
+  // silently without this, and the next run finds the slug already taken.
+  await sql`
+    delete from player_claims
+    where player_id in (select id from players where slug = ${slug})
+  `
   await sql`delete from players where slug = ${slug}`
 }
 

@@ -18,4 +18,14 @@ describe('monogram', () => {
     expect(monogram(' Игрок')).toBe('ИГ')
     expect(monogram('   ')).toBe('?')
   })
+
+  it('never hands back punctuation as somebody’s initial', () => {
+    expect(monogram('Vasiliy “Grom” Antonov')).toBe('VG')
+    expect(monogram('Vasiliy "Grom" Antonov')).toBe('VG')
+    expect(monogram('(anon)')).toBe('AN')
+    expect(monogram('!!!')).toBe('?')
+    // Inside a word, not only at its edges — and the commonest case by far.
+    expect(monogram("O'Connor")).toBe('OC')
+    expect(monogram('D’Angelo Russell')).toBe('DR')
+  })
 })

@@ -5,12 +5,12 @@ import {
   useNavigate,
   useRouter,
 } from '@tanstack/react-router'
-import { ImageOff, Image as ImageIcon } from 'lucide-react'
+import { ImageOff } from 'lucide-react'
+import { PlayerAvatar } from '#/components/player-avatar'
 import {
   ErrorNote,
   Field,
   Panel,
-  buttonClass,
   commitButtonClass,
   errorMessage,
   inputClass,
@@ -22,66 +22,108 @@ import { ADMIN_PAGE_SIZE, Pager, pageParam } from '#/components/admin/pager'
 import { formatDayTime } from '#/lib/dates'
 import {
   approveClaimRequest,
-  claimQueue,
+  approvePendingAmendment,
   clearClaimDenialRequest,
   denyClaimRequest,
+  rejectPendingAmendment,
+  reviewQueue,
 } from '#/claims/api'
+import { alreadyBroken } from '#/lib/images'
+
+/* Review: one screen where things await a Moderator, in two panels that never
+   merge — a claim judges identity, an Amendment judges content. The route
+   keeps its path; the tab and the screen are Review. */
 
 export const Route = createFileRoute('/admin/claims')({
   validateSearch: (s: Record<string, unknown>) => ({ page: pageParam(s.page) }),
   loaderDeps: ({ search }) => search,
   loader: async ({ context, deps }) => {
     if (context.gate.state !== 'moderator') return null
-    return claimQueue({
+    return reviewQueue({
       data: { deniedOffset: ((deps.page ?? 1) - 1) * ADMIN_PAGE_SIZE },
     })
   },
-  component: ClaimsQueue,
+  component: ReviewQueue,
 })
 
-type Queue = NonNullable<Awaited<ReturnType<typeof claimQueue>>>
-type QueuedClaim = Queue['pending'][number]
+type Queue = NonNullable<Awaited<ReturnType<typeof reviewQueue>>>
+type QueuedClaim = Queue['claims'][number]
+type QueuedAmendment = Queue['amendments'][number]
 
 /* Both lists sit on the same card: a request, whichever way it went. */
 const claimCardClass =
   'rounded-[14px] border border-hairline-soft bg-[var(--tint)]'
 
-function ClaimsQueue() {
+/** Big enough to actually judge: offensive detail is often small, and a
+    thumbnail-sized decision surface is how a bad image gets through. */
+const JUDGEABLE = 200
+
+const DAY_MS = 86_400_000
+
+/* A row's key across all three lists: a claim id and an Amendment id are both
+   small integers, and the busy control must be the one that was pressed. The
+   prefix is also which list a failure belongs under. */
+const claimKey = (id: number) => `claim:${id}`
+const amendmentKey = (id: number) => `amendment:${id}`
+const denialKey = (id: number) => `denial:${id}`
+
+/* What an action says when it did not do what pressing it implied. Neither is
+   a failure, and both outlive the row they were about. */
+const SETTLED =
+  'That one was already settled — nothing was changed, and the list is up to date.'
+const SEED_GONE =
+  'That picture was gone by the time we fetched it, so the claim was approved onto the Medallion.'
+
+const settledNotice = (outcome: { resolved: boolean }) =>
+  outcome.resolved ? null : SETTLED
+
+function ReviewQueue() {
   const queue = Route.useLoaderData()
   const page = Route.useSearch().page ?? 1
   const navigate = useNavigate({ from: Route.fullPath })
   const router = useRouter()
-  const [busyId, setBusyId] = useState<number | null>(null)
+  const [busyKey, setBusyKey] = useState<string | null>(null)
   const [denying, setDenying] = useState<QueuedClaim | null>(null)
+  const [rejecting, setRejecting] = useState<QueuedAmendment | null>(null)
   const [reason, setReason] = useState('')
-  // Kept per row, so the message lands under the list being worked in.
-  const [failed, setFailed] = useState<{ id: number; message: string } | null>(
-    null,
-  )
+  // Held by list rather than by row: a decision that lost its race takes the
+  // row away, and a message that goes with it reads exactly like success.
+  const [failed, setFailed] = useState<{
+    list: string
+    message: string
+  } | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   if (!queue) return null
-  const claims = queue.pending
-  const errorIn = (rows: { id: number }[]) =>
-    failed && rows.some((r) => r.id === failed.id) ? failed.message : null
+  const { claims, amendments } = queue
+  const errorIn = (list: string) =>
+    failed?.list === list ? failed.message : null
 
-  const act = async (id: number, fn: () => Promise<unknown>) => {
-    setBusyId(id)
+  const act = async (key: string, fn: () => Promise<string | null>) => {
+    setBusyKey(key)
     setFailed(null)
+    setNotice(null)
     try {
-      await fn()
+      setNotice(await fn())
     } catch (e) {
-      // Only a failed mutation is an error; a failed refresh below is not.
-      setFailed({ id, message: errorMessage(e) })
-      setBusyId(null)
-      return
+      setFailed({ list: key.split(':')[0], message: errorMessage(e) })
     }
-    // The approve/deny committed — a failed refresh must not read as a failure
-    // and invite a duplicate action against a row that no longer exists.
+    // Refetched whichever way it went, so a row somebody else resolved leaves
+    // rather than inviting a second press. A failed refresh is not a failure.
     await router.invalidate().catch(() => undefined)
-    setBusyId(null)
+    setBusyKey(null)
   }
 
   return (
     <div className="space-y-4">
+      {notice && (
+        <p
+          role="status"
+          className="rounded-[10px] border border-hairline-soft bg-[var(--tint)] px-4 py-2.5 text-sm text-fg-muted"
+        >
+          {notice}
+        </p>
+      )}
+
       <Panel
         title="Pending claims"
         aside={
@@ -92,44 +134,98 @@ function ClaimsQueue() {
           ) : undefined
         }
       >
-        <p className="mb-4 max-w-prose text-sm text-fg-muted">
-          Verify the requester on Discord — recognise them, or ask in the server
-          — before approving. Approving links the account and seeds the avatar
-          they chose. A claim is permanent: only a revoke undoes it. Denying is
-          remembered, and refuses that user this player for good.
-        </p>
-
         {claims.length === 0 ? (
-          <p className="text-sm text-fg-faint">
-            No claims are awaiting review.
+          <p className="max-w-prose text-sm text-fg-faint">
+            No claims are awaiting review. One arrives when a signed-in user
+            asks for a player from that player’s own page.
           </p>
         ) : (
-          <ul className="space-y-3">
-            {claims.map((claim) => (
-              <ClaimRow
-                key={claim.id}
-                claim={claim}
-                busy={busyId === claim.id}
-                disabled={busyId != null}
-                onApprove={() =>
-                  act(claim.id, () =>
-                    approveClaimRequest({ data: { claimId: claim.id } }),
-                  )
-                }
-                onDeny={() => setDenying(claim)}
-              />
-            ))}
-          </ul>
+          <>
+            <p className="mb-4 max-w-prose text-sm text-fg-muted">
+              Verify the requester on Discord before approving — recognise them,
+              or ask in the server. The picture they chose is a second decision.
+            </p>
+            <ul className="space-y-3">
+              {claims.map((claim) => (
+                <ClaimRow
+                  key={claim.id}
+                  claim={claim}
+                  busy={busyKey === claimKey(claim.id)}
+                  disabled={busyKey != null}
+                  now={queue.now}
+                  onApprove={(acceptSeed) =>
+                    act(claimKey(claim.id), async () => {
+                      const { avatarSeeded } = await approveClaimRequest({
+                        data: { claimId: claim.id, acceptSeed },
+                      })
+                      return acceptSeed && claim.seedAvatarUrl && !avatarSeeded
+                        ? SEED_GONE
+                        : null
+                    })
+                  }
+                  onDeny={() => setDenying(claim)}
+                />
+              ))}
+            </ul>
+          </>
         )}
 
-        <ErrorNote error={errorIn(claims)} />
+        <ErrorNote error={errorIn('claim')} />
+      </Panel>
+
+      <Panel
+        title="Pending amendments"
+        aside={
+          amendments.length > 0 ? (
+            <span className="text-sm text-fg-muted">
+              {amendments.length} awaiting review
+            </span>
+          ) : undefined
+        }
+      >
+        {amendments.length === 0 ? (
+          <p className="max-w-prose text-sm text-fg-faint">
+            No changes are awaiting review. A holder’s new avatar lands here the
+            moment they upload it — they see it immediately, and nobody else
+            does until you approve it.
+          </p>
+        ) : (
+          <>
+            <p className="mb-4 max-w-prose text-sm text-fg-muted">
+              The holder is being served this already — nobody else sees it
+              until you approve.
+            </p>
+            <ul className="space-y-3">
+              {amendments.map((amendment) => (
+                <AmendmentRow
+                  key={amendment.id}
+                  amendment={amendment}
+                  busy={busyKey === amendmentKey(amendment.id)}
+                  disabled={busyKey != null}
+                  now={queue.now}
+                  onApprove={() =>
+                    act(amendmentKey(amendment.id), async () =>
+                      settledNotice(
+                        await approvePendingAmendment({
+                          data: { amendmentId: amendment.id },
+                        }),
+                      ),
+                    )
+                  }
+                  onReject={() => setRejecting(amendment)}
+                />
+              ))}
+            </ul>
+          </>
+        )}
+
+        <ErrorNote error={errorIn('amendment')} />
       </Panel>
 
       <DenyDialog
         claim={denying}
         reason={reason}
         onReason={setReason}
-        busy={denying != null && busyId === denying.id}
         onCancel={() => {
           setDenying(null)
           setReason('')
@@ -139,8 +235,32 @@ function ClaimsQueue() {
           if (!claim) return
           setDenying(null)
           setReason('')
-          act(claim.id, () =>
-            denyClaimRequest({ data: { claimId: claim.id, reason } }),
+          act(claimKey(claim.id), async () => {
+            await denyClaimRequest({ data: { claimId: claim.id, reason } })
+            return null
+          })
+        }}
+      />
+
+      <RejectDialog
+        amendment={rejecting}
+        reason={reason}
+        onReason={setReason}
+        onCancel={() => {
+          setRejecting(null)
+          setReason('')
+        }}
+        onConfirm={() => {
+          const amendment = rejecting
+          if (!amendment) return
+          setRejecting(null)
+          setReason('')
+          act(amendmentKey(amendment.id), async () =>
+            settledNotice(
+              await rejectPendingAmendment({
+                data: { amendmentId: amendment.id, reason },
+              }),
+            ),
           )
         }}
       />
@@ -150,10 +270,13 @@ function ClaimsQueue() {
         hasMore={queue.denied.hasMore}
         page={page}
         onPage={(p) => navigate({ search: { page: p } })}
-        busyId={busyId}
-        error={errorIn(queue.denied.rows)}
+        busyKey={busyKey}
+        error={errorIn('denial')}
         onClear={(id) =>
-          act(id, () => clearClaimDenialRequest({ data: { claimId: id } }))
+          act(denialKey(id), async () => {
+            await clearClaimDenialRequest({ data: { claimId: id } })
+            return null
+          })
         }
       />
     </div>
@@ -166,14 +289,12 @@ function DenyDialog({
   claim,
   reason,
   onReason,
-  busy,
   onConfirm,
   onCancel,
 }: {
   claim: QueuedClaim | null
   reason: string
   onReason: (reason: string) => void
-  busy: boolean
   onConfirm: () => void
   onCancel: () => void
 }) {
@@ -182,7 +303,6 @@ function DenyDialog({
       open={claim != null}
       title={`Deny the claim on ${claim?.playerDisplayName ?? ''}?`}
       confirmLabel="Deny"
-      busy={busy}
       onConfirm={onConfirm}
       onCancel={onCancel}
     >
@@ -205,12 +325,55 @@ function DenyDialog({
   )
 }
 
+/* The reason is the entire record of a refusal: four rejections mean something
+   different if they were all blurry rather than all hateful. It stays in
+   /admin — the holder is told nothing, which is the shadow working. */
+function RejectDialog({
+  amendment,
+  reason,
+  onReason,
+  onConfirm,
+  onCancel,
+}: {
+  amendment: QueuedAmendment | null
+  reason: string
+  onReason: (reason: string) => void
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  return (
+    <ConfirmDialog
+      open={amendment != null}
+      title={`Refuse this change to ${amendment?.playerDisplayName ?? ''}?`}
+      confirmLabel="Reject"
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+    >
+      <p>
+        What is published stays exactly as it is — refusing a change is not
+        removing what is already live. The proposed image is deleted, and the
+        holder is told nothing.
+      </p>
+      <Field label="Reason" hint="Optional — kept here, never shown publicly.">
+        <textarea
+          value={reason}
+          onChange={(e) => onReason(e.target.value)}
+          maxLength={MAX_NOTE_LENGTH}
+          rows={2}
+          placeholder="e.g. not a picture of a person"
+          className={inputClass}
+        />
+      </Field>
+    </ConfirmDialog>
+  )
+}
+
 function DeniedClaims({
   claims,
   hasMore,
   page,
   onPage,
-  busyId,
+  busyKey,
   error,
   onClear,
 }: {
@@ -218,7 +381,7 @@ function DeniedClaims({
   hasMore: boolean
   page: number
   onPage: (page: number | undefined) => void
-  busyId: number | null
+  busyKey: string | null
   error: string | null
   onClear: (claimId: number) => void
 }) {
@@ -263,10 +426,10 @@ function DeniedClaims({
             <button
               type="button"
               className={subtleButtonClass}
-              disabled={busyId != null}
+              disabled={busyKey != null}
               onClick={() => onClear(claim.id)}
             >
-              {busyId === claim.id ? 'Working…' : 'Clear denial'}
+              {busyKey === denialKey(claim.id) ? 'Working…' : 'Clear denial'}
             </button>
           </li>
         ))}
@@ -281,18 +444,28 @@ function ClaimRow({
   claim,
   busy,
   disabled,
+  now,
   onApprove,
   onDeny,
 }: {
   claim: QueuedClaim
   busy: boolean
   disabled: boolean
-  onApprove: () => void
+  now: number
+  onApprove: (acceptSeed: boolean) => void
   onDeny: () => void
 }) {
+  // The seed decision lives with the row it is about; rows are keyed by id, so
+  // it survives a refetch exactly as the row does.
+  const [acceptSeed, setAcceptSeed] = useState(true)
+  const [seen, setSeen] = useState(false)
+  // A picture nobody has looked at is never seeded — whether it failed, or has
+  // simply not arrived. The claim itself is a separate decision and stays open.
+  const unseeable = claim.seedAvatarUrl == null || !seen
+  const seeding = acceptSeed && !unseeable
   return (
     <li className={`${claimCardClass} p-4`}>
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="max-w-3xl">
         <div className="min-w-0">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
             <Link
@@ -318,22 +491,42 @@ function ClaimRow({
                 Discord ID {claim.requesterDiscordId}
               </span>
             )}
+            <AgeStamp at={claim.createdAt} now={now} />
           </div>
 
-          <div className="mt-1.5 flex items-center gap-1.5 text-xs text-fg-faint">
-            {claim.wantsAvatarSeed ? (
-              <>
-                <ImageIcon size={13} aria-hidden />
-                seeds their avatar
-              </>
-            ) : (
-              <>
-                <ImageOff size={13} aria-hidden />
-                keeps the Medallion
-              </>
-            )}
-            {claim.createdAt && <span>· {formatDayTime(claim.createdAt)}</span>}
-          </div>
+          {claim.seedAvatarUrl ? (
+            <figure className="mt-3">
+              <ProposedImage
+                url={claim.seedAvatarUrl}
+                alt={`Avatar ${claim.requesterHandle ?? 'this user'} would seed`}
+                onSeen={setSeen}
+              />
+              <figcaption className="mt-1 max-w-[200px] text-xs text-fg-muted">
+                {/* The label carries the 44px, not the box: a `<label>` is the
+                    one wrapper a tap actually reaches the control through. */}
+                <label className="flex min-h-11 items-center gap-2">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    checked={seeding}
+                    disabled={disabled || unseeable}
+                    onChange={(e) => setAcceptSeed(e.target.checked)}
+                  />
+                  Seed this picture
+                </label>
+                {!seeding && (
+                  <span className="mt-1 block text-fg-faint">
+                    Approving keeps the Medallion.
+                  </span>
+                )}
+              </figcaption>
+            </figure>
+          ) : (
+            <div className="mt-1.5 flex items-center gap-1.5 text-xs text-fg-faint">
+              <ImageOff size={13} aria-hidden />
+              keeps the Medallion
+            </div>
+          )}
 
           {claim.note && (
             <p className="mt-2 max-w-prose rounded-[8px] bg-[var(--tint-strong)] px-3 py-2 text-sm text-fg-muted">
@@ -342,7 +535,18 @@ function ClaimRow({
           )}
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        {/* Under what is being judged, not across the card from it: the picture
+            is the decision, and the same two controls sit in the same place on
+            every row at every width. */}
+        <div className="mt-4 flex items-center gap-2">
+          <button
+            type="button"
+            className={commitButtonClass}
+            disabled={disabled}
+            onClick={() => onApprove(seeding)}
+          >
+            {busy ? 'Working…' : 'Approve'}
+          </button>
           <button
             type="button"
             className={subtleButtonClass}
@@ -351,16 +555,233 @@ function ClaimRow({
           >
             Deny
           </button>
+        </div>
+      </div>
+    </li>
+  )
+}
+
+/* One row per Amendment. Avatar is the only shadowed field, so this renders
+   images; a second field brings its own rendering here, not its own screen. */
+function AmendmentRow({
+  amendment,
+  busy,
+  disabled,
+  now,
+  onApprove,
+  onReject,
+}: {
+  amendment: QueuedAmendment
+  busy: boolean
+  disabled: boolean
+  now: number
+  onApprove: () => void
+  onReject: () => void
+}) {
+  // Publishing is the one thing that must not be possible without having seen
+  // it, so the gate is on the picture having arrived rather than on nothing
+  // having gone wrong yet — a slow load is as unseen as a dead one. Reject
+  // stays open: refusing something unshowable is a decision.
+  const [seen, setSeen] = useState(false)
+  const unseeable = amendment.valueUrl == null || !seen
+  return (
+    <li className={`${claimCardClass} p-4`}>
+      <div className="max-w-3xl">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <Link
+              to="/admin/players/$id"
+              params={{ id: String(amendment.playerId) }}
+              className="font-semibold"
+            >
+              {amendment.playerDisplayName}
+            </Link>
+            <span className="text-xs text-fg-faint">
+              {amendment.submitterHandle ?? 'Unknown handle'}
+            </span>
+            <AgeStamp at={amendment.submittedAt} now={now} />
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-end gap-5">
+            <figure>
+              <ProposedImage
+                url={amendment.valueUrl}
+                alt={`Proposed avatar for ${amendment.playerDisplayName}`}
+                onSeen={setSeen}
+              />
+              <figcaption className="mt-2 max-w-[200px] text-xs tracking-wide text-fg-faint uppercase">
+                Proposed
+              </figcaption>
+              {unseeable && (
+                <p className="mt-1 max-w-[200px] text-xs text-status-warn">
+                  Nothing to approve until this loads — reload, or reject it.
+                </p>
+              )}
+            </figure>
+            <figure>
+              <PlayerAvatar
+                avatarUrl={amendment.publishedUrl}
+                displayName={amendment.playerDisplayName}
+                size={96}
+              />
+              <figcaption className="mt-2 text-xs tracking-wide text-fg-faint uppercase">
+                Live now · {amendment.publishedValue ? 'Avatar' : 'Medallion'}
+              </figcaption>
+            </figure>
+          </div>
+
+          <PriorRejections
+            rejections={amendment.priorRejections}
+            total={amendment.priorRejectionCount}
+          />
+        </div>
+
+        <div className="mt-4 flex items-center gap-2">
           <button
             type="button"
-            className={busy ? buttonClass : commitButtonClass}
-            disabled={disabled}
+            className={commitButtonClass}
+            disabled={disabled || unseeable}
             onClick={onApprove}
           >
             {busy ? 'Working…' : 'Approve'}
           </button>
+          <button
+            type="button"
+            className={subtleButtonClass}
+            disabled={disabled}
+            onClick={onReject}
+          >
+            Reject
+          </button>
         </div>
       </div>
     </li>
+  )
+}
+
+/** The picture under judgement. A Discord CDN URL dies the moment its owner
+    changes their picture, so a dead link renders as plainly missing — never as
+    a broken frame, and never as the Medallion, which would read as a decision
+    about something that is live.
+
+    `onSeen` reports whether it is actually on the screen — and says so only
+    once it is, never merely because nothing has gone wrong yet. A row must not
+    offer to publish a picture that has not arrived. */
+function ProposedImage({
+  url,
+  alt,
+  onSeen,
+}: {
+  url: string | null
+  alt: string
+  onSeen: (seen: boolean) => void
+}) {
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
+  const settle = (seen: boolean) => {
+    if (!seen) setFailedUrl(url)
+    onSeen(seen)
+  }
+  if (!url || failedUrl === url) {
+    return (
+      <div
+        role="img"
+        aria-label="Image missing"
+        style={{ width: JUDGEABLE, height: JUDGEABLE }}
+        className="flex items-center justify-center rounded-full border border-dashed border-hairline-soft bg-[var(--tint-strong)] px-8 text-center text-sm text-fg-muted"
+      >
+        Image missing — nothing is there to look at.
+      </div>
+    )
+  }
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      title="Open full size"
+      // Judged in the shape it will be published in: the stored object is a
+      // square, but every surface masks it to a disc, so square corners here
+      // would show what nobody will see and hide the crop being approved.
+      className="relative block shrink-0 overflow-hidden rounded-full"
+      style={{ width: JUDGEABLE, height: JUDGEABLE }}
+    >
+      <img
+        src={url}
+        alt={alt}
+        width={JUDGEABLE}
+        height={JUDGEABLE}
+        // The seed is a third-party CDN URL, and a Referer would tell that host
+        // the review path exists. The queue's existence is not public.
+        referrerPolicy="no-referrer"
+        className="h-full w-full object-cover"
+        // A picture already decoded before React arrived fires no load event,
+        // so the ref asks; `alreadyBroken` is the failed half of that question.
+        ref={(node) => {
+          if (node?.complete) settle(!alreadyBroken(node))
+        }}
+        onLoad={() => settle(true)}
+        onError={() => settle(false)}
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-full"
+        style={{
+          boxShadow:
+            'inset 0 0 0 1px var(--hairline), inset 0 1.5px 0 var(--glass-highlight)',
+        }}
+      />
+    </a>
+  )
+}
+
+/** A day is a target carried by the UI, never an expiry: no automatic
+    disposition is acceptable in either direction. The nag is the semantic warn
+    token — /admin spends its amber on the commit action. `now` is stamped by
+    the loader, so a skewed client clock cannot invent or hide the nag. */
+function AgeStamp({ at, now }: { at: Date | string | null; now: number }) {
+  if (!at) return null
+  const submitted = at instanceof Date ? at : new Date(at)
+  const overdue = now - submitted.getTime() >= DAY_MS
+  return (
+    <time
+      dateTime={submitted.toISOString()}
+      className={`text-xs ${overdue ? 'text-status-warn' : 'text-fg-faint'}`}
+    >
+      {formatDayTime(submitted)}
+      {overdue && ' · waiting over a day'}
+    </time>
+  )
+}
+
+/** Shown only when there are any: the row is quiet by default, and a count on
+    its own would say nothing a reason does not say better. */
+function PriorRejections({
+  rejections,
+  total,
+}: {
+  rejections: QueuedAmendment['priorRejections']
+  total: number
+}) {
+  if (total === 0) return null
+  return (
+    <div className="mt-3 max-w-prose rounded-[8px] bg-[var(--tint-strong)] px-3 py-2 text-xs">
+      <p className="text-status-warn">
+        Refused {total} {total === 1 ? 'time' : 'times'} before
+      </p>
+      <ul className="mt-1 space-y-0.5 text-fg-muted">
+        {rejections.map((rejection, at) => (
+          <li key={at}>
+            {rejection.reason ? `“${rejection.reason}”` : 'No reason recorded'}
+            {rejection.reviewedAt &&
+              ` · ${formatDayTime(rejection.reviewedAt)}`}
+          </li>
+        ))}
+        {total > rejections.length && (
+          <li className="text-fg-faint">
+            and {total - rejections.length} older
+          </li>
+        )}
+      </ul>
+    </div>
   )
 }

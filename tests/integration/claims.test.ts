@@ -91,18 +91,37 @@ describe('requestClaim', () => {
       note: 'it is me',
       requesterHandle: 'AceIRL',
       requesterDiscordId: '111',
-      wantsAvatarSeed: false,
+      seedAvatarUrl: null,
     })
     expect(row.aliases).toContain('Ace')
   })
 
-  it('records the seed intent from the presence of a picture URL', async () => {
+  it('hands the reviewer the picture itself, not the intent to seed one', async () => {
+    const ace = await playerBySlug('ace')
+    const picture = 'https://cdn.discordapp.com/avatars/1/x.png'
+    await requestClaim(t.db, USER_A, ace.id, { seedAvatarUrl: picture })
+    const [row] = await listPendingClaims(t.db)
+    // A boolean is what let a seed go live unseen: no Moderator can judge an
+    // image they were only told about.
+    expect(row.seedAvatarUrl).toBe(picture)
+  })
+
+  it('says the Medallion by carrying no picture at all', async () => {
+    const ace = await playerBySlug('ace')
+    await requestClaim(t.db, USER_A, ace.id, {})
+    const [row] = await listPendingClaims(t.db)
+    expect(row.seedAvatarUrl).toBeNull()
+  })
+
+  it('keeps no picture a moderator’s browser should not be asked to load', async () => {
     const ace = await playerBySlug('ace')
     await requestClaim(t.db, USER_A, ace.id, {
-      seedAvatarUrl: 'https://cdn.discordapp.com/avatars/1/x.png',
+      seedAvatarUrl: 'https://evil.example.com/x.png',
     })
     const [row] = await listPendingClaims(t.db)
-    expect(row.wantsAvatarSeed).toBe(true)
+    // The panel renders this URL, so an off-host one must never be kept — the
+    // fetch-time check protects the server, and nothing else protects the page.
+    expect(row.seedAvatarUrl).toBeNull()
   })
 
   it('refuses a duplicate pending request, a claimed player, and a tombstone', async () => {
@@ -173,6 +192,27 @@ describe('requestClaim', () => {
 })
 
 describe('approveClaim', () => {
+  it('refuses a claimant who gained another player in words, never in SQL', async () => {
+    const ace = await playerBySlug('ace')
+    const { id } = await requestClaim(t.db, USER_A, ace.id, {})
+    // Granted another Player after they asked — `ply_user_uq` is the rule, and
+    // unmapped it hands the moderator the statement it failed on.
+    const floppa = await playerBySlug('floppa')
+    await t.db
+      .update(players)
+      .set({ userId: USER_A })
+      .where(eq(players.id, floppa.id))
+
+    const refusal = await approveClaim(t.db, fakeStore(), MOD, id).catch(
+      (e: Error) => e,
+    )
+
+    expect(refusal).toBeInstanceOf(Error)
+    expect((refusal as Error).message).toMatch(/already holds another player/i)
+    expect((refusal as Error).message).not.toMatch(/Failed query|players|\$1/)
+    expect((await playerBySlug('ace')).userId).toBeNull()
+  })
+
   it('links the user and clears every pending request on the player', async () => {
     const ace = await playerBySlug('ace')
     const { id } = await requestClaim(t.db, USER_A, ace.id, {})
@@ -213,6 +253,26 @@ describe('approveClaim', () => {
     const claimed = await playerBySlug('ace')
     expect(claimed.avatarKey).toMatch(/^avatars\/\d+\/[0-9a-f]{12}\.png$/)
     expect(store.objects.has(claimed.avatarKey!)).toBe(true)
+  })
+
+  it('links the User onto the Medallion when the reviewer declines the seed', async () => {
+    const ace = await playerBySlug('ace')
+    const store = fakeStore()
+    const { id } = await requestClaim(t.db, USER_A, ace.id, {
+      seedAvatarUrl: 'https://cdn.discordapp.com/avatars/1/x.png',
+    })
+    // A good claim with a bad picture is not a dilemma: the claim still
+    // approves, and nothing is mirrored.
+    const result = await approveClaim(t.db, store, MOD, id, {
+      fetchImpl: pngFetch,
+      acceptSeed: false,
+    })
+    expect(result.avatarSeeded).toBe(false)
+
+    const claimed = await playerBySlug('ace')
+    expect(claimed.userId).toBe(USER_A)
+    expect(claimed.avatarKey).toBeNull()
+    expect(store.objects.size).toBe(0)
   })
 
   it('falls back to the Medallion when the picture fetch fails', async () => {
@@ -261,9 +321,13 @@ describe('approveClaim', () => {
   it('rejects an off-host seed URL at the fetch boundary (SSRF backstop)', async () => {
     const ace = await playerBySlug('ace')
     const store = fakeStore()
-    const { id } = await requestClaim(t.db, USER_A, ace.id, {
-      seedAvatarUrl: 'https://evil.example.com/x.png',
-    })
+    const { id } = await requestClaim(t.db, USER_A, ace.id, {})
+    // Written past the request boundary on purpose: that boundary drops an
+    // off-host URL now, and this asserts the fetch refuses one anyway.
+    await t.db
+      .update(playerClaims)
+      .set({ seedAvatarUrl: 'https://evil.example.com/x.png' })
+      .where(eq(playerClaims.id, id))
     const result = await approveClaim(t.db, store, MOD, id, {
       fetchImpl: pngFetch,
     })

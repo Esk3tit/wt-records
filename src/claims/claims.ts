@@ -1,8 +1,9 @@
-import { and, asc, desc, eq, ne, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, ne, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Db } from '#/db'
 import { playerAliases, playerClaims, players, profiles } from '#/db/schema'
 import { writeAudit } from '#/admin/audit'
+import { allowedAvatarUrl } from '#/auth/profile'
 import type { AvatarStore } from '#/claims/avatar'
 import {
   deleteAvatarIfUnreferenced,
@@ -38,7 +39,11 @@ export async function requestClaim(
   if (note && note.length > MAX_NOTE_LENGTH) {
     throw new Error(`Keep the note to at most ${MAX_NOTE_LENGTH} characters`)
   }
-  const seedAvatarUrl = input.seedAvatarUrl?.trim() || null
+  // Dropped rather than refused: the seed is best-effort, and a Player on the
+  // Medallion is the same outcome a dead picture already gives. What is stored
+  // is what a Moderator's browser will load, so it is checked before it is kept
+  // and not only before it is fetched.
+  const seedAvatarUrl = allowedAvatarUrl(input.seedAvatarUrl?.trim())
   return db.transaction(async (tx) => {
     await lockClaimant(tx, userId)
     const player = (
@@ -139,11 +144,16 @@ const PENDING_ELSEWHERE =
   'You already have a claim request awaiting review — one at a time'
 const DENIED_ALREADY =
   'This request was denied. Ask a moderator on Discord if that was a mistake'
+/* The grant side of the same rule: one approved Claim per User. Reachable when
+   the claimant was given another Player after this request was filed. */
+const HOLDS_ANOTHER =
+  'That user already holds another player — revoke that claim before granting this one'
 
 function refusalForCollision(error: unknown): Error {
   const text = String((error as { cause?: unknown }).cause ?? error)
   if (text.includes('claim_one_pending_uq')) return new Error(PENDING_ELSEWHERE)
   if (text.includes('claim_user_player_uq')) return new Error(PENDING_HERE)
+  if (text.includes('ply_user_uq')) return new Error(HOLDS_ANOTHER)
   return error instanceof Error ? error : new Error(String(error))
 }
 
@@ -192,15 +202,18 @@ export async function viewerClaimState(
   return row.state === 'denied' ? 'denied' : 'pending'
 }
 
-/** Approve a pending claim: link the User, seed the avatar if they asked for it,
-    and clear every pending request on that Player (the winner and the losers).
-    Denied rows on that Player survive it — approving is not an amnesty. */
+/** Approve a pending claim: link the User, seed the avatar if they asked for it
+    and the Moderator accepted it, and clear every pending request on that
+    Player (the winner and the losers). Denied rows on that Player survive it —
+    approving is not an amnesty. The seed is a second, independent decision:
+    `acceptSeed: false` links the User onto the Medallion, and can only ever
+    refuse the picture the request already carried. */
 export async function approveClaim(
   db: Db,
   store: AvatarStore | null,
   actorId: string,
   claimId: number,
-  opts: { fetchImpl?: typeof fetch } = {},
+  opts: { fetchImpl?: typeof fetch; acceptSeed?: boolean } = {},
 ): Promise<{ playerId: number; avatarSeeded: boolean }> {
   const claim = (
     await db
@@ -220,7 +233,7 @@ export async function approveClaim(
   // Mirror the avatar BEFORE the transaction so a 15s fetch never holds the
   // player row locked; the object is cleaned up if the write below fails.
   const avatarKey =
-    store && claim.seedAvatarUrl
+    store && claim.seedAvatarUrl && opts.acceptSeed !== false
       ? await seedAvatar(
           store,
           claim.playerId,
@@ -276,10 +289,16 @@ export async function approveClaim(
         claim.playerId,
         'withdrawn',
       )
-      await tx
-        .update(players)
-        .set({ userId: claim.userId, avatarKey, countryCode: null })
-        .where(eq(players.id, claim.playerId))
+      try {
+        await tx
+          .update(players)
+          .set({ userId: claim.userId, avatarKey, countryCode: null })
+          .where(eq(players.id, claim.playerId))
+      } catch (error) {
+        // ply_user_uq catches a claimant who gained another Player since they
+        // asked. Unmapped, the driver hands its statement to the moderator.
+        throw refusalForCollision(error)
+      }
       // The winner's row and the losers'. Pending only: a denial is a
       // decision, and it outlives whoever wins the page.
       await tx
@@ -477,7 +496,9 @@ export interface ClaimQueueRow {
   playerDisplayName: string
   aliases: string[]
   note: string | null
-  wantsAvatarSeed: boolean
+  /** The picture itself, not a boolean: no Moderator can judge an image they
+      have not been shown. Null is the Medallion. /admin-gated. */
+  seedAvatarUrl: string | null
   requesterHandle: string | null
   requesterDiscordId: string | null
   createdAt: Date | null
@@ -501,7 +522,7 @@ function claimQueueSelect(db: Db) {
         string[]
       >`coalesce(array_agg(distinct ${playerAliases.name}) filter (where ${playerAliases.name} is not null), '{}')`,
       note: playerClaims.note,
-      wantsAvatarSeed: sql<boolean>`${playerClaims.seedAvatarUrl} is not null`,
+      seedAvatarUrl: playerClaims.seedAvatarUrl,
       requesterHandle: profiles.handle,
       requesterDiscordId: profiles.discordId,
       createdAt: playerClaims.createdAt,
@@ -530,6 +551,15 @@ export async function listPendingClaims(db: Db): Promise<ClaimQueueRow[]> {
   return claimQueueSelect(db)
     .where(eq(playerClaims.state, 'pending'))
     .orderBy(asc(playerClaims.createdAt), asc(playerClaims.id))
+}
+
+/** The other half of the one number on the Review tab. */
+export async function countPendingClaims(db: Db): Promise<number> {
+  const [{ pending }] = await db
+    .select({ pending: count() })
+    .from(playerClaims)
+    .where(eq(playerClaims.state, 'pending'))
+  return pending
 }
 
 /** The denials, most recent first. The pending queue drains; this only ever

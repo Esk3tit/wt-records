@@ -13,8 +13,9 @@ export const selectClass = fieldBase + ' appearance-auto'
 export const buttonClass =
   'rounded bg-[var(--pill-active)] px-3.5 py-1.5 text-[0.8125rem] font-semibold text-fg no-underline transition-colors duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50'
 
-/** The ONE amber action per view — form submit / dialog confirm. Amber fills
-    carry black text in both modes; everything else stays in the grey register. */
+/** The act that commits, once per decision surface — a form, a dialog, a queue
+    row. Amber fills carry black text in both modes; everything else stays in
+    the grey register. */
 export const commitButtonClass =
   'rounded bg-accent px-3.5 py-1.5 text-[0.8125rem] font-semibold text-black no-underline transition-[filter] duration-200 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50'
 

@@ -9,6 +9,7 @@ A thin suite — the flows worth driving end to end, not a second copy of the un
 | `admin-gate.spec.ts`            | the CMS refuses signed-out visitors and signed-in non-moderators          |
 | `admin-cms.spec.ts`             | a moderator edit persists across a reload **and** lands in the audit log  |
 | `admin-players.spec.ts`         | a moderator resets a reported avatar                                      |
+| `admin-review.spec.ts`          | the Review tab: one badge, two panels, and what each decision publishes   |
 | `avatar-owner.spec.ts`          | only the owner sees the avatar controls                                   |
 | `profile-header.spec.ts`        | the disc stacks above the name on a phone; header controls reach 44px     |
 | `profile-monument.spec.ts`      | the profile's monument, and its one amber moment on an unclaimed page     |

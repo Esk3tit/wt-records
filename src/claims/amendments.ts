@@ -1,6 +1,6 @@
-import { and, count, eq, sql } from 'drizzle-orm'
+import { and, asc, count, eq, inArray, lte, sql } from 'drizzle-orm'
 import type { Db } from '#/db'
-import { playerAmendments, players } from '#/db/schema'
+import { playerAmendments, players, profiles } from '#/db/schema'
 import type { AvatarStore } from '#/claims/avatar'
 import { deleteAvatarsIfUnreferenced } from '#/claims/avatar'
 import { writeAudit } from '#/admin/audit'
@@ -127,6 +127,140 @@ export async function closePendingAmendments(
     )
     .returning({ value: playerAmendments.value })
   return closed.map((row) => row.value)
+}
+
+/** A refusal this Player already collected. Four rejections mean nothing until
+    you can see that they were all *blurry* rather than all *hateful*. */
+export interface AmendmentRejection {
+  reason: string | null
+  reviewedAt: Date | null
+}
+
+/** One row of the Moderator's amendments panel: the proposal, what it would
+    displace, and the history that makes a refusal mean something. */
+export interface AmendmentQueueRow {
+  id: number
+  playerId: number
+  playerDisplayName: string
+  field: AmendmentField
+  value: string
+  /** What is live now for this field — null is the Medallion, not an absence. */
+  publishedValue: string | null
+  submittedAt: Date
+  submitterHandle: string | null
+  /** The newest few reasons, not the whole history: enough to read a pattern. */
+  priorRejections: AmendmentRejection[]
+  priorRejectionCount: number
+}
+
+/** Enough refusals to read a pattern; beyond this the count is the fact, and
+    shipping every reason a Player ever collected would grow without bound. */
+const REASONS_KEPT = 4
+
+/** A proposal is only work if its submitter still holds the Player. Deleting an
+    auth User nulls `players.user_id` by FK without running `unclaim()`, so a row
+    can outlive the Claim it belonged to — the system's to close, and never a
+    decision a Moderator can take. Counting it would put false work on the badge
+    and offer an Approve that can only ever answer "already settled". */
+const stillHeld = and(
+  eq(playerAmendments.state, 'pending'),
+  eq(playerAmendments.submittedBy, players.userId),
+)
+
+/** The proposals waiting on a Moderator, oldest first ACROSS fields: the unit
+    of work is one thing awaiting them, and a panel per field lets a whole pile
+    age unseen behind another. */
+export async function listPendingAmendments(
+  db: Db,
+): Promise<AmendmentQueueRow[]> {
+  const rows = await db
+    .select({
+      id: playerAmendments.id,
+      playerId: playerAmendments.playerId,
+      playerDisplayName: players.displayName,
+      field: playerAmendments.field,
+      value: playerAmendments.value,
+      // The published column for this row's field. A second field selects its
+      // own here, keyed the way the renderer is.
+      publishedValue: players.avatarKey,
+      submittedAt: playerAmendments.submittedAt,
+      submitterHandle: profiles.handle,
+    })
+    .from(playerAmendments)
+    .innerJoin(players, eq(players.id, playerAmendments.playerId))
+    .leftJoin(profiles, eq(profiles.id, playerAmendments.submittedBy))
+    .where(stillHeld)
+    .orderBy(asc(playerAmendments.submittedAt), asc(playerAmendments.id))
+  if (rows.length === 0) return []
+
+  // Only `rejected` counts: a `withdrawn` or `superseded` row was never
+  // refused, and counting it would show a history nobody wrote. Scoped to
+  // whoever holds the Player NOW — "refused four times" is a judgement about a
+  // person, and a revoke hands the row to someone that history is not about.
+  const ranked = db
+    .select({
+      playerId: playerAmendments.playerId,
+      reason: playerAmendments.reason,
+      reviewedAt: playerAmendments.reviewedAt,
+      rank: sql<number>`row_number() over (partition by ${playerAmendments.playerId} order by ${playerAmendments.reviewedAt} desc nulls last, ${playerAmendments.id} desc)`.as(
+        'rank',
+      ),
+      total:
+        sql<number>`(count(*) over (partition by ${playerAmendments.playerId}))::int`.as(
+          'total',
+        ),
+    })
+    .from(playerAmendments)
+    .innerJoin(players, eq(players.id, playerAmendments.playerId))
+    .where(
+      and(
+        inArray(playerAmendments.playerId, [
+          ...new Set(rows.map((row) => row.playerId)),
+        ]),
+        eq(playerAmendments.state, 'rejected'),
+        eq(playerAmendments.submittedBy, players.userId),
+      ),
+    )
+    .as('ranked')
+
+  const refusals = await db
+    .select({
+      playerId: ranked.playerId,
+      reason: ranked.reason,
+      reviewedAt: ranked.reviewedAt,
+      total: ranked.total,
+    })
+    .from(ranked)
+    .where(lte(ranked.rank, REASONS_KEPT))
+    .orderBy(asc(ranked.playerId), asc(ranked.rank))
+
+  const byPlayer = new Map<
+    number,
+    { rejections: AmendmentRejection[]; total: number }
+  >()
+  for (const { playerId, total, ...rejection } of refusals) {
+    const held = byPlayer.get(playerId) ?? { rejections: [], total }
+    held.rejections.push(rejection)
+    byPlayer.set(playerId, held)
+  }
+  return rows.map((row) => {
+    const history = byPlayer.get(row.playerId)
+    return {
+      ...row,
+      priorRejections: history?.rejections ?? [],
+      priorRejectionCount: history?.total ?? 0,
+    }
+  })
+}
+
+/** Half of the one number on the Review tab. */
+export async function countPendingAmendments(db: Db): Promise<number> {
+  const [{ pending }] = await db
+    .select({ pending: count() })
+    .from(playerAmendments)
+    .innerJoin(players, eq(players.id, playerAmendments.playerId))
+    .where(stillHeld)
+  return pending
 }
 
 /** Promote a proposal to the published row — pure metadata, nothing is moved
