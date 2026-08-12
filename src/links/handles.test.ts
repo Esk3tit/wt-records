@@ -63,6 +63,19 @@ describe('a typed handle', () => {
   it('is refused when it is empty', () => {
     expect(() => stored('twitch', '   ')).toThrow(/Enter your Twitch handle/)
   })
+
+  /* The grammar is checked against the FOLDED handle but the ORIGINAL is what
+     gets stored, so a character that folds into the grammar would be stored
+     outside it: U+212A lower-cases to a plain `k`, taking the real `@k`'s slot
+     on the uniqueness index while rendering as a K-lookalike beside somebody
+     else's name. Every grammar here is ASCII, so the stored form must be too. */
+  it('is refused when a character folds into the grammar from outside it', () => {
+    expect('K'.toLowerCase()).toBe('k')
+    expect(() => stored('x', 'K')).toThrow()
+    expect(() => stored('x', 'phlyK')).toThrow()
+    expect(() => stored('twitch', 'Ångstrom')).toThrow()
+    expect(() => stored('youtube', 'Phlyİdaily')).toThrow()
+  })
 })
 
 describe('a pasted URL', () => {
@@ -126,6 +139,33 @@ describe('a pasted URL', () => {
         'https://www.tiktok.com/link/v2?target=https://evil.example',
       ),
     ).toThrow()
+  })
+
+  /* A profile URL is the prefix and exactly one segment. Reading the first
+     segment of a deeper route as a handle silently publishes a link to
+     somewhere else on the platform — and lets one Player reserve `p` or
+     `videos` against everybody. */
+  it('is refused when it is one of the platform’s own deeper routes', () => {
+    for (const [id, pasted] of [
+      ['discord', 'https://discord.com/channels/123/456'],
+      ['instagram', 'https://www.instagram.com/p/ABC123/'],
+      ['twitch', 'https://www.twitch.tv/videos/123456'],
+      ['x', 'https://x.com/i/flow/login'],
+      ['reddit', 'https://www.reddit.com/user/phlydaily/comments/abc'],
+      // A deep link is not expressible from a handle, and deliberately so.
+      ['youtube', 'https://www.youtube.com/@PhlyDaily/videos'],
+    ] as const) {
+      expect(() => stored(id, pasted)).toThrow()
+    }
+  })
+
+  it('still accepts the profile URL those routes hang off', () => {
+    expect(stored('twitch', 'https://www.twitch.tv/phlydaily/').handle).toBe(
+      'phlydaily',
+    )
+    expect(
+      stored('instagram', 'https://www.instagram.com/phly.daily/').handle,
+    ).toBe('phly.daily')
   })
 
   it('is refused when it points at another site entirely', () => {

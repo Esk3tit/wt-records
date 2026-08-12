@@ -1,15 +1,11 @@
-import {
-  WEBSITE_PLATFORM,
-  isStorablePlatform,
-  platform,
-} from '#/links/platforms'
+import { WEBSITE_PLATFORM, platform, slot } from '#/links/platforms'
 import { buildLinkUrl, parseHandle } from '#/links/handles'
 import { normalizeWebsite } from '#/links/website'
 
-/* One entry point for "what does this field value mean for this platform",
-   shared by the write path and by the field that shows the constructed URL as
-   it is typed. Pure — no database, no session — so the owner's own field runs
-   the same parser the server will. */
+/* One entry point for "what does this field value mean for this slot", shared
+   by the write path and by the field that shows the constructed URL as it is
+   typed. Pure — no database, no session — so the owner's own field runs the
+   same parser the server will. */
 
 export interface StoredLink {
   platform: string
@@ -20,18 +16,16 @@ export interface StoredLink {
 }
 
 export function parseLinkValue(platformId: string, raw: string): StoredLink {
-  if (!isStorablePlatform(platformId)) {
-    throw new Error('That platform is not one this site links')
-  }
-  if (platformId === WEBSITE_PLATFORM) {
-    // The one field that stores a URL rather than a handle, and the reason it
+  const target = slot(platformId)
+  if (!target) throw new Error('That platform is not one this site links')
+  if (target.kind === 'url') {
+    // The one slot that stores a URL rather than a handle, and the reason it
     // carries its own rules.
     const url = normalizeWebsite(raw)
-    return { platform: WEBSITE_PLATFORM, handle: url, normalized: url }
+    return { platform: target.id, handle: url, normalized: url }
   }
-  const p = platform(platformId)!
-  const { handle, normalized } = parseHandle(p, raw)
-  return { platform: p.id, handle, normalized }
+  const { handle, normalized } = parseHandle(target, raw)
+  return { platform: target.id, handle, normalized }
 }
 
 /** The URL this field value would publish, or null while it is not yet one.
@@ -52,14 +46,22 @@ export function previewLinkUrl(platformId: string, raw: string): string | null {
     screen before it is ever submitted, which is what makes the extraction
     below it a courtesy rather than a load-bearing parser. */
 export function fieldPrefix(platformId: string): string {
-  return platformId === WEBSITE_PLATFORM
-    ? 'https://'
-    : (platform(platformId)?.fieldPrefix ?? '')
+  return slot(platformId)?.fieldPrefix ?? ''
 }
 
-/** What the field is asking for, in the platform's own words. */
+/** What the field is asking for, in the slot's own words. */
 export function platformName(platformId: string): string {
-  return platformId === WEBSITE_PLATFORM
-    ? 'Personal site'
-    : (platform(platformId)?.name ?? platformId)
+  return slot(platformId)?.name ?? platformId
+}
+
+/** What belongs in the field, given what is stored. Every named platform
+    stores the bare handle that sits under its prefix already; the personal
+    site stores the whole canonical URL, whose scheme the prefix is ALSO
+    drawing — so seeding the field with it raw reads `https://https://…`. */
+export function fieldValue(platformId: string, stored: string): string {
+  if (!stored) return ''
+  const prefix = fieldPrefix(platformId)
+  return slot(platformId)?.kind === 'url' && stored.startsWith(prefix)
+    ? stored.slice(prefix.length)
+    : stored
 }

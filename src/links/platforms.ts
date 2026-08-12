@@ -22,6 +22,10 @@ import { BRAND_MARKS } from '#/links/brand-marks.generated'
 export type HandleFold = 'lower' | 'none'
 
 export interface Platform {
+  /** A named platform stores a handle the site turns into a URL. The personal
+      site is the other kind, and the rules that differ between them — the cap,
+      the uniqueness index, which parser runs — all key off this. */
+  kind: 'handle'
   id: string
   name: string
   /** The host every constructed URL sits on. Clause 2, as a value. */
@@ -48,12 +52,14 @@ export interface Platform {
   /** `glyph` takes the square brand plate; `wordmark` takes a pill sized to
       itself, because the row aligns on plate height and never plate width. */
   mark: 'glyph' | 'wordmark'
-  /** White throughout. The binding constraint is knockouts, not the sanctioned
-      background lists: YouTube's, Reddit's, Telegram's and Instagram's marks
-      knock their interior detail out to transparent, so a black plate would
-      repaint YouTube's play triangle black — the recolouring it forbids. */
-  plate: 'white'
 }
+
+/* The plate is white for every platform, so it is not a per-platform choice and
+   is not stored as one — it lives in the component and in DESIGN.md. The
+   binding constraint is knockouts, not the sanctioned background lists:
+   YouTube's, Reddit's, Telegram's and Instagram's marks knock their interior
+   detail out to transparent, so a black plate would repaint YouTube's play
+   triangle black, which is the recolouring it forbids outright. */
 
 /** Named platforms, in the order every profile on the site renders them. Fixed
     from here: no drag affordance, no position column, and no migration when the
@@ -61,6 +67,7 @@ export interface Platform {
     which is the only non-arbitrary order available. */
 export const PLATFORMS: ReadonlyArray<Platform> = [
   {
+    kind: 'handle',
     id: 'youtube',
     name: 'YouTube',
     host: 'www.youtube.com',
@@ -74,9 +81,9 @@ export const PLATFORMS: ReadonlyArray<Platform> = [
     grammarVerified: true,
     sigil: '@',
     mark: 'glyph',
-    plate: 'white',
   },
   {
+    kind: 'handle',
     id: 'discord',
     name: 'Discord',
     host: 'discord.gg',
@@ -96,9 +103,9 @@ export const PLATFORMS: ReadonlyArray<Platform> = [
     // the only reading a visitor can check before clicking.
     sigil: 'discord.gg/',
     mark: 'glyph',
-    plate: 'white',
   },
   {
+    kind: 'handle',
     id: 'twitch',
     name: 'Twitch',
     host: 'www.twitch.tv',
@@ -115,9 +122,9 @@ export const PLATFORMS: ReadonlyArray<Platform> = [
     grammarVerified: false,
     sigil: '',
     mark: 'glyph',
-    plate: 'white',
   },
   {
+    kind: 'handle',
     id: 'tiktok',
     name: 'TikTok',
     host: 'www.tiktok.com',
@@ -136,9 +143,9 @@ export const PLATFORMS: ReadonlyArray<Platform> = [
     // the wordmark is the platform's sanctioned option, not a compromise. Set
     // in our own type, never TikTok's: no WT-Records-plus-TikTok lockup.
     mark: 'wordmark',
-    plate: 'white',
   },
   {
+    kind: 'handle',
     id: 'x',
     name: 'X',
     host: 'x.com',
@@ -151,9 +158,9 @@ export const PLATFORMS: ReadonlyArray<Platform> = [
     grammarVerified: true,
     sigil: '@',
     mark: 'glyph',
-    plate: 'white',
   },
   {
+    kind: 'handle',
     id: 'instagram',
     name: 'Instagram',
     host: 'www.instagram.com',
@@ -166,9 +173,9 @@ export const PLATFORMS: ReadonlyArray<Platform> = [
     grammarVerified: true,
     sigil: '@',
     mark: 'glyph',
-    plate: 'white',
   },
   {
+    kind: 'handle',
     id: 'bluesky',
     name: 'Bluesky',
     host: 'bsky.app',
@@ -183,9 +190,9 @@ export const PLATFORMS: ReadonlyArray<Platform> = [
     grammarVerified: true,
     sigil: '@',
     mark: 'glyph',
-    plate: 'white',
   },
   {
+    kind: 'handle',
     id: 'telegram',
     name: 'Telegram',
     host: 't.me',
@@ -199,9 +206,9 @@ export const PLATFORMS: ReadonlyArray<Platform> = [
     grammarVerified: true,
     sigil: '@',
     mark: 'glyph',
-    plate: 'white',
   },
   {
+    kind: 'handle',
     id: 'reddit',
     name: 'Reddit',
     host: 'www.reddit.com',
@@ -214,7 +221,6 @@ export const PLATFORMS: ReadonlyArray<Platform> = [
     grammarVerified: true,
     sigil: 'u/',
     mark: 'glyph',
-    plate: 'white',
   },
 ]
 
@@ -251,28 +257,58 @@ export const DEFERRED_PLATFORMS: ReadonlyArray<{
     large part of what earns it its place. */
 export const WEBSITE_PLATFORM = 'website'
 
+/** The personal site as a slot, so the things every slot has — a name, a welded
+    field prefix, a position in the row — are looked up rather than branched on
+    at each call site. What genuinely differs between the two kinds (which
+    parser runs, the cap, the uniqueness index) still keys off `kind`. */
+export interface WebsiteSlot {
+  kind: 'url'
+  id: typeof WEBSITE_PLATFORM
+  name: string
+  fieldPrefix: string
+}
+
+export const WEBSITE: WebsiteSlot = {
+  kind: 'url',
+  id: WEBSITE_PLATFORM,
+  name: 'Personal site',
+  fieldPrefix: 'https://',
+}
+
+export type LinkSlot = Platform | WebsiteSlot
+
+/** Every storable slot in the order a profile renders them, the personal site
+    last: it is the one that does not name a destination, so it reads as the
+    tail of the row rather than part of it. */
+export const SLOTS: ReadonlyArray<LinkSlot> = [...PLATFORMS, WEBSITE]
+
 /** Five named platforms, plus the personal site on top. Twitch caps its own
     creators at exactly five and they still average 3.12, so this sits above
     measured behaviour and will essentially never be hit. */
 export const MAX_NAMED_LINKS = 5
 
-const BY_ID = new Map(PLATFORMS.map((p) => [p.id, p]))
+const BY_ID = new Map(SLOTS.map((s) => [s.id, s]))
 
-export function platform(id: string): Platform | null {
+export function slot(id: string): LinkSlot | null {
   return BY_ID.get(id) ?? null
+}
+
+/** The named platform, or null for the personal site and for anything nobody
+    configured — so a caller that needs a host and a grammar cannot get the one
+    slot that has neither. */
+export function platform(id: string): Platform | null {
+  const found = BY_ID.get(id)
+  return found?.kind === 'handle' ? found : null
 }
 
 /** True for a named platform or the personal site — everything storable. */
 export function isStorablePlatform(id: string): boolean {
-  return id === WEBSITE_PLATFORM || BY_ID.has(id)
+  return BY_ID.has(id)
 }
 
-/** Display order, the personal site last: it is the one slot that does not name
-    a destination, so it reads as the tail of the row rather than part of it. */
 export function platformOrder(id: string): number {
-  if (id === WEBSITE_PLATFORM) return PLATFORMS.length
-  const index = PLATFORMS.findIndex((p) => p.id === id)
-  return index === -1 ? PLATFORMS.length + 1 : index
+  const index = SLOTS.findIndex((s) => s.id === id)
+  return index === -1 ? SLOTS.length : index
 }
 
 /** The brand glyph, or null for a platform that ships as a wordmark. */

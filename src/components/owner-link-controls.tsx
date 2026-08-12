@@ -2,7 +2,12 @@ import { useId, useState } from 'react'
 import { useRouter } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { MAX_NAMED_LINKS, PLATFORMS, WEBSITE_PLATFORM } from '#/links/platforms'
-import { fieldPrefix, platformName, previewLinkUrl } from '#/links/parse'
+import {
+  fieldPrefix,
+  fieldValue,
+  platformName,
+  previewLinkUrl,
+} from '#/links/parse'
 import { MAX_LINK_INPUT } from '#/claims/limits'
 import { errorMessage } from '#/lib/errors'
 import { removeMyLink, setMyLink } from '#/claims/api'
@@ -124,7 +129,11 @@ function LinkField({
 }) {
   const router = useRouter()
   const fieldId = useId()
-  const [draft, setDraft] = useState(stored)
+  // What is stored, in the form the field shows it: the personal site stores a
+  // whole canonical URL under a prefix that already draws its scheme, so the
+  // raw value is neither what belongs in the field nor what "unchanged" means.
+  const settled = fieldValue(platform, stored)
+  const [draft, setDraft] = useState(settled)
   const [busy, setBusy] = useState<'save' | 'remove' | null>(null)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -136,13 +145,18 @@ function LinkField({
 
   const call = async (
     which: 'save' | 'remove',
-    write: () => Promise<unknown>,
+    write: () => Promise<{ handle: string } | void>,
   ) => {
     setBusy(which)
     setError(null)
     setSaved(false)
     try {
-      await write()
+      const written = await write()
+      // The field takes what the server actually stored, which is the whole
+      // "echo back exactly what was stored" promise — and without it a save
+      // that canonicalised anything (`@name`, a pasted URL, stray spaces)
+      // leaves the field looking dirty and Save enabled against nothing.
+      if (written) setDraft(fieldValue(platform, written.handle))
     } catch (e) {
       // The draft stays in the field: it is an unsaved edit, and snapping it
       // back would make the owner type their handle again to retry.
@@ -187,7 +201,7 @@ function LinkField({
           // Named for its own field: the page carries a Save per link and one
           // for the Country, and "Save" alone names none of them.
           aria-label={`Save ${platformName(platform)} link`}
-          disabled={busy != null || draft.trim() === '' || draft === stored}
+          disabled={busy != null || draft.trim() === '' || draft === settled}
           onClick={() =>
             void call('save', () =>
               setMyLink({ data: { playerId, platform, value: draft } }),
@@ -223,7 +237,7 @@ function LinkField({
         aria-live="polite"
         className="mt-1 text-xs break-all text-fg-faint"
       >
-        {saved ? `Saved — ${previewLinkUrl(platform, stored) ?? ''}` : preview}
+        {saved ? `Saved — ${preview ?? ''}` : preview}
       </p>
       {error && (
         <p role="alert" className="mt-1 text-sm text-status-danger">

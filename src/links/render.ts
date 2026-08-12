@@ -3,6 +3,7 @@ import {
   brandMark,
   platform,
   platformOrder,
+  slot,
 } from '#/links/platforms'
 import { buildLinkUrl } from '#/links/handles'
 
@@ -33,7 +34,7 @@ export function renderLink(row: {
     // The stored value IS the canonical URL; the scheme is noise to read.
     return {
       platform: WEBSITE_PLATFORM,
-      name: 'Personal site',
+      name: slot(WEBSITE_PLATFORM)!.name,
       display: row.handle.replace(/^https:\/\//, ''),
       url: row.handle,
       mark: null,

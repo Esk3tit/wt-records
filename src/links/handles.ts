@@ -32,11 +32,21 @@ export function parseHandle(p: Platform, raw: string): StoredHandle {
   if (input.length > MAX_LINK_INPUT) throw new Error(refusal(p))
   const handle = extractFromUrl(p, input) ?? input.replace(/^@/, '')
   // The grammar describes the folded form, so a platform whose handles are
-  // canonically lower-case does not refuse the same handle typed in caps.
+  // canonically lower-case does not refuse the same handle typed in caps. What
+  // is STORED is the original, so it has to be checked too: `U+212A` (the
+  // Kelvin sign) lower-cases to a plain `k`, which would pass the grammar and
+  // then be stored as a K-lookalike — squatting the real handle's slot on the
+  // uniqueness index while rendering as somebody else's name. Every grammar
+  // here is ASCII, so requiring the stored form to be ASCII costs nothing and
+  // closes the whole fold-collision class.
   const normalized = fold(p, handle)
-  if (!p.pattern.test(normalized)) throw new Error(refusal(p))
+  if (!ASCII.test(handle) || !p.pattern.test(normalized)) {
+    throw new Error(refusal(p))
+  }
   return { handle, normalized }
 }
+
+const ASCII = /^[\x20-\x7e]+$/
 
 export function fold(p: Platform, handle: string): string {
   return p.fold === 'lower' ? handle.toLowerCase() : handle
@@ -64,8 +74,16 @@ function extractFromUrl(p: Platform, input: string): string | null {
     (a, b) => b.length - a.length,
   )) {
     if (!url.pathname.startsWith(prefix)) continue
-    const segment = url.pathname.slice(prefix.length).split('/')[0]
-    const decoded = decodeSegment(segment)
+    // A profile URL is the prefix and EXACTLY ONE segment. Anything deeper is
+    // one of the platform's own routes, and reading its first segment as a
+    // handle is how `discord.com/channels/1/2` becomes `discord.gg/channels`
+    // and `instagram.com/p/ABC` becomes a link to `/p`. Stated as a shape
+    // rather than a list of reserved words, which would rot the first time a
+    // platform added a route — and it refuses deep links for free, which the
+    // spec wants anyway.
+    const rest = url.pathname.slice(prefix.length).replace(/\/$/, '')
+    if (rest === '' || rest.includes('/')) continue
+    const decoded = decodeSegment(rest)
     if (decoded) return decoded.replace(/^@/, '')
   }
   return null

@@ -210,13 +210,28 @@ test.describe('the rail a visitor is shown', () => {
   })
 })
 
-/* The plates are loud at night and near-invisible by day — the reverse of the
-   usual mode problem, and accepted: in Daylight Hall they dissolve into the
-   light glass and only the marks read. What is NOT accepted either way is the
-   handle beside them, which is the whole anti-impersonation signal, so that is
-   what is measured here — against the pane it actually sits on, in both fills. */
-test.describe('the handle is readable in both lighting states', () => {
+/* Two separate promises, measured separately.
+
+   The marks are logotypes, which 1.4.11 asks no ratio of — but that exemption
+   is only honest if they are actually sitting on the sanctioned background the
+   brand terms require. So the plate is measured for what it PROMISES: fully
+   opaque, and the same fill in both lighting states. That is the whole reason
+   it is white rather than a site token — a mark over our frost would be
+   non-compliant with YouTube, Bluesky and X whatever colour it was drawn in,
+   and a mark whose plate flipped with the theme would be a recolouring.
+
+   Everything that is genuinely text — the handle beside each mark, and the one
+   wordmark — carries no exemption at all and is measured against the pane it
+   actually sits on, in both fills. */
+test.describe('the rail is readable in both lighting states', () => {
   test.use({ storageState: STATE.anon })
+
+  const plateFills = (page: Page) =>
+    page
+      .locator(`${RAIL} a > :first-child`)
+      .evaluateAll((plates) =>
+        plates.map((el) => getComputedStyle(el).backgroundColor),
+      )
 
   for (const theme of LIGHTING) {
     test(`${theme}`, async ({ page }) => {
@@ -228,6 +243,13 @@ test.describe('the handle is readable in both lighting states', () => {
             theme,
           })
           await bringIntoView(page, RAIL)
+
+          // Opaque, and the same fill for every mark in the row. `rgb(…)`
+          // rather than `rgba(…, <1)` is the assertion: any alpha at all would
+          // let the scene through and break all three brand rules at once.
+          const fills = await plateFills(page)
+          expect(fills.length).toBeGreaterThan(1)
+          expect([...new Set(fills)]).toEqual(['rgb(255, 255, 255)'])
 
           const readings = await readInk(page, RAIL, 'nothing-here', [RAIL])
           expect(unmeasured(readings, [RAIL])).toEqual([])
@@ -273,6 +295,82 @@ test.describe('the holder authors them', () => {
 
         await page.getByRole('button', { name: 'Remove YouTube link' }).click()
         await expect(page.locator(RAIL)).toHaveCount(0)
+      },
+    )
+  })
+
+  /* The personal site is the one slot whose stored value is a whole canonical
+     URL, while the welded prefix is already drawing its scheme. Round-tripped
+     through a real save here, because the failure only appears on the SECOND
+     render — the field looked right until the first save came back, and then
+     read `https://https://…` forever after. */
+  test('leaves the personal site readable after it round-trips', async ({
+    page,
+  }) => {
+    const slug = 'e2e-links-site'
+    await withPlayer(
+      linkedPlayer(slug, { owned: 'mine', links: [] }),
+      async ({ sql }) => {
+        await page.setViewportSize({ width: 1280, height: TALL })
+        await page.goto(`/player/${slug}`)
+
+        await page.getByLabel('Add a link').selectOption('website')
+        const field = page.getByLabel('Personal site — https://')
+        await field.fill('e2e-links-site.example/shop')
+        await page
+          .getByRole('button', { name: 'Save Personal site link' })
+          .click()
+        await expect(page.locator(`${RAIL} a`)).toHaveCount(1)
+
+        // What was stored is the canonical URL, scheme and all…
+        const rows = await sql<{ handle: string }[]>`
+          select handle from player_links
+          where player_id in (select id from players where slug = ${slug})
+        `
+        expect(rows.map((r) => r.handle)).toEqual([
+          'https://e2e-links-site.example/shop',
+        ])
+
+        // …and the field shows only what belongs under the prefix, both now
+        // and after a full reload.
+        const saved = page.getByLabel('Personal site — https://')
+        await expect(saved).toHaveValue('e2e-links-site.example/shop')
+        await page.reload()
+        await expect(page.getByLabel('Personal site — https://')).toHaveValue(
+          'e2e-links-site.example/shop',
+        )
+        // Nothing left to save: the field agrees with what was stored.
+        await expect(
+          page.getByRole('button', { name: 'Save Personal site link' }),
+        ).toBeDisabled()
+      },
+    )
+  })
+
+  /* The server canonicalises, and the field has to take what it actually
+     stored — or a save that changed anything leaves the field looking dirty
+     against a value that is already published. */
+  test('settles the field on what the server stored', async ({ page }) => {
+    const slug = 'e2e-links-echo'
+    await withPlayer(
+      linkedPlayer(slug, { owned: 'mine', links: [] }),
+      async () => {
+        await page.setViewportSize({ width: 1280, height: TALL })
+        await page.goto(`/player/${slug}`)
+
+        // A pasted profile URL, which the server stores as a bare handle.
+        await page
+          .getByLabel('YouTube — youtube.com/@')
+          .fill('https://www.youtube.com/@E2EEcho')
+        await page.getByRole('button', { name: 'Save YouTube link' }).click()
+        await expect(page.locator(`${RAIL} a`)).toHaveCount(1)
+
+        await expect(page.getByLabel('YouTube — youtube.com/@')).toHaveValue(
+          'E2EEcho',
+        )
+        await expect(
+          page.getByRole('button', { name: 'Save YouTube link' }),
+        ).toBeDisabled()
       },
     )
   })

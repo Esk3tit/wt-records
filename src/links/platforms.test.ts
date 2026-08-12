@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { buildMarks } from '../../scripts/generate-brand-marks'
+import { BRAND_MARKS } from '#/links/brand-marks.generated'
 import {
   DEFERRED_PLATFORMS,
   MAX_NAMED_LINKS,
@@ -30,6 +32,29 @@ const SAMPLE: Record<string, string> = {
   reddit: 'phlydaily',
 }
 
+/* The marks ship inlined, so nothing at runtime would notice simple-icons
+   changing a path or a brand colour under them. Steam, start.gg and FACEIT each
+   shipped a list that outran its assets; this fails the build instead. */
+describe('the brand marks', () => {
+  it('have not drifted from the generator', () => {
+    expect(BRAND_MARKS).toEqual(
+      Object.fromEntries(
+        buildMarks().map(({ id, title, hex, path }) => [
+          id,
+          { title, hex, path },
+        ]),
+      ),
+    )
+  })
+
+  it('fill every glyph with an official form of the mark', () => {
+    for (const mark of Object.values(BRAND_MARKS)) {
+      expect(mark.hex).toMatch(/^#[0-9a-f]{6}$/i)
+      expect(mark.path.length).toBeGreaterThan(0)
+    }
+  })
+})
+
 describe('the platform config', () => {
   it('covers every shippable platform with a sample handle', () => {
     expect(Object.keys(SAMPLE).sort()).toEqual(
@@ -47,7 +72,7 @@ describe('the platform config', () => {
     expect(p.pattern.source.startsWith('^')).toBe(true)
     expect(p.pattern.source.endsWith('$')).toBe(true)
     expect(['lower', 'none']).toContain(p.fold)
-    expect(p.plate).toBe('white')
+    expect(p.kind).toBe('handle')
     // A glyph platform carries a brand asset; a wordmark platform must not,
     // because it ships as a wordmark precisely for want of a usable one.
     expect(brandMark(p.id) != null).toBe(p.mark === 'glyph')

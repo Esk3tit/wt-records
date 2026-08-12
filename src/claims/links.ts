@@ -1,4 +1,4 @@
-import { and, count, eq, ne } from 'drizzle-orm'
+import { and, count, eq, inArray, ne } from 'drizzle-orm'
 import type { Db } from '#/db'
 import { playerLinks, players } from '#/db/schema'
 import { assertClaimOwnership } from '#/claims/owner'
@@ -55,8 +55,24 @@ export async function setOwnLink(
           updatedAt: new Date(),
         },
       })
+      .catch((error: unknown) => {
+        // Two Players saving the same handle both clear the read above, and
+        // the index settles it. The loser must be told the same thing the read
+        // would have told them, not handed a driver's constraint text.
+        throw collidedOnHandle(error)
+          ? new Error('Another player already shows that handle.')
+          : error
+      })
   })
   return stored
+}
+
+const HANDLE_INDEX = 'plink_handle_uq'
+
+function collidedOnHandle(error: unknown): boolean {
+  return JSON.stringify(
+    error instanceof Error ? (error.cause ?? error.message) : error,
+  ).includes(HANDLE_INDEX)
 }
 
 /** Removal, which can only ever reduce what the site broadcasts and so is
@@ -140,8 +156,9 @@ async function assertHandleFree(
 ): Promise<void> {
   if (stored.platform === WEBSITE_PLATFORM) return
   const clash = await tx
-    .select({ playerId: playerLinks.playerId })
+    .select({ id: playerLinks.id, holder: players.userId })
     .from(playerLinks)
+    .innerJoin(players, eq(players.id, playerLinks.playerId))
     .where(
       and(
         eq(playerLinks.platform, stored.platform),
@@ -149,8 +166,18 @@ async function assertHandleFree(
         ne(playerLinks.playerId, playerId),
       ),
     )
-    .limit(1)
-  if (clash.length > 0) {
+  // A row on an accountless Player is not a claim on the handle — it is
+  // garbage the invariant already forbids, left by the one path that can
+  // create it: deleting an auth User nulls `players.user_id` by FK and cannot
+  // reach this table. Nothing renders it, but `plink_handle_uq` still reserves
+  // the handle against everybody, forever. So it is collected here rather than
+  // refused with, since a read-side filter alone would only move the failure
+  // to the index and hand the owner a raw constraint error.
+  const stale = clash.filter((row) => row.holder == null).map((row) => row.id)
+  if (stale.length > 0) {
+    await tx.delete(playerLinks).where(inArray(playerLinks.id, stale))
+  }
+  if (stale.length < clash.length) {
     throw new Error('Another player already shows that handle.')
   }
 }

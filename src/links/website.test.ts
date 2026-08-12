@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { MAX_WEBSITE_LENGTH, normalizeWebsite } from '#/links/website'
+import { fieldPrefix, fieldValue } from '#/links/parse'
+import { WEBSITE_PLATFORM } from '#/links/platforms'
 
 /* The personal site is the one field the handle rule does not cover: an
    arbitrary URL to anywhere, published instantly with nobody reviewing it. The
@@ -125,5 +127,32 @@ describe('what the personal site refuses beyond the table', () => {
 
   it('refuses an empty field', () => {
     expect(() => normalizeWebsite('  ')).toThrow(/Enter the address/)
+  })
+})
+
+/* The field welds `https://` on as static text, so what belongs IN it is the
+   rest — but the personal site is the one slot whose stored value is a whole
+   canonical URL, scheme and all. Seeding the field with it raw read
+   `https://https://example.com` the instant a first save round-tripped. */
+describe('what belongs in the field, given what is stored', () => {
+  it('drops the scheme the welded prefix is already drawing', () => {
+    expect(fieldValue(WEBSITE_PLATFORM, 'https://phlydaily.example/shop')).toBe(
+      'phlydaily.example/shop',
+    )
+    expect(fieldPrefix(WEBSITE_PLATFORM)).toBe('https://')
+  })
+
+  it('leaves a named platform’s handle alone — it sits under its prefix already', () => {
+    expect(fieldValue('youtube', 'PhlyDaily')).toBe('PhlyDaily')
+    expect(fieldValue('reddit', 'phlydaily')).toBe('phlydaily')
+  })
+
+  it('round-trips: what the field shows re-parses to what was stored', () => {
+    const stored = normalizeWebsite('https://phlydaily.example/shop')
+    expect(normalizeWebsite(fieldValue(WEBSITE_PLATFORM, stored))).toBe(stored)
+  })
+
+  it('is empty for a slot with nothing on it', () => {
+    expect(fieldValue(WEBSITE_PLATFORM, '')).toBe('')
   })
 })

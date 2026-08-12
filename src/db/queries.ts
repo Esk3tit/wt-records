@@ -1119,8 +1119,8 @@ export function effectiveCountry(player: {
   return player.userId != null ? player.countryCode : null
 }
 
-/** A stored row per platform, for one Player. Ordered by the config, not by
-    the table: what is stored carries no position. */
+/** The stored rows for one Player, unordered — what is stored carries no
+    position, and the config decides the order at render (`renderLinks`). */
 export async function getPlayerLinks(
   db: Db,
   playerId: number,

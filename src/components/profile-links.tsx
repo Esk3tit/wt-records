@@ -17,7 +17,7 @@ import { linkAccessibleName } from '#/links/render'
 const CLEAR_SPACE = 'gap-6'
 
 const PLATE =
-  'inline-flex h-8 shrink-0 items-center justify-center rounded-[7px] bg-white ring-1 ring-black/10'
+  'inline-flex h-8 shrink-0 items-center justify-center rounded-[10px] bg-white ring-1 ring-black/10'
 
 export function ProfileLinks({
   links,
@@ -76,7 +76,7 @@ function BrandPlate({ link }: { link: RenderedLink }) {
     // platform's, and never as a lockup with our own mark.
     return (
       <span
-        className={`${PLATE} px-2.5 text-[13px] font-semibold text-[#3f3f46]`}
+        className={`${PLATE} px-2.5 text-[0.8125rem] font-semibold text-[#3f3f46]`}
       >
         {link.wordmark}
       </span>

@@ -195,6 +195,29 @@ describe('two players claiming the same channel', () => {
     ).rejects.toThrow()
   })
 
+  /* Deleting an auth User nulls `players.user_id` by FK and cannot reach this
+     table, so a row survives on an accountless Player: invisible behind the
+     read gate, but still reserving the handle on `plink_handle_uq` against
+     everybody, forever. A read-side filter alone would only move the failure
+     to the index, so the row is collected instead. */
+  it('do not collide with a row stranded on an accountless player', async () => {
+    const ace = await claim('ace', USER_A)
+    const ghost = await claim('floppa', USER_B)
+    await setOwnLink(t.db, USER_B, ghost.id, 'youtube', 'PhlyDaily')
+    // The account-deletion path, exactly: the FK nulls the claim and leaves
+    // the link row behind.
+    await t.db
+      .update(players)
+      .set({ userId: null })
+      .where(eq(players.id, ghost.id))
+
+    await expect(
+      setOwnLink(t.db, USER_A, ace.id, 'youtube', 'PhlyDaily'),
+    ).resolves.toBeTruthy()
+    expect(await linksOf(ghost.id)).toHaveLength(0)
+    expect(await linksOf(ace.id)).toHaveLength(1)
+  })
+
   it('do not collide on a personal site — a squadron domain is shared', async () => {
     const ace = await claim('ace', USER_A)
     const mate = await claim('floppa', USER_B)
