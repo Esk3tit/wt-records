@@ -31,6 +31,19 @@ describe('a typed handle', () => {
     expect(stored('discord', 'aBcDeF').normalized).toBe('aBcDeF')
   })
 
+  /* A Bluesky handle is a domain, so its grammar is written lower-case — and
+     someone typing their own handle in caps must not be told it is not one.
+     The grammar describes the folded form. */
+  it('is accepted in whatever case it was typed, where the platform folds', () => {
+    expect(stored('bluesky', 'Phly.Bsky.Social')).toEqual({
+      handle: 'Phly.Bsky.Social',
+      normalized: 'phly.bsky.social',
+    })
+    expect(
+      stored('bluesky', 'https://bsky.app/profile/Phly.Bsky.Social').handle,
+    ).toBe('Phly.Bsky.Social')
+  })
+
   it('is refused when it does not fit the platform grammar', () => {
     expect(() => stored('x', 'sixteen_chars_xx')).toThrow(
       /not a valid handle for X/,

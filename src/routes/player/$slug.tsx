@@ -122,9 +122,7 @@ const loadPlayer = createServerFn({ method: 'GET' })
         countryCode,
         // Rendered for anonymous visitors too: gating them would defeat the
         // shareability that motivated the breadth, and gains nothing since
-        // anyone can make an account. An unclaimed Player carries none —
-        // for a child table this gate is the only cover on the
-        // account-deletion path, since the FK cannot reach player_links.
+        // anyone can make an account.
         links: effectiveLinks(found.player, links),
         isClaimed: claimed,
       },

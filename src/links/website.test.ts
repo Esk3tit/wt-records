@@ -8,12 +8,9 @@ import { MAX_WEBSITE_LENGTH, normalizeWebsite } from '#/links/website'
    point. */
 
 const HOSTILE: ReadonlyArray<[input: string, because: string]> = [
-  [
-    'https://youtube.com@evil.example/x',
-    'parses to evil.example, reads as YouTube',
-  ],
-  ['https://youtube.com.evil.example/', 'defeats endsWith("youtube.com")'],
-  ['https://уoutube.example/', 'punycodes to xn--… (Cyrillic у)'],
+  ['https://youtube.com@evil.com/x', 'parses to evil.com, reads as YouTube'],
+  ['https://youtube.com.evil.com/', 'defeats endsWith("youtube.com")'],
+  ['https://уoutube.com/', 'punycodes to xn--outube-vrf.com (Cyrillic у)'],
   [
     'http://youtube.com./',
     'a trailing dot is a valid FQDN and breaks Set.has()',
@@ -25,7 +22,7 @@ const HOSTILE: ReadonlyArray<[input: string, because: string]> = [
   ],
   ['vbscript:msgbox(1)', 'parses fine with an empty host'],
   [
-    'https://example.com/?next=https://evil.example',
+    'https://example.com/?next=https://evil.com',
     'every measured redirector carries its payload in the query',
   ],
   ['http://example.com/', 'https: only'],
@@ -35,6 +32,16 @@ const HOSTILE: ReadonlyArray<[input: string, because: string]> = [
 describe('the hostile-input table', () => {
   it.each(HOSTILE)('refuses %s — %s', (input) => {
     expect(() => normalizeWebsite(input)).toThrow()
+  })
+
+  /* The table's trailing-dot row arrives over http, so the scheme refuses it
+     before the dot rule is ever reached. This is that row with the scheme it
+     would need to get that far: the dot has to come off BEFORE the host is
+     judged, or `youtube.com.` reads as some site nobody has heard of. */
+  it('strips the trailing dot before anything else judges the host', () => {
+    expect(() => normalizeWebsite('https://youtube.com./')).toThrow(
+      /its own slot/,
+    )
   })
 })
 

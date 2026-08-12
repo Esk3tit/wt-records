@@ -1,4 +1,5 @@
 import type { Platform } from '#/links/platforms'
+import { MAX_LINK_INPUT } from '#/claims/limits'
 
 /* Handles in, URLs out. Storing a bare handle and constructing the URL
    server-side is not a preference: with no human in the loop it is the only
@@ -19,10 +20,6 @@ export interface StoredHandle {
   normalized: string
 }
 
-/** Beyond any platform's ceiling — a bound on the parser's own work, not a
-    grammar. The grammar below is what actually decides. */
-const MAX_INPUT = 300
-
 export function buildLinkUrl(p: Platform, handle: string): string {
   return `https://${p.host}${p.pathPrefix}${handle}`
 }
@@ -32,10 +29,13 @@ export function buildLinkUrl(p: Platform, handle: string): string {
 export function parseHandle(p: Platform, raw: string): StoredHandle {
   const input = raw.trim()
   if (!input) throw new Error(`Enter your ${p.name} handle`)
-  if (input.length > MAX_INPUT) throw new Error(refusal(p))
+  if (input.length > MAX_LINK_INPUT) throw new Error(refusal(p))
   const handle = extractFromUrl(p, input) ?? input.replace(/^@/, '')
-  if (!p.pattern.test(handle)) throw new Error(refusal(p))
-  return { handle, normalized: fold(p, handle) }
+  // The grammar describes the folded form, so a platform whose handles are
+  // canonically lower-case does not refuse the same handle typed in caps.
+  const normalized = fold(p, handle)
+  if (!p.pattern.test(normalized)) throw new Error(refusal(p))
+  return { handle, normalized }
 }
 
 export function fold(p: Platform, handle: string): string {

@@ -28,6 +28,7 @@ import {
   adminResetPlayerAvatar,
 } from '#/admin/api'
 import { ClaimedChip } from '#/components/claimed-chip'
+import { platformName } from '#/links/parse'
 import { revokePlayerClaim } from '#/claims/api'
 import { MAX_NOTE_LENGTH } from '#/claims/limits'
 
@@ -457,7 +458,7 @@ function ClaimStatus({
         <ul className="text-sm text-fg-muted">
           {links.map((link) => (
             <li key={link.platform}>
-              {link.platform} · {link.handle}
+              {platformName(link.platform)} · {link.handle}
             </li>
           ))}
         </ul>

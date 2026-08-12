@@ -2,20 +2,9 @@ import { ArrowUpRight } from 'lucide-react'
 import type { RenderedLink } from '#/links/render'
 import { linkAccessibleName } from '#/links/render'
 
-/* The rail of Profile links. Full-colour brand marks, unmodified, each on its
-   own opaque solid chip, with the handle as the link text beside it — a
-   deliberate, recorded exception to the hall's chroma-neutral identity, taken
-   because a platform-name-plus-handle pair is more text than a profile header
-   should carry and the glyph carries the name.
-
-   The plate is white throughout, and that is not a taste call: YouTube's,
-   Reddit's, Telegram's and Instagram's marks knock their interior detail out to
-   transparent, so the plate colour becomes part of the mark and a black one
-   would repaint YouTube's play triangle black. Our signature material — frost
-   over a depth-parallaxing battle scene — is separately forbidden as a backdrop
-   by YouTube's "single, solid background color", Bluesky's "busy or
-   low-contrast", and X's "white on black or black on white", whatever colour
-   the glyph is.
+/* The rail of Profile links. A deliberate, recorded exception to the hall's
+   chroma-neutral identity — see `#/links/platforms` for why the plate is white
+   and opaque, and why one platform ships as a wordmark.
 
    The handle stays visible. It is the whole anti-impersonation signal, and
    hover is not a mitigation on a phone: a row of glyphs says which platforms,
@@ -83,10 +72,8 @@ function ProfileLink({ link }: { link: RenderedLink }) {
 function BrandPlate({ link }: { link: RenderedLink }) {
   if (link.wordmark) {
     // A pill sized to the word, not the square glyph plate: the row aligns on
-    // plate height and never plate width. TikTok's logo is forbidden outright
-    // without written permission, and its own guidelines name a plain call-out
-    // as permitted — so this is the platform's sanctioned option, set in our
-    // own type, never TikTok's, and never as a lockup with our own mark.
+    // plate height and never plate width. Set in our own type, never the
+    // platform's, and never as a lockup with our own mark.
     return (
       <span
         className={`${PLATE} px-2.5 text-[13px] font-semibold text-[#3f3f46]`}

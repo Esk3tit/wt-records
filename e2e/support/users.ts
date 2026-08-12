@@ -2,8 +2,10 @@ import { createClient } from '@supabase/supabase-js'
 import postgres from 'postgres'
 import { assertDisposableTarget, requireEnv } from './env'
 
-/** The suite's two identities. Passwords are fixtures for a throwaway local
-    stack — the real sessions are minted fresh per run, never committed. */
+/** The suite's identities. Passwords are fixtures for a throwaway local stack
+    — the real sessions are minted fresh per run, never committed. Only the two
+    that are *signed in as* get a storage state; a fixture that needs a Player
+    to be claimed by somebody, rather than by the reader, takes `holder`. */
 export const TEST_USERS = {
   moderator: {
     email: 'e2e-moderator@wt-records.test',
@@ -15,6 +17,15 @@ export const TEST_USERS = {
     email: 'e2e-viewer@wt-records.test',
     password: 'e2e-viewer-password',
     handle: 'E2E Viewer',
+    role: 'viewer',
+  },
+  /* Never signed in as: it exists so a read-only fixture can have a claimed
+     Player without queueing behind every case that signs in as the viewer. One
+     User holds one Player, so the claim is a lock the whole suite shares. */
+  holder: {
+    email: 'e2e-holder@wt-records.test',
+    password: 'e2e-holder-password',
+    handle: 'E2E Holder',
     role: 'viewer',
   },
 } as const

@@ -344,6 +344,41 @@ describe('the submit guard', () => {
     ).rejects.toThrow(/too many changes/i)
   })
 
+  /* What the link side of the budget actually bounds, pinned so nobody reads
+     the guard as counting writes. `updated_at` lives on the row, and one row
+     per platform survives however hard it is driven — so rewriting a single
+     platform costs the budget exactly one, forever, and a remove-then-set pair
+     costs it nothing at all. The published surface is capped at six rows
+     either way, which is the accumulation the guard was extended to stop; the
+     write loop underneath it is not closed, and closing it needs a write log
+     this table deliberately does not keep. */
+  it('bounds the platforms touched in an hour, not the writes to one', async () => {
+    const ace = await claim('ace', USER_A)
+    await t.db.insert(playerAmendments).values(
+      Array.from({ length: AMENDMENT_HOURLY_LIMIT - 2 }, (_, i) => ({
+        playerId: ace.id,
+        field: 'avatar' as const,
+        value: `avatars/${ace.id}/spent${i}.webp`,
+        state: 'superseded' as const,
+        submittedBy: USER_A,
+      })),
+    )
+    await setOwnLink(t.db, USER_A, ace.id, 'youtube', 'phlydaily0')
+
+    // Rewriting the one platform costs nothing more: the row is already inside
+    // the window, and its `updated_at` only moves.
+    for (let i = 1; i < 6; i++) {
+      await expect(
+        setOwnLink(t.db, USER_A, ace.id, 'youtube', `phlydaily${i}`),
+      ).resolves.toBeTruthy()
+    }
+    // A platform that is not yet on the row is what spends the last slot.
+    await setOwnLink(t.db, USER_A, ace.id, 'twitch', 'phlydaily')
+    await expect(
+      setOwnLink(t.db, USER_A, ace.id, 'x', 'phlydaily'),
+    ).rejects.toThrow(/too many changes/i)
+  })
+
   it('says nothing about review, because links have none', async () => {
     const ace = await claim('ace', USER_A)
     await t.db.insert(playerAmendments).values(

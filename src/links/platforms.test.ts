@@ -47,7 +47,6 @@ describe('the platform config', () => {
     expect(p.pattern.source.startsWith('^')).toBe(true)
     expect(p.pattern.source.endsWith('$')).toBe(true)
     expect(['lower', 'none']).toContain(p.fold)
-    expect(typeof p.grammarVerified).toBe('boolean')
     expect(p.plate).toBe('white')
     // A glyph platform carries a brand asset; a wordmark platform must not,
     // because it ships as a wordmark precisely for want of a usable one.
@@ -75,6 +74,16 @@ describe('the platform config', () => {
       expect(shippable).not.toContain(deferred.id)
       expect(isStorablePlatform(deferred.id)).toBe(false)
     }
+  })
+
+  /* Where a platform does not publish its grammar, the config says so rather
+     than a regex being guessed into it — and the entry is then narrower than
+     the platform accepts, so a legitimate handle is a bug report rather than a
+     hole. Named here, so admitting a platform on a guess fails CI. */
+  it('names exactly the platforms whose grammar could not be read', () => {
+    expect(
+      PLATFORMS.filter((p) => !p.grammarVerified).map((p) => p.id),
+    ).toEqual(['twitch', 'tiktok'])
   })
 
   it('refuses a platform nobody configured', () => {

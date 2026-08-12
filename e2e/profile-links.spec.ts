@@ -40,13 +40,24 @@ const fullRail = (slug: string) => [
   { platform: 'website', handle: `https://${token(slug)}.example/shop` },
 ]
 
+/** `held` is a Player claimed by somebody — all a rail needs, and it keeps
+    these cases off the lock every case signing in as the viewer waits on.
+    `mine` is the reader's own Player, which only the authoring cases need. */
 const linkedPlayer = (
   slug: string,
-  options: { owned?: boolean; links?: ReturnType<typeof fullRail> } = {},
+  options: {
+    owned?: 'held' | 'mine'
+    links?: ReturnType<typeof fullRail>
+  } = {},
 ) => ({
   slug,
   displayName: 'E2E Link Holder',
-  ownerEmail: options.owned ? TEST_USERS.viewer.email : undefined,
+  ownerEmail:
+    options.owned === 'mine'
+      ? TEST_USERS.viewer.email
+      : options.owned === 'held'
+        ? TEST_USERS.holder.email
+        : undefined,
   links: options.links ?? fullRail(slug),
 })
 
@@ -73,7 +84,7 @@ test.describe('the rail a visitor is shown', () => {
     page,
   }) => {
     const slug = 'e2e-links-anon'
-    await withPlayer(linkedPlayer(slug, { owned: true }), async () => {
+    await withPlayer(linkedPlayer(slug, { owned: 'held' }), async () => {
       await openProfile(page, slug, { width: 1280 })
 
       const links = page.locator(`${RAIL} a`)
@@ -85,7 +96,7 @@ test.describe('the rail a visitor is shown', () => {
 
   test('carries the markup the whole feature rests on', async ({ page }) => {
     const slug = 'e2e-links-markup'
-    await withPlayer(linkedPlayer(slug, { owned: true }), async () => {
+    await withPlayer(linkedPlayer(slug, { owned: 'held' }), async () => {
       await openProfile(page, slug, { width: 1280 })
 
       const first = page.locator(`${RAIL} a`).first()
@@ -114,14 +125,11 @@ test.describe('the rail a visitor is shown', () => {
 
   test('shows an unclaimed player no links at all', async ({ page }) => {
     // Seeded on the row, but the page implies nobody is behind it.
-    await withPlayer(
-      linkedPlayer('e2e-links-unclaimed', { owned: false }),
-      async () => {
-        await page.goto('/player/e2e-links-unclaimed')
-        await expect(page.getByText('E2E Link Holder')).toBeVisible()
-        await expect(page.locator(RAIL)).toHaveCount(0)
-      },
-    )
+    await withPlayer(linkedPlayer('e2e-links-unclaimed', {}), async () => {
+      await page.goto('/player/e2e-links-unclaimed')
+      await expect(page.getByText('E2E Link Holder')).toBeVisible()
+      await expect(page.locator(RAIL)).toHaveCount(0)
+    })
   })
 
   /* The one AC that can only be answered by the running app: a row of small
@@ -129,7 +137,7 @@ test.describe('the rail a visitor is shown', () => {
      owns — a border on a chip silently costs it hit area. */
   test('is reachable by thumb at 320px, where it stacks', async ({ page }) => {
     await withPlayer(
-      linkedPlayer('e2e-links-reach', { owned: true }),
+      linkedPlayer('e2e-links-reach', { owned: 'held' }),
       async () => {
         await openProfile(page, 'e2e-links-reach')
         await bringIntoView(page, RAIL)
@@ -149,9 +157,48 @@ test.describe('the rail a visitor is shown', () => {
     )
   })
 
+  /* The one platform that ships as a wordmark, because its logo is forbidden
+     outright without written permission. It was never captured at the size the
+     row aligns on, and the spec named dropping the platform as the alternative
+     if it could not be read — so the word is measured here rather than trusted:
+     rendered at type size, on its own pill sized to itself, and not clipped. */
+  test('draws the TikTok wordmark legibly at the row’s own height', async ({
+    page,
+  }) => {
+    await withPlayer(
+      linkedPlayer('e2e-links-wordmark', { owned: 'held' }),
+      async () => {
+        await openProfile(page, 'e2e-links-wordmark')
+        await bringIntoView(page, RAIL)
+
+        const pill = page
+          .locator(`${RAIL} a[aria-label^="TikTok"] > :first-child`)
+          .first()
+        await expect(pill).toHaveText('TikTok')
+        const drawn = await pill.evaluate((el) => ({
+          fontSize: parseFloat(getComputedStyle(el).fontSize),
+          width: el.getBoundingClientRect().width,
+          height: el.getBoundingClientRect().height,
+          clipped: el.scrollWidth > Math.ceil(el.getBoundingClientRect().width),
+        }))
+        // Set in our own type at reading size, never squeezed into a glyph box.
+        expect(drawn.fontSize).toBeGreaterThanOrEqual(12)
+        expect(drawn.clipped).toBe(false)
+        // The row aligns on plate height and never plate width: the pill is as
+        // tall as a glyph plate and wider, because it is sized to the word.
+        const glyph = await page
+          .locator(`${RAIL} a[aria-label^="YouTube"] > :first-child`)
+          .first()
+          .evaluate((el) => el.getBoundingClientRect())
+        expect(drawn.height).toBeCloseTo(glyph.height, 0)
+        expect(drawn.width).toBeGreaterThan(glyph.width)
+      },
+    )
+  })
+
   test('is reachable on a larger phone too', async ({ page }) => {
     await withPlayer(
-      linkedPlayer('e2e-links-reach-390', { owned: true }),
+      linkedPlayer('e2e-links-reach-390', { owned: 'held' }),
       async () => {
         await openProfile(page, 'e2e-links-reach-390', { width: 390 })
         await bringIntoView(page, RAIL)
@@ -174,7 +221,7 @@ test.describe('the handle is readable in both lighting states', () => {
   for (const theme of LIGHTING) {
     test(`${theme}`, async ({ page }) => {
       await withPlayer(
-        linkedPlayer(`e2e-links-ink-${theme}`, { owned: true }),
+        linkedPlayer(`e2e-links-ink-${theme}`, { owned: 'held' }),
         async () => {
           await openProfile(page, `e2e-links-ink-${theme}`, {
             width: 1280,
@@ -200,7 +247,7 @@ test.describe('the holder authors them', () => {
   }) => {
     const slug = 'e2e-links-owner'
     await withPlayer(
-      linkedPlayer(slug, { owned: true, links: [] }),
+      linkedPlayer(slug, { owned: 'mine', links: [] }),
       async ({ sql }) => {
         await page.setViewportSize({ width: 1280, height: TALL })
         await page.goto(`/player/${slug}`)
@@ -233,7 +280,7 @@ test.describe('the holder authors them', () => {
   test('refuses a pasted redirector and says so', async ({ page }) => {
     const slug = 'e2e-links-hostile'
     await withPlayer(
-      linkedPlayer(slug, { owned: true, links: [] }),
+      linkedPlayer(slug, { owned: 'mine', links: [] }),
       async ({ sql }) => {
         await page.setViewportSize({ width: 1280, height: TALL })
         await page.goto(`/player/${slug}`)
@@ -261,7 +308,7 @@ test.describe('a non-owner is offered nothing', () => {
 
   test('sees the rail but no field', async ({ page }) => {
     const slug = 'e2e-links-nonowner'
-    await withPlayer(linkedPlayer(slug, { owned: true }), async () => {
+    await withPlayer(linkedPlayer(slug, { owned: 'held' }), async () => {
       await openProfile(page, slug, { width: 1280 })
       await expect(page.locator(`${RAIL} a`)).toHaveCount(fullRail(slug).length)
       await expect(page.getByLabel('YouTube — youtube.com/@')).toHaveCount(0)

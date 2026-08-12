@@ -538,10 +538,6 @@ describe('mergePlayers', () => {
   })
 })
 
-/* Links take the Aliases' rule, not the Avatar's: a union, with the survivor
-   winning any per-platform collision. Pick-a-side differs only when both sides
-   are claimed by the same User — and there it is the difference between keeping
-   a person's YouTube AND their Twitch, and destroying half of what they set. */
 describe('mergePlayers folds both link sets', () => {
   const linkRow = (playerId: number, platform: string, handle: string) => ({
     playerId,

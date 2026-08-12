@@ -15,6 +15,15 @@ const ownedPlayer = (slug: string) => ({
   ownerEmail: TEST_USERS.viewer.email,
 })
 
+/** Claimed by somebody who is not the reader — which is the whole subject of
+    the read-only cases, and keeps them off the lock the owner's cases queue
+    on. One User holds one Player, so that claim is a suite-wide bottleneck. */
+const otherHolder = (slug: string) => ({
+  slug,
+  displayName: 'E2E Country Owner',
+  ownerEmail: TEST_USERS.holder.email,
+})
+
 function picker(page: Page) {
   return page.getByLabel('Country', { exact: true })
 }
@@ -158,7 +167,7 @@ test.describe('only the claim holder can set it', () => {
     page,
   }) => {
     const slug = 'e2e-country-nonowner'
-    await withPlayer(ownedPlayer(slug), async ({ sql }) => {
+    await withPlayer(otherHolder(slug), async ({ sql }) => {
       await sql`update players set country_code = 'JP' where slug = ${slug}`
       await expectReadOnlyCountry(page, slug)
     })
@@ -170,7 +179,7 @@ test.describe('a signed-out visitor', () => {
 
   test('sees the country but no picker', async ({ page }) => {
     const slug = 'e2e-country-anon'
-    await withPlayer(ownedPlayer(slug), async ({ sql }) => {
+    await withPlayer(otherHolder(slug), async ({ sql }) => {
       await sql`update players set country_code = 'JP' where slug = ${slug}`
       await expectReadOnlyCountry(page, slug)
     })

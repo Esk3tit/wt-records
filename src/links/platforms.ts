@@ -232,27 +232,12 @@ export const DEFERRED_PLATFORMS: ReadonlyArray<{
   },
 ]
 
-/** Refused by a clause, and recorded so the case is not re-proposed. */
-export const REFUSED_PLATFORMS: ReadonlyArray<{
-  name: string
-  clause: 2 | 3
-  reason: string
-}> = [
-  {
-    name: 'Steam',
-    clause: 3,
-    reason:
-      'A vanity URL may be changed freely, and the old one then resolves to ' +
-      'whoever claims it next — a stored handle does not merely rot, it can ' +
-      'come to name a different person. Admissible only as a 17-digit ' +
-      'steamid64, and a number is not a label.',
-  },
-  {
-    name: 'Mastodon, Lemmy, Matrix',
-    clause: 2,
-    reason: 'The host is part of the identity, so there is no host to fix.',
-  },
-]
+/* Refused by a clause, recorded so the case is not re-proposed. Steam fails
+   clause 3: a vanity URL may be changed freely and the old one then resolves to
+   whoever claims it next, so a stored handle does not merely rot — it can come
+   to name a different person. It is admissible only as a 17-digit steamid64,
+   and a number is not a label. Mastodon, Lemmy and Matrix fail clause 2: there
+   the host IS part of the identity, so there is no host to fix. */
 
 /** The free-text personal site: the one field the handle rule does not cover,
     which is why it carries its own validation rules and its own carve-out from

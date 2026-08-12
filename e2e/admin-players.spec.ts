@@ -16,7 +16,7 @@ test('a moderator resets a reported avatar and the Medallion returns', async ({
     {
       slug: SLUG,
       displayName: 'E2E Avatar Reset',
-      ownerEmail: TEST_USERS.viewer.email,
+      ownerEmail: TEST_USERS.holder.email,
       avatarKey: 'avatars/e2e/abc123abc123.png',
     },
     async ({ id }) => {

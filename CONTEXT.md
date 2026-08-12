@@ -68,7 +68,7 @@ _Avoid_: nationality (shares a root with Nation), region, location.
 
 **Profile link**:
 A platform a claimed Player points at from their own page — YouTube, Twitch, a Discord server invite, TikTok, X, Instagram, Bluesky, Telegram, Reddit — plus one free-text **personal site**. Five named platforms and the site, in a fixed order the config defines. Set by the claim holder alone and **published the moment they save it**: there is no review, which is why the platform list and its validators are the only safety mechanism the feature has. The site stores a bare **handle** and constructs the URL itself, so a link can never carry a query and never leave the platform's own host — the personal site is the one exception, and carries its own rules for exactly that reason. A platform earns a slot when the site can build a query-free canonical URL for it, from a validated handle on a single fixed host, and the stored identifier still names the same person tomorrow; adding one is a config edit, not a product debate. Links leave with the claim, like the Country. A Moderator can **clear** them and has no path to set one — removal is moderation, authoring is speaking as someone else.
-_Formerly_: "creator link", which is the term the decision tickets were closed under. There is no Creator — Content Creator status was dropped, and this is a link any **claimed Player** shows.
+_Formerly_: "creator link", named here so the closed decisions stay readable. There is no Creator — Content Creator status was dropped, and this is a link any **claimed Player** shows.
 _Avoid_: social link, creator link, socials.
 
 **Alias**:
