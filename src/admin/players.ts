@@ -13,6 +13,7 @@ import type { Db } from '#/db'
 import {
   playerAliases,
   playerClaims,
+  playerLinks,
   players,
   records,
   vehicles,
@@ -21,6 +22,8 @@ import { slugify } from '#/lib/slug'
 import { likeContains } from '#/lib/like'
 import { writeAudit } from '#/admin/audit'
 import { closePendingAmendments } from '#/claims/amendments'
+import { deletePlayerLinks } from '#/claims/links'
+import { effectiveLinks } from '#/db/queries'
 import { ADMIN_PAGE_SIZE } from '#/lib/paging'
 
 export async function uniquePlayerSlug(db: Db, name: string): Promise<string> {
@@ -285,6 +288,86 @@ export async function resetPlayerAvatar(
   })
 }
 
+/** Clear a Player's Profile links, leaving the Claim intact — exactly
+    `resetPlayerAvatar`'s shape, and for the same reason: removal is moderation,
+    authoring is speaking as someone else. There is deliberately no Moderator
+    path that *sets* a link. */
+export async function clearPlayerLinks(
+  db: Db,
+  actorId: string,
+  playerId: number,
+): Promise<{ clearedLinks: number }> {
+  return db.transaction(async (tx) => {
+    const player = (
+      await tx
+        .select({ mergedInto: players.mergedInto })
+        .from(players)
+        .where(eq(players.id, playerId))
+        .for('update')
+    ).at(0)
+    if (!player) throw new Error(`Unknown player ${playerId}`)
+    if (player.mergedInto != null) {
+      throw new Error('This player was merged — edit the surviving player')
+    }
+    const cleared = await deletePlayerLinks(tx, playerId)
+    if (cleared.length === 0) {
+      throw new Error('This player shows no links')
+    }
+    await writeAudit(tx, {
+      actorId,
+      action: 'player.clear_links',
+      entity: 'player',
+      entityId: playerId,
+      diff: { before: { links: cleared } },
+    })
+    return { clearedLinks: cleared.length }
+  })
+}
+
+/** Clear a Player's stated Country, leaving the Claim intact. The Country's
+    twin of the above, and it exists for the reason the narrow lever was chosen
+    over an editable one: a mod-authored country is not self-picked, so the
+    whole stated rule — a citizenship its holder claims — loses its subject, and
+    telling a holder's value from a Moderator's afterwards would cost a
+    provenance column beside every field `unclaim()` has to clear. */
+export async function clearPlayerCountry(
+  db: Db,
+  actorId: string,
+  playerId: number,
+): Promise<{ clearedCountry: string }> {
+  return db.transaction(async (tx) => {
+    const player = (
+      await tx
+        .select({
+          countryCode: players.countryCode,
+          mergedInto: players.mergedInto,
+        })
+        .from(players)
+        .where(eq(players.id, playerId))
+        .for('update')
+    ).at(0)
+    if (!player) throw new Error(`Unknown player ${playerId}`)
+    if (player.mergedInto != null) {
+      throw new Error('This player was merged — edit the surviving player')
+    }
+    if (player.countryCode == null) {
+      throw new Error('This player states no country')
+    }
+    await tx
+      .update(players)
+      .set({ countryCode: null })
+      .where(eq(players.id, playerId))
+    await writeAudit(tx, {
+      actorId,
+      action: 'player.clear_country',
+      entity: 'player',
+      entityId: playerId,
+      diff: { before: { countryCode: player.countryCode } },
+    })
+    return { clearedCountry: player.countryCode }
+  })
+}
+
 /* ── Merge (survivor ← duplicate), one transaction ───────────── */
 
 export async function mergePlayers(
@@ -366,9 +449,63 @@ export async function mergePlayers(
       })
     }
 
+    // Profile links take the Aliases' rule, not the Avatar's: a union, with
+    // the survivor winning any per-platform collision. Pick-a-side differs
+    // only when both rows are claimed by the same User — and there it is the
+    // difference between keeping a person's YouTube AND their Twitch, and
+    // silently destroying half of what they set. A side that carries no claim
+    // carries no links, so its rows are dropped rather than folded in.
+    const carriedUserId = survivor.userId ?? duplicate.userId
+    const linksOf = (playerId: number) =>
+      tx.select().from(playerLinks).where(eq(playerLinks.playerId, playerId))
+    const [survivorLinks, dupLinks] = [
+      await linksOf(survivor.id),
+      await linksOf(duplicate.id),
+    ]
+    const survivorHolds = carriedUserId != null && survivor.userId != null
+    const duplicateHolds = carriedUserId != null && duplicate.userId != null
+    const linkDropIds = survivorHolds
+      ? []
+      : survivorLinks.map((link) => link.id)
+    const linkMoveIds: number[] = []
+    // What the survivor won, so the audit diff says which two handles met
+    // rather than only that something was dropped. `plink_handle_uq`
+    // guarantees a collision here is two genuinely different handles.
+    const collided: Array<{ platform: string; kept: string; dropped: string }> =
+      []
+    const takenPlatforms = new Map(
+      survivorHolds ? survivorLinks.map((link) => [link.platform, link]) : [],
+    )
+    for (const link of dupLinks) {
+      const kept = duplicateHolds && takenPlatforms.get(link.platform)
+      if (!duplicateHolds) {
+        linkDropIds.push(link.id)
+      } else if (kept) {
+        linkDropIds.push(link.id)
+        collided.push({
+          platform: link.platform,
+          kept: kept.handle,
+          dropped: link.handle,
+        })
+      } else {
+        linkMoveIds.push(link.id)
+        takenPlatforms.set(link.platform, link)
+      }
+    }
+    // Drops before moves: the survivor's own stale rows must be gone before a
+    // duplicate's row can take their (player, platform) slot.
+    if (linkDropIds.length > 0) {
+      await tx.delete(playerLinks).where(inArray(playerLinks.id, linkDropIds))
+    }
+    if (linkMoveIds.length > 0) {
+      await tx
+        .update(playerLinks)
+        .set({ playerId: survivor.id })
+        .where(inArray(playerLinks.id, linkMoveIds))
+    }
+
     // Everything belonging to the lone/same-user claim rides along with it,
     // preferring the survivor's own, so identity survives the merge.
-    const carriedUserId = survivor.userId ?? duplicate.userId
     const carried = <T>(ofSurvivor: T | null, ofDuplicate: T | null) =>
       carriedUserId == null
         ? null
@@ -497,6 +634,11 @@ export async function mergePlayers(
         context: {
           survivorId: survivor.id,
           duplicateId: duplicate.id,
+          links: {
+            moved: linkMoveIds.length,
+            dropped: linkDropIds.length,
+            collided,
+          },
         },
       },
     })
@@ -572,12 +714,24 @@ export async function getAdminPlayer(db: Db, playerId: number) {
   ).at(0)
   if (!player) return null
 
-  const [aliases, recs] = await Promise.all([
+  const [aliases, links, recs] = await Promise.all([
     db
       .select()
       .from(playerAliases)
       .where(eq(playerAliases.playerId, playerId))
       .orderBy(asc(playerAliases.firstSeen), asc(playerAliases.id)),
+    // Listed, not counted: a Moderator clearing a link should see what they are
+    // clearing, and the clear is the only lever they have over it.
+    db
+      .select({
+        platform: playerLinks.platform,
+        handle: playerLinks.handle,
+      })
+      .from(playerLinks)
+      .where(eq(playerLinks.playerId, playerId))
+      // Stable, like the aliases beside it: a confirm dialog that reshuffles
+      // between renders is one a Moderator has to re-read before pressing.
+      .orderBy(asc(playerLinks.platform)),
     db
       .select({
         id: records.id,
@@ -603,6 +757,9 @@ export async function getAdminPlayer(db: Db, playerId: number) {
   return {
     player,
     aliases,
+    // Gated the same way the public page is: an accountless Player carries no
+    // links, so an /admin lever must not offer to clear ones nobody can see.
+    links: effectiveLinks(player, links),
     records: recs,
     lastIgn: recs[0]?.ignSnapshot ?? player.displayName,
   }

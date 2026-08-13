@@ -1,6 +1,6 @@
 import { and, asc, count, eq, inArray, lte, sql } from 'drizzle-orm'
 import type { Db } from '#/db'
-import { playerAmendments, players, profiles } from '#/db/schema'
+import { playerAmendments, playerLinks, players, profiles } from '#/db/schema'
 import type { AvatarStore } from '#/claims/avatar'
 import { deleteAvatarsIfUnreferenced } from '#/claims/avatar'
 import { writeAudit } from '#/admin/audit'
@@ -68,7 +68,7 @@ export async function submitAmendment(
     userId: string
   },
 ): Promise<{ supersededValue: string | null }> {
-  await assertSubmitBudget(tx, input.userId)
+  await assertProfileWriteBudget(tx, input.userId)
   const superseded = (
     await tx
       .update(playerAmendments)
@@ -91,18 +91,47 @@ export async function submitAmendment(
   return { supersededValue: superseded?.value ?? null }
 }
 
-/** Superseded rows count: the guard counts submissions, not survivors. */
-async function assertSubmitBudget(tx: Db, userId: string): Promise<void> {
-  const [{ recent }] = await tx
-    .select({ recent: count() })
-    .from(playerAmendments)
-    .where(
-      and(
-        eq(playerAmendments.submittedBy, userId),
-        sql`${playerAmendments.submittedAt} >= now() - interval '1 hour'`,
+/** The one budget the whole profile spends, so the guard means what it says:
+    *across the profile*. Superseded amendment rows count — the guard counts
+    submissions, not survivors — and Profile links join them, because links
+    create no Amendment row and would otherwise be the one field both
+    unreviewed and unguarded.
+
+    A link contributes its row's `updated_at`, so what this bounds on that side
+    is how many platforms a User may touch in an hour, not how many times they
+    may rewrite one of them; the stored result is capped at one row per platform
+    either way, which is the accumulation the guard exists to stop.
+
+    Generic on purpose: it says nothing about review, and it is what every site
+    says. */
+export async function assertProfileWriteBudget(
+  tx: Db,
+  userId: string,
+): Promise<void> {
+  const [[amendments], [links]] = await Promise.all([
+    tx
+      .select({ recent: count() })
+      .from(playerAmendments)
+      .where(
+        and(
+          eq(playerAmendments.submittedBy, userId),
+          sql`${playerAmendments.submittedAt} >= now() - interval '1 hour'`,
+        ),
       ),
-    )
-  if (recent >= AMENDMENT_HOURLY_LIMIT) {
+    // Joined through the Player rather than stored per row: a User holds at
+    // most one Claim, so their links are exactly their Player's.
+    tx
+      .select({ recent: count() })
+      .from(playerLinks)
+      .innerJoin(players, eq(players.id, playerLinks.playerId))
+      .where(
+        and(
+          eq(players.userId, userId),
+          sql`${playerLinks.updatedAt} >= now() - interval '1 hour'`,
+        ),
+      ),
+  ])
+  if (amendments.recent + links.recent >= AMENDMENT_HOURLY_LIMIT) {
     throw new Error('Too many changes just now — try again shortly.')
   }
 }

@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
+  linkValue,
   optionalNote,
   positiveInt,
   selectableCountryCode,
+  storablePlatform,
 } from '#/claims/validate'
-import { MAX_NOTE_LENGTH } from '#/claims/limits'
+import { MAX_LINK_INPUT, MAX_NOTE_LENGTH } from '#/claims/limits'
 
 describe('positiveInt', () => {
   it('accepts a positive integer', () => {
@@ -64,5 +66,57 @@ describe('optionalNote', () => {
     expect(() => optionalNote('x'.repeat(MAX_NOTE_LENGTH + 1))).toThrow(
       /at most/,
     )
+  })
+})
+
+/* The link boundary. These take untrusted network payloads on a field that
+   publishes instantly with nobody reviewing it, so what they refuse is the
+   whole of what the write path never has to think about. */
+
+describe('storablePlatform', () => {
+  it('accepts a configured platform and the personal site', () => {
+    expect(storablePlatform('youtube')).toBe('youtube')
+    expect(storablePlatform('website')).toBe('website')
+  })
+
+  it('refuses one that is admissible but not shipped', () => {
+    expect(() => storablePlatform('kick')).toThrow(/cannot add that one here/)
+  })
+
+  it('refuses one refused by a clause, and one nobody has heard of', () => {
+    for (const bad of ['steam', 'mastodon', 'lemmy', 'matrix', 'myspace']) {
+      expect(() => storablePlatform(bad)).toThrow(/cannot add that one here/)
+    }
+  })
+
+  // The payload is untrusted, so the shape is checked before the value.
+  it('refuses a non-string, and a key it might inherit rather than own', () => {
+    for (const bad of [42, null, undefined, {}, ['youtube']]) {
+      expect(() => storablePlatform(bad)).toThrow(/must be a name/)
+    }
+    for (const inherited of ['constructor', 'toString', '__proto__']) {
+      expect(() => storablePlatform(inherited)).toThrow(
+        /cannot add that one here/,
+      )
+    }
+  })
+})
+
+describe('linkValue', () => {
+  it('passes text through for the platform parser to judge', () => {
+    expect(linkValue('PhlyDaily')).toBe('PhlyDaily')
+    // Bounded here, meant here: what it has to LOOK like is the config's call.
+    expect(linkValue('https://www.youtube.com/@PhlyDaily')).toBe(
+      'https://www.youtube.com/@PhlyDaily',
+    )
+    expect(linkValue('')).toBe('')
+  })
+
+  it('refuses a non-string and anything past the ceiling', () => {
+    for (const bad of [42, null, undefined, {}]) {
+      expect(() => linkValue(bad)).toThrow(/must be text/)
+    }
+    expect(linkValue('x'.repeat(MAX_LINK_INPUT))).toHaveLength(MAX_LINK_INPUT)
+    expect(() => linkValue('x'.repeat(MAX_LINK_INPUT + 1))).toThrow(/too long/)
   })
 })

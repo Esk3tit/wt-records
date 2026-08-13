@@ -24,12 +24,15 @@ import {
 } from '#/claims/amendments'
 import type { AmendmentQueueRow } from '#/claims/amendments'
 import { removeOwnAvatar, setOwnAvatar, setOwnCountry } from '#/claims/owner'
+import { removeOwnLink, setOwnLink } from '#/claims/links'
 import {
+  linkValue,
   nonNegativeInt,
   optionalNote,
   positiveInt,
   requiredReason,
   selectableCountryCode,
+  storablePlatform,
 } from '#/claims/validate'
 
 const avatarStore = () => storageFromEnvIfConfigured() ?? null
@@ -94,6 +97,38 @@ export const setMyCountry = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const user = await requireSessionUser()
     await setOwnCountry(db, user.id, data.playerId, data.countryCode)
+  })
+
+/* Published the moment it is saved: nothing here waits on anybody, which is
+   exactly why the validators upstream of it are the safety mechanism. */
+export const setMyLink = createServerFn({ method: 'POST' })
+  .validator((data: { playerId: number; platform: string; value: string }) => ({
+    playerId: positiveInt(data.playerId, 'playerId'),
+    platform: storablePlatform(data.platform),
+    value: linkValue(data.value),
+  }))
+  .handler(async ({ data }) => {
+    const user = await requireSessionUser()
+    const stored = await setOwnLink(
+      db,
+      user.id,
+      data.playerId,
+      data.platform,
+      data.value,
+    )
+    // Echoed back exactly as stored, so the owner is never guessing what a
+    // visitor will get.
+    return { platform: stored.platform, handle: stored.handle }
+  })
+
+export const removeMyLink = createServerFn({ method: 'POST' })
+  .validator((data: { playerId: number; platform: string }) => ({
+    playerId: positiveInt(data.playerId, 'playerId'),
+    platform: storablePlatform(data.platform),
+  }))
+  .handler(async ({ data }) => {
+    const user = await requireSessionUser()
+    await removeOwnLink(db, user.id, data.playerId, data.platform)
   })
 
 /* ── Moderator ───────────────────────────────────────────────── */

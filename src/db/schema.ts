@@ -282,6 +282,56 @@ export const playerAmendments = pgTable(
   ],
 ).enableRLS()
 
+/* A Profile link: one platform a claimed Player points at, stored as a bare
+   handle the site turns into a query-free canonical URL. A table rather than
+   columns on `players`, for three reasons that are not tidiness: the list is
+   open by design, so every admission would be an ALTER TABLE on the hottest
+   table in the app; the global uniqueness rule would need six partial indexes
+   over six generated normalisation columns; and a later verified-ID column is
+   one additive pair here against two nullable columns per platform there.
+
+   The usual objection does not bite: links render on the profile header only,
+   never on the share card, and /player/$slug is no-store unconditionally —
+   there is no N+1 surface. */
+export const playerLinks = pgTable(
+  'player_links',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    playerId: integer('player_id')
+      .references(() => players.id)
+      .notNull(),
+    // text validated against the platform config, NOT a pg enum: an enum moves
+    // the migration from the table to the type rather than removing it, which
+    // defeats half the reason this table exists.
+    platform: text('platform').notNull(),
+    // What the owner is shown back, in the case they typed it in.
+    handle: text('handle').notNull(),
+    // The same handle folded by the platform's own rule — the column the
+    // cross-Player uniqueness check is built on. Stored rather than generated,
+    // because the fold is the config's to define and differs per platform.
+    normalizedHandle: text('normalized_handle').notNull(),
+    // The submit guard's rolling-hour window. Links create no Amendment row, so
+    // without this they are the one profile field both unreviewed and
+    // unguarded, writable in a loop and published instantly.
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    // One handle per platform. Also the index the read and the guard's COUNT
+    // both take, being player-prefixed.
+    uniqueIndex('plink_player_platform_uq').on(t.playerId, t.platform),
+    // The one impersonation check available without a human: the second Player
+    // to claim a channel collides instead of quietly coexisting. The personal
+    // site is carved out — a squadron, team or clan domain is legitimately
+    // linked by several Players, and a URL does not name a person.
+    uniqueIndex('plink_handle_uq')
+      .on(t.platform, t.normalizedHandle)
+      .where(sql`${t.platform} <> 'website'`),
+    check('plink_handle_present', sql`length(${t.handle}) > 0`),
+  ],
+).enableRLS()
+
 /* Canonical WT game versions — the community's temporal axis. Catalog-sync
    upserts the current one and /admin can add inline, so entry never blocks. */
 export const patches = pgTable('patches', {

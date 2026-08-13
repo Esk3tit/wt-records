@@ -323,10 +323,33 @@ Catalog filtering lives in one thin-glass instrument panel above the ledger: a f
 
 **Density is set by the thumb, not by the type.** The chip grid is where the 44px pitch costs the most room, and it is paid honestly: chips take 8px of vertical padding and a 44px minimum width, rows sit 8px apart, and the reach covers the rest. A single-glyph rank chip is therefore as wide as an eight-glyph one — the ranks read as a scale rather than as ink of eight different sizes, which is the better shape anyway. The BR selects and the name search are the panel's only real 44px boxes, because a form control cannot borrow a pseudo-element's reach. Opened on a phone the panel is nearly a fifth taller for all of it, behind a disclosure a reader has to ask for; folded — the state they meet first — it is eight pixels taller.
 
+### Profile links (the one exception to the chroma-neutral identity)
+A claimed Player's profile carries a rail of links — five named platforms plus one personal site. Each is a **full-colour brand mark, unmodified, on its own opaque white plate**, with the handle as the link text beside it. Marks render at 24px on a 32px plate; the personal site takes a neutral globe in the same plate so the row stays aligned, and a platform whose logo may not be reproduced takes a **wordmark on a pill sized to itself** — the row aligns on plate **height**, never plate width.
+
+**This is a knowing exception, and the plate is load-bearing rather than decorative.** YouTube's, Reddit's, Telegram's and Instagram's marks knock their interior detail out to *transparent*, so the plate colour becomes part of the mark: on black, YouTube's play triangle renders black, which is the recolouring YouTube forbids outright. White is therefore forced, not chosen — and it is opaque because our signature material, frost over the depth-parallaxing scene, is separately prohibited as a backdrop by YouTube's "single, solid background color", Bluesky's "busy or low-contrast" rule, and X's "white on black or black on white". The plate and the wordmark ink are consequently **mode-invariant**: the one place The Same Hall Rule does not apply, because the tokens on either side of it belong to somebody else's brand.
+
+**Clear space sets the rail's width.** X, Kick and Bluesky each define clear space as the mark's own width on all four sides. Read as plate padding that makes a 24px mark a 72px plate; read as distance to other elements — the standard reading, and the one taken — it binds the **plate→handle gap** and the **link→link gap** to ≥24px. That, not the plate, is what makes the rail stack on a phone.
+
+**The handle always shows.** It is the whole anti-impersonation signal, and hover is not a mitigation on a phone: a row of glyphs says which platforms, only the handle says whose. Links never appear on a share card — a card is an image, so the handles would not be clickable.
+
 ### Page Eyebrow
 List pages introduce themselves with a mode eyebrow above the h1 — kicker-size (0.6875rem), semibold, uppercase, tracked at the section-label's 0.2em, muted ink: `GRB · GROUND REALISTIC BATTLES`. It is context, never a link, and never amber.
 
-## 6. Do's and Don'ts
+## 6. Copy
+
+**Earn the sentence, or delete it.** The default is no explanatory text. A dialog titled "Clear these links?" with a **Clear** button has already said what it does; a paragraph under it restating that costs the reader time and tells them nothing. Write a sentence only when it carries something they cannot see: a consequence, an irreversibility, a limit, or what to do next. **If it is obvious, do not say it.**
+
+**Say it the way you would say it out loud.** If you would not say the sentence to somebody sitting at the desk beside you, it does not ship. Prose that reaches for cadence — stacked em-dash clauses, a second thought bolted onto a first, a flourish explaining *why* the rule is the rule — reads as evasive and is usually a sign the sentence was not needed.
+
+**The glossary is for the codebase, not the screen.** `CONTEXT.md`'s Language section fixes precise internal vocabulary — *Claim*, *Amendment*, *Medallion*, *Shadowed field*, *accountless* — and that precision is what the code needs, not what a reader needs. On screen, name what they can see: "their account link", "no picture", "the change they asked for". A term the glossary marks `_Avoid_` never appears in user-facing text, and neither do implementation words like *slot*, *lever*, *field grammar* or *the row*.
+
+**An error says what to do**, not what a parser objected to. "Enter a website address, like example.com" over "Link a domain, not an address". Lead with the action where there is one. Never echo back what the reader typed — a refusal that quotes its input is a reflected-content surface.
+
+**One idea per sentence**, and no more sentences than ideas.
+
+The reader is a War Thunder player or a moderator, not a colleague who has read the tickets.
+
+## 7. Do's and Don'ts
 
 ### Do:
 - **Do** treat the Spatial Scene as first-class: every background ships as `image.jpg` + `image-depth.png` with a static fallback and a reduced-motion path; scenes swap per nation/branch.
@@ -346,5 +369,6 @@ List pages introduce themselves with a mode eyebrow above the h1 — kicker-size
 - **Don't** put text directly on scene imagery — no exceptions (The Sandwich Rule).
 - **Don't** use raw Medal Amber or the night metals as text on Daylight Hall — their Deep/Day forms exist precisely for that.
 - **Don't** warm the light base toward cream/sand/beige; Daylight Hall stays cool and chroma-neutral.
+- **Don't** explain a control that has already explained itself, and don't write copy that sounds considered instead of being clear (§6).
 - **Don't** use side-stripe borders (`border-left` > 1px as accent), gradient text, or the hero-metric template.
 - **Don't** put shadows on anything that isn't a glass pane (The Floating Pane Rule) or metal colors on anything that isn't a rank.

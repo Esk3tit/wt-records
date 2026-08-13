@@ -19,6 +19,8 @@ import { AsyncCombobox } from '#/components/admin/combobox'
 import { ConfirmDialog } from '#/components/admin/confirm-dialog'
 import {
   adminAddAlias,
+  adminClearPlayerCountry,
+  adminClearPlayerLinks,
   adminMergePlayers,
   adminPlayerDetail,
   adminPlayerSearch,
@@ -27,6 +29,7 @@ import {
   adminResetPlayerAvatar,
 } from '#/admin/api'
 import { ClaimedChip } from '#/components/claimed-chip'
+import { platformName } from '#/links/parse'
 import { revokePlayerClaim } from '#/claims/api'
 import { MAX_NOTE_LENGTH } from '#/claims/limits'
 
@@ -55,7 +58,7 @@ function PlayerDetailInner() {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   if (!detail) return null
-  const { player, aliases, records, lastIgn } = detail
+  const { player, aliases, links, records, lastIgn } = detail
 
   const refresh = () => router.invalidate()
 
@@ -122,9 +125,21 @@ function PlayerDetailInner() {
             error={error}
             onDismissError={() => setError(null)}
             hasAvatar={player.avatarKey != null}
+            links={links}
+            countryCode={player.countryCode}
             onResetAvatar={() =>
               call(() =>
                 adminResetPlayerAvatar({ data: { playerId: player.id } }),
+              )
+            }
+            onClearLinks={() =>
+              call(() =>
+                adminClearPlayerLinks({ data: { playerId: player.id } }),
+              )
+            }
+            onClearCountry={() =>
+              call(() =>
+                adminClearPlayerCountry({ data: { playerId: player.id } }),
               )
             }
             onRevoke={(reason) =>
@@ -353,20 +368,30 @@ function ClaimStatus({
   error,
   onDismissError,
   hasAvatar,
+  links,
+  countryCode,
   onResetAvatar,
+  onClearLinks,
+  onClearCountry,
   onRevoke,
 }: {
   error: string | null
   /** The error is route-wide, so a dialog must not open onto someone else's. */
   onDismissError: () => void
   hasAvatar: boolean
+  links: ReadonlyArray<{ platform: string; handle: string }>
+  countryCode: string | null
   onResetAvatar: () => Promise<boolean>
+  onClearLinks: () => Promise<boolean>
+  onClearCountry: () => Promise<boolean>
   onRevoke: (reason: string) => Promise<boolean>
 }) {
-  const [confirming, setConfirming] = useState<'reset' | 'revoke' | null>(null)
+  const [confirming, setConfirming] = useState<
+    'reset' | 'links' | 'country' | 'revoke' | null
+  >(null)
   const [busy, setBusy] = useState(false)
   const [reason, setReason] = useState('')
-  const open = (dialog: 'reset' | 'revoke') => {
+  const open = (dialog: 'reset' | 'links' | 'country' | 'revoke') => {
     onDismissError()
     setConfirming(dialog)
   }
@@ -398,6 +423,24 @@ function ClaimStatus({
           Reset avatar
         </button>
       )}
+      {links.length > 0 && (
+        <button
+          type="button"
+          className="text-sm text-fg-muted transition-colors duration-200 hover:text-fg"
+          onClick={() => open('links')}
+        >
+          Clear links
+        </button>
+      )}
+      {countryCode != null && (
+        <button
+          type="button"
+          className="text-sm text-fg-muted transition-colors duration-200 hover:text-fg"
+          onClick={() => open('country')}
+        >
+          Clear country
+        </button>
+      )}
       <button
         type="button"
         className="text-sm text-status-danger transition-[filter] duration-200 hover:brightness-110"
@@ -413,10 +456,36 @@ function ClaimStatus({
         onConfirm={() => run(onResetAvatar)}
         onCancel={close}
       >
-        <p>
-          The avatar returns to the Medallion and the stored image is deleted.
-          The claim is untouched, and the owner can upload a new one.
-        </p>
+        <p>Deletes the picture for good. They can upload another.</p>
+        <ErrorNote error={error} />
+      </ConfirmDialog>
+      <ConfirmDialog
+        open={confirming === 'links'}
+        title="Clear these links?"
+        confirmLabel="Clear"
+        busy={busy}
+        onConfirm={() => run(onClearLinks)}
+        onCancel={close}
+      >
+        <p>They can add links again.</p>
+        <ul className="text-sm text-fg-muted">
+          {links.map((link) => (
+            <li key={link.platform}>
+              {platformName(link.platform)} · {link.handle}
+            </li>
+          ))}
+        </ul>
+        <ErrorNote error={error} />
+      </ConfirmDialog>
+      <ConfirmDialog
+        open={confirming === 'country'}
+        title="Clear this country?"
+        confirmLabel="Clear"
+        busy={busy}
+        onConfirm={() => run(onClearCountry)}
+        onCancel={close}
+      >
+        <p>They can set it again.</p>
         <ErrorNote error={error} />
       </ConfirmDialog>
       <ConfirmDialog
@@ -429,23 +498,14 @@ function ClaimStatus({
         onCancel={close}
       >
         <p>
-          The player returns to the accountless state and its avatar resets to
-          the Medallion. Records and snapshots are untouched.
+          This player goes back to having no account. Their picture, country and
+          links are removed. Their records are not.
         </p>
         <p>
-          Revoking is the only way out of a claim — a mistake, a request to
-          leave and a punishment all come through here, so the reason is what
-          tells them apart later.
+          They can ask for this player again. To stop that, deny the request
+          when it arrives.
         </p>
-        <p>
-          It frees the player, not the user: they may request this one again, or
-          any other. If this is a punishment, deny that request when it comes —
-          a denial is what makes the refusal stick.
-        </p>
-        <Field
-          label="Reason"
-          hint="Required — recorded in the audit log against this player."
-        >
+        <Field label="Reason" hint="Required. Only moderators can see it.">
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}

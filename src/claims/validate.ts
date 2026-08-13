@@ -1,5 +1,6 @@
-import { MAX_NOTE_LENGTH } from '#/claims/limits'
+import { MAX_LINK_INPUT, MAX_NOTE_LENGTH } from '#/claims/limits'
 import { normalizeCountryCode } from '#/lib/countries'
+import { isStorablePlatform } from '#/links/platforms'
 
 /* Runtime validation for the claim server-fn boundary: the public claim
    endpoints take untrusted network payloads, so ids and notes are checked
@@ -29,6 +30,27 @@ export function selectableCountryCode(value: unknown): string | null {
   const code = normalizeCountryCode(value)
   if (!code) throw new Error('Choose a country from the list')
   return code
+}
+
+/** The platform a link write names. Checked against the config here, at the
+    boundary — the config is what the `platform` text column is validated
+    against, and this is where an untrusted payload meets it. */
+export function storablePlatform(value: unknown): string {
+  if (typeof value !== 'string') throw new Error('A platform must be a name')
+  if (!isStorablePlatform(value)) {
+    throw new Error('You cannot add that one here')
+  }
+  return value
+}
+
+/** The raw field value, bounded before any parser sees it. What it *means* is
+    the platform's business — see `parseLinkValue`. */
+export function linkValue(value: unknown): string {
+  if (typeof value !== 'string') throw new Error('A link must be text')
+  if (value.length > MAX_LINK_INPUT) {
+    throw new Error('That is too long')
+  }
+  return value
 }
 
 /** A revocation's reason: the only thing that tells a mistake, a departure and

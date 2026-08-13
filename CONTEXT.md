@@ -18,7 +18,7 @@ _Avoid_: account, user record.
 The default role a Profile carries: signed in, no moderation rights. Distinct from a visitor, who has no Profile at all.
 
 **Moderator**:
-A User whose Profile role grants the moderation surface — entering and verifying Records, approving Claim requests, reviewing Amendments, resetting Avatars. Every Admin is also a Moderator.
+A User whose Profile role grants the moderation surface — entering and verifying Records, approving Claim requests, reviewing Amendments, resetting Avatars, clearing Profile links. Every Admin is also a Moderator.
 _Avoid_: admin (which is both the role above it and the name of the surface).
 
 **Admin**:
@@ -65,6 +65,11 @@ A profile field whose changes go through the Shadow. Today: the Avatar, and noth
 **Country**:
 A citizenship a claimed Player states — not where they live, not where their family is from, not where they play. Set and cleared freely by the claim holder alone; the site states the rule and does not verify it, so a dispute is judged against the rule rather than argued on taste. Distinct from a **Nation**, the in-game tree a vehicle belongs to: the two share a page and mean nothing alike. A Country's flag always appears with the country's full name as text, which is what separates it at a glance from a Nation's mark-only chip. An absent Country renders nothing at all — never a placeholder, never a neutral mark. It leaves with the claim: Revoke and approving a new Claim both **delete** the stored value, so it can never resurface as a later holder's statement.
 _Avoid_: nationality (shares a root with Nation), region, location.
+
+**Profile link**:
+A platform a claimed Player points at from their own page — YouTube, Twitch, a Discord server invite, TikTok, X, Instagram, Bluesky, Telegram, Reddit — plus one free-text **personal site**. Any **five** of those platforms may show on one profile, and the personal site never counts against that cap; the row is drawn in a fixed order the config defines, never one the Player chooses. Set by the claim holder alone and **published the moment they save it**: there is no review, which is why the platform list and its validators are the only safety mechanism the feature has. The site stores a bare **handle** and constructs the URL itself, so a link can never carry a query and never leave the platform's own host — the personal site is the one exception, and carries its own rules for exactly that reason. A platform earns a slot when the site can build a query-free canonical URL for it, from a validated handle on a single fixed host, and the stored identifier still names the same person tomorrow; adding one is a config edit, not a product debate. Links leave with the claim, like the Country. A Moderator can **clear** them and has no path to set one — removal is moderation, authoring is speaking as someone else.
+_Formerly_: "creator link", named here so the closed decisions stay readable. There is no Creator — Content Creator status was dropped, and this is a link any **claimed Player** shows.
+_Avoid_: social link, creator link, socials.
 
 **Alias**:
 A name a Player has gone by — an in-game name or a former display name. Powers "previously known as".

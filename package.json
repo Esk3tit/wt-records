@@ -18,6 +18,7 @@
     "db:seed": "bun run src/db/seed-run.ts",
     "catalog:sync": "bun run src/catalog/sync-run.ts",
     "countries:generate": "bun run scripts/generate-countries.ts",
+    "marks:generate": "bun run scripts/generate-brand-marks.ts",
     "import:extract": "bun run src/migration/extract-run.ts",
     "import:resolve": "bun run src/migration/resolve-run.ts",
     "import:load": "bun run src/migration/load-run.ts",
@@ -86,6 +87,7 @@
     "eslint": "9.39.4",
     "jsdom": "28.1.0",
     "prettier": "3.9.1",
+    "simple-icons": "^16.28.0",
     "typescript": "6.0.3",
     "vite": "8.1.0",
     "vitest": "4.1.9"

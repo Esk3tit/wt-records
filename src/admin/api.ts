@@ -22,6 +22,8 @@ import type {
   TitlePreviewRequest,
 } from '#/admin/records'
 import {
+  clearPlayerCountry,
+  clearPlayerLinks,
   getAdminPlayer,
   listAdminPlayers,
   mergePlayers,
@@ -350,6 +352,23 @@ export const adminResetPlayerAvatar = createServerFn({ method: 'POST' })
       result.clearedAvatarKey ? [result.clearedAvatarKey] : [],
     )
     return result
+  })
+
+/* Clear, never author: a Moderator can remove what a holder published, and has
+   no path to publish in their name. Both self-stated fields take the same
+   lever, because they carry the same rule. */
+export const adminClearPlayerLinks = createServerFn({ method: 'POST' })
+  .validator((data: { playerId: number }) => data)
+  .handler(async ({ data }) => {
+    const { userId } = await requireModerator()
+    return clearPlayerLinks(db, userId, data.playerId)
+  })
+
+export const adminClearPlayerCountry = createServerFn({ method: 'POST' })
+  .validator((data: { playerId: number }) => data)
+  .handler(async ({ data }) => {
+    const { userId } = await requireModerator()
+    return clearPlayerCountry(db, userId, data.playerId)
   })
 
 export const adminMergePlayers = createServerFn({ method: 'POST' })
