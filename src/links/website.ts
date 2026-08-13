@@ -53,10 +53,18 @@ export function normalizeWebsite(raw: string): string {
 
   const afterScheme = schemed.slice(schemed.indexOf('//') + 2)
   const typed = afterScheme.split(/[/?#]/)[0]
+  // The port comes off before the host is compared. `:443` is https's own
+  // default, so the parser drops it — and a host compared against the whole
+  // authority would then never match what was typed, refusing an address
+  // identical to one without it. A port that is NOT the default survives on
+  // the string below and is refused by its own rule.
+  const port = /:\d*$/.exec(typed)
+  const typedHost = port ? typed.slice(0, port.index) : typed
   // One trailing dot, stripped before anything else looks at the host: it is a
   // valid FQDN that resolves identically and silently defeats any comparison.
-  const authority = typed.replace(/\.$/, '')
-  if (!authority) throw new Error('That is not a web address')
+  const host = typedHost.replace(/\.$/, '')
+  const authority = `${host}${port?.[0] ?? ''}`
+  if (!host) throw new Error('That is not a web address')
 
   let url: URL
   try {
@@ -81,7 +89,7 @@ export function normalizeWebsite(raw: string): string {
   // The parser punycodes an internationalised host, so a form that differs
   // from what was typed is a homograph — `уoutube.com` with a Cyrillic у
   // becomes `xn--outube-vrf.com`. This catches the whole class for free.
-  if (authority.toLowerCase() !== url.hostname) {
+  if (host.toLowerCase() !== url.hostname) {
     throw new Error('That address does not go where it looks like it goes')
   }
   assertRealDomain(url.hostname)

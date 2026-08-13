@@ -102,6 +102,33 @@ describe('what the personal site refuses beyond the table', () => {
     }
   })
 
+  /* `:443` is https's own default, so the parser drops it and the address is
+     identical to one without it — but the host comparison saw the whole typed
+     authority and refused it, with the homograph message of all things. The
+     port comes off before the host is compared now. */
+  it('takes https’s own default port, and drops it', () => {
+    expect(normalizeWebsite('https://phlydaily.example:443/shop')).toBe(
+      'https://phlydaily.example/shop',
+    )
+    expect(normalizeWebsite('https://phlydaily.example.:443/')).toBe(
+      'https://phlydaily.example',
+    )
+  })
+
+  // The reason that split is safe: nothing else keys off the port, so every
+  // check the host comparison was doing still fires with one present.
+  it('keeps refusing everything else when a port is written out', () => {
+    expect(() => normalizeWebsite('https://example.com:8443/')).toThrow(
+      /Remove the port/,
+    )
+    expect(() => normalizeWebsite('https://уoutube.com:443/')).toThrow(
+      /does not go where it looks like/,
+    )
+    expect(() => normalizeWebsite('https://youtube.com:443/')).toThrow(
+      /its own field/,
+    )
+  })
+
   it('refuses a host that is not a domain', () => {
     expect(() => normalizeWebsite('https://localhost/')).toThrow()
     expect(() => normalizeWebsite('https://127.0.0.1/')).toThrow()
