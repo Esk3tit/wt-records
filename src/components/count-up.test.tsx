@@ -60,10 +60,10 @@ describe('CountUp', () => {
     prefersReducedMotion(false)
     const frames = scriptedFrames()
     const start = performance.now()
-    render(<CountUp value={412} />)
-
     const { container } = render(<CountUp value={412} />)
-    act(() => frames.at(-1)!(start + 10_000))
+
+    expect(frames).toHaveLength(1)
+    act(() => frames[0](start + 10_000))
 
     expect(container.textContent).toBe('412')
   })

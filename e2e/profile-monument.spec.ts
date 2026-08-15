@@ -132,8 +132,8 @@ test.describe('the claim form', () => {
   })
 })
 
-/** What the light is doing right now: its own fade, the glow's swell, and
-    whether a loop is running behind it. */
+/** What the light is doing right now: its own fade in, the glow's swell, and
+    whether anything is left running behind them. */
 async function lightState(page: Page) {
   return page.evaluate(() => {
     const light = document.querySelector('.monument-light')
@@ -142,8 +142,8 @@ async function lightState(page: Page) {
     return {
       lit: Number(getComputedStyle(light).opacity),
       swell: getComputedStyle(glow).scale,
-      loops: getComputedStyle(glow).animationName.includes('breathe'),
-      playing: getComputedStyle(glow).animationPlayState,
+      running: getComputedStyle(glow).animationName,
+      moves: getComputedStyle(glow).translate,
     }
   })
 }
@@ -166,29 +166,45 @@ test.describe('the monument lights as it counts', () => {
     expect(arriving.lit).toBeLessThan(1)
   })
 
-  /* A reign still running breathes; a closed one is steady. A loop nobody is
-     looking at stops, which is the whole cost of having one at all. */
-  test('stops the loop once the card is off the screen', async ({ page }) => {
+  /* One authored moment and then stillness. Nothing loops here: an amber wash
+     at this alpha cannot swing far enough to be perceived, so a loop would be
+     machinery paying for an effect nobody sees. */
+  test('settles, and leaves nothing running behind it', async ({ page }) => {
     await openProfile(page)
     await expect
       .poll(async () => (await lightState(page)).lit, { timeout: 5_000 })
       .toBe(1)
-    test.skip(!(await lightState(page)).loops, 'this reign is already closed')
 
-    await page.evaluate(() => {
-      const pad = document.createElement('div')
-      pad.style.height = '4000px'
-      document.body.append(pad)
-      window.scrollTo(0, 2500)
-    })
-    await expect
-      .poll(async () => (await lightState(page)).playing, { timeout: 5_000 })
-      .toContain('paused')
+    const settled = await lightState(page)
+    expect(settled.swell).toBe('1')
+    expect(settled.running).not.toMatch(/infinite/)
+    const twice = await page.evaluate(() =>
+      document
+        .querySelector('.monument-glow')!
+        .getAnimations()
+        .some((a) => a.playState === 'running'),
+    )
+    expect(twice).toBe(false)
+  })
 
-    await page.evaluate(() => window.scrollTo(0, 0))
-    await expect
-      .poll(async () => (await lightState(page)).playing, { timeout: 5_000 })
-      .not.toContain('paused')
+  /* The mode landing draws the same glow without this wrapper, and nothing here
+     was asked to change it — so every declaration the profile adds is scoped. */
+  test('leaves the mode landing’s own hero glow alone', async ({ page }) => {
+    await openNav(page, { path: '/grb' })
+    const hero = page.locator('.monument-glow').first()
+    await expect(hero).toBeVisible()
+
+    const drawn = await hero.evaluate((el) => ({
+      inLight: el.closest('.monument-light') != null,
+      background: getComputedStyle(el).backgroundImage,
+      animation: getComputedStyle(el).animationName,
+      translate: getComputedStyle(el).translate,
+    }))
+    expect(drawn.inLight).toBe(false)
+    // The landing'"'"'s glow is the plain one: no reach variable, no entrance.
+    expect(drawn.background).not.toContain('calc')
+    expect(drawn.animation).toBe('none')
+    expect(drawn.translate).toBe('none')
   })
 })
 
@@ -219,6 +235,9 @@ test.describe('the monument under reduced motion', () => {
     const state = await lightState(page)
     expect(state.lit).toBe(1)
     expect(state.swell).toBe('none')
-    expect(state.loops).toBe(false)
+    expect(state.running).toBe('none')
+    // The pointer answer is gated in CSS, not in JS, so a reader who turns
+    // motion off after the page loaded is no longer answered either.
+    expect(state.moves).toBe('none')
   })
 })

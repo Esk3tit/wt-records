@@ -6,7 +6,7 @@ import { OwnerAvatarControls } from '#/components/owner-avatar-controls'
 import { OwnerCountryControls } from '#/components/owner-country-controls'
 import { OwnerLinkControls } from '#/components/owner-link-controls'
 import { PlayerCountry } from '#/components/player-country'
-import { PlayerMonument } from '#/components/player-monument'
+import { PlayerMonument, hasMonument } from '#/components/player-monument'
 import { ProfileEnrichment } from '#/components/profile-enrichment'
 import { ProfileLinks } from '#/components/profile-links'
 import { renderLinks } from '#/links/render'
@@ -42,7 +42,9 @@ export function ProfileHeader({
   viewer: ClaimViewer
   enrichment: ProfileEnrichmentData
 }) {
-  const formerNames = player.aliases.filter((name) => name !== player.displayName)
+  const formerNames = player.aliases.filter(
+    (name) => name !== player.displayName,
+  )
   const standing = {
     titlesHeld: player.titlesHeld,
     longestHeld: enrichment.longestHeld,
@@ -57,8 +59,17 @@ export function ProfileHeader({
           name leaves ~800px of void beside a monument only 193px wide, so the
           strip moves up into it and the card reads as two columns rather than
           as one with a hole. Placed rather than reordered — down the page the
-          order stays identity → monument → what kind of holder they are. */}
-      <div className="relative grid items-start gap-x-8 gap-y-6 md:grid-cols-[minmax(0,1fr)_auto]">
+          order stays identity → monument → what kind of holder they are.
+
+          The second column only exists where the monument does. A grid still
+          spends the gutter beside an empty track, so declaring it either way
+          took 32px off the width of the page with nothing in it — which is the
+          common one, and the one this composition promised to leave alone. */}
+      <div
+        className={`relative grid items-start gap-x-8 gap-y-6 ${
+          hasMonument(standing) ? 'md:grid-cols-[minmax(0,1fr)_auto]' : ''
+        }`}
+      >
         {/* Stacked below sm: beside an 84px disc a phone leaves the name
             ~180px, and a long one shatters rather than wrapping. */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5 md:col-start-1 md:row-start-1">
@@ -108,7 +119,7 @@ export function ProfileHeader({
             spaces it here. */}
         <ProfileEnrichment
           stats={enrichment}
-          className="md:col-start-1 md:row-start-2"
+          placement="md:col-start-1 md:row-start-2"
         />
       </div>
 

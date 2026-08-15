@@ -282,16 +282,12 @@ test.describe('the card reads identity, then the monument, then outward', () => 
         await expect(page.locator('[data-profile-links]')).toHaveCount(0)
         await expect(page.locator(`${HEADER} .country-flag`)).toHaveCount(0)
 
-        const empties = await page
-          .locator(`${HEADER} *`)
-          .evaluateAll((nodes) =>
-            nodes
-              .filter(
-                (el) => parseFloat(getComputedStyle(el).borderTopWidth) > 0,
-              )
-              .filter((el) => el.textContent!.trim() === '')
-              .map((el) => el.className),
-          )
+        const empties = await page.locator(`${HEADER} *`).evaluateAll((nodes) =>
+          nodes
+            .filter((el) => parseFloat(getComputedStyle(el).borderTopWidth) > 0)
+            .filter((el) => el.textContent.trim() === '')
+            .map((el) => el.className),
+        )
         expect(empties).toEqual([])
       },
     )
@@ -321,14 +317,14 @@ test.describe('the card reads identity, then the monument, then outward', () => 
 
         /* The separator travels with what follows it. Wrapped to its own line
            at 320px, one left on the country's line would dangle there. */
-        const country = await flag.evaluate(
-          (svg) => svg.parentElement!.textContent!.trim(),
+        const country = await flag.evaluate((svg) =>
+          svg.parentElement!.textContent.trim(),
         )
         expect(country).not.toContain('·')
         const former = await page
           .getByText('previously known as', { exact: false })
           .first()
-          .evaluate((el) => el.textContent!.trim())
+          .evaluate((el) => el.textContent.trim())
         expect(former.startsWith('·')).toBe(true)
       },
     )

@@ -33,12 +33,13 @@ interface Cell {
    only when it has something true to say — never a row of dashes. */
 export function ProfileEnrichment({
   stats,
-  className = 'mt-5',
+  placement = 'mt-5',
 }: {
   stats: ProfileEnrichmentData
-  /** Where the strip sits. Its own rule and inner rhythm are not a call-site
-      choice; where the caller seats it in their layout is. */
-  className?: string
+  /** Where the caller seats the strip in its own layout. Named for what it is
+      allowed to say: the strip's rule and inner rhythm are not a call-site
+      choice, and `className` would invite overriding both. */
+  placement?: string
 }) {
   const { nationSpread, lastVerifiedAt } = stats
   const cells: Cell[] = []
@@ -87,7 +88,7 @@ export function ProfileEnrichment({
 
   return (
     <dl
-      className={`flex flex-col gap-5 border-t border-hairline-soft pt-5 sm:flex-row sm:gap-0 ${className}`}
+      className={`flex flex-col gap-5 border-t border-hairline-soft pt-5 sm:flex-row sm:gap-0 ${placement}`}
     >
       {cells.map((cell) => (
         <div

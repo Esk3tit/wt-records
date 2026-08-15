@@ -486,14 +486,9 @@ option {
     var(--ambient-mid-lift);
 }
 
-/* The monument: the page's single amber moment, glowing behind the numeral.
-   Material, not ink, so it spends none of the ration — and the peak alpha is
-   what the ink above it was measured against, so the reach moves and the
-   brightness never does. */
-.monument-light {
-  --light-x: 0;
-  --light-y: 0;
-}
+/* The monument's glow, shared with the mode landing's hero. Everything the
+   profile's light adds to it is scoped to `.monument-light` and cannot reach
+   there. */
 .monument-glow {
   position: absolute;
   right: -18%;
@@ -502,37 +497,38 @@ option {
   height: 130%;
   pointer-events: none;
   background: radial-gradient(
-    circle at 50% 46%,
+    circle,
     rgba(240, 185, 74, 0.22),
-    rgba(240, 185, 74, 0.14) calc(24% + 9% * var(--monument-reach, 0.5)),
-    transparent calc(58% + 11% * var(--monument-reach, 0.5))
+    transparent 62%
   );
-  /* Answers the pointer the way the hall's scene does. Trailing rather than
-     tracking: at this amplitude, following it exactly reads as jitter. */
-  translate: calc(var(--light-x) * 3%) calc(var(--light-y) * 3%);
-  transition: translate 700ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* The monument lights as its number tallies: the one authored moment on this
-   card, and the reason the count-up is not the only thing arriving. A reader
-   who asked for no motion meets the monument already lit — the arrival state,
-   not a degraded one. */
+/* The profile's own light. Peak alpha is the landing's, so the ink measured
+   against it is unaffected; what belongs to the player is how far it spreads —
+   as far as the reign it stands for. */
+.monument-light .monument-glow {
+  background: radial-gradient(
+    circle at 50% 46%,
+    rgba(240, 185, 74, 0.22),
+    rgba(240, 185, 74, 0.14) calc(22% + 14% * var(--monument-reach, 0.5)),
+    transparent calc(52% + 24% * var(--monument-reach, 0.5))
+  );
+}
+
+/* The monument lights as its number tallies — the one authored moment on this
+   card. A reader who asked for no motion meets it already lit: the arrival
+   state, not a degraded one. Everything below is gated on that, the pointer
+   answer included, so turning motion off after the page loaded still stops it. */
 @media (prefers-reduced-motion: no-preference) {
   .monument-light {
     animation: monument-ignite 900ms var(--ease-out-quart) both;
   }
-  .monument-glow {
+  .monument-light .monument-glow {
     animation: monument-swell 1300ms var(--ease-out-quart) both;
-  }
-  /* A reign still running breathes; a closed one is history, and history is
-     steady. The site's own liveness mark, where it has been earned. */
-  .monument-light--standing .monument-glow {
-    animation:
-      monument-swell 1300ms var(--ease-out-quart) both,
-      monument-breathe 7s ease-in-out 1300ms infinite;
-  }
-  .monument-light.is-offscreen .monument-glow {
-    animation-play-state: paused;
+    /* Trailing rather than tracking: at this amplitude, following the pointer
+       exactly reads as jitter. */
+    translate: calc(var(--light-x, 0) * 3%) calc(var(--light-y, 0) * 3%);
+    transition: translate 700ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
 }
 @keyframes monument-ignite {
@@ -549,15 +545,6 @@ option {
   }
   to {
     scale: 1;
-  }
-}
-@keyframes monument-breathe {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.82;
   }
 }
 

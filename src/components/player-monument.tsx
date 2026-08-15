@@ -26,15 +26,11 @@ function daysAtTheTop(longestHeld: LongestHeldTitle | null): number {
 export function monumentReach(standing: Standing): number {
   if (!hasMonument(standing)) return 0
   const undated = standing.longestHeld == null
-  const figure = undated ? standing.titlesHeld : daysAtTheTop(standing.longestHeld)
+  const figure = undated
+    ? standing.titlesHeld
+    : daysAtTheTop(standing.longestHeld)
   const far = undated ? 12 : 730
   return Math.min(1, Math.log1p(figure) / Math.log1p(far))
-}
-
-/** Whether the reign the numeral counts is still running. The registry's own
-    liveness, in the one place on this page it has been earned. */
-export function monumentStanding({ longestHeld }: Standing): boolean {
-  return longestHeld != null && longestHeld.lostAt == null
 }
 
 /* The profile's monument. Days rather than titles held: almost every player

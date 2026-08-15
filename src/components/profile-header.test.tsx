@@ -6,9 +6,14 @@ import {
   createRootRoute,
   createRouter,
 } from '@tanstack/react-router'
+import type { ProfileHeaderPlayer } from './profile-header'
+import type { ClaimViewer } from './claim-panel'
+import type { ProfileEnrichmentData } from './profile-enrichment'
+
 /* The owner's controls call server functions, which drag `#/db` into the
    browser bundle on import alone. Nothing here presses one — these cases are
-   about what the composition renders, not about what it writes. */
+   about what the composition renders, not about what it writes. The value
+   import waits for the mock; the type imports above are erased and cannot. */
 vi.mock('#/claims/api', () => ({
   submitClaimRequest: vi.fn(),
   uploadMyAvatar: vi.fn(),
@@ -19,10 +24,6 @@ vi.mock('#/claims/api', () => ({
 }))
 
 const { ProfileHeader } = await import('./profile-header')
-type ProfileHeaderPlayer = import('./profile-header').ProfileHeaderPlayer
-type ClaimViewer = import('./claim-panel').ClaimViewer
-type ProfileEnrichmentData =
-  import('./profile-enrichment').ProfileEnrichmentData
 
 /* The properties the direction was picked for, not its markup: the empty case
    is unchanged, the pending case gives nothing away, nothing is said twice, and
@@ -127,7 +128,7 @@ describe('the empty case is the page it has always been', () => {
     // Every rule in this pane belongs to whatever sits under it — the claim
     // prompt keeps its own. A rule with nothing beneath it is the hole.
     for (const rule of header.querySelectorAll('.border-t')) {
-      expect(rule.textContent!.trim()).not.toBe('')
+      expect(rule.textContent.trim()).not.toBe('')
     }
   })
 
@@ -161,12 +162,13 @@ describe('the country rides with the name', () => {
     expect(line.textContent).toContain('previously known as Earlier Name')
 
     const former = [...line.querySelectorAll('span')].find((span) =>
-      span.textContent?.includes('previously known as'),
+      span.textContent.includes('previously known as'),
     )!
-    expect(former.textContent?.trimStart().startsWith('·')).toBe(true)
+    expect(former.textContent.trimStart().startsWith('·')).toBe(true)
     // Nothing is left behind on the country's own element to be stranded.
-    expect(header.querySelector('.country-flag')!.closest('span')!.textContent)
-      .not.toContain('·')
+    expect(
+      header.querySelector('.country-flag')!.closest('span')!.textContent,
+    ).not.toContain('·')
   })
 
   it('drops a former name that is simply the name they go by now', async () => {
@@ -198,8 +200,7 @@ describe('the links dock to the card’s foot', () => {
     const strip = header.querySelector('dl')!
     const rail = header.querySelector('[data-profile-links]')!
     expect(
-      strip.compareDocumentPosition(rail) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+      strip.compareDocumentPosition(rail) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
     // And below the name, which is what the alternative direction failed.
     const name = header.querySelector('h1')!
@@ -241,10 +242,12 @@ describe('the owner', () => {
     const { header } = await renderHeader({ viewer: owner })
 
     const region = (label: RegExp) => {
+      // The innermost div that still carries the label — its children no
+      // longer do, so this is the control itself rather than a wrapper.
       const control = [...header.querySelectorAll('div')].find(
         (el) =>
-          label.test(el.textContent ?? '') &&
-          !el.querySelector('div')?.textContent?.match(label),
+          label.test(el.textContent) &&
+          !label.test(el.querySelector('div')?.textContent ?? ''),
       )
       return control?.querySelector('[role="status"], [aria-live]') ?? null
     }
@@ -258,52 +261,14 @@ describe('the owner', () => {
   })
 })
 
-/* The design test this issue owes: the two renders differ in the image and in
-   nothing else. No badge, no reserved slot, no changed class, no changed
-   spacing anywhere on the page — the shadow leaks through an inconsistency
-   long before it leaks through a label.
+/* Whether the page's *shape* survives a picture being in review is a claim only
+   the running app can settle — no pending state exists at this level, and jsdom
+   loads no image, so two renders here differ in a `src` neither of them draws.
+   `avatar-owner.spec.ts` → "gives nothing away that its own owner could see"
+   owns that, and was checked by injecting the badge it exists to catch.
 
-   Half of that claim is checkable here and half is not: jsdom loads no image,
-   so both renders fall to the Medallion and the *picture* can only be compared
-   against the running app. What this level does own is everything around it —
-   which is where a reserved slot or a changed gap would actually show. */
+   What this level does own is the words. */
 describe('a pending avatar gives nothing away', () => {
-  /* Every node's tag, classes and inline style, in order — which is exactly
-     "no additional node, no changed class, no changed spacing" and nothing
-     else. Not the raw HTML: the country picker alone is 250 options, so a diff
-     over that is unreadable, and `useId` counts up across the two mounts, which
-     would fail this for a reason that has nothing to do with an avatar. */
-  const shape = (root: Element) =>
-    [root, ...root.querySelectorAll('*')].map((el) =>
-      [
-        el.tagName,
-        el.getAttribute('class') ?? '',
-        el.getAttribute('style') ?? '',
-      ].join('|'),
-    )
-
-  it('lays the page out identically whatever the owner’s avatar is doing', async () => {
-    const player = { ...bare, isClaimed: true }
-    const withOne = await renderHeader({
-      player: {
-        ...player,
-        hasAvatar: true,
-        avatarUrl: 'https://assets.example/a.png',
-      },
-      viewer: owner,
-    })
-    const withAnother = await renderHeader({
-      player: {
-        ...player,
-        hasAvatar: true,
-        avatarUrl: 'https://assets.example/b.png',
-      },
-      viewer: owner,
-    })
-
-    expect(shape(withAnother.header)).toEqual(shape(withOne.header))
-  })
-
   it('says nothing anywhere about where an avatar stands', async () => {
     const { header } = await renderHeader({
       player: {
@@ -319,7 +284,7 @@ describe('a pending avatar gives nothing away', () => {
     // No live region on the avatar control either: a status that resolves into
     // a word is the same leak, spoken instead of drawn.
     for (const region of header.querySelectorAll('[role="status"]')) {
-      expect(region.textContent!.trim()).toBe('')
+      expect(region.textContent.trim()).toBe('')
     }
   })
 })
@@ -338,27 +303,39 @@ describe('the monument', () => {
     expect(lit.header.querySelector('.monument-light')).not.toBeNull()
   })
 
-  /* A reign still running breathes; a closed one is steady. The distinction is
-     the page's, not the animation's — an ex-holder must not read as current. */
-  it('marks a reign still running apart from one already closed', async () => {
-    const running = await renderHeader({
+  /* A grid spends the gutter beside an empty track, so a second column declared
+     unconditionally took 32px off the page with nothing in it. */
+  it('declares no second column where there is no monument', async () => {
+    const dark = await renderHeader()
+    const lit = await renderHeader({
       player: { ...bare, titlesHeld: 1 },
       enrichment: tenured,
     })
-    expect(
-      running.header.querySelector('.monument-light')!.className,
-    ).toContain('monument-light--standing')
 
-    const closed = await renderHeader({
-      player: bare,
-      enrichment: {
-        ...noStats,
-        longestHeld: { ...held, lostAt: new Date('2026-03-14T00:00:00Z') },
-      },
-    })
-    expect(
-      closed.header.querySelector('.monument-light')!.className,
-    ).not.toContain('monument-light--standing')
+    const grid = (root: Element) => root.querySelector('.grid')!.className
+    expect(grid(dark.header)).not.toContain('grid-cols')
+    expect(grid(lit.header)).toContain('md:grid-cols-[minmax(0,1fr)_auto]')
+  })
+
+  /* The pool is the only thing on this card drawn from the reign itself, so it
+     has to actually differ across the reigns a real corpus holds. */
+  it('spreads further for a longer reign than a shorter one', async () => {
+    const reach = async (heldSeconds: number) => {
+      const { header } = await renderHeader({
+        player: { ...bare, titlesHeld: 1 },
+        enrichment: { ...noStats, longestHeld: { ...held, heldSeconds } },
+      })
+      const light = header.querySelector<HTMLElement>('.monument-light')!
+      return Number(light.style.getPropertyValue('--monument-reach'))
+    }
+
+    const brief = await reach(30 * 86_400)
+    const long = await reach(730 * 86_400)
+    expect(long).toBeGreaterThan(brief)
+    expect(long).toBeLessThanOrEqual(1)
+    // Far enough apart that the stop it drives actually moves on screen: at
+    // 24 points of travel this is ~11 points of the pane, not a rounding error.
+    expect(long - brief).toBeGreaterThan(0.35)
   })
 
   it('does not say the tenure the strip would otherwise repeat', async () => {
