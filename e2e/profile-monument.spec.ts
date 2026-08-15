@@ -144,7 +144,11 @@ async function lightState(page: Page) {
       entrance: getComputedStyle(light).animationName,
       swell: getComputedStyle(glow).scale,
       running: getComputedStyle(glow).animationName,
+      repeats: getComputedStyle(glow).animationIterationCount,
       moves: getComputedStyle(glow).translate,
+      busy: [light, glow].some((el) =>
+        el.getAnimations().some((a) => a.playState === 'running'),
+      ),
     }
   })
 }
@@ -176,20 +180,19 @@ test.describe('the monument lights as it counts', () => {
      machinery paying for an effect nobody sees. */
   test('settles, and leaves nothing running behind it', async ({ page }) => {
     await openProfile(page)
+
+    /* Polled on the animations themselves. Waiting on the fade would sample the
+       swell mid-flight — they start together and the fade is 400ms shorter, so
+       anything keyed to the first is a race the fast machine loses. */
     await expect
-      .poll(async () => (await lightState(page)).lit, { timeout: 5_000 })
-      .toBe(1)
+      .poll(async () => (await lightState(page)).busy, { timeout: 5_000 })
+      .toBe(false)
 
     const settled = await lightState(page)
+    expect(settled.lit).toBe(1)
     expect(settled.swell).toBe('1')
-    expect(settled.running).not.toMatch(/infinite/)
-    const twice = await page.evaluate(() =>
-      document
-        .querySelector('.monument-glow')!
-        .getAnimations()
-        .some((a) => a.playState === 'running'),
-    )
-    expect(twice).toBe(false)
+    // One pass each, so nothing here comes back around.
+    expect(settled.repeats).toBe('1')
   })
 
   /* The mode landing draws the same glow without this wrapper, and nothing here
