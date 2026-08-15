@@ -44,6 +44,57 @@ test.describe('owner avatar controls', () => {
 
   // A Claim is permanent from the owner's side: only a moderator severs it,
   // so the page offers them no way out of their own.
+  /* An error may say what the owner did, never what a moderator did. The
+     picture is held for review and this page hides that, so a message naming
+     approval, denial or waiting would say in words what the shadow withholds.
+     Both paths an owner can actually reach are driven here — the client's own
+     size guard, and whatever the server refuses with — because the risk is not
+     the message we have today, it is the fourth one somebody adds later. */
+  test('never lets an error say where the picture stands', async ({ page }) => {
+    const slug = 'e2e-avatar-error-shadow'
+    await withPlayer(ownedPlayer(slug), async () => {
+      await page.goto(`/player/${slug}`)
+      const file = page.locator('input[type="file"]')
+      await expect(
+        page.getByRole('button', { name: 'Upload photo' }),
+      ).toBeVisible()
+
+      const shown = async () => {
+        const alert = page.getByRole('alert')
+        await expect(alert).toBeVisible()
+        return (await alert.textContent())!.trim()
+      }
+      const said: string[] = []
+
+      // Over the cap: refused in the browser, before anything is sent.
+      await file.setInputFiles({
+        name: 'huge.png',
+        mimeType: 'image/png',
+        buffer: Buffer.alloc(6 * 1024 * 1024),
+      })
+      said.push(await shown())
+      // It really is about the file, or the assertion below is trivial.
+      expect(said[0]).toMatch(/5 MB/)
+
+      // Under the cap, so this one reaches the server — which has no object
+      // store on this stack and refuses it. Whatever it says, it is the other
+      // message an owner can be shown.
+      await page.reload()
+      await file.setInputFiles({
+        name: 'small.png',
+        mimeType: 'image/png',
+        buffer: Buffer.alloc(64),
+      })
+      said.push(await shown())
+
+      for (const message of said) {
+        expect(message).not.toMatch(
+          /approv|denie|reject|pending|review|moderat|await|verif/i,
+        )
+      }
+    })
+  })
+
   test('the owner is offered no way to release their own claim', async ({
     page,
   }) => {

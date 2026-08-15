@@ -12,7 +12,12 @@ const ghostButton =
 
 /* The owner's avatar controls, shown only on their own Player page. Upload
    (or replace) a picture, or remove it to return to the Medallion. The server
-   decodes, crops, and re-encodes — there is no client-side cropper. */
+   decodes, crops, and re-encodes — there is no client-side cropper.
+
+   An error here may say what the owner did, never what a moderator did. A
+   picture is held for review and this page hides that, so a message that
+   mentions approval, denial or waiting would give away in words what the whole
+   shadow is built to withhold. `avatar-owner.spec.ts` holds the line. */
 export function OwnerAvatarControls({
   playerId,
   hasAvatar,
