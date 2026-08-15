@@ -31,7 +31,15 @@ interface Cell {
 
 /* What kind of holder this Player is, beside their name. Each stat appears
    only when it has something true to say — never a row of dashes. */
-export function ProfileEnrichment({ stats }: { stats: ProfileEnrichmentData }) {
+export function ProfileEnrichment({
+  stats,
+  className = 'mt-5',
+}: {
+  stats: ProfileEnrichmentData
+  /** Where the strip sits. Its own rule and inner rhythm are not a call-site
+      choice; where the caller seats it in their layout is. */
+  className?: string
+}) {
   const { nationSpread, lastVerifiedAt } = stats
   const cells: Cell[] = []
 
@@ -78,7 +86,9 @@ export function ProfileEnrichment({ stats }: { stats: ProfileEnrichmentData }) {
   if (cells.length === 0) return null
 
   return (
-    <dl className="mt-5 flex flex-col gap-5 border-t border-hairline-soft pt-5 sm:flex-row sm:gap-0">
+    <dl
+      className={`flex flex-col gap-5 border-t border-hairline-soft pt-5 sm:flex-row sm:gap-0 ${className}`}
+    >
       {cells.map((cell) => (
         <div
           key={cell.key}

@@ -200,6 +200,141 @@ test.describe('the profile header stacks on a phone', () => {
   })
 })
 
+/* The Plinth's composition, on the running page rather than in a render tree:
+   the country rides with the name, the links dock to the foot, and the empty
+   case — the common one — renders neither. */
+test.describe('the card reads identity, then the monument, then outward', () => {
+  test.use({ storageState: STATE.anon })
+
+  /** A slug per case, never a shared one: these run in parallel and the fixture
+      deletes its slug first, so two cases on one row take turns destroying each
+      other's. A handle is global for the same reason, so it derives from the
+      slug that owns it. */
+  const railed = (name: string): PlayerSeed => ({
+    slug: `e2e-profile-header-${name}`,
+    displayName: 'Composed Holder',
+    aliases: ['Older Name'],
+    countryCode: 'JP',
+    // Claimed by somebody, which is all a country and a rail need — and it
+    // keeps these cases off the lock every case claiming as the viewer waits on.
+    ownerEmail: TEST_USERS.holder.email,
+    links: [
+      { platform: 'youtube', handle: `yt${name}` },
+      { platform: 'twitch', handle: `tw${name}` },
+    ],
+  })
+
+  /* A seeded Player holds no titles, so this header carries no stats strip at
+     all — the rail's place relative to that strip is a DOM fact, and it is
+     asserted where both can be constructed (profile-header.test.tsx). What only
+     the running page can answer is where the rail actually lands: last in the
+     pane, under a rule of its own, below everything about the player. */
+  test('docks the links at the card’s foot, under their own rule', async ({
+    page,
+  }) => {
+    await onProfile(
+      page,
+      railed('docked'),
+      { width: 1280, height: 900 },
+      async () => {
+        const rail = page.locator('[data-profile-links]')
+        await expect(rail).toBeVisible()
+
+        const box = async (sel: string) =>
+          (await page.locator(sel).first().boundingBox())!
+        const name = await box(`${HEADER} h1`)
+        const links = await box('[data-profile-links]')
+        const pane = await box(HEADER)
+
+        expect(links.y).toBeGreaterThan(name.y + name.height)
+        // Nothing about this player sits below where else to find them.
+        const lowest = await page
+          .locator(`${HEADER} h1, ${HEADER} p, ${HEADER} dl`)
+          .evaluateAll((nodes) =>
+            Math.max(
+              ...nodes
+                .filter((el) => !el.closest('[data-profile-links]'))
+                .map((el) => el.getBoundingClientRect().top),
+            ),
+          )
+        expect(links.y).toBeGreaterThanOrEqual(lowest)
+        expect(links.y + links.height).toBeLessThanOrEqual(
+          pane.y + pane.height + 1,
+        )
+
+        // A hairline of its own, so its absence takes the rule with it.
+        const ruled = await rail.evaluate(
+          (ul) => getComputedStyle(ul.parentElement!).borderTopWidth,
+        )
+        expect(parseFloat(ruled)).toBeGreaterThan(0)
+      },
+    )
+  })
+
+  /* The majority state. Asserted as absence, because "no hole" is the
+     property — and every rule this pane draws has to be ruling something off. */
+  test('leaves the unclaimed page exactly as it was', async ({ page }) => {
+    await onProfile(
+      page,
+      { slug: 'e2e-profile-header-empty', displayName: 'Nobody Home' },
+      { width: 1280, height: 900 },
+      async () => {
+        await expect(page.locator('[data-profile-links]')).toHaveCount(0)
+        await expect(page.locator(`${HEADER} .country-flag`)).toHaveCount(0)
+
+        const empties = await page
+          .locator(`${HEADER} *`)
+          .evaluateAll((nodes) =>
+            nodes
+              .filter(
+                (el) => parseFloat(getComputedStyle(el).borderTopWidth) > 0,
+              )
+              .filter((el) => el.textContent!.trim() === '')
+              .map((el) => el.className),
+          )
+        expect(empties).toEqual([])
+      },
+    )
+  })
+
+  test('sets the country beside the name, and the flag is not read out', async ({
+    page,
+  }) => {
+    await onProfile(
+      page,
+      railed('country'),
+      { width: 1280, height: 900 },
+      async () => {
+        const flag = page.locator(`${HEADER} .country-flag`)
+        await expect(flag).toHaveAttribute('aria-hidden', 'true')
+
+        const name = (await page.locator(`${HEADER} h1`).boundingBox())!
+        const line = (await flag.boundingBox())!
+        const links = (await page
+          .locator('[data-profile-links]')
+          .boundingBox())!
+        // Immediately under the name, and nowhere near the rail: the country is
+        // identity, and identity rides with the name.
+        expect(line.y).toBeGreaterThan(name.y)
+        expect(line.y).toBeLessThan(name.y + name.height + 24)
+        expect(line.y).toBeLessThan(links.y)
+
+        /* The separator travels with what follows it. Wrapped to its own line
+           at 320px, one left on the country's line would dangle there. */
+        const country = await flag.evaluate(
+          (svg) => svg.parentElement!.textContent!.trim(),
+        )
+        expect(country).not.toContain('·')
+        const former = await page
+          .getByText('previously known as', { exact: false })
+          .first()
+          .evaluate((el) => el.textContent!.trim())
+        expect(former.startsWith('·')).toBe(true)
+      },
+    )
+  })
+})
+
 /* A phone reader meets the header in one of three states: a page nobody has
    claimed, which offers the claim CTA; a page they are signed in to claim; or
    their own, which carries the avatar controls. Each control holds the same

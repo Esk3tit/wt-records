@@ -30,6 +30,15 @@ const liveRegions = () =>
 
 const flush = () => act(async () => undefined)
 
+/** An owner with no links meets the rail's own affordance rather than a form —
+    the empty rail is the only moment this feature is mentioned to them. The
+    fields are what it opens onto, so a case about the fields opens it first. */
+const renderWithNoLinks = () => {
+  const view = render(<OwnerLinkControls playerId={1} links={[]} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Add links' }))
+  return view
+}
+
 beforeEach(() => {
   setMyLink.mockReset().mockResolvedValue({ handle: 'PhlyDaily' })
   removeMyLink.mockReset().mockResolvedValue(undefined)
@@ -95,12 +104,46 @@ describe('the constructed URL, shown as it is typed', () => {
   })
 })
 
+/* An owner with no links has no rail, so there is nowhere else this feature is
+   ever mentioned to the one person who can use it. The empty state became the
+   moment — which only works if it is a moment and not a form. */
+describe('the empty rail', () => {
+  it('offers the affordance and nothing else', () => {
+    render(<OwnerLinkControls playerId={1} links={[]} />)
+
+    expect(screen.getByRole('button', { name: 'Add links' })).toBeTruthy()
+    expect(screen.queryByRole('textbox')).toBeNull()
+    expect(screen.queryByRole('combobox')).toBeNull()
+  })
+
+  it('opens onto the fields when it is asked to', () => {
+    renderWithNoLinks()
+
+    expect(field('YouTube')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Add links' })).toBeNull()
+  })
+
+  /* Held links are already a rail, and the fields beneath it are then editing
+     something rather than teaching that the feature exists. */
+  it('is not what an owner who already has links meets', () => {
+    render(
+      <OwnerLinkControls
+        playerId={1}
+        links={[{ platform: 'youtube', handle: 'PhlyDaily' }]}
+      />,
+    )
+
+    expect(screen.queryByRole('button', { name: 'Add links' })).toBeNull()
+    expect(field('YouTube').value).toBe('PhlyDaily')
+  })
+})
+
 /* "Echo back exactly what was stored" is the field's whole promise, and it is
    the server's answer that settles it — not the text that was typed. */
 describe('what the field settles on', () => {
   it('takes the handle the server actually stored', async () => {
     setMyLink.mockResolvedValue({ handle: 'PhlyDaily' })
-    render(<OwnerLinkControls playerId={1} links={[]} />)
+    renderWithNoLinks()
 
     fireEvent.change(field('YouTube'), { target: { value: '  @PhlyDaily  ' } })
     fireEvent.click(saveButton('YouTube'))
@@ -128,7 +171,7 @@ describe('what the field settles on', () => {
     setMyLink.mockRejectedValue(
       new Error('Another player already shows that handle.'),
     )
-    render(<OwnerLinkControls playerId={1} links={[]} />)
+    renderWithNoLinks()
 
     fireEvent.change(field('YouTube'), { target: { value: 'Taken' } })
     fireEvent.click(saveButton('YouTube'))
@@ -164,7 +207,7 @@ describe('when the parent’s props have not caught up', () => {
 
   it('offers Remove for a link just added, without waiting for a reload', async () => {
     setMyLink.mockResolvedValue({ handle: 'PhlyDaily' })
-    render(<OwnerLinkControls playerId={1} links={[]} />)
+    renderWithNoLinks()
 
     fireEvent.change(field('YouTube'), { target: { value: 'PhlyDaily' } })
     fireEvent.click(saveButton('YouTube'))

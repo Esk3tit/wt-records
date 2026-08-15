@@ -486,7 +486,14 @@ option {
     var(--ambient-mid-lift);
 }
 
-/* The monument: the page's single amber moment, glowing behind the numeral. */
+/* The monument: the page's single amber moment, glowing behind the numeral.
+   Material, not ink, so it spends none of the ration — and the peak alpha is
+   what the ink above it was measured against, so the reach moves and the
+   brightness never does. */
+.monument-light {
+  --light-x: 0;
+  --light-y: 0;
+}
 .monument-glow {
   position: absolute;
   right: -18%;
@@ -495,10 +502,63 @@ option {
   height: 130%;
   pointer-events: none;
   background: radial-gradient(
-    circle,
+    circle at 50% 46%,
     rgba(240, 185, 74, 0.22),
-    transparent 62%
+    rgba(240, 185, 74, 0.14) calc(24% + 9% * var(--monument-reach, 0.5)),
+    transparent calc(58% + 11% * var(--monument-reach, 0.5))
   );
+  /* Answers the pointer the way the hall's scene does. Trailing rather than
+     tracking: at this amplitude, following it exactly reads as jitter. */
+  translate: calc(var(--light-x) * 3%) calc(var(--light-y) * 3%);
+  transition: translate 700ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* The monument lights as its number tallies: the one authored moment on this
+   card, and the reason the count-up is not the only thing arriving. A reader
+   who asked for no motion meets the monument already lit — the arrival state,
+   not a degraded one. */
+@media (prefers-reduced-motion: no-preference) {
+  .monument-light {
+    animation: monument-ignite 900ms var(--ease-out-quart) both;
+  }
+  .monument-glow {
+    animation: monument-swell 1300ms var(--ease-out-quart) both;
+  }
+  /* A reign still running breathes; a closed one is history, and history is
+     steady. The site's own liveness mark, where it has been earned. */
+  .monument-light--standing .monument-glow {
+    animation:
+      monument-swell 1300ms var(--ease-out-quart) both,
+      monument-breathe 7s ease-in-out 1300ms infinite;
+  }
+  .monument-light.is-offscreen .monument-glow {
+    animation-play-state: paused;
+  }
+}
+@keyframes monument-ignite {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes monument-swell {
+  from {
+    scale: 0.9;
+  }
+  to {
+    scale: 1;
+  }
+}
+@keyframes monument-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.82;
+  }
 }
 
 /* Section-nav pill: a small liquid-glass pane in its own right (live-accepted

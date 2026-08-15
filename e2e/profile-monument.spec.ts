@@ -132,6 +132,66 @@ test.describe('the claim form', () => {
   })
 })
 
+/** What the light is doing right now: its own fade, the glow's swell, and
+    whether a loop is running behind it. */
+async function lightState(page: Page) {
+  return page.evaluate(() => {
+    const light = document.querySelector('.monument-light')
+    const glow = document.querySelector('.monument-glow')
+    if (!light || !glow) throw new Error('no monument light')
+    return {
+      lit: Number(getComputedStyle(light).opacity),
+      swell: getComputedStyle(glow).scale,
+      loops: getComputedStyle(glow).animationName.includes('breathe'),
+      playing: getComputedStyle(glow).animationPlayState,
+    }
+  })
+}
+
+/* The card's one authored moment: the monument lights as its number tallies.
+   Material, not ink — it is inside an `aria-hidden` layer, which is why the
+   amber cases above still count exactly one moment with the glow lit. */
+test.describe('the monument lights as it counts', () => {
+  test.use({ storageState: STATE.anon })
+
+  test('arrives dark and settles lit', async ({ page }) => {
+    await openProfile(page)
+
+    const arriving = await lightState(page)
+    await expect
+      .poll(async () => (await lightState(page)).lit, { timeout: 5_000 })
+      .toBe(1)
+    // It really did fade in, rather than being lit the whole time — which is
+    // the only thing that makes the reduced-motion case below a difference.
+    expect(arriving.lit).toBeLessThan(1)
+  })
+
+  /* A reign still running breathes; a closed one is steady. A loop nobody is
+     looking at stops, which is the whole cost of having one at all. */
+  test('stops the loop once the card is off the screen', async ({ page }) => {
+    await openProfile(page)
+    await expect
+      .poll(async () => (await lightState(page)).lit, { timeout: 5_000 })
+      .toBe(1)
+    test.skip(!(await lightState(page)).loops, 'this reign is already closed')
+
+    await page.evaluate(() => {
+      const pad = document.createElement('div')
+      pad.style.height = '4000px'
+      document.body.append(pad)
+      window.scrollTo(0, 2500)
+    })
+    await expect
+      .poll(async () => (await lightState(page)).playing, { timeout: 5_000 })
+      .toContain('paused')
+
+    await page.evaluate(() => window.scrollTo(0, 0))
+    await expect
+      .poll(async () => (await lightState(page)).playing, { timeout: 5_000 })
+      .not.toContain('paused')
+  })
+})
+
 test.describe('the monument under reduced motion', () => {
   test.use({ storageState: STATE.anon })
 
@@ -146,5 +206,19 @@ test.describe('the monument under reduced motion', () => {
     expect(landed).toMatch(/^[\d,]+$/)
     await page.waitForTimeout(1200)
     await expect(numeral).toHaveText(landed!)
+  })
+
+  /* The alternative is the arrival state, not a degraded one: the monument is
+     already lit on the first frame, and nothing is left moving behind it. */
+  test('meets the monument already lit, with nothing left running', async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await openProfile(page)
+
+    const state = await lightState(page)
+    expect(state.lit).toBe(1)
+    expect(state.swell).toBe('none')
+    expect(state.loops).toBe(false)
   })
 })

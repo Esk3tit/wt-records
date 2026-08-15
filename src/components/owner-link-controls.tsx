@@ -1,6 +1,6 @@
 import { useId, useState } from 'react'
 import { useRouter } from '@tanstack/react-router'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Plus } from 'lucide-react'
 import { MAX_NAMED_LINKS, PLATFORMS, WEBSITE_PLATFORM } from '#/links/platforms'
 import {
   fieldPrefix,
@@ -39,6 +39,10 @@ export function OwnerLinkControls({
   playerId: number
   links: ReadonlyArray<{ platform: string; handle: string }>
 }) {
+  // An owner with no links has no rail, so the rail's own slot is the only
+  // moment this feature is ever mentioned to the one person who can use it.
+  // Left open once they have links: the fields are then editing something.
+  const [authoring, setAuthoring] = useState(links.length > 0)
   const held = new Set(links.map((link) => link.platform))
   const namedHeld = links.filter(
     (link) => link.platform !== WEBSITE_PLATFORM,
@@ -52,8 +56,23 @@ export function OwnerLinkControls({
     ...(held.has(WEBSITE_PLATFORM) ? [] : [WEBSITE_PLATFORM]),
   ]
 
+  if (!authoring) {
+    return (
+      <div className="mt-5 border-t border-hairline-soft pt-5">
+        <button
+          type="button"
+          className={actionButton}
+          onClick={() => setAuthoring(true)}
+        >
+          <Plus size={15} aria-hidden />
+          Add links
+        </button>
+      </div>
+    )
+  }
+
   return (
-    <div className="mt-4">
+    <div className="mt-5 border-t border-hairline-soft pt-5">
       <p className="text-xs font-semibold tracking-wide text-fg-muted uppercase">
         Links
       </p>
