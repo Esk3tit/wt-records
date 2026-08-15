@@ -89,7 +89,7 @@ test.describe('owner avatar controls', () => {
 
       for (const message of said) {
         expect(message).not.toMatch(
-          /approv|denie|reject|pending|review|moderat|await|verif/i,
+          /approv|den(y|ie|ia)|declin|reject|pending|review|moderat|await|verif/i,
         )
       }
     })

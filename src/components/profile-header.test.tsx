@@ -281,9 +281,13 @@ describe('a pending avatar gives nothing away', () => {
     })
 
     expect(header.textContent).not.toMatch(/pending|review|approved|awaiting/i)
-    // No live region on the avatar control either: a status that resolves into
-    // a word is the same leak, spoken instead of drawn.
-    for (const region of header.querySelectorAll('[role="status"]')) {
+    /* Nor spoken: a status that resolves into a word is the same leak. Every
+       region a reader could be interrupted by, not just the role this page
+       happens to use today — one that grew an alert or a log would leak past a
+       check that only knew about `status`. */
+    for (const region of header.querySelectorAll(
+      '[aria-live], [role="status"], [role="alert"], [role="log"]',
+    )) {
       expect(region.textContent.trim()).toBe('')
     }
   })

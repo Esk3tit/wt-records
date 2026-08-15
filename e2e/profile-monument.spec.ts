@@ -141,6 +141,7 @@ async function lightState(page: Page) {
     if (!light || !glow) throw new Error('no monument light')
     return {
       lit: Number(getComputedStyle(light).opacity),
+      entrance: getComputedStyle(light).animationName,
       swell: getComputedStyle(glow).scale,
       running: getComputedStyle(glow).animationName,
       moves: getComputedStyle(glow).translate,
@@ -157,13 +158,17 @@ test.describe('the monument lights as it counts', () => {
   test('arrives dark and settles lit', async ({ page }) => {
     await openProfile(page)
 
+    /* The entrance is asserted as the declaration, never as a sampled opacity:
+       the fade runs 900ms from first paint, and a slow machine finishes it
+       before a round trip can catch it mid-flight. The declaration is what
+       makes this different from the reduced-motion case, and it is not a
+       race — `both` fill leaves it standing after the animation ends. */
     const arriving = await lightState(page)
+    expect(arriving.entrance).toContain('monument-ignite')
+
     await expect
       .poll(async () => (await lightState(page)).lit, { timeout: 5_000 })
       .toBe(1)
-    // It really did fade in, rather than being lit the whole time — which is
-    // the only thing that makes the reduced-motion case below a difference.
-    expect(arriving.lit).toBeLessThan(1)
   })
 
   /* One authored moment and then stillness. Nothing loops here: an amber wash
@@ -201,7 +206,7 @@ test.describe('the monument lights as it counts', () => {
       translate: getComputedStyle(el).translate,
     }))
     expect(drawn.inLight).toBe(false)
-    // The landing'"'"'s glow is the plain one: no reach variable, no entrance.
+    // The landing's glow is the plain one: no reach variable, no entrance.
     expect(drawn.background).not.toContain('calc')
     expect(drawn.animation).toBe('none')
     expect(drawn.translate).toBe('none')
@@ -234,6 +239,7 @@ test.describe('the monument under reduced motion', () => {
 
     const state = await lightState(page)
     expect(state.lit).toBe(1)
+    expect(state.entrance).toBe('none')
     expect(state.swell).toBe('none')
     expect(state.running).toBe('none')
     // The pointer answer is gated in CSS, not in JS, so a reader who turns
