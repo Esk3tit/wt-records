@@ -3,7 +3,7 @@ import { CountUp } from '#/components/count-up'
 import { formatMonthYear, heldDays } from '#/lib/dates'
 import type { LongestHeldTitle } from '#/components/profile-enrichment'
 
-interface Standing {
+export interface Standing {
   titlesHeld: number
   longestHeld: LongestHeldTitle | null
 }

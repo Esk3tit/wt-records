@@ -220,6 +220,57 @@ test.describe('an Avatar awaiting review', () => {
     )
   })
 
+  /* The design test the header owes: the owner-pending render differs from the
+     owner-approved render in the picture and in nothing else. No badge, no
+     reserved slot, no changed class, no changed spacing anywhere on the page.
+
+     Compared as every node's tag, classes and box — not as HTML — because that
+     is the claim, and because a raw diff over the Country picker's 250 options
+     says nothing a reader could act on. The one node allowed to differ is the
+     one pointing at the picture. */
+  test('gives nothing away that its own owner could see', async ({ page }) => {
+    const slug = 'e2e-avatar-shadow-shape'
+    await withPlayer(
+      { ...ownedPlayer(slug), avatarKey: APPROVED },
+      async ({ sql, id }) => {
+        const shape = async () => {
+          await page.goto(`/player/${slug}`)
+          await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+          await expect(
+            page.getByRole('button', { name: /Switch to/ }),
+          ).toBeVisible()
+          return page.evaluate(() =>
+            [...document.querySelectorAll('main *')].map((el) => {
+              const box = el.getBoundingClientRect()
+              return [
+                el.tagName,
+                el.getAttribute('class') ?? '',
+                Math.round(box.width),
+                Math.round(box.height),
+                Math.round(box.top),
+                Math.round(box.left),
+              ].join('|')
+            }),
+          )
+        }
+
+        const approved = await shape()
+        await sql`
+          insert into player_amendments (player_id, field, value, submitted_by)
+          values (${id}, 'avatar', ${PENDING},
+                  (select user_id from players where id = ${id}))
+        `
+        const pending = await shape()
+
+        expect(pending).toEqual(approved)
+        // And the picture really did change underneath, or the equality above
+        // is comparing a page with itself and proving nothing.
+        const served = await (await page.request.get(`/player/${slug}`)).text()
+        expect(served).toMatch(rendered(PENDING))
+      },
+    )
+  })
+
   test('is the holder’s alone, and never rides out on the share card', async ({
     page,
     browser,

@@ -225,14 +225,36 @@ describe('the owner', () => {
     expect(queryByRole('textbox')).toBeNull()
   })
 
-  /* The country is not shadowed and the avatar is, so their confirmations
-     differ by design. Asserted together, because the contrast is the decision
-     and a reader must not meet it as an inconsistency. */
   it('is offered the avatar and the country side by side', async () => {
     const { getByRole } = await renderHeader({ viewer: owner })
 
     expect(getByRole('button', { name: 'Upload photo' })).toBeTruthy()
     expect(getByRole('combobox', { name: /Country/ })).toBeTruthy()
+  })
+
+  /* Two adjacent controls with deliberately different feedback: the country is
+     not shadowed and says "Saved"; the avatar is, and says nothing at all. The
+     contrast IS the decision, so it is asserted in one place — split across two
+     specs, nothing would catch the day one of them drifts toward the other and
+     the pair starts reading as an inconsistency instead of a design. */
+  it('confirms the country and never the avatar', async () => {
+    const { header } = await renderHeader({ viewer: owner })
+
+    const region = (label: RegExp) => {
+      const control = [...header.querySelectorAll('div')].find(
+        (el) =>
+          label.test(el.textContent ?? '') &&
+          !el.querySelector('div')?.textContent?.match(label),
+      )
+      return control?.querySelector('[role="status"], [aria-live]') ?? null
+    }
+
+    // The country ships the live region its confirmation will speak through…
+    expect(region(/Country/)).not.toBeNull()
+    // …and the avatar ships none anywhere in its subtree, in any state.
+    const avatar = header.querySelector('input[type="file"]')!.parentElement!
+    expect(avatar.querySelector('[role="status"], [aria-live]')).toBeNull()
+    expect(avatar.textContent).not.toMatch(/saved|pending|review|uploaded/i)
   })
 })
 

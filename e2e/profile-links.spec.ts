@@ -205,6 +205,47 @@ test.describe('the rail a visitor is shown', () => {
     )
   })
 
+  /* X, Kick and Bluesky each define clear space as the mark's own width on all
+     four sides. Read as distance to other elements — the standard reading, and
+     the one taken — that binds the plate→handle gap and the link→link gap to
+     ≥24px, and that, not the plate, is what sets the rail's width. Stated as a
+     number here, because the prototype's 10px gap was non-compliant on all
+     three platforms that publish the rule and nothing would have caught it. */
+  test('holds the marks’ own width of clear space, in the composed rail', async ({
+    page,
+  }) => {
+    const slug = 'e2e-links-clearspace'
+    await withPlayer(linkedPlayer(slug, { owned: 'held' }), async () => {
+      await openProfile(page, slug, { width: 1280 })
+      await bringIntoView(page, RAIL)
+
+      const gaps = await page.locator(`${RAIL} a`).evaluateAll((links) => {
+        const box = (el: Element) => el.getBoundingClientRect()
+        const plateToHandle = links.map((a) => {
+          const [plate, handle] = a.children
+          return Math.round(box(handle).left - box(plate).right)
+        })
+        // Between neighbours on the same row only: a wrapped row's first link
+        // sits left of the one above it, and that distance is not a gap.
+        const linkToLink: number[] = []
+        for (let i = 1; i < links.length; i++) {
+          const prev = box(links[i - 1])
+          const here = box(links[i])
+          if (Math.abs(prev.top - here.top) < 1) {
+            linkToLink.push(Math.round(here.left - prev.right))
+          }
+        }
+        return { plateToHandle, linkToLink }
+      })
+
+      expect(gaps.plateToHandle.length).toBeGreaterThan(1)
+      expect(gaps.linkToLink.length).toBeGreaterThan(0)
+      for (const gap of [...gaps.plateToHandle, ...gaps.linkToLink]) {
+        expect(gap).toBeGreaterThanOrEqual(24)
+      }
+    })
+  })
+
   test('is reachable on a larger phone too', async ({ page }) => {
     await withPlayer(
       linkedPlayer('e2e-links-reach-390', { owned: 'held' }),

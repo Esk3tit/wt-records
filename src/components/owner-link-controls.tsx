@@ -32,6 +32,10 @@ const prefixClass =
 const actionButton =
   'inline-flex min-h-11 items-center justify-center gap-1.5 rounded border border-hairline-soft px-3 py-1.5 text-sm font-semibold text-fg-muted transition-colors duration-200 hover:text-fg disabled:cursor-not-allowed disabled:opacity-50'
 
+/** Both states of this control are a band at the card's foot, ruled off from
+    whatever is above them — one rule, whichever one renders. */
+const footBand = 'mt-5 border-t border-hairline-soft pt-5'
+
 export function OwnerLinkControls({
   playerId,
   links,
@@ -58,7 +62,7 @@ export function OwnerLinkControls({
 
   if (!authoring) {
     return (
-      <div className="mt-5 border-t border-hairline-soft pt-5">
+      <div className={footBand}>
         <button
           type="button"
           className={actionButton}
@@ -72,7 +76,7 @@ export function OwnerLinkControls({
   }
 
   return (
-    <div className="mt-5 border-t border-hairline-soft pt-5">
+    <div className={footBand}>
       <p className="text-xs font-semibold tracking-wide text-fg-muted uppercase">
         Links
       </p>

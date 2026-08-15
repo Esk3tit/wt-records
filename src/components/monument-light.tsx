@@ -1,23 +1,24 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import {
+  hasMonument,
+  monumentReach,
+  monumentStanding,
+} from '#/components/player-monument'
+import type { Standing } from '#/components/player-monument'
 
-/* The light the monument stands in. Amber material behind the glass, never ink,
-   so it spends none of the page's ration — and the one thing on this card drawn
-   from the reign it belongs to: the pool reaches as far as the tenure ran, and
-   it breathes only while that tenure is still running.
+/* The half of the monument that is light rather than ink — part of the same
+   single amber moment, not an exemption from it, and the only thing on this
+   card drawn from the reign itself: the pool reaches as far as the tenure ran,
+   and it breathes only while that tenure is still running.
 
-   Sized for a wide pane. Its circle is measured against the pane's farthest
-   corner, so a pane taller than it is wide cuts the ramp mid-fade and lands a
-   hard vertical seam instead of a bleed. It simply does not run there. */
-export function MonumentLight({
-  reach,
-  standing,
-}: {
-  /** 0–1, how far the pool spreads — the reign, on the scale the hall reads. */
-  reach: number
-  /** A title still held. A closed reign is history, and history is steady. */
-  standing: boolean
-}) {
+   Sized for a wide pane: the circle is measured against the pane's farthest
+   corner, so a taller-than-wide one cuts the ramp mid-fade into a hard seam. */
+export function MonumentLight({ standing }: { standing: Standing }) {
   const ref = useRef<HTMLDivElement>(null)
+  // React owns className, so the observer reports through state rather than
+  // writing the attribute underneath it and losing the flag on the next render.
+  const [offscreen, setOffscreen] = useState(false)
+  const alive = monumentStanding(standing)
 
   /* The light answers the pointer the way the hall's scene does — a few percent,
      trailing rather than tracking, which is what keeps it from reading as
@@ -66,23 +67,33 @@ export function MonumentLight({
   /* A loop nobody is looking at is a loop that should not be running. */
   useEffect(() => {
     const layer = ref.current
-    if (!layer || !standing) return
+    if (!layer || !alive) return
     if (typeof IntersectionObserver === 'undefined') return
     const watch = new IntersectionObserver(([seen]) =>
-      layer.classList.toggle('is-offscreen', !seen.isIntersecting),
+      setOffscreen(!seen.isIntersecting),
     )
     watch.observe(layer)
     return () => watch.disconnect()
-  }, [standing])
+  }, [alive])
+
+  // No tenure and nothing standing is no subject, and the glow answers to that
+  // for the same reason the numeral does.
+  if (!hasMonument(standing)) return null
 
   return (
     <div
       ref={ref}
       aria-hidden="true"
-      className={`monument-light absolute inset-0 z-0 hidden overflow-hidden rounded-[inherit] md:block${
-        standing ? ' monument-light--standing' : ''
-      }`}
-      style={{ '--monument-reach': reach } as React.CSSProperties}
+      className={[
+        'monument-light absolute inset-0 z-0 hidden overflow-hidden rounded-[inherit] md:block',
+        alive && 'monument-light--standing',
+        offscreen && 'is-offscreen',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      style={
+        { '--monument-reach': monumentReach(standing) } as React.CSSProperties
+      }
     >
       <div className="monument-glow" />
     </div>

@@ -6,12 +6,7 @@ import { OwnerAvatarControls } from '#/components/owner-avatar-controls'
 import { OwnerCountryControls } from '#/components/owner-country-controls'
 import { OwnerLinkControls } from '#/components/owner-link-controls'
 import { PlayerCountry } from '#/components/player-country'
-import {
-  PlayerMonument,
-  hasMonument,
-  monumentReach,
-  monumentStanding,
-} from '#/components/player-monument'
+import { PlayerMonument } from '#/components/player-monument'
 import { ProfileEnrichment } from '#/components/profile-enrichment'
 import { ProfileLinks } from '#/components/profile-links'
 import { renderLinks } from '#/links/render'
@@ -33,14 +28,11 @@ export interface ProfileHeaderPlayer {
   titlesHeld: number
 }
 
-/* The Plinth. One pane reading identity → the monument → what kind of holder
-   they are → where else to find them, splitting on a claim about kind rather
-   than about space: the country is identity, so it rides with the name, and
-   links are outbound, so they dock to the card's foot.
-
-   The empty case is the page an unclaimed Player has always had. No country,
-   no rail, no hairline — nothing here renders a hole, which is the property
-   this composition is actually judged on, since unclaimed is the common case. */
+/* The Plinth. Split on a claim about kind, not about space: the country is
+   identity, so it rides with the name; links are outbound, so they dock to the
+   foot. The empty case is the page an unclaimed Player has always had, and
+   since that is the common case, "nothing renders a hole" is the property this
+   composition is judged on. */
 export function ProfileHeader({
   player,
   viewer,
@@ -59,12 +51,7 @@ export function ProfileHeader({
 
   return (
     <div className="glass-mid relative p-6 sm:p-7">
-      {hasMonument(standing) && (
-        <MonumentLight
-          reach={monumentReach(standing)}
-          standing={monumentStanding(standing)}
-        />
-      )}
+      <MonumentLight standing={standing} />
 
       {/* The identity column's desktop air is spent, not inherited: measured, a
           name leaves ~800px of void beside a monument only 193px wide, so the
@@ -117,9 +104,11 @@ export function ProfileHeader({
             the rule between them is the plinth, and it is this card's own. */}
         <PlayerMonument {...standing} />
 
+        {/* Replaces the strip's own top margin: the grid's row gap is what
+            spaces it here. */}
         <ProfileEnrichment
           stats={enrichment}
-          className="mt-0 md:col-start-1 md:row-start-2"
+          className="md:col-start-1 md:row-start-2"
         />
       </div>
 
