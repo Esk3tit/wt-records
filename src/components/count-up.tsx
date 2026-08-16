@@ -20,7 +20,12 @@ export function CountUp({
     let frame = 0
     const start = performance.now()
     const tick = (now: number) => {
-      const t = Math.min((now - start) / DURATION_MS, 1)
+      /* Clamped at both ends. A rAF callback is handed the *frame's* start
+         time, which can predate the clock read that scheduled it — so an
+         unclamped `t` goes a few milliseconds negative, the quartic ease turns
+         that into a negative multiplier, and the tally opens on `-6` before it
+         opens on `0`. */
+      const t = Math.min(Math.max((now - start) / DURATION_MS, 0), 1)
       setShown(Math.round(easeOutQuart(t) * value))
       if (t < 1) frame = requestAnimationFrame(tick)
     }

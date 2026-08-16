@@ -205,6 +205,47 @@ test.describe('the rail a visitor is shown', () => {
     )
   })
 
+  /* X, Kick and Bluesky each define clear space as the mark's own width on all
+     four sides. Read as distance to other elements — the standard reading, and
+     the one taken — that binds the plate→handle gap and the link→link gap to
+     ≥24px, and that, not the plate, is what sets the rail's width. Stated as a
+     number here, because the prototype's 10px gap was non-compliant on all
+     three platforms that publish the rule and nothing would have caught it. */
+  test('holds the marks’ own width of clear space, in the composed rail', async ({
+    page,
+  }) => {
+    const slug = 'e2e-links-clearspace'
+    await withPlayer(linkedPlayer(slug, { owned: 'held' }), async () => {
+      await openProfile(page, slug, { width: 1280 })
+      await bringIntoView(page, RAIL)
+
+      const gaps = await page.locator(`${RAIL} a`).evaluateAll((links) => {
+        const box = (el: Element) => el.getBoundingClientRect()
+        const plateToHandle = links.map((a) => {
+          const [plate, handle] = a.children
+          return Math.round(box(handle).left - box(plate).right)
+        })
+        // Between neighbours on the same row only: a wrapped row's first link
+        // sits left of the one above it, and that distance is not a gap.
+        const linkToLink: number[] = []
+        for (let i = 1; i < links.length; i++) {
+          const prev = box(links[i - 1])
+          const here = box(links[i])
+          if (Math.abs(prev.top - here.top) < 1) {
+            linkToLink.push(Math.round(here.left - prev.right))
+          }
+        }
+        return { plateToHandle, linkToLink }
+      })
+
+      expect(gaps.plateToHandle.length).toBeGreaterThan(1)
+      expect(gaps.linkToLink.length).toBeGreaterThan(0)
+      for (const gap of [...gaps.plateToHandle, ...gaps.linkToLink]) {
+        expect(gap).toBeGreaterThanOrEqual(24)
+      }
+    })
+  })
+
   test('is reachable on a larger phone too', async ({ page }) => {
     await withPlayer(
       linkedPlayer('e2e-links-reach-390', { owned: 'held' }),
@@ -273,6 +314,38 @@ test.describe('the rail is readable in both lighting states', () => {
 test.describe('the holder authors them', () => {
   test.use({ storageState: STATE.viewer })
 
+  /** An owner with no links has no rail, so the rail's own slot carries the
+      affordance — that is the only moment this feature is mentioned to the one
+      person who can use it. Every case below starts from that empty state, so
+      each opens the editor the way its owner would. */
+  async function openLinkEditor(page: Page, slug: string) {
+    await page.setViewportSize({ width: 1280, height: TALL })
+    await page.goto(`/player/${slug}`)
+    await page.getByRole('button', { name: 'Add links' }).click()
+  }
+
+  test('teaches the owner the feature exists, and nothing else', async ({
+    page,
+  }) => {
+    const slug = 'e2e-links-empty-rail'
+    await withPlayer(
+      linkedPlayer(slug, { owned: 'mine', links: [] }),
+      async () => {
+        await page.setViewportSize({ width: 1280, height: TALL })
+        await page.goto(`/player/${slug}`)
+
+        // No rail, and no field either: an affordance, not a form.
+        await expect(page.locator(RAIL)).toHaveCount(0)
+        await expect(page.getByLabel('YouTube — youtube.com/@')).toHaveCount(0)
+        const add = page.getByRole('button', { name: 'Add links' })
+        await expect(add).toBeVisible()
+
+        await add.click()
+        await expect(page.getByLabel('YouTube — youtube.com/@')).toBeVisible()
+      },
+    )
+  })
+
   test('saves a handle, shows the URL it will publish, and removes it', async ({
     page,
   }) => {
@@ -280,8 +353,7 @@ test.describe('the holder authors them', () => {
     await withPlayer(
       linkedPlayer(slug, { owned: 'mine', links: [] }),
       async ({ sql }) => {
-        await page.setViewportSize({ width: 1280, height: TALL })
-        await page.goto(`/player/${slug}`)
+        await openLinkEditor(page, slug)
 
         const field = page.getByLabel('YouTube — youtube.com/@')
         await expect(field).toBeVisible()
@@ -320,8 +392,7 @@ test.describe('the holder authors them', () => {
     await withPlayer(
       linkedPlayer(slug, { owned: 'mine', links: [] }),
       async ({ sql }) => {
-        await page.setViewportSize({ width: 1280, height: TALL })
-        await page.goto(`/player/${slug}`)
+        await openLinkEditor(page, slug)
 
         await page.getByLabel('Add a link').selectOption('website')
         const field = page.getByLabel('Personal site — https://')
@@ -364,8 +435,7 @@ test.describe('the holder authors them', () => {
     await withPlayer(
       linkedPlayer(slug, { owned: 'mine', links: [] }),
       async () => {
-        await page.setViewportSize({ width: 1280, height: TALL })
-        await page.goto(`/player/${slug}`)
+        await openLinkEditor(page, slug)
 
         // A pasted profile URL, which the server stores as a bare handle.
         await page
@@ -389,8 +459,7 @@ test.describe('the holder authors them', () => {
     await withPlayer(
       linkedPlayer(slug, { owned: 'mine', links: [] }),
       async ({ sql }) => {
-        await page.setViewportSize({ width: 1280, height: TALL })
-        await page.goto(`/player/${slug}`)
+        await openLinkEditor(page, slug)
 
         await page
           .getByLabel('YouTube — youtube.com/@')

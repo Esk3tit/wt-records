@@ -17,6 +17,9 @@ export interface PlayerSeed {
       a fixture that does not declare it races every fixture that does. */
   claimsAs?: ReadonlyArray<string>
   avatarKey?: string
+  /** ISO-3166 alpha-2, as the picker stores it. Shown only once claimed, the
+      same as the links — the header's country node is claim-gated too. */
+  countryCode?: string
   /** Profile links, as the write path would have stored them. */
   links?: Array<{ platform: string; handle: string }>
 }
@@ -51,14 +54,16 @@ async function seedPlayer(
     aliases = [],
     ownerEmail,
     avatarKey,
+    countryCode,
     links = [],
   }: PlayerSeed,
 ): Promise<number> {
   await dropPlayer(sql, slug)
   const owner = ownerEmail ? await userId(sql, ownerEmail) : null
   const [player] = await sql<{ id: number }[]>`
-    insert into players (slug, display_name, user_id, avatar_key)
-    values (${slug}, ${displayName}, ${owner}, ${avatarKey ?? null})
+    insert into players (slug, display_name, user_id, avatar_key, country_code)
+    values (${slug}, ${displayName}, ${owner}, ${avatarKey ?? null},
+            ${countryCode ?? null})
     returning id
   `
   for (const alias of aliases) {

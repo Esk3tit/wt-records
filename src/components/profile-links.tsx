@@ -16,26 +16,33 @@ import { linkAccessibleName } from '#/links/render'
     Read as plate padding instead, it would make every plate 3× the mark. */
 const CLEAR_SPACE = 'gap-6'
 
+/* The plate's fill and ink are mode-invariant — they belong to somebody else's
+   brand — so the only thing that may answer the pointer is how it sits: a pixel
+   of rise and a firmer edge, never a recolouring and never a pane's shadow. */
 const PLATE =
-  'inline-flex h-8 shrink-0 items-center justify-center rounded-[10px] bg-white ring-1 ring-black/10'
+  'inline-flex h-8 shrink-0 items-center justify-center rounded-[10px] bg-white ring-1 ring-black/10 transition duration-200 ease-out group-hover:-translate-y-px group-hover:ring-black/25 group-focus-visible:-translate-y-px group-focus-visible:ring-black/25 motion-reduce:transition-none motion-reduce:translate-none'
 
 export function ProfileLinks({
   links,
 }: {
   links: ReadonlyArray<RenderedLink>
 }) {
+  // The hairline belongs to the rail, not to the card: with no links there is
+  // no rail, and a rule ruling off nothing is exactly the hole this avoids.
   if (links.length === 0) return null
   return (
-    <ul
-      data-profile-links
-      className={`mt-4 flex flex-wrap items-center ${CLEAR_SPACE}`}
-    >
-      {links.map((link) => (
-        <li key={link.platform}>
-          <ProfileLink link={link} />
-        </li>
-      ))}
-    </ul>
+    <div className="mt-5 border-t border-hairline-soft pt-5">
+      <ul
+        data-profile-links
+        className={`flex flex-wrap items-center ${CLEAR_SPACE}`}
+      >
+        {links.map((link) => (
+          <li key={link.platform}>
+            <ProfileLink link={link} />
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
 
@@ -63,7 +70,11 @@ function ProfileLink({ link }: { link: RenderedLink }) {
       <BrandPlate link={link} />
       <span className="inline-flex min-w-0 items-center gap-1 text-sm text-fg-muted transition-colors duration-200 group-hover:text-fg">
         <span className="truncate">{link.display}</span>
-        <ArrowUpRight size={14} className="shrink-0" aria-hidden />
+        <ArrowUpRight
+          size={14}
+          className="shrink-0 transition-transform duration-200 ease-out group-hover:translate-x-px group-hover:-translate-y-px motion-reduce:transition-none motion-reduce:translate-none"
+          aria-hidden
+        />
       </span>
     </a>
   )

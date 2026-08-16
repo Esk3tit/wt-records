@@ -132,6 +132,90 @@ test.describe('the claim form', () => {
   })
 })
 
+/** What the light is doing right now: its own fade in, the glow's swell, and
+    whether anything is left running behind them. */
+async function lightState(page: Page) {
+  return page.evaluate(() => {
+    const light = document.querySelector('.monument-light')
+    const glow = document.querySelector('.monument-glow')
+    if (!light || !glow) throw new Error('no monument light')
+    return {
+      lit: Number(getComputedStyle(light).opacity),
+      entrance: getComputedStyle(light).animationName,
+      swell: getComputedStyle(glow).scale,
+      running: getComputedStyle(glow).animationName,
+      repeats: getComputedStyle(glow).animationIterationCount,
+      moves: getComputedStyle(glow).translate,
+      busy: [light, glow].some((el) =>
+        el.getAnimations().some((a) => a.playState === 'running'),
+      ),
+    }
+  })
+}
+
+/* The card's one authored moment: the monument lights as its number tallies.
+   Material, not ink — it is inside an `aria-hidden` layer, which is why the
+   amber cases above still count exactly one moment with the glow lit. */
+test.describe('the monument lights as it counts', () => {
+  test.use({ storageState: STATE.anon })
+
+  test('arrives dark and settles lit', async ({ page }) => {
+    await openProfile(page)
+
+    /* The entrance is asserted as the declaration, never as a sampled opacity:
+       the fade runs 900ms from first paint, and a slow machine finishes it
+       before a round trip can catch it mid-flight. The declaration is what
+       makes this different from the reduced-motion case, and it is not a
+       race — `both` fill leaves it standing after the animation ends. */
+    const arriving = await lightState(page)
+    expect(arriving.entrance).toContain('monument-ignite')
+
+    await expect
+      .poll(async () => (await lightState(page)).lit, { timeout: 5_000 })
+      .toBe(1)
+  })
+
+  /* One authored moment and then stillness. Nothing loops here: an amber wash
+     at this alpha cannot swing far enough to be perceived, so a loop would be
+     machinery paying for an effect nobody sees. */
+  test('settles, and leaves nothing running behind it', async ({ page }) => {
+    await openProfile(page)
+
+    /* Polled on the animations themselves. Waiting on the fade would sample the
+       swell mid-flight — they start together and the fade is 400ms shorter, so
+       anything keyed to the first is a race the fast machine loses. */
+    await expect
+      .poll(async () => (await lightState(page)).busy, { timeout: 5_000 })
+      .toBe(false)
+
+    const settled = await lightState(page)
+    expect(settled.lit).toBe(1)
+    expect(settled.swell).toBe('1')
+    // One pass each, so nothing here comes back around.
+    expect(settled.repeats).toBe('1')
+  })
+
+  /* The mode landing draws the same glow without this wrapper, and nothing here
+     was asked to change it — so every declaration the profile adds is scoped. */
+  test('leaves the mode landing’s own hero glow alone', async ({ page }) => {
+    await openNav(page, { path: '/grb' })
+    const hero = page.locator('.monument-glow').first()
+    await expect(hero).toBeVisible()
+
+    const drawn = await hero.evaluate((el) => ({
+      inLight: el.closest('.monument-light') != null,
+      background: getComputedStyle(el).backgroundImage,
+      animation: getComputedStyle(el).animationName,
+      translate: getComputedStyle(el).translate,
+    }))
+    expect(drawn.inLight).toBe(false)
+    // The landing's glow is the plain one: no reach variable, no entrance.
+    expect(drawn.background).not.toContain('calc')
+    expect(drawn.animation).toBe('none')
+    expect(drawn.translate).toBe('none')
+  })
+})
+
 test.describe('the monument under reduced motion', () => {
   test.use({ storageState: STATE.anon })
 
@@ -146,5 +230,23 @@ test.describe('the monument under reduced motion', () => {
     expect(landed).toMatch(/^[\d,]+$/)
     await page.waitForTimeout(1200)
     await expect(numeral).toHaveText(landed!)
+  })
+
+  /* The alternative is the arrival state, not a degraded one: the monument is
+     already lit on the first frame, and nothing is left moving behind it. */
+  test('meets the monument already lit, with nothing left running', async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await openProfile(page)
+
+    const state = await lightState(page)
+    expect(state.lit).toBe(1)
+    expect(state.entrance).toBe('none')
+    expect(state.swell).toBe('none')
+    expect(state.running).toBe('none')
+    // The pointer answer is gated in CSS, not in JS, so a reader who turns
+    // motion off after the page loaded is no longer answered either.
+    expect(state.moves).toBe('none')
   })
 })

@@ -31,7 +31,16 @@ interface Cell {
 
 /* What kind of holder this Player is, beside their name. Each stat appears
    only when it has something true to say — never a row of dashes. */
-export function ProfileEnrichment({ stats }: { stats: ProfileEnrichmentData }) {
+export function ProfileEnrichment({
+  stats,
+  placement = 'mt-5',
+}: {
+  stats: ProfileEnrichmentData
+  /** Where the caller seats the strip in its own layout. Named for what it is
+      allowed to say: the strip's rule and inner rhythm are not a call-site
+      choice, and `className` would invite overriding both. */
+  placement?: string
+}) {
   const { nationSpread, lastVerifiedAt } = stats
   const cells: Cell[] = []
 
@@ -78,7 +87,9 @@ export function ProfileEnrichment({ stats }: { stats: ProfileEnrichmentData }) {
   if (cells.length === 0) return null
 
   return (
-    <dl className="mt-5 flex flex-col gap-5 border-t border-hairline-soft pt-5 sm:flex-row sm:gap-0">
+    <dl
+      className={`flex flex-col gap-5 border-t border-hairline-soft pt-5 sm:flex-row sm:gap-0 ${placement}`}
+    >
       {cells.map((cell) => (
         <div
           key={cell.key}
