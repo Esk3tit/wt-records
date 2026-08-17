@@ -35,7 +35,22 @@ describe('countryFlagDataUri', () => {
     expect(svg).not.toMatch(/(?:href|src|url\()\s*=?\s*["'(]?https?:/)
   })
 
-  it('returns the same bytes every call, so a card version stays stable', () => {
+  it('wraps the mark it was given, so the bytes follow the list', () => {
+    /* Decoded and compared against that mark's own art. Two calls would only
+       compare the memo with itself — the first call is the one that serializes,
+       and it is the one a golden depends on. */
+    const de = mark('DE')
+    const svg = Buffer.from(
+      countryFlagDataUri(de).split(',')[1],
+      'base64',
+    ).toString()
+
+    expect(svg).toBe(
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${de.viewBox}">${de.body}</svg>`,
+    )
+  })
+
+  it('hands back the same bytes once it has them', () => {
     expect(countryFlagDataUri(mark('DE'))).toBe(countryFlagDataUri(mark('DE')))
   })
 

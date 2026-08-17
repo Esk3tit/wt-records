@@ -84,7 +84,10 @@ describe('toPlayerCardModel', () => {
     const one = toPlayerCardModel(data({ records: tied }))
     const other = toPlayerCardModel(data({ records: [...tied].reverse() }))
 
-    expect(one.bestVehicle).toBe(other.bestVehicle)
+    // The named winner, not merely the same one twice: picking last is also
+    // stable, and would satisfy an equality that names no expected result.
+    expect(one.bestVehicle).toBe('IS-2')
+    expect(other.bestVehicle).toBe('IS-2')
     expect(one.version).toBe(other.version)
   })
 
