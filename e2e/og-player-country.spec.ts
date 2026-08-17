@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import type { APIRequestContext, Page } from '@playwright/test'
 import type { Sql } from 'postgres'
+import { toPlayerCardModel } from '#/og/props/player'
 import { withPlayer } from './support/players'
 import { STATE } from './support/states'
 import { TEST_USERS } from './support/users'
@@ -15,6 +16,9 @@ import { TEST_USERS } from './support/users'
    different pictures, or the card cannot tell us which one it drew. */
 const APPROVED_AVATAR = 'logo512.png'
 const PENDING_AVATAR = 'logo192.png'
+
+/** The tombstone's own name, which the survivor's card captions itself with. */
+const FORMER_NAME = 'E2E Former Name'
 
 const ownedPlayer = (slug: string) => ({
   slug,
@@ -127,7 +131,7 @@ test.describe('the card carries the country', () => {
       await sql`delete from players where slug = ${oldSlug}`
       await sql`
         insert into players (slug, display_name, merged_into)
-        values (${oldSlug}, ${'E2E Former Name'}, ${id})
+        values (${oldSlug}, ${FORMER_NAME}, ${id})
       `
       try {
         const res = await page.request.get(`/og/player/${oldSlug}.png`, {
@@ -139,35 +143,44 @@ test.describe('the card carries the country', () => {
         expect(location.pathname).toContain(slug)
         expect(location.searchParams.get('from')).toBe(oldSlug)
 
-        // What the target self-computes for exactly that request.
-        const direct = await page.request.get(
-          `/og/player/${slug}.png?from=${oldSlug}`,
-        )
-        expect(direct.status()).toBe(200)
+        /* The assertion that bites. Comparing the redirect's bytes with the
+           target's proves nothing — the route ignores `v`, so any hash at all
+           would render the same card. The version has to equal the one the
+           target independently computes for that content, which the fixture
+           knows in full because it seeded every input. */
+        const expected = toPlayerCardModel(
+          {
+            player: { displayName: ownedPlayer(slug).displayName },
+            records: [],
+          },
+          {
+            previouslyKnownAs: FORMER_NAME,
+            avatarKey: APPROVED_AVATAR,
+            countryCode: ownedPlayer(slug).countryCode,
+          },
+        ).version
+        expect(location.searchParams.get('v')).toBe(expected)
 
         const redirected = await page.request.get(
           `${location.pathname}${location.search}`,
         )
         expect(redirected.status()).toBe(200)
         const bytes = await redirected.body()
-        expect(Buffer.compare(bytes, await direct.body())).toBe(0)
 
         // And it really is the tombstone's card — the one carrying the former
-        // name — not the survivor's own, or the agreement above is vacuous.
+        // name — not the survivor's own.
         const survivorsOwn = await page.request.get(`/og/player/${slug}.png`)
         expect(Buffer.compare(bytes, await survivorsOwn.body())).not.toBe(0)
 
-        /* And the country really is in that version, or this proves only that
-           two identical requests agree: clearing it must move the `?v=`. */
-        const versioned = location.searchParams.get('v')
-        expect(versioned).toBeTruthy()
+        // Clearing the country moves it, so the country is genuinely hashed in
+        // rather than merely agreeing with a constant.
         await sql`update players set country_code = null where slug = ${slug}`
         const after = await page.request.get(`/og/player/${oldSlug}.png`, {
           maxRedirects: 0,
         })
         expect(
           relative(after.headers()['location']).searchParams.get('v'),
-        ).not.toBe(versioned)
+        ).not.toBe(expected)
       } finally {
         await sql`delete from players where slug = ${oldSlug}`
       }
