@@ -9,12 +9,22 @@ import {
 } from './primitives'
 import { COLOR, GOLOS, SAIRA } from './tokens'
 
-const NAME_MAX_HEIGHT = 150 // two lines of the display name
-const CAPTION_MAX_HEIGHT = 59 // two lines of "previously known as", plus its margin
+export const NAME_SIZE = 66
+const NAME_LINE_HEIGHT = 1.04
+export const NAME_GAP = 20 // between the name and a country that wrapped below it
+const CAPTION_BLOCK = 72 // two lines of "previously known as", plus its margin
 
-// The tallest identity block the card could already draw, so nothing without a
-// country moves and only a country can reach the ceiling.
-const IDENTITY_MAX_HEIGHT = NAME_MAX_HEIGHT + CAPTION_MAX_HEIGHT
+const NAME_TWO_LINES = NAME_SIZE * NAME_LINE_HEIGHT * 2
+
+// Rounded up, so two lines always fit whole and a third can never start: slack
+// here is what lets a clipped line through as a row of glyph tops.
+export const NAME_MAX_HEIGHT = Math.ceil(NAME_TWO_LINES)
+
+/* The tallest identity block the card could already draw, so nothing without a
+   country moves. A wrapped country plate fits under this ceiling; the caption
+   that would follow it does not, and falls entirely outside rather than part-
+   drawn — which is why the ceiling clears the plate but not the caption. */
+export const IDENTITY_MAX_HEIGHT = Math.floor(NAME_TWO_LINES) + CAPTION_BLOCK
 
 export function PlayerCard(m: PlayerCardModel & { avatar?: string | null }) {
   return (
@@ -55,7 +65,7 @@ export function PlayerCard(m: PlayerCardModel & { avatar?: string | null }) {
                 flexWrap: 'wrap',
                 alignItems: 'center',
                 columnGap: 20,
-                rowGap: 20,
+                rowGap: NAME_GAP,
                 maxWidth: 600,
               }}
             >
@@ -64,13 +74,13 @@ export function PlayerCard(m: PlayerCardModel & { avatar?: string | null }) {
                   display: 'flex',
                   fontFamily: GOLOS,
                   fontWeight: 600,
-                  fontSize: 66,
-                  lineHeight: 1.04,
+                  fontSize: NAME_SIZE,
+                  lineHeight: NAME_LINE_HEIGHT,
                   letterSpacing: -1,
                   color: COLOR.ink,
                   wordBreak: 'break-word',
                   maxWidth: 600,
-                  maxHeight: 150,
+                  maxHeight: NAME_MAX_HEIGHT,
                   overflow: 'hidden',
                 }}
               >

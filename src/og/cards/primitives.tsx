@@ -131,29 +131,31 @@ export function Chip({ label }: { label: string }) {
   )
 }
 
-/* Bound by the Flag Edge, not a Hairline: a flag's own colours can match the
-   surface it meets, and a Hairline would not close the shape. */
+/* A flag drawn to a fixed box. The ring is the caller's: a nation chip is
+   hairline-bound, a stated Country wears the heavier Flag Edge. */
 function FlagMark({
   src,
   width,
   height,
   radius,
+  edge,
 }: {
   src: string
   width: number
   height: number
   radius: number
+  edge: string
 }) {
   return (
     <div
       style={{
+        position: 'relative',
         display: 'flex',
         flex: 'none',
         width,
         height,
         borderRadius: radius,
         overflow: 'hidden',
-        boxShadow: `inset 0 0 0 1px ${COLOR.flagEdge}`,
       }}
     >
       <img
@@ -163,11 +165,22 @@ function FlagMark({
         style={{ objectFit: 'cover' }}
         alt=""
       />
+      {/* Over the image, never under: an inset shadow on the wrapper paints
+          below the <img>, which covers it edge to edge and hides the ring. */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          borderRadius: radius,
+          boxShadow: `inset 0 0 0 1px ${edge}`,
+        }}
+      />
     </div>
   )
 }
 
-/** A crisp nation flag, edge-bound like the site's flag chip. */
+/** A crisp nation flag, hairline-bound like the site's flag chip. */
 export function FlagChip({ slug, size = 60 }: { slug: string; size?: number }) {
   const flag = flagDataUri(slug)
   if (!flag) return null
@@ -177,29 +190,37 @@ export function FlagChip({ slug, size = 60 }: { slug: string; size?: number }) {
       width={size}
       height={Math.round((size * 68) / 100)}
       radius={6}
+      edge={COLOR.hairline}
     />
   )
 }
 
-/* The Nameplate. The mark always carries the full name — that labelling is the
-   whole separation from the mark-only nation chips, and a card has no hover. */
+/* The mark always carries the full name — that labelling is the whole
+   separation from the mark-only nation chips, and a card has no hover. */
+export const COUNTRY_PLATE_HEIGHT = 48
+
 export function CountryPlate({ code }: { code: string }) {
-  const mark = resolveCountryMark(code)
-  const flag = mark && countryFlagDataUri(code)
   // Null for no country, and for a code the list no longer offers.
-  if (!mark || !flag) return null
+  const mark = resolveCountryMark(code)
+  if (!mark) return null
   return (
     <div
       style={{
         alignItems: 'center',
         flex: 'none',
-        height: 48,
+        height: COUNTRY_PLATE_HEIGHT,
         padding: '0 20px 0 6px',
         gap: 12,
         ...glassPlate,
       }}
     >
-      <FlagMark src={flag} width={42} height={28} radius={4} />
+      <FlagMark
+        src={countryFlagDataUri(mark)}
+        width={42}
+        height={28}
+        radius={4}
+        edge={COLOR.flagEdge}
+      />
       <div
         style={{
           display: 'flex',

@@ -1,9 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { resolveCountryMark } from '#/lib/country-mark-server'
 import { countryFlagDataUri, flagDataUri } from './flag-image'
 
-/* ADR 0009's crash mode is a fetch failing mid-render, so the assertion that
-   matters here is the negative one: resolving a mark issues no request at all.
-   A regression takes the whole card down, not just the flag. */
+const mark = (code: string) => resolveCountryMark(code)!
+
+/* ADR 0009's crash mode is a fetch failing mid-render, so the negative is what
+   matters: resolving a mark issues no request at all. */
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -19,11 +21,13 @@ function withoutNetwork<T>(body: () => T): { result: T; calls: number } {
 
 describe('countryFlagDataUri', () => {
   it('inlines the mark as a self-contained SVG data URI, issuing no fetch', () => {
-    const { result, calls } = withoutNetwork(() => countryFlagDataUri('JP'))
+    const { result, calls } = withoutNetwork(() =>
+      countryFlagDataUri(mark('JP')),
+    )
     expect(calls).toBe(0)
     expect(result).toMatch(/^data:image\/svg\+xml;base64,/)
 
-    const svg = Buffer.from(result!.split(',')[1], 'base64').toString()
+    const svg = Buffer.from(result.split(',')[1], 'base64').toString()
     expect(svg).toContain('<svg xmlns="http://www.w3.org/2000/svg"')
     expect(svg).toContain('viewBox=')
     // The xmlns is a namespace, never fetched; a reference the renderer would
@@ -32,17 +36,18 @@ describe('countryFlagDataUri', () => {
   })
 
   it('returns the same bytes every call, so a card version stays stable', () => {
-    expect(countryFlagDataUri('DE')).toBe(countryFlagDataUri('DE'))
+    expect(countryFlagDataUri(mark('DE'))).toBe(countryFlagDataUri(mark('DE')))
   })
 
-  it('answers null for a code the list does not carry', () => {
-    expect(countryFlagDataUri('ZZ')).toBeNull()
-    expect(countryFlagDataUri('')).toBeNull()
+  it('leaves the miss to the resolver, which owns the list', () => {
+    expect(resolveCountryMark('ZZ')).toBeNull()
+    expect(resolveCountryMark('')).toBeNull()
+    // A nation slug is not a country code, and neither list answers the other's.
+    expect(resolveCountryMark('ussr')).toBeNull()
   })
 
   it('is a second consumer of the seam, not a replacement for the nation one', () => {
     expect(flagDataUri('ussr')).toMatch(/^data:image\/svg\+xml;base64,/)
-    // A nation slug is not a country code, and neither list answers the other's.
-    expect(countryFlagDataUri('ussr')).toBeNull()
+    expect(flagDataUri('JP')).toBeNull()
   })
 })

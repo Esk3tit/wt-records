@@ -287,7 +287,7 @@ async function captionIsDrawn(displayName: string, countryCode?: string) {
 }
 
 const INK_LEVEL = 150 // above the pane's own fill, so only text and marks count
-const MARGIN = 60 // skips the pane's lit edges, which run the card's full height
+const EDGE_INSET = 60 // skips the pane's lit edges, which run the card's full height
 const INK_RUN = 3 // a run, so one stray antialiased pixel is not a row of ink
 
 async function lowestInkRow(node: Parameters<typeof renderCardPng>[0]) {
@@ -297,7 +297,7 @@ async function lowestInkRow(node: Parameters<typeof renderCardPng>[0]) {
     .toBuffer({ resolveWithObject: true })
   for (let y = info.height - 1; y >= 0; y--) {
     let bright = 0
-    for (let x = MARGIN; x < info.width - MARGIN; x++)
+    for (let x = EDGE_INSET; x < info.width - EDGE_INSET; x++)
       if (data[y * info.width + x] > INK_LEVEL) bright++
     if (bright > INK_RUN) return y
   }
