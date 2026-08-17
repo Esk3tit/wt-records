@@ -134,13 +134,13 @@ export function Chip({ label }: { label: string }) {
 /* A flag drawn to a fixed box. The ring is the caller's: a nation chip is
    hairline-bound, a stated Country wears the heavier Flag Edge. */
 function FlagMark({
-  src,
+  dataUri,
   width,
   height,
   radius,
   edge,
 }: {
-  src: string
+  dataUri: string
   width: number
   height: number
   radius: number
@@ -159,14 +159,14 @@ function FlagMark({
       }}
     >
       <img
-        src={src}
+        src={dataUri}
         width={width}
         height={height}
         style={{ objectFit: 'cover' }}
         alt=""
       />
       {/* Over the image, never under: an inset shadow on the wrapper paints
-          below the <img>, which covers it edge to edge and hides the ring. */}
+          beneath the picture, which covers it edge to edge and hides the ring. */}
       <div
         style={{
           position: 'absolute',
@@ -186,7 +186,7 @@ export function FlagChip({ slug, size = 60 }: { slug: string; size?: number }) {
   if (!flag) return null
   return (
     <FlagMark
-      src={flag}
+      dataUri={flag}
       width={size}
       height={Math.round((size * 68) / 100)}
       radius={6}
@@ -215,7 +215,7 @@ export function CountryPlate({ code }: { code: string }) {
       }}
     >
       <FlagMark
-        src={countryFlagDataUri(mark)}
+        dataUri={countryFlagDataUri(mark)}
         width={42}
         height={28}
         radius={4}
