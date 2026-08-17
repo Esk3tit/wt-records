@@ -57,6 +57,32 @@ describe('toPlayerCardModel', () => {
     ).toBe('avatars/42/abc.webp')
   })
 
+  it('carries the country code into the model, null by default', () => {
+    expect(toPlayerCardModel(data()).countryCode).toBeNull()
+    expect(toPlayerCardModel(data(), { countryCode: 'JP' }).countryCode).toBe(
+      'JP',
+    )
+  })
+
+  it('busts the version when the country is set, changed, or cleared', () => {
+    const none = toPlayerCardModel(data())
+    const jp = toPlayerCardModel(data(), { countryCode: 'JP' })
+    const de = toPlayerCardModel(data(), { countryCode: 'DE' })
+
+    expect(jp.version).not.toBe(none.version)
+    expect(de.version).not.toBe(jp.version)
+    expect(de.version).not.toBe(none.version)
+  })
+
+  it('keeps the country in the version on the tombstone path too', () => {
+    // The redirect computes the survivor's version itself, so a country left
+    // out there sends a scraper to a `?v=` the target does not self-compute.
+    const tombstone = { previouslyKnownAs: 'OldName' }
+    expect(
+      toPlayerCardModel(data(), { ...tombstone, countryCode: 'JP' }).version,
+    ).not.toBe(toPlayerCardModel(data(), tombstone).version)
+  })
+
   it('busts the version when the avatar is set, replaced, or removed', () => {
     const medallion = toPlayerCardModel(data())
     const set = toPlayerCardModel(data(), { avatarKey: 'avatars/42/abc.webp' })

@@ -20,6 +20,9 @@ export const COLOR = {
   inkSoft: 'rgba(255,255,255,0.78)',
   inkFaint: 'rgba(255,255,255,0.52)',
   hairline: 'rgba(255,255,255,0.16)',
+  // Heavier than Hairline on purpose: a flag's own colours can match the pane
+  // it meets, and a Hairline does not close the shape. Nothing else wears it.
+  flagEdge: 'rgba(255,255,255,0.3)',
   hairlineSoft: 'rgba(255,255,255,0.09)',
   glassHighlight: 'rgba(255,255,255,0.22)',
   ringTrack: 'rgba(255,255,255,0.12)', // completion-ring remainder
@@ -39,11 +42,13 @@ export const RADIUS = {
   pill: 999,
 } as const
 
+const GLASS_FILL =
+  'linear-gradient(180deg, rgba(255,255,255,0.11), rgba(255,255,255,0.05))'
+
 // The full DESIGN.md glass anatomy: top-lit fill, hairline, inset Glass
 // Highlight, ambient float shadow, and the backdrop blur the scene bleeds through.
 export const glassPanel = {
-  background:
-    'linear-gradient(180deg, rgba(255,255,255,0.11), rgba(255,255,255,0.05))',
+  background: GLASS_FILL,
   border: `1px solid ${COLOR.hairline}`,
   borderRadius: RADIUS.panel,
   boxShadow: `inset 0 1.5px 0 ${COLOR.glassHighlight}, 0 32px 64px -32px rgba(0,0,0,0.85)`,
@@ -55,4 +60,13 @@ export const glassChip = {
   background: 'rgba(255,255,255,0.07)',
   border: `1px solid ${COLOR.hairlineSoft}`,
   borderRadius: RADIUS.chip,
+} as const
+
+// Chip-scale glass with the pane's own anatomy rather than the flat chip fill:
+// the register for a mark that is an object in its own right, not a label.
+export const glassPlate = {
+  display: 'flex',
+  background: GLASS_FILL,
+  borderRadius: RADIUS.pill,
+  boxShadow: `inset 0 0 0 1px ${COLOR.hairline}, inset 0 1.5px 0 ${COLOR.glassHighlight}`,
 } as const

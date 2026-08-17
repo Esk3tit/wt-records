@@ -14,6 +14,7 @@ A thin suite — the flows worth driving end to end, not a second copy of the un
 | `profile-header.spec.ts`        | the disc stacks above the name on a phone; header controls reach 44px     |
 | `profile-monument.spec.ts`      | the profile's monument, and its one amber moment on an unclaimed page     |
 | `og-cards.spec.ts`              | every page unfurls, and the card routes serve real PNGs                   |
+| `og-player-country.spec.ts`     | the country reaches the share card, and an owner's session never does     |
 | `nav-pane.spec.ts`              | the nav pane rises with the reader's own scroll, not with a restored one  |
 | `nav-touch-targets.spec.ts`     | every nav control reaches 44px, and the pane is no taller for it          |
 | `nav-contrast.spec.ts`          | every ink in the nav clears 4.5:1 over the worst backdrop a page can give |

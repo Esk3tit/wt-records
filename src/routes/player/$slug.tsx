@@ -146,7 +146,10 @@ export const Route = createFileRoute('/player/$slug')({
         player: { displayName: loaderData.profile.displayName },
         records: loaderData.profile.records,
       },
-      { avatarKey: loaderData.profile.cardAvatarKey },
+      {
+        avatarKey: loaderData.profile.cardAvatarKey,
+        countryCode: loaderData.profile.countryCode,
+      },
     )
     const { title, description } = playerUnfurl(model)
     return {

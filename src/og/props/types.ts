@@ -59,5 +59,8 @@ export interface PlayerCardModel {
   /** R2 key of the Player's Avatar (null = Medallion). Enters the version so
       set/replace/remove busts the card URL; the route resolves it to bytes. */
   avatarKey: string | null
+  /** ISO-3166 alpha-2, never the resolved mark: `head()` computes this model
+      on the client too, and the 250 marks are server-only. */
+  countryCode: string | null
   version: string
 }

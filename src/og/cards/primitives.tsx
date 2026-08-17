@@ -1,7 +1,8 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { CARD_HEIGHT, CARD_WIDTH } from '#/og/render/renderer'
 import { monogram } from '#/lib/monogram'
-import { flagDataUri } from './flag-image'
+import { resolveCountryMark } from '#/lib/country-mark-server'
+import { countryFlagDataUri, flagDataUri } from './flag-image'
 import {
   AMBER_GLOW,
   COLOR,
@@ -11,6 +12,7 @@ import {
   SCENE_GRADIENT,
   glassChip,
   glassPanel,
+  glassPlate,
 } from './tokens'
 
 // Static stand-in for the site's WebGL Spatial Scene: a Night Hangar depth
@@ -129,30 +131,90 @@ export function Chip({ label }: { label: string }) {
   )
 }
 
-/** A crisp nation flag, hairline-bound like the site's flag chip. */
-export function FlagChip({ slug, size = 60 }: { slug: string; size?: number }) {
-  const flag = flagDataUri(slug)
-  if (!flag) return null
-  const h = Math.round((size * 68) / 100)
+/* Bound by the Flag Edge, not a Hairline: a flag's own colours can match the
+   surface it meets, and a Hairline would not close the shape. */
+function FlagMark({
+  src,
+  width,
+  height,
+  radius,
+}: {
+  src: string
+  width: number
+  height: number
+  radius: number
+}) {
   return (
     <div
       style={{
         display: 'flex',
         flex: 'none',
-        width: size,
-        height: h,
-        borderRadius: 6,
+        width,
+        height,
+        borderRadius: radius,
         overflow: 'hidden',
-        boxShadow: `inset 0 0 0 1px ${COLOR.hairline}`,
+        boxShadow: `inset 0 0 0 1px ${COLOR.flagEdge}`,
       }}
     >
       <img
-        src={flag}
-        width={size}
-        height={h}
+        src={src}
+        width={width}
+        height={height}
         style={{ objectFit: 'cover' }}
         alt=""
       />
+    </div>
+  )
+}
+
+/** A crisp nation flag, edge-bound like the site's flag chip. */
+export function FlagChip({ slug, size = 60 }: { slug: string; size?: number }) {
+  const flag = flagDataUri(slug)
+  if (!flag) return null
+  return (
+    <FlagMark
+      src={flag}
+      width={size}
+      height={Math.round((size * 68) / 100)}
+      radius={6}
+    />
+  )
+}
+
+/* The Nameplate. The mark always carries the full name — that labelling is the
+   whole separation from the mark-only nation chips, and a card has no hover. */
+export function CountryPlate({ code }: { code: string }) {
+  const mark = resolveCountryMark(code)
+  const flag = mark && countryFlagDataUri(code)
+  // Null for no country, and for a code the list no longer offers.
+  if (!mark || !flag) return null
+  return (
+    <div
+      style={{
+        alignItems: 'center',
+        flex: 'none',
+        height: 48,
+        padding: '0 20px 0 6px',
+        gap: 12,
+        ...glassPlate,
+      }}
+    >
+      <FlagMark src={flag} width={42} height={28} radius={4} />
+      <div
+        style={{
+          display: 'flex',
+          fontFamily: GOLOS,
+          fontWeight: 500,
+          fontSize: 28,
+          letterSpacing: -0.2,
+          // A wrapped country name is what takes the flag off the lockup's
+          // baseline and turns the plate back into a byline.
+          whiteSpace: 'nowrap',
+          color: COLOR.ink,
+        }}
+      >
+        {mark.name}
+      </div>
     </div>
   )
 }
