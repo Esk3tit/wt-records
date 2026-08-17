@@ -961,7 +961,10 @@ export async function getPlayer(db: Db, slug: string) {
       // match, so an off-branch record (invalid data) never renders here either.
       .innerJoin(modes, liveModeMatchesBranch)
       .where(and(eq(records.playerId, player.id), isCurrentVerified))
-      .orderBy(asc(records.mode), desc(records.kills)),
+      // Vehicle last, so equal-kill rows come back in one order rather than
+      // whichever the plan happened to produce — the profile and its share
+      // card each run this, and a tie ordered differently makes them disagree.
+      .orderBy(asc(records.mode), desc(records.kills), asc(vehicles.slug)),
   ])
 
   return { player, aliases: aliases.map((a) => a.name), records: recs }
