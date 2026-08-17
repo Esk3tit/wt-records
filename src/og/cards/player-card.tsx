@@ -9,12 +9,13 @@ import {
 } from './primitives'
 import { COLOR, GOLOS, SAIRA } from './tokens'
 
-export const NAME_SIZE = 66
+const NAME_SIZE = 66
 const NAME_LINE_HEIGHT = 1.04
-export const NAME_GAP = 20 // between the name and a country that wrapped below it
 const CAPTION_BLOCK = 72 // two lines of "previously known as", plus its margin
 
-const NAME_TWO_LINES = NAME_SIZE * NAME_LINE_HEIGHT * 2
+export const NAME_GAP = 20 // between the name and a country that wrapped below it
+export const CAPTION_MARGIN_TOP = 8 // where a caption starts, and so where one would show
+export const NAME_TWO_LINES = NAME_SIZE * NAME_LINE_HEIGHT * 2
 
 // Rounded up, so two lines always fit whole and a third can never start: slack
 // here is what lets a clipped line through as a row of glyph tops.
@@ -92,7 +93,7 @@ export function PlayerCard(m: PlayerCardModel & { avatar?: string | null }) {
               <div
                 style={{
                   display: 'flex',
-                  marginTop: 8,
+                  marginTop: CAPTION_MARGIN_TOP,
                   fontFamily: GOLOS,
                   fontWeight: 500,
                   fontSize: 26,
