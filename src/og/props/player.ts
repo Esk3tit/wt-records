@@ -13,7 +13,11 @@ export interface PlayerCardData {
 
 export function toPlayerCardModel(
   data: PlayerCardData,
-  opts: { previouslyKnownAs?: string | null; avatarKey?: string | null } = {},
+  opts: {
+    previouslyKnownAs?: string | null
+    avatarKey?: string | null
+    countryCode?: string | null
+  } = {},
 ): PlayerCardModel {
   const { records } = data
 
@@ -25,8 +29,16 @@ export function toPlayerCardModel(
     count,
   }))
 
+  /* Ties broken on the name, not left to row order: the page and the image
+     route each run their own query, and equal-kill records come back unordered
+     between them — so an arbitrary pick makes the two disagree on which record
+     is best, and the `?v=` the page publishes stops matching the card. */
   let best: (typeof records)[number] | null = null
-  for (const r of records) if (!best || r.kills > best.kills) best = r
+  for (const r of records) {
+    if (!best || r.kills > best.kills) best = r
+    else if (r.kills === best.kills && r.vehicleName < best.vehicleName)
+      best = r
+  }
 
   const nationsSpanned = new Set(records.map((r) => r.nationSlug)).size
 
@@ -40,6 +52,7 @@ export function toPlayerCardModel(
     nationsSpanned,
     previouslyKnownAs: opts.previouslyKnownAs ?? null,
     avatarKey: opts.avatarKey ?? null,
+    countryCode: opts.countryCode ?? null,
   }
   return { ...base, version: contentVersion(base) }
 }

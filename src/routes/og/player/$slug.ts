@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { db } from '#/db'
 import {
   effectiveAvatarKey,
+  effectiveCountry,
   getPlayer,
   mergedFromName,
   playerMergeRedirect,
@@ -56,6 +57,7 @@ export const Route = createFileRoute('/og/player/$slug')({
               // The redirect target renders with the "previously known as"
               // caption (from=slug), so its version must include it too — else
               // the `?v=` wouldn't match the content the target self-computes.
+              // Same for the country: it is on the card, so it is in the hash.
               const version = s
                 ? toPlayerCardModel(
                     { player: s.player, records: s.records },
@@ -65,6 +67,7 @@ export const Route = createFileRoute('/og/player/$slug')({
                         survivor,
                       ),
                       avatarKey: effectiveAvatarKey(s.player),
+                      countryCode: effectiveCountry(s.player),
                     },
                   ).version
                 : undefined
@@ -85,7 +88,11 @@ export const Route = createFileRoute('/og/player/$slug')({
           ])
           const model = toPlayerCardModel(
             { player: player.player, records: player.records },
-            { previouslyKnownAs: pka, avatarKey },
+            {
+              previouslyKnownAs: pka,
+              avatarKey,
+              countryCode: effectiveCountry(player.player),
+            },
           )
           const bytes = await renderCardPng(cardElement(model, avatar))
           // A claimed Avatar we couldn't render degrades to the Medallion (R2

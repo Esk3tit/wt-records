@@ -109,6 +109,49 @@ async function dropPlayer(sql: Sql, slug: string): Promise<void> {
   await sql`delete from players where slug = ${slug}`
 }
 
+/** Holds the one-claim-per-User lock for the named users, without seeding a
+    Player. A case that only *reads* claim state needs it as much as one that
+    writes: undeclared, it is starved by every declared one rather than
+    colliding with it, and reports a missing control instead of a conflict. */
+export async function withClaimLock(
+  emails: ReadonlyArray<string>,
+  body: (sql: Sql) => Promise<void>,
+): Promise<void> {
+  const sql = connect()
+  try {
+    await takeClaimLocks(sql, emails)
+    await body(sql)
+  } finally {
+    await sql.end()
+  }
+}
+
+async function takeClaimLocks(
+  sql: Sql,
+  emails: ReadonlyArray<string>,
+): Promise<void> {
+  /* Two parallel cases claiming as the same user collide on ply_user_uq;
+     this queues them. Session-scoped — the disconnect frees it. Taken in a
+     fixed order, so a case naming two users cannot deadlock against one
+     naming them the other way round. */
+  const claimants = [...new Set(emails)]
+  for (const email of [...claimants].sort()) {
+    await sql`select pg_advisory_lock(hashtext(${`e2e-owner:${email}`}))`
+  }
+  /* Delete-first covers the slug; the claim is the other thing a killed run
+     leaves behind, and `ply_user_uq` then makes one stray row fatal to every
+     later fixture claiming as that user — the suite reports a constraint
+     violation rather than whatever actually broke. Freed safely: the locks
+     above are held by every case that claims, so the only claim this can take
+     is a dead one. */
+  for (const email of claimants) {
+    await sql`
+      update players set user_id = null
+      where user_id = (select id from auth.users where email = ${email})
+    `
+  }
+}
+
 /** Runs a case against a freshly seeded Player and takes the row away after,
     whether the assertions passed or not. The body is handed the connection so
     a case can read or write the row it is asserting on. */
@@ -118,28 +161,12 @@ export async function withPlayer(
 ): Promise<void> {
   const sql = connect()
   try {
-    /* Two parallel cases claiming as the same user collide on ply_user_uq;
-       this queues them. Session-scoped — the disconnect below frees it. Taken
-       in a fixed order, so a case naming two users cannot deadlock against one
-       naming them the other way round. */
-    const claimants = [
-      ...new Set([seed.ownerEmail, ...(seed.claimsAs ?? [])]),
-    ].filter((email): email is string => email != null)
-    for (const email of claimants.sort()) {
-      await sql`select pg_advisory_lock(hashtext(${`e2e-owner:${email}`}))`
-    }
-    /* Delete-first covers the slug; the claim is the other thing a killed run
-       leaves behind, and `ply_user_uq` then makes one stray row fatal to every
-       later fixture claiming as that user — the suite reports a constraint
-       violation rather than whatever actually broke. Freed for the same reason
-       the slug is, and safely: the locks above are held by every case that
-       claims, so the only claim this can take is a dead one. */
-    for (const email of claimants) {
-      await sql`
-        update players set user_id = null
-        where user_id = (select id from auth.users where email = ${email})
-      `
-    }
+    await takeClaimLocks(
+      sql,
+      [seed.ownerEmail, ...(seed.claimsAs ?? [])].filter(
+        (email): email is string => email != null,
+      ),
+    )
     const id = await seedPlayer(sql, seed)
     await body({ sql, id })
   } finally {

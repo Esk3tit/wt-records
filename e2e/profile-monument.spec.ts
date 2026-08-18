@@ -2,8 +2,9 @@ import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 import { amberMoments } from './support/amber'
 import { firstPath, openNav } from './support/nav'
-import { withPlayer } from './support/players'
+import { withClaimLock, withPlayer } from './support/players'
 import { STATE } from './support/states'
+import { TEST_USERS } from './support/users'
 import { LIGHTING } from './support/theme'
 import type { Lighting } from './support/theme'
 
@@ -117,18 +118,23 @@ test.describe('the claim form', () => {
   test('adds the commit as the one further amber, and nothing else', async ({
     page,
   }) => {
-    await openProfile(page)
-    await page.getByRole('button', { name: 'Claim this page' }).click()
-    await expect(
-      page.getByRole('button', { name: 'Request claim' }),
-    ).toBeVisible()
+    // The form is offered only while the viewer holds no claim of their own,
+    // so this reads the same lock every claiming fixture takes — undeclared, it
+    // is starved by them and times out on a control that never renders.
+    await withClaimLock([TEST_USERS.viewer.email], async () => {
+      await openProfile(page)
+      await page.getByRole('button', { name: 'Claim this page' }).click()
+      await expect(
+        page.getByRole('button', { name: 'Request claim' }),
+      ).toBeVisible()
 
-    const moments = await amberMoments(page, 'main')
+      const moments = await amberMoments(page, 'main')
 
-    expect(moments.map((m) => m.says)).toEqual([
-      expect.stringMatching(/^[\d,]+\s*days?$/),
-      'Request claim',
-    ])
+      expect(moments.map((m) => m.says)).toEqual([
+        expect.stringMatching(/^[\d,]+\s*days?$/),
+        'Request claim',
+      ])
+    })
   })
 })
 
